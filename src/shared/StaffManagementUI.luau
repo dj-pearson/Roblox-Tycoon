@@ -531,7 +531,7 @@ function StaffManagementUI:createStaffItem(name, role, performance, order)
     -- Performance text
     local perfText = UIStyle.createText({
         name = "PerfText",
-        text = performance.."%",
+        text = performance.."%", 
         style = "numeric",
         size = UDim2.new(0, 50, 0, 20),
         position = UDim2.new(0.4, 10 + perfBarBg.Size.X.Offset + 10, 0, 25),
@@ -593,15 +593,510 @@ end
 function StaffManagementUI:buildTrainingTab()
     local trainingTab = self.trainingTab
     
-    -- Coming Soon message
-    local comingSoon = UIStyle.createText({
-        name = "ComingSoon",
-        text = "Staff Training System\nComing Soon",
-        style = "titleMedium",
-        size = UDim2.new(1, 0, 0, 100),
-        position = UDim2.new(0, 0, 0.3, 0),
+    -- Title
+    local title = UIStyle.createText({
+        name = "Title",
+        text = "Staff Training Programs",
+        style = "titleSmall",
+        size = UDim2.new(1, 0, 0, 30),
+        position = UDim2.new(0, 0, 0, 0),
+        parent = trainingTab,
+        layoutOrder = 1
+    })
+    
+    -- Description
+    local description = UIStyle.createText({
+        name = "Description",
+        text = "Train your staff to improve their skills and performance. Trained staff provide better service and increase customer satisfaction.",
+        style = "body",
+        size = UDim2.new(1, 0, 0, 50),
+        position = UDim2.new(0, 0, 0, 40),
+        parent = trainingTab,
+        layoutOrder = 2
+    })
+    description.TextWrapped = true
+    
+    -- Staff selection container
+    local selectionContainer = Instance.new("Frame")
+    selectionContainer.Name = "SelectionContainer"
+    selectionContainer.Size = UDim2.new(1, 0, 0, 80)
+    selectionContainer.BackgroundColor3 = UIStyle.colors.backgroundDark
+    selectionContainer.BorderSizePixel = 0
+    selectionContainer.LayoutOrder = 3
+    selectionContainer.Parent = trainingTab
+    
+    -- Container corner
+    local containerCorner = Instance.new("UICorner")
+    containerCorner.CornerRadius = UIStyle.layout.cornerRadiusMedium
+    containerCorner.Parent = selectionContainer
+    
+    -- Staff selection label
+    local selectionLabel = UIStyle.createText({
+        name = "SelectionLabel",
+        text = "Select Staff Member:",
+        style = "label",
+        size = UDim2.new(0, 150, 0, 30),
+        position = UDim2.new(0, 10, 0, 10),
+        parent = selectionContainer
+    })
+    
+    -- Staff dropdown
+    local staffDropdown = Instance.new("TextButton")
+    staffDropdown.Name = "StaffDropdown"
+    staffDropdown.Size = UDim2.new(1, -180, 0, 35)
+    staffDropdown.Position = UDim2.new(0, 160, 0, 10)
+    staffDropdown.BackgroundColor3 = UIStyle.colors.background
+    staffDropdown.TextColor3 = UIStyle.colors.textPrimary
+    staffDropdown.Text = "Select a staff member..."
+    staffDropdown.Font = UIStyle.fonts.body
+    staffDropdown.TextSize = UIStyle.textSizes.body
+    staffDropdown.TextXAlignment = Enum.TextXAlignment.Left
+    staffDropdown.BorderSizePixel = 0
+    staffDropdown.AutoButtonColor = true
+    staffDropdown.Parent = selectionContainer
+    
+    -- Add padding to dropdown text
+    local dropdownPadding = Instance.new("UIPadding")
+    dropdownPadding.PaddingLeft = UDim.new(0, 10)
+    dropdownPadding.Parent = staffDropdown
+    
+    -- Dropdown corner
+    local dropdownCorner = Instance.new("UICorner")
+    dropdownCorner.CornerRadius = UIStyle.layout.cornerRadiusSmall
+    dropdownCorner.Parent = staffDropdown
+    
+    -- Dropdown arrow indicator
+    local dropdownArrow = Instance.new("TextLabel")
+    dropdownArrow.Name = "DropdownArrow"
+    dropdownArrow.Size = UDim2.new(0, 20, 0, 20)
+    dropdownArrow.Position = UDim2.new(1, -25, 0.5, -10)
+    dropdownArrow.BackgroundTransparency = 1
+    dropdownArrow.Text = "▼"
+    dropdownArrow.TextColor3 = UIStyle.colors.textSecondary
+    dropdownArrow.Font = Enum.Font.SourceSans
+    dropdownArrow.TextSize = 14
+    dropdownArrow.Parent = staffDropdown
+    
+    -- Training programs container
+    local programsContainer = Instance.new("Frame")
+    programsContainer.Name = "ProgramsContainer"
+    programsContainer.Size = UDim2.new(1, 0, 0, 350)
+    programsContainer.BackgroundColor3 = UIStyle.colors.backgroundDark
+    programsContainer.BorderSizePixel = 0
+    programsContainer.LayoutOrder = 4
+    programsContainer.Parent = trainingTab
+    
+    -- Programs container corner
+    local programsCorner = Instance.new("UICorner")
+    programsCorner.CornerRadius = UIStyle.layout.cornerRadiusMedium
+    programsCorner.Parent = programsContainer
+    
+    -- Programs title
+    local programsTitle = UIStyle.createText({
+        name = "ProgramsTitle",
+        text = "Available Training Programs",
+        style = "subheader",
+        size = UDim2.new(1, 0, 0, 30),
+        position = UDim2.new(0, 10, 0, 10),
+        parent = programsContainer
+    })
+    
+    -- Create training program cards
+    self:createTrainingProgram(
+        programsContainer,
+        "Customer Service",
+        "Improves staff interactions with gym members, increasing satisfaction.",
+        "$250",
+        "+10% Customer Satisfaction",
+        UDim2.new(0, 10, 0, 50),
+        1
+    )
+    
+    self:createTrainingProgram(
+        programsContainer,
+        "Equipment Expertise",
+        "Enhances knowledge of gym equipment usage and maintenance.",
+        "$350",
+        "+15% Equipment Efficiency",
+        UDim2.new(0, 10, 0, 150),
+        2
+    )
+    
+    self:createTrainingProgram(
+        programsContainer,
+        "Fitness Certification",
+        "Professional certification for trainers to provide advanced workout guidance.",
+        "$500",
+        "+20% Member Progress Rate",
+        UDim2.new(0, 10, 0, 250),
+        3
+    )
+    
+    -- Staff skills container
+    local skillsContainer = Instance.new("Frame")
+    skillsContainer.Name = "SkillsContainer" 
+    skillsContainer.Size = UDim2.new(1, 0, 0, 150)
+    skillsContainer.BackgroundColor3 = UIStyle.colors.backgroundDark
+    skillsContainer.BorderSizePixel = 0
+    skillsContainer.LayoutOrder = 5
+    skillsContainer.Parent = trainingTab
+    
+    -- Skills container corner
+    local skillsCorner = Instance.new("UICorner")
+    skillsCorner.CornerRadius = UIStyle.layout.cornerRadiusMedium
+    skillsCorner.Parent = skillsContainer
+    
+    -- Skills title
+    local skillsTitle = UIStyle.createText({
+        name = "SkillsTitle", 
+        text = "Staff Member Skills",
+        style = "subheader",
+        size = UDim2.new(1, 0, 0, 30),
+        position = UDim2.new(0, 10, 0, 10),
+        parent = skillsContainer
+    })
+    
+    -- No staff selected message
+    local noStaffMessage = UIStyle.createText({
+        name = "NoStaffMessage",
+        text = "Select a staff member to view their skills",
+        style = "body",
+        color = UIStyle.colors.textSecondary,
+        size = UDim2.new(1, -20, 0, 30),
+        position = UDim2.new(0, 10, 0, 60),
         xAlign = Enum.TextXAlignment.Center,
-        parent = trainingTab
+        parent = skillsContainer
+    })
+    
+    -- Create skill bars (hidden by default)
+    self:createSkillBar(skillsContainer, "Customer Service", 0, UDim2.new(0, 10, 0, 50))
+    self:createSkillBar(skillsContainer, "Equipment Knowledge", 0, UDim2.new(0, 10, 0, 80))
+    self:createSkillBar(skillsContainer, "Fitness Expertise", 0, UDim2.new(0, 10, 0, 110))
+    
+    -- Hide skill bars initially
+    for _, child in pairs(skillsContainer:GetChildren()) do
+        if child.Name:find("SkillBar_") then
+            child.Visible = false
+        end
+    end
+    
+    -- Connect staff dropdown
+    staffDropdown.MouseButton1Click:Connect(function()
+        self:showStaffSelectionDropdown(staffDropdown)
+    end)
+end
+
+-- Create a training program card
+function StaffManagementUI:createTrainingProgram(parent, name, description, cost, benefit, position, order)
+    local program = Instance.new("Frame")
+    program.Name = "Program_" .. name:gsub(" ", "")
+    program.Size = UDim2.new(1, -20, 0, 90)
+    program.Position = position
+    program.BackgroundColor3 = UIStyle.colors.background
+    program.BorderSizePixel = 0
+    program.LayoutOrder = order
+    program.Parent = parent
+    
+    -- Program corner
+    local programCorner = Instance.new("UICorner")
+    programCorner.CornerRadius = UIStyle.layout.cornerRadiusSmall
+    programCorner.Parent = program
+    
+    -- Program name
+    local programName = UIStyle.createText({
+        name = "Name",
+        text = name,
+        style = "bodyLarge",
+        size = UDim2.new(1, -180, 0, 25),
+        position = UDim2.new(0, 10, 0, 10),
+        parent = program
+    })
+    
+    -- Program description
+    local programDesc = UIStyle.createText({
+        name = "Description",
+        text = description,
+        style = "body",
+        size = UDim2.new(1, -180, 0, 40),
+        position = UDim2.new(0, 10, 0, 40),
+        color = UIStyle.colors.textSecondary,
+        parent = program
+    })
+    programDesc.TextWrapped = true
+    
+    -- Cost label
+    local costLabel = UIStyle.createText({
+        name = "Cost",
+        text = cost,
+        style = "numeric",
+        size = UDim2.new(0, 80, 0, 25),
+        position = UDim2.new(1, -170, 0, 10),
+        color = UIStyle.colors.warning,
+        parent = program
+    })
+    
+    -- Benefit label
+    local benefitLabel = UIStyle.createText({
+        name = "Benefit",
+        text = benefit,
+        style = "label",
+        size = UDim2.new(0, 80, 0, 25),
+        position = UDim2.new(1, -170, 0, 40),
+        color = UIStyle.colors.success,
+        parent = program
+    })
+    
+    -- Train button
+    local trainButton = Instance.new("TextButton")
+    trainButton.Name = "TrainButton"
+    trainButton.Size = UDim2.new(0, 80, 0, 30)
+    trainButton.Position = UDim2.new(1, -90, 0.5, -15)
+    trainButton.BackgroundColor3 = UIStyle.colors.primary
+    trainButton.TextColor3 = UIStyle.colors.textPrimary
+    trainButton.Text = "Train"
+    trainButton.Font = UIStyle.fonts.button.Font
+    trainButton.TextSize = UIStyle.fonts.button.Size
+    trainButton.BorderSizePixel = 0
+    trainButton.Parent = program
+    
+    -- Button corner
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UIStyle.layout.cornerRadiusSmall
+    buttonCorner.Parent = trainButton
+    
+    -- Connect button
+    trainButton.MouseButton1Click:Connect(function()
+        self:startTraining(name)
+    end)
+    
+    return program
+end
+
+-- Create a skill bar for staff member
+function StaffManagementUI:createSkillBar(parent, skillName, value, position)
+    local skillBar = Instance.new("Frame")
+    skillBar.Name = "SkillBar_" .. skillName:gsub(" ", "")
+    skillBar.Size = UDim2.new(1, -20, 0, 20)
+    skillBar.Position = position
+    skillBar.BackgroundTransparency = 1
+    skillBar.Parent = parent
+    
+    -- Skill name
+    local nameLabel = UIStyle.createText({
+        name = "SkillName",
+        text = skillName .. ":",
+        style = "body",
+        size = UDim2.new(0.25, 0, 0, 20),
+        position = UDim2.new(0, 0, 0, 0),
+        parent = skillBar
+    })
+    
+    -- Bar background
+    local barBg = Instance.new("Frame")
+    barBg.Name = "BarBackground"
+    barBg.Size = UDim2.new(0.65, 0, 1, 0)
+    barBg.Position = UDim2.new(0.3, 0, 0, 0)
+    barBg.BackgroundColor3 = UIStyle.colors.backgroundLight
+    barBg.BorderSizePixel = 0
+    barBg.Parent = skillBar
+    
+    -- Bar background corner
+    local bgCorner = Instance.new("UICorner")
+    bgCorner.CornerRadius = UIStyle.layout.cornerRadiusSmall
+    bgCorner.Parent = barBg
+    
+    -- Bar fill
+    local barFill = Instance.new("Frame")
+    barFill.Name = "BarFill"
+    barFill.Size = UDim2.new(value/100, 0, 1, 0)
+    barFill.BackgroundColor3 = UIStyle.colors.primary
+    barFill.BorderSizePixel = 0
+    barFill.Parent = barBg
+    
+    -- Bar fill corner
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UIStyle.layout.cornerRadiusSmall
+    fillCorner.Parent = barFill
+    
+    -- Value text
+    local valueText = UIStyle.createText({
+        name = "Value", 
+        text = value .. "%",
+        style = "numeric",
+        size = UDim2.new(0.1, -10, 0, 20),
+        position = UDim2.new(0.9, 10, 0, 0),
+        parent = skillBar
+    })
+    
+    return skillBar
+end
+
+-- Show staff selection dropdown
+function StaffManagementUI:showStaffSelectionDropdown(button)
+    -- Remove existing dropdown if any
+    local existingDropdown = button.Parent:FindFirstChild("StaffSelectionDropdown")
+    if existingDropdown then
+        existingDropdown:Destroy()
+        return
+    end
+    
+    -- Create dropdown container
+    local dropdown = Instance.new("Frame")
+    dropdown.Name = "StaffSelectionDropdown"
+    dropdown.Size = UDim2.new(button.Size.X.Scale, button.Size.X.Offset, 0, 120)
+    dropdown.Position = UDim2.new(
+        button.Position.X.Scale, 
+        button.Position.X.Offset, 
+        button.Position.Y.Scale, 
+        button.Position.Y.Offset + button.Size.Y.Offset + 5
+    )
+    dropdown.BackgroundColor3 = UIStyle.colors.backgroundLight
+    dropdown.BorderSizePixel = 0
+    dropdown.ZIndex = 10
+    dropdown.Parent = button.Parent
+    
+    -- Dropdown corner
+    local dropdownCorner = Instance.new("UICorner")
+    dropdownCorner.CornerRadius = UIStyle.layout.cornerRadiusSmall
+    dropdownCorner.Parent = dropdown
+    
+    -- Staff options (sample data)
+    local staffOptions = {
+        {name = "Manager Mike", id = "staff1"},
+        {name = "Trainer Tim", id = "staff2"},
+        {name = "Cleaner Clara", id = "staff3"}
+    }
+    
+    -- Create option buttons
+    for i, staff in ipairs(staffOptions) do
+        local option = Instance.new("TextButton")
+        option.Name = "Option_" .. staff.id
+        option.Size = UDim2.new(1, 0, 0, 30)
+        option.Position = UDim2.new(0, 0, 0, (i-1) * 40)
+        option.BackgroundColor3 = UIStyle.colors.background
+        option.BackgroundTransparency = 0.5
+        option.Text = staff.name
+        option.TextColor3 = UIStyle.colors.textPrimary
+        option.Font = UIStyle.fonts.body
+        option.TextSize = UIStyle.textSizes.body
+        option.TextXAlignment = Enum.TextXAlignment.Left
+        option.ZIndex = 11
+        option.BorderSizePixel = 0
+        option.AutoButtonColor = true
+        option.Parent = dropdown
+        
+        -- Option padding
+        local optionPadding = Instance.new("UIPadding")
+        optionPadding.PaddingLeft = UDim.new(0, 10)
+        optionPadding.Parent = option
+        
+        -- Connect option selection
+        option.MouseButton1Click:Connect(function()
+            button.Text = staff.name
+            dropdown:Destroy()
+            self:loadStaffSkills(staff.id)
+        end)
+    end
+end
+
+-- Load staff skills
+function StaffManagementUI:loadStaffSkills(staffId)
+    -- Hide no staff message
+    local skillsContainer = self.trainingTab:FindFirstChild("SkillsContainer")
+    if skillsContainer then
+        local noStaffMessage = skillsContainer:FindFirstChild("NoStaffMessage")
+        if noStaffMessage then
+            noStaffMessage.Visible = false
+        end
+    end
+    
+    -- Show skill bars with sample data
+    -- In a real implementation, this would load from a server request
+    local sampleSkills = {
+        ["staff1"] = {
+            ["CustomerService"] = 85,
+            ["EquipmentKnowledge"] = 70,
+            ["FitnessExpertise"] = 60
+        },
+        ["staff2"] = {
+            ["CustomerService"] = 65,
+            ["EquipmentKnowledge"] = 90,
+            ["FitnessExpertise"] = 95
+        },
+        ["staff3"] = {
+            ["CustomerService"] = 75,
+            ["EquipmentKnowledge"] = 50,
+            ["FitnessExpertise"] = 30
+        }
+    }
+    
+    local skills = sampleSkills[staffId] or {
+        ["CustomerService"] = 0,
+        ["EquipmentKnowledge"] = 0,
+        ["FitnessExpertise"] = 0
+    }
+    
+    -- Update skill bars
+    if skillsContainer then
+        local customerServiceBar = skillsContainer:FindFirstChild("SkillBar_CustomerService")
+        local equipmentBar = skillsContainer:FindFirstChild("SkillBar_EquipmentKnowledge")
+        local fitnessBar = skillsContainer:FindFirstChild("SkillBar_FitnessExpertise")
+        
+        if customerServiceBar then
+            customerServiceBar.Visible = true
+            local barFill = customerServiceBar.BarBackground.BarFill
+            local valueText = customerServiceBar.Value
+            
+            barFill.Size = UDim2.new(skills.CustomerService/100, 0, 1, 0)
+            valueText.Text = skills.CustomerService .. "%"
+        end
+        
+        if equipmentBar then
+            equipmentBar.Visible = true
+            local barFill = equipmentBar.BarBackground.BarFill
+            local valueText = equipmentBar.Value
+            
+            barFill.Size = UDim2.new(skills.EquipmentKnowledge/100, 0, 1, 0)
+            valueText.Text = skills.EquipmentKnowledge .. "%"
+        end
+        
+        if fitnessBar then
+            fitnessBar.Visible = true
+            local barFill = fitnessBar.BarBackground.BarFill
+            local valueText = fitnessBar.Value
+            
+            barFill.Size = UDim2.new(skills.FitnessExpertise/100, 0, 1, 0)
+            valueText.Text = skills.FitnessExpertise .. "%"
+        end
+    end
+    
+    -- Store selected staff ID
+    self.selectedStaffId = staffId
+end
+
+-- Start training for a staff member
+function StaffManagementUI:startTraining(programName)
+    if not self.selectedStaffId then
+        -- Show notification that staff needs to be selected
+        self:trigger("notification", {
+            title = "Selection Required",
+            message = "Please select a staff member to train",
+            type = "warning"
+        })
+        return
+    end
+    
+    -- In a real implementation, this would send a request to the server
+    self:trigger("startTraining", {
+        staffId = self.selectedStaffId,
+        program = programName
+    })
+    
+    -- Show training started notification
+    self:trigger("notification", {
+        title = "Training Started",
+        message = "Started " .. programName .. " training program",
+        type = "success"
     })
 end
 
