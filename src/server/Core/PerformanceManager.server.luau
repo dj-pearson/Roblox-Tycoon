@@ -584,7 +584,7 @@ function PerformanceManager:getSystemPerformance(systemName)
         totalExecutionTime = 0,
         maxExecutionTime = 0,
         operationTimes = {}
-    }
+    end
 end
 
 -- Get all system performance metrics

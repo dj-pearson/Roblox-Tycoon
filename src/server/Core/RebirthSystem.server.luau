@@ -1,4 +1,3 @@
-lua
 -- RebirthSystem.server.luau
 -- Module to manage the rebirths
 

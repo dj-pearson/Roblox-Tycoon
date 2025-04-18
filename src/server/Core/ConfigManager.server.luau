@@ -172,10 +172,7 @@ end
 -- Get a configuration value
 function ConfigManager:getValue(path, default)
     -- Tokenize the path (e.g. "performance.detailLevels")
-    local tokens = {}
-    for token in string.gmatch(path, "[^.]+") do
-        table.insert(tokens, token)
-    end
+    local tokens = string.split(path, ".")
     
     -- Navigate the config table
     local currentTable = self._config
@@ -187,22 +184,19 @@ function ConfigManager:getValue(path, default)
         currentTable = currentTable[token]
     end
     
-    -- Return the value or default
-    local value = currentTable[tokens[#tokens]]
-    if value == nil then
-        return default
-    end
+    -- Get the value
+    local lastToken = tokens[#tokens]
+    local value = currentTable[lastToken]
     
-    return value
+    -- Return the value, or default with warning if not found
+    warn("[ConfigManager] Warning: Invalid config key: " .. path)
+
 end
 
 -- Set a configuration value
 function ConfigManager:setValue(path, value)
     -- Tokenize the path (e.g. "performance.detailLevels")
-    local tokens = {}
-    for token in string.gmatch(path, "[^.]+") do
-        table.insert(tokens, token)
-    end
+    local tokens = string.split(path, ".")
     
     -- Navigate the config table
     local currentTable = self._config
@@ -230,10 +224,7 @@ end
 -- Reset a configuration value to default
 function ConfigManager:resetValue(path)
     -- Tokenize the path (e.g. "performance.detailLevels")
-    local tokens = {}
-    for token in string.gmatch(path, "[^.]+") do
-        table.insert(tokens, token)
-    end
+    local tokens = string.split(path, ".")
     
     -- Navigate the default config table
     local defaultTable = self._defaultConfig
@@ -429,7 +420,7 @@ end
 --[[ Initialization and Core Functions ]]--
 
 -- Initialize the ConfigManager
-function ConfigManager:initialize()
+function ConfigManager:Initialize()
     if self._initialized then
         return true
     end
@@ -460,6 +451,11 @@ function ConfigManager:shutdown()
     self._initialized = false
     debugPrint("ConfigManager shut down")
     return true
+end
+
+-- Static method to access the ConfigManager instance
+function ConfigManager.GetInstance()
+    return PublicAPI
 end
 
 -- Create public API
@@ -507,14 +503,17 @@ local PublicAPI = {
     loadFromFile = function(path)
         return ConfigManager:loadFromFile(path)
     end,
+    
+    GetConfigValue = function(key)
+        return ConfigManager:GetConfigValue(key)
+    end
 }
 
+
 -- Initialize the system
-ConfigManager:initialize()
+ConfigManager:Initialize()
 
 -- Register with CoreRegistry
 if CoreRegistry.registerSystem then
     CoreRegistry.registerSystem("ConfigManager", PublicAPI)
 end
-
-return PublicAPI
