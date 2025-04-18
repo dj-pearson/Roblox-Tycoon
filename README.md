@@ -15,3 +15,22 @@ rojo serve
 ```
 
 For more help, check out [the Rojo documentation](https://rojo.space/docs).
+
+## Python Tools
+
+This project uses Python for external tooling, automation, and potential integration tasks. You can find all Python scripts and related files in the `tools/` directory.
+
+**Key Files:**
+
+*   **`tools/`:** This directory contains Python scripts and modules.
+*   **`tools/README.md`:**  Detailed instructions on setting up the Python environment, installing dependencies, and using the tools are available in this file.
+*   **`requirements.txt`:** This file lists the required Python packages for the project. You can install them using `pip install -r requirements.txt` inside a virtual environment.
+* **`pyproject.toml`:** This file contains the project's settings.
+
+**Getting Started:**
+
+If you plan to use or develop the Python tools, please refer to the `tools/README.md` file for setup instructions. It will guide you through creating a virtual environment and installing the necessary dependencies.
+
+**Note:**
+
+If you add new dependencies to the python tools, remember to update the `requirements.txt` file.

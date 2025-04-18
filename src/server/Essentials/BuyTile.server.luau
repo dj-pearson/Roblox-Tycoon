@@ -6,7 +6,6 @@
 local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -919,12 +918,9 @@ local function handleTilePurchase(buyTile)
 			return
 		end
 
-		local cashStat = leaderstats.Cash
 
 		-- Check if player has enough cash
-		if cashStat.Value >= price then
 			-- Deduct cash
-			cashStat.Value = cashStat.Value - price
 			debugPrint(player.Name .. " purchased BuyTile " .. id)
 
 			-- Immediately remove from workspace to prevent double purchasing
@@ -956,32 +952,7 @@ local function handleTilePurchase(buyTile)
 						debugPrint("Failed to set up front desk for " .. player.Name)
 					end
 				end)
-			end
-
-			-- Try to use GymTycoonConnector
-			if _G.GymTycoonConnector and _G.GymTycoonConnector.onTilePurchased then
-				_G.GymTycoonConnector.onTilePurchased(player, id)
-				debugPrint("Notified GymTycoonConnector about purchase")
-			else
-				-- Fallback handling
-				debugPrint("GymTycoonConnector not found, using fallback")
-
-				-- Update equipment count
-				local tycoon = player:FindFirstChild("Tycoon")
-				if tycoon then
-					local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
-					tycoon:SetAttribute("EquipmentCount", equipmentCount + 1)
-				end
-
-				-- Fire event
-				local EventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
-				if EventBridge then
-					local tileEvent = EventBridge:FindFirstChild("TilePurchased")
-					if tileEvent then
-						tileEvent:Fire(player, id)
-					end
-				end
-			end
+			end			
 
 			-- Spawn corresponding Gym Part
 			task.spawn(function()
@@ -1005,17 +976,6 @@ local function handleTilePurchase(buyTile)
 					debugPrint("Failed to find next Buy Tile with ID:", nextID)
 				end
 			end)
-
-		else
-			debugPrint(player.Name .. " does not have enough Cash! Needed:", price, "Has:", cashStat.Value)
-
-			-- Play error sound
-			local failSound = Instance.new("Sound")
-			failSound.SoundId = CONFIG.errorSoundId
-			failSound.Volume = 1
-			failSound.Parent = workspace
-			failSound:Play()
-			game:GetService("Debris"):AddItem(failSound, 2)
 		end
 
 		-- Reset debounce after a short delay to prevent spam
@@ -1025,7 +985,7 @@ local function handleTilePurchase(buyTile)
 	end)
 end
 
--- Function to create the EventBridge if it doesn't exist
+-- Function to create the EventBridge if it doesn't exist and the events
 local function ensureEventBridge()
 	local EventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
 	if not EventBridge then
@@ -1040,49 +1000,9 @@ local function ensureEventBridge()
 
 	for _, eventName in ipairs(eventNames) do
 		if not EventBridge:FindFirstChild(eventName) then
-			local event = Instance.new("BindableEvent")
-			event.Name = eventName
-			event.Parent = EventBridge
-			debugPrint("Created " .. eventName .. " event")
-		end
-	end
-
-	return EventBridge
-end
-
--- Function to create a minimal GymTycoonConnector if needed
-local function ensureGymTycoonConnector()
-	if not _G.GymTycoonConnector then
-		debugPrint("GymTycoonConnector not found, creating minimal version")
-
-		_G.GymTycoonConnector = {
-			onTilePurchased = function(player, tileId)
-				debugPrint("Tile " .. tileId .. " purchased by " .. player.Name)
-
-				-- Update equipment count
-				local tycoon = player:FindFirstChild("Tycoon")
-				if tycoon then
-					local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
-					tycoon:SetAttribute("EquipmentCount", equipmentCount + 1)
-				end
-
-				-- Handle special cases
-				if tileId == 1 then
-					-- Mark player as having started their tycoon
-					if tycoon then
-						tycoon:SetAttribute("TycoonStarted", true)
-					end
-				end
-
-				-- Fire event for other systems
-				local EventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
-				if EventBridge then
-					local tileEvent = EventBridge:FindFirstChild("TilePurchased")
-					if tileEvent then
-						tileEvent:Fire(player, tileId)
-					end
-				end
-			end
+			local newEvent = Instance.new("BindableEvent")
+			newEvent.Name = eventName
+			newEvent.Parent = EventBridge
 		}
 	end
 
@@ -1126,7 +1046,7 @@ local function spawnInitialBuyTile()
 
 		-- Create billboard GUI
 		createBillboardGui(buyTilePart, "Membership Desk", 100)
-		createSound(buyTilePart)
+		createSound(buyTilePart)			
 
 		-- Set up purchase handling
 		handleTilePurchase(emergencyTile)
@@ -1141,9 +1061,6 @@ debugPrint("Starting Buy Tile system initialization")
 -- Ensure event bridge exists
 ensureEventBridge()
 
--- Ensure GymTycoonConnector exists
-ensureGymTycoonConnector()
-
 -- Clean up and update front desks for existing players
 spawn(function()
 	wait(1) -- Wait for the system to fully load
@@ -1153,15 +1070,14 @@ end)
 -- Spawn the initial buy tile
 spawnInitialBuyTile()
 
-debugPrint("Buy Tile system initialization complete")
+	debugPrint("Buy Tile system initialization complete")
 
--- Return public API
-return {
-	spawnBuyTile = spawnBuyTile,
-	spawnGymPart = spawnGymPart,
-	animateModelAppearance = animateModelAppearance,
-	createFrontDesk = spawnFrontDesk,
-	setupFrontDeskGUI = setupFrontDeskGUI,
-	updateAllFrontDesks = updateAllFrontDesks,
-	handleTilePurchase = handleTilePurchase
-}
+	-- Public API (only for other modules)
+	return { 
+		spawnBuyTile = spawnBuyTile, 
+		spawnGymPart = spawnGymPart, 
+		animateModelAppearance = animateModelAppearance, 
+		createFrontDesk = spawnFrontDesk, 
+		setupFrontDeskGUI = setupFrontDeskGUI, 
+		updateAllFrontDesks = updateAllFrontDesks 
+	}
