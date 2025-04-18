@@ -11,13 +11,15 @@ local CONFIG = {
     debugEnabled = true,
     systemInitTimeout = 10, -- Maximum time to wait for a system to initialize (seconds)
     initRetryCount = 3,     -- Number of times to retry initializing a failed system
-    startupDelay = 0        -- Optional delay before initializing systems (seconds)
+    startupDelay = 0,        -- Optional delay before initializing systems (seconds)
+    interSystemInitDelay = 0.5 -- Delay between initializing each system (seconds)
 }
 
 -- Get the CoreRegistry to access all systems
 local CoreRegistry = require(CoreFolder:FindFirstChild("CoreRegistry"))
 
 -- Systems to initialize in order (dependencies handled by registry)
+-- "LeaderstatsSystem" is initialized first to ensure leaderstats are set up before other systems rely on them.
 local systemsToInitialize = {
     "EventBridge",
     "DataManager", 
@@ -51,31 +53,6 @@ local function warn(...)
     end
 end
 
--- Create leaderstats for a player
-local function setupLeaderstats(player)
-    if not player then return end
-    
-    -- Check if leaderstats already exists
-    if player:FindFirstChild("leaderstats") then
-        return
-    end
-    
-    -- Create leaderstats
-    local leaderstats = Instance.new("Folder")
-    leaderstats.Name = "leaderstats"
-    leaderstats.Parent = player
-    
-    -- Create Cash value
-    local cash = Instance.new("IntValue")
-    cash.Name = "Cash"
-    cash.Value = 500 -- Starting cash
-    cash.Parent = leaderstats
-    
-    -- Additional stats can be added here
-    
-    log("Created leaderstats for " .. player.Name)
-end
-
 -- Handle when a player joins
 local function handlePlayerJoin(player)
     if not player then return end
@@ -83,7 +60,12 @@ local function handlePlayerJoin(player)
     log("Setting up player: " .. player.Name)
     
     -- Create leaderstats first (if needed)
-    setupLeaderstats(player)
+    local LeaderstatsSystem = CoreRegistry.getSystem("LeaderstatsSystem")
+    if LeaderstatsSystem and LeaderstatsSystem.setupLeaderstats then
+        LeaderstatsSystem.setupLeaderstats(player)
+    else
+        warn("LeaderstatsSystem not found or setupLeaderstats function missing")
+    end
     
     -- Ensure player has a tycoon
     local TycoonSystem = CoreRegistry.getSystem("TycoonSystem")
@@ -212,7 +194,7 @@ local function initializeSystems()
             
             if not system then
                 warn("System not found: " .. systemName)
-                break
+                continue -- Continue to the next system
             end
             
             -- Check if the system has already been initialized using CoreRegistry's initialized table
@@ -270,6 +252,8 @@ local function initializeSystems()
                 warn("Failed to initialize: " .. systemName .. (retryCount < CONFIG.initRetryCount and ", will retry" or ""))
                 task.wait(1) -- Wait before retry
             end
+
+            task.wait(CONFIG.interSystemInitDelay)
         end
         
         -- Track failed systems
