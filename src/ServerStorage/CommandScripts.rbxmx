@@ -1,0 +1,124 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Folder" referent="RBXD802535727E947308A594A979203AB6F">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">CommandScripts</string>
+			<int64 name="SourceAssetId">-1</int64>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+		<Item class="Script" referent="RBX21115C5B29D04BC888F819CF4714C5F4">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">ResetPlayer</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{8FB800AF-6FDE-49CA-8B00-1D084215754B}</string>
+				<ProtectedString name="Source"><![CDATA[local function resetPlayerData(player)
+	-- Get player or use the command executor
+	local targetPlayer = player
+
+	-- Reset key attributes
+	local tycoon = targetPlayer:FindFirstChild("Tycoon")
+	if tycoon then
+		-- Reset economy attributes
+		tycoon:SetAttribute("AccruedDues", 0)
+		tycoon:SetAttribute("EquipmentCount", 0)
+		tycoon:SetAttribute("GymTier", 1)
+
+		-- Reset any other custom attributes
+		for _, attrName in pairs({"RebirthCount", "Cleanliness", "Morale", 
+			"SpecMembershipBoost", "SpecDuesBoost"}) do
+			tycoon:SetAttribute(attrName, nil)
+		end
+
+		-- Clear milestone completions
+		for _, attrName in pairs(targetPlayer:GetAttributes()) do
+			if string.find(attrName, "Milestone_") then
+				targetPlayer:SetAttribute(attrName, nil)
+			end
+		end
+	end
+
+	-- Reset leaderstats
+	local leaderstats = targetPlayer:FindFirstChild("leaderstats")
+	if leaderstats and leaderstats:FindFirstChild("Cash") then
+		leaderstats.Cash.Value = 1000  -- Default starting cash
+	end
+
+	-- Clear tycoon objects
+	if tycoon and tycoon.Value then
+		-- Keep the basic platform but clear everything else
+		for _, child in pairs(tycoon.Value:GetChildren()) do
+			if child.Name ~= "Platform" then
+				child:Destroy()
+			end
+		end
+	end
+
+	print("Reset player data for " .. targetPlayer.Name)
+
+	-- Notify player
+	local message = Instance.new("Message")
+	message.Text = "Your data has been reset. Please rejoin the game for all changes to take effect."
+	message.Parent = targetPlayer
+end]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX266A9DF3C02F464A9DACABAD8455F980">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">Anchor Everything</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{46E0546B-4809-4361-AED1-9E947833C858}</string>
+				<ProtectedString name="Source"><![CDATA[-- Script to anchor all parts in the GymParts folder
+local gymPartsFolder = workspace:FindFirstChild("GymParts")
+
+if not gymPartsFolder then
+	print("Error: GymParts folder not found in Workspace")
+	return
+end
+
+local partCount = 0
+local errorCount = 0
+
+-- Function to anchor parts
+local function anchorPart(part)
+	if part:IsA("BasePart") then
+		part.Anchored = true
+		partCount = partCount + 1
+	end
+end
+
+-- Process all parts in the folder
+for _, item in pairs(gymPartsFolder:GetDescendants()) do
+	local success, err = pcall(anchorPart, item)
+	if not success then
+		print("Error anchoring part: " .. item:GetFullName() .. " - " .. err)
+		errorCount = errorCount + 1
+	end
+end
+
+-- Report results
+print("Anchoring complete:")
+print("- Total parts anchored: " .. partCount)
+print("- Errors encountered: " .. errorCount)]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+	</Item>
+</roblox>

@@ -1,0 +1,5968 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Folder" referent="RBXFC5DE5786F97497D80363A92254A5E5B">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">UnusedScripts</string>
+			<int64 name="SourceAssetId">-1</int64>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+		<Item class="Script" referent="RBXE271A41D9125479094608C8AB485A0ED">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">Buy Tile Pricing</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{0D259255-E24C-469E-98CD-FAC8C0A3A5DD}</string>
+				<ProtectedString name="Source"><![CDATA[-- Buy Tile Pricing Tool
+-- Run this script in Command Bar or as a Server Script (once)
+-- This will price all your buy tiles with an incremental scale
+
+local ServerStorage = game:GetService("ServerStorage")
+local function ensureNumber(value)
+	if type(value) == "string" then
+		return tonumber(value) or 0
+	end
+	return value
+end
+-- Configuration settings
+local PRICE_SETTINGS = {
+	initial_price = 1,          -- Price of first tile
+
+	-- Pricing curve options (choose one)
+	pricing_curve = "exponential", -- "linear", "exponential", "stepped"
+
+	-- Linear settings
+	linear_increment = 10,        -- How much to add for each tile in linear mode
+
+	-- Exponential settings
+	exp_base = 1.05,               -- Base for exponential growth (higher = steeper curve)
+	exp_multiplier = 10,         -- Multiplier for exponential growth
+
+	-- Stepped settings
+	step_tiers = {                -- Price tiers for stepped pricing
+		{max_id = 5, price = 100},    -- Tiles 1-5: $100
+		{max_id = 10, price = 250},   -- Tiles 6-10: $250
+		{max_id = 15, price = 500},   -- Tiles 11-15: $500
+		{max_id = 20, price = 1000},  -- Tiles 16-20: $1000
+		{max_id = 25, price = 2500},  -- Tiles 21-25: $2500
+		{max_id = 999, price = 5000}, -- Tiles 26+: $5000
+	}
+}
+
+-- Income settings for tiles
+local INCOME_SETTINGS = {
+	base_income = 5,             -- Base income per tile
+	income_multiplier = 1,    -- How much each tile increases income (multiplier)
+	tile_group_size = 3          -- How many tiles before a significant income jump
+}
+
+-- Function to calculate price for a specific tile
+local function calculatePrice(id)
+	if id == 1 then
+		return PRICE_SETTINGS.initial_price
+	end
+
+	if PRICE_SETTINGS.pricing_curve == "linear" then
+		-- Linear pricing: initial + (id-1) * increment
+		return PRICE_SETTINGS.initial_price + (id - 1) * PRICE_SETTINGS.linear_increment
+
+	elseif PRICE_SETTINGS.pricing_curve == "exponential" then
+		-- Exponential pricing: initial + multiplier * (base ^ (id-1))
+		return math.floor(PRICE_SETTINGS.initial_price + 
+			PRICE_SETTINGS.exp_multiplier * 
+			(PRICE_SETTINGS.exp_base ^ (id - 1)))
+
+	elseif PRICE_SETTINGS.pricing_curve == "stepped" then
+		-- Stepped pricing based on tiers
+		for _, tier in ipairs(PRICE_SETTINGS.step_tiers) do
+			if id <= tier.max_id then
+				return tier.price
+			end
+		end
+		-- Fallback to last tier
+		return PRICE_SETTINGS.step_tiers[#PRICE_SETTINGS.step_tiers].price
+	end
+
+	-- Default fallback
+	return id * 100
+end
+
+-- Function to calculate membership income increase for a specific tile
+local function calculateIncomeBonus(id)
+	local baseBonus = INCOME_SETTINGS.base_income
+
+	-- Add a bigger jump every few tiles
+	local groupMultiplier = math.floor((id - 1) / INCOME_SETTINGS.tile_group_size)
+
+	-- Calculate the final income value
+	local finalBonus = baseBonus * (INCOME_SETTINGS.income_multiplier ^ groupMultiplier)
+
+	return math.floor(finalBonus)
+end
+
+-- Main function to update all buy tiles
+local function updateBuyTilePrices()
+	-- Check if Buy Tiles folder exists
+	local buyTilesFolder = ServerStorage:FindFirstChild("BuyTiles")
+	if not buyTilesFolder then
+		warn("BuyTiles folder not found in ServerStorage!")
+		return
+	end
+
+	-- Collect all buy tiles
+	local buyTiles = {}
+
+	-- Recursive function to find all buy tiles
+	local function findBuyTiles(folder)
+		for _, item in ipairs(folder:GetChildren()) do
+			if item:IsA("Model") and item:GetAttribute("ID") then
+				table.insert(buyTiles, item)
+			elseif item:IsA("Folder") then
+				findBuyTiles(item)
+			end
+		end
+	end
+
+	findBuyTiles(buyTilesFolder)
+
+	-- Sort buy tiles by ID
+	-- Sort buy tiles by ID with type conversion
+	table.sort(buyTiles, function(a, b)
+		local idA = a:GetAttribute("ID")
+		local idB = b:GetAttribute("ID")
+
+		-- Convert to numbers to ensure consistent comparison
+		local numA = tonumber(idA) or 0
+		local numB = tonumber(idB) or 0
+
+		return numA < numB
+	end)
+
+	print("Found " .. #buyTiles .. " buy tiles to update")
+
+	-- Track total tiles and verify sequential IDs
+	local maxId = 0
+	local missingIds = {}
+
+	-- Check for missing IDs
+	for i, tile in ipairs(buyTiles) do
+		local id = tile:GetAttribute("ID")
+		maxId = math.max(maxId, id)
+
+		-- Print current tile info
+		print("Tile ID " .. id .. ": " .. tile.Name .. " - Current price: $" .. (tile:GetAttribute("Price") or "N/A"))
+	end
+
+	for i = 1, maxId do
+		local found = false
+		for _, tile in ipairs(buyTiles) do
+			if tile:GetAttribute("ID") == i then
+				found = true
+				break
+			end
+		end
+
+		if not found then
+			table.insert(missingIds, i)
+		end
+	end
+
+	if #missingIds > 0 then
+		warn("WARNING: Missing IDs detected: " .. table.concat(missingIds, ", "))
+	end
+
+	-- Update each buy tile's price
+	for _, tile in ipairs(buyTiles) do
+		local id = tile:GetAttribute("ID")
+		local newPrice = calculatePrice(id)
+		local incomeBonus = calculateIncomeBonus(id)
+
+		-- Set the price attribute
+		tile:SetAttribute("Price", newPrice)
+
+		-- Set the income bonus attribute if it doesn't exist
+		if not tile:GetAttribute("IncomeBonus") then
+			tile:SetAttribute("IncomeBonus", incomeBonus)
+		end
+
+		print("Updated Tile ID " .. id .. ": " .. tile.Name .. " - New Price: $" .. newPrice .. " - Income Bonus: $" .. incomeBonus)
+	end
+
+	print("Finished updating " .. #buyTiles .. " buy tiles!")
+
+	-- Print final pricing table for reference
+	print("\nPricing Reference Table:")
+	print("-------------------------")
+	print("ID | Price | Income Bonus")
+	print("-------------------------")
+
+	for id = 1, maxId do
+		local price = calculatePrice(id)
+		local income = calculateIncomeBonus(id)
+		print(string.format("%2d | $%5d | $%d per interval", id, price, income))
+	end
+
+	-- Print expected gameplay progression times
+	print("\nEstimated Progression (assuming 30-second income intervals):")
+	print("----------------------------------------------------------")
+
+	local cumulativeTime = 0
+	local cumulativeIncome = 0
+	local timeFormatted = ""
+
+	for id = 1, maxId do
+		local price = calculatePrice(id)
+		local prevIncomeRate = cumulativeIncome
+		cumulativeIncome = cumulativeIncome + calculateIncomeBonus(id)
+
+		-- Skip the first one since it's immediate
+		if id > 1 then
+			local timeToEarn
+			if prevIncomeRate > 0 then
+				timeToEarn = price / prevIncomeRate
+				cumulativeTime = cumulativeTime + timeToEarn
+
+				-- Format time
+				local minutes = math.floor(timeToEarn / 2) -- 30-second intervals = 2 per minute
+				local hours = math.floor(minutes / 60)
+				minutes = minutes % 60
+
+				if hours > 0 then
+					timeFormatted = string.format("%dh %dm", hours, minutes)
+				else
+					timeFormatted = string.format("%dm", minutes)
+				end
+			else
+				timeFormatted = "immediate"
+			end
+		else
+			timeFormatted = "start"
+		end
+
+		print(string.format("Tile %2d | Price: $%5d | Income: $%d | Time to earn: %s", 
+			id, price, cumulativeIncome, timeFormatted))
+	end
+end
+
+-- Run the update function
+updateBuyTilePrices()]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXF62EA96FF44143C589E1706FD965E813">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">FrontDeskBillboardFix</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{6D92AD8A-1C2F-44B4-8A7B-43E8F9D86525}</string>
+				<ProtectedString name="Source"><![CDATA[-- FrontDeskBillboardFix.lua
+-- Place in ServerScriptService and run once
+
+local Players = game:GetService("Players")
+local ServerStorage = game:GetService("ServerStorage")
+
+-- Find the template BillboardGui
+local function findTemplateBillboardGui()
+	local path = {"GymParts", "1st Floor", "Furniture", "Front Desk"}
+	local currentFolder = ServerStorage
+
+	for _, folderName in ipairs(path) do
+		currentFolder = currentFolder:FindFirstChild(folderName)
+		if not currentFolder then
+			warn("Could not find " .. folderName .. " in path")
+			return nil
+		end
+	end
+
+	-- Find the Part with BillboardGui
+	local part = currentFolder:FindFirstChild("Part")
+	if not part then
+		warn("Could not find Part in Front Desk template")
+		return nil
+	end
+
+	local billboardGui = part:FindFirstChild("BillboardGui")
+	if not billboardGui then
+		warn("Could not find BillboardGui in template")
+		return nil
+	end
+
+	print("Found template BillboardGui!")
+	return billboardGui
+end
+
+local function fixFrontDeskBillboard(player)
+	-- Get player's tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		print(player.Name .. " has no valid tycoon")
+		return false
+	end
+
+	-- Find front desk
+	local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+	if not frontDesk then
+		print("No Front Desk found for " .. player.Name)
+		return false
+	end
+
+	-- Find the main part of the front desk
+	local mainPart
+	for _, child in pairs(frontDesk:GetDescendants()) do
+		if child:IsA("BasePart") and (child.Name == "Counter" or child.Name == "Part") then
+			mainPart = child
+			break
+		end
+	end
+
+	if not mainPart then
+		print("No suitable part found in Front Desk for " .. player.Name)
+		return false
+	end
+
+	-- Get the template BillboardGui
+	local templateBillboard = findTemplateBillboardGui()
+	if not templateBillboard then
+		print("Could not find template BillboardGui")
+		return false
+	end
+
+	-- Remove existing BillboardGui if it exists
+	local existingBillboard = mainPart:FindFirstChild("BillboardGui")
+	if existingBillboard then
+		existingBillboard:Destroy()
+	end
+
+	-- Clone and attach the template BillboardGui
+	local newBillboard = templateBillboard:Clone()
+	newBillboard.Parent = mainPart
+
+	-- Update the content of the BillboardGui
+	local frame = newBillboard:FindFirstChild("Frame")
+	if frame then
+		local duesLabel = frame:FindFirstChild("DuesLabel")
+		if duesLabel then
+			-- Get current accrued dues
+			local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+			duesLabel.Text = "Membership Dues: $" .. tostring(accruedDues)
+		end
+
+		local nameLabel = frame:FindFirstChild("NameLabel") 
+		if nameLabel then
+			nameLabel.Text = player.Name .. "'s Gym"
+		end
+	end
+
+	-- Set up periodic updates for dues display
+	spawn(function()
+		while frontDesk.Parent and mainPart.Parent do
+			wait(5)
+			local frame = mainPart:FindFirstChild("BillboardGui") and 
+				mainPart.BillboardGui:FindFirstChild("Frame")
+			if frame then
+				local duesLabel = frame:FindFirstChild("DuesLabel")
+				if duesLabel then
+					local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+					duesLabel.Text = "Membership Dues: $" .. tostring(accruedDues)
+				end
+			end
+		end
+	end)
+
+	-- Check for proximity prompt
+	local existingPrompt = mainPart:FindFirstChild("CollectionPrompt")
+	if not existingPrompt then
+		-- Create proximity prompt
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "CollectionPrompt"
+		prompt.ActionText = "Collect Membership Dues"
+		prompt.ObjectText = player.Name .. "'s Gym"
+		prompt.HoldDuration = 0.5
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = mainPart
+
+		-- Connect to the Triggered event
+		prompt.Triggered:Connect(function(triggerPlayer)
+			if triggerPlayer ~= player then return end -- Only the owner can collect
+
+			-- Get current accrued dues
+			local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+
+			if accruedDues > 0 then
+				-- Add to player's cash
+				local leaderstats = player:FindFirstChild("leaderstats")
+				if leaderstats and leaderstats:FindFirstChild("Cash") then
+					leaderstats.Cash.Value = leaderstats.Cash.Value + accruedDues
+					tycoon:SetAttribute("AccruedDues", 0)
+
+					-- Update display
+					local frame = mainPart.BillboardGui:FindFirstChild("Frame")
+					if frame and frame:FindFirstChild("DuesLabel") then
+						frame.DuesLabel.Text = "Membership Dues: $0"
+					end
+
+					-- Play collection sound
+					local sound = Instance.new("Sound")
+					sound.SoundId = "rbxassetid://142472270" -- Cash register sound
+					sound.Volume = 1
+					sound.Parent = mainPart
+					sound:Play()
+					game:GetService("Debris"):AddItem(sound, 3)
+
+					-- Show message to player
+					local message = Instance.new("Message")
+					message.Text = "Collected $" .. accruedDues .. " in membership dues!"
+					message.Parent = player
+					game:GetService("Debris"):AddItem(message, 3)
+				end
+			else
+				-- Play empty sound
+				local emptySound = Instance.new("Sound")
+				emptySound.SoundId = "rbxassetid://3201481530"
+				emptySound.Volume = 0.8
+				emptySound.Parent = mainPart
+				emptySound:Play()
+				game:GetService("Debris"):AddItem(emptySound, 2)
+
+				-- Notify player
+				local message = Instance.new("Message")
+				message.Text = "No membership dues to collect yet!"
+				message.Parent = player
+				game:GetService("Debris"):AddItem(message, 3)
+			end
+		end)
+	end
+
+	print("Fixed Front Desk BillboardGui for " .. player.Name)
+	return true
+end
+
+-- Fix for all current players
+local fixedCount = 0
+for _, player in pairs(Players:GetPlayers()) do
+	if fixFrontDeskBillboard(player) then
+		fixedCount = fixedCount + 1
+	end
+end
+
+-- Set up event for new players
+Players.PlayerAdded:Connect(function(player)
+	wait(5) -- Wait for tycoon to be set up
+	fixFrontDeskBillboard(player)
+end)
+
+print("Front Desk BillboardGui fix completed for " .. fixedCount .. " players")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX8272F9808C4D4F598F41E8A4E9DB45A8">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">RevenueDisplay</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{B9836943-E237-46B2-91DA-D4A0B0AA88A5}</string>
+				<ProtectedString name="Source"><![CDATA[-- Optimized Revenue Display System
+-- Place in ServerScriptService
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+
+-- Configuration
+local CONFIG = {
+	-- Display settings
+	mainSize = UDim2.new(0, 250, 0, 120),
+	mainOffset = Vector3.new(0, 5, 0),
+
+	-- Colors
+	backgroundColor = Color3.fromRGB(30, 30, 30),
+	borderColor = Color3.fromRGB(0, 100, 200),
+	textColor = Color3.fromRGB(255, 255, 255),
+	revenueColor = Color3.fromRGB(255, 215, 0), -- Gold
+
+	-- Transparency
+	backgroundTransparency = 0.2,
+
+	-- Animation
+	animationDuration = 0.5,
+	updateEffectDuration = 1,
+
+	-- Design
+	cornerRadius = UDim.new(0, 10),
+	borderSize = 2,
+
+	-- Update frequency
+	updateInterval = 5, -- Update every 5 seconds
+
+	-- Debug
+	debug = true
+}
+
+-- Debug function
+local function debugPrint(...)
+	if CONFIG.debug then
+		print("[Revenue Display]", ...)
+	end
+end
+
+-- Module table
+local RevenueDisplay = {}
+
+-- Format large numbers with commas
+local function formatWithCommas(number)
+	local formatted = tostring(number)
+	local formattedWithCommas = ""
+
+	for i = #formatted, 1, -1 do
+		if (#formatted - i) % 3 == 0 and i ~= #formatted then
+			formattedWithCommas = "," .. formattedWithCommas
+		end
+		formattedWithCommas = string.sub(formatted, i, i) .. formattedWithCommas
+	end
+
+	return formattedWithCommas
+end
+
+-- Calculate monthly revenue (scaling hourly revenue)
+local function calculateMonthlyRevenue(hourlyRevenue)
+	-- Assuming 16 hours of operation per day, 30 days per month
+	return hourlyRevenue * 16 * 30
+end
+
+-- Calculate player income safely using the connector
+local function calculatePlayerIncome(player)
+	-- Default values
+	local incomePerInterval = 0
+	local intervalSeconds = 60
+
+	-- Try to get income from connector
+	if _G.GymTycoonConnector and _G.GymTycoonConnector.EconomySystem and 
+		typeof(_G.GymTycoonConnector.EconomySystem.calculatePlayerIncome) == "function" then
+
+		incomePerInterval = _G.GymTycoonConnector.EconomySystem.calculatePlayerIncome(player)
+		intervalSeconds = _G.GymTycoonConnector.EconomySystem.CONFIG and
+			_G.GymTycoonConnector.EconomySystem.CONFIG.incomeInterval or 60
+	else
+		-- Fallback to direct calculation
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon then
+			local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+			local gymTier = tycoon:GetAttribute("GymTier") or 1
+
+			-- Base income calculation
+			incomePerInterval = 15 * (1.2 ^ (gymTier - 1)) + equipmentCount * 3
+
+			-- Add NPC income if possible
+			if tycoon.Value then
+				local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+				if npcsFolder then
+					for _, npc in pairs(npcsFolder:GetChildren()) do
+						local membershipFee = npc:GetAttribute("MembershipFee") or 15
+						incomePerInterval = incomePerInterval + membershipFee
+					end
+				end
+			end
+
+			intervalSeconds = 60 -- Default interval
+		end
+	end
+
+	-- Calculate hourly revenue
+	local hourlyRevenue = math.floor(incomePerInterval * (3600 / intervalSeconds))
+
+	return hourlyRevenue
+end
+
+-- Create a revenue display for a front desk
+function RevenueDisplay.createRevenueDisplay(frontDesk, player)
+	if not frontDesk or not player then
+		debugPrint("Invalid frontDesk or player provided")
+		return nil
+	end
+
+	-- Check if front desk already has a revenue display
+	local existingDisplay = frontDesk:FindFirstChild("RevenueDisplay")
+	if existingDisplay then
+		existingDisplay:Destroy() -- Remove existing to refresh
+	end
+
+	-- Create BillboardGui
+	local display = Instance.new("BillboardGui")
+	display.Name = "RevenueDisplay"
+	display.Size = CONFIG.mainSize
+	display.StudsOffset = CONFIG.mainOffset
+	display.Adornee = frontDesk
+	display.AlwaysOnTop = true
+
+	-- Create main frame
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Size = UDim2.new(1, 0, 1, 0)
+	mainFrame.BackgroundColor3 = CONFIG.backgroundColor
+	mainFrame.BackgroundTransparency = CONFIG.backgroundTransparency
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Parent = display
+
+	-- Add corner rounding
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = CONFIG.cornerRadius
+	corner.Parent = mainFrame
+
+	-- Add border
+	local border = Instance.new("UIStroke")
+	border.Color = CONFIG.borderColor
+	border.Thickness = CONFIG.borderSize
+	border.Parent = mainFrame
+
+	-- Add gradient
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 20)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 40))
+	})
+	gradient.Rotation = 45
+	gradient.Parent = mainFrame
+
+	-- Create header
+	local header = Instance.new("TextLabel")
+	header.Name = "Header"
+	header.Size = UDim2.new(1, 0, 0.25, 0)
+	header.Position = UDim2.new(0, 0, 0, 0)
+	header.BackgroundTransparency = 1
+	header.TextColor3 = CONFIG.textColor
+	header.Font = Enum.Font.GothamBold
+	header.TextSize = 14
+	header.Text = "GYM REVENUE"
+	header.Parent = mainFrame
+
+	-- Create hourly revenue display
+	local hourlyRevenue = Instance.new("TextLabel")
+	hourlyRevenue.Name = "HourlyRevenue"
+	hourlyRevenue.Size = UDim2.new(1, 0, 0.3, 0)
+	hourlyRevenue.Position = UDim2.new(0, 0, 0.25, 0)
+	hourlyRevenue.BackgroundTransparency = 1
+	hourlyRevenue.TextColor3 = CONFIG.revenueColor
+	hourlyRevenue.Font = Enum.Font.GothamBold
+	hourlyRevenue.TextSize = 18
+	hourlyRevenue.Text = "$0/hr"
+	hourlyRevenue.Parent = mainFrame
+
+	-- Create monthly revenue display
+	local monthlyRevenue = Instance.new("TextLabel")
+	monthlyRevenue.Name = "MonthlyRevenue"
+	monthlyRevenue.Size = UDim2.new(1, 0, 0.25, 0)
+	monthlyRevenue.Position = UDim2.new(0, 0, 0.55, 0)
+	monthlyRevenue.BackgroundTransparency = 1
+	monthlyRevenue.TextColor3 = CONFIG.revenueColor
+	monthlyRevenue.Font = Enum.Font.Gotham
+	monthlyRevenue.TextSize = 14
+	monthlyRevenue.Text = "$0/month"
+	monthlyRevenue.Parent = mainFrame
+
+	-- Create income sources display
+	local sources = Instance.new("TextLabel")
+	sources.Name = "Sources"
+	sources.Size = UDim2.new(1, 0, 0.2, 0)
+	sources.Position = UDim2.new(0, 0, 0.8, 0)
+	sources.BackgroundTransparency = 1
+	sources.TextColor3 = CONFIG.textColor
+	sources.Font = Enum.Font.Gotham
+	sources.TextSize = 12
+	sources.Text = "0 Equipment | 0 NPCs"
+	sources.Parent = mainFrame
+
+	-- Parent to front desk
+	display.Parent = frontDesk
+
+	-- Set up update animation
+	local lastRevenue = 0
+
+	-- Function to update display with animation
+	local function updateDisplay()
+		-- Calculate revenue
+		local hourlyIncome = calculatePlayerIncome(player)
+		local monthlyIncome = calculateMonthlyRevenue(hourlyIncome)
+
+		-- Format values with commas
+		local formattedHourly = formatWithCommas(hourlyIncome)
+		local formattedMonthly = formatWithCommas(monthlyIncome)
+
+		-- Update text
+		hourlyRevenue.Text = "$" .. formattedHourly .. "/hr"
+		monthlyRevenue.Text = "$" .. formattedMonthly .. "/month"
+
+		-- Update income sources
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon then
+			local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+			local npcCount = 0
+
+			if tycoon.Value then
+				local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+				if npcsFolder then
+					npcCount = #npcsFolder:GetChildren()
+				end
+			end
+
+			sources.Text = equipmentCount .. " Equipment | " .. npcCount .. " NPCs"
+		end
+
+		-- Animate if revenue has changed
+		if hourlyIncome ~= lastRevenue then
+			-- Scale effect
+			local originalScale = hourlyRevenue.TextSize
+			hourlyRevenue.TextSize = originalScale * 1.2
+
+			-- Color effect
+			local originalColor = hourlyRevenue.TextColor3
+			hourlyRevenue.TextColor3 = hourlyIncome > lastRevenue 
+				and Color3.fromRGB(0, 255, 0)  -- Green if increased
+				or Color3.fromRGB(255, 0, 0)   -- Red if decreased
+
+			-- Tween back to normal
+			task.spawn(function()
+				task.wait(0.2) -- Short delay for emphasis
+
+				local tweenInfo = TweenInfo.new(
+					CONFIG.updateEffectDuration,
+					Enum.EasingStyle.Elastic,
+					Enum.EasingDirection.Out
+				)
+
+				local tween1 = TweenService:Create(
+					hourlyRevenue, 
+					tweenInfo, 
+					{TextSize = originalScale, TextColor3 = originalColor}
+				)
+
+				tween1:Play()
+			end)
+
+			lastRevenue = hourlyIncome
+		end
+	end
+
+	-- Initial update
+	updateDisplay()
+
+	-- Setup periodic updates
+	task.spawn(function()
+		while display and display.Parent do
+			task.wait(CONFIG.updateInterval)
+
+			-- Use pcall to prevent errors from breaking the loop
+			pcall(function()
+				updateDisplay()
+			end)
+		end
+	end)
+
+	debugPrint("Created revenue display for " .. player.Name)
+	return display
+end
+
+-- Find and update all front desks
+function RevenueDisplay.updateAllDisplays()
+	debugPrint("Updating all revenue displays")
+
+	for _, player in pairs(Players:GetPlayers()) do
+		pcall(function()
+			local tycoon = player:FindFirstChild("Tycoon")
+			if tycoon and tycoon.Value then
+				local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+				if frontDesk then
+					RevenueDisplay.createRevenueDisplay(frontDesk, player)
+				end
+			end
+		end)
+	end
+end
+
+-- Initialize the system
+function RevenueDisplay.initialize()
+	debugPrint("Initializing Revenue Display System")
+
+	-- Run initial update
+	RevenueDisplay.updateAllDisplays()
+
+	-- Set up periodic updates
+	task.spawn(function()
+		while true do
+			task.wait(30) -- Check every 30 seconds for new front desks
+			RevenueDisplay.updateAllDisplays()
+		end
+	end)
+
+	-- Watch for new front desks
+	workspace.DescendantAdded:Connect(function(descendant)
+		if descendant.Name == "Front Desk" and descendant:IsA("Model") then
+			-- Wait a bit for everything to set up
+			task.wait(1)
+
+			-- Find which player this front desk belongs to
+			for _, player in pairs(Players:GetPlayers()) do
+				local tycoon = player:FindFirstChild("Tycoon")
+				if tycoon and tycoon.Value then
+					if descendant:IsDescendantOf(tycoon.Value) then
+						RevenueDisplay.createRevenueDisplay(descendant, player)
+						break
+					end
+				end
+			end
+		end
+	end)
+
+	debugPrint("Revenue Display System initialized")
+	return true
+end
+
+-- Run initialization automatically
+RevenueDisplay.initialize()
+
+-- Return public API
+return RevenueDisplay]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX6E0FF33C2E5C44E4A90F120328158F9A">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">BuyTileIntegration</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{FFB005F1-8384-4E8D-9B94-4A41DB15B089}</string>
+				<ProtectedString name="Source"><![CDATA[-- BuyTileIntegration.luau
+-- Script to integrate BuyTile system with DataStorage
+-- Place in ServerScriptService
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+-- Try to load systems
+local DataStorage
+local BuyTileSystem
+
+pcall(function() DataStorage = require(ServerScriptService:FindFirstChild("DataStorageSystem")) end)
+pcall(function() BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile")) end)
+
+-- Debug print
+local function debugPrint(...)
+	print("[BuyTileIntegration]", ...)
+end
+
+-- Ensure BuyTile saves purchases to DataStorage
+local function hookBuyTileFunction()
+	if not BuyTileSystem then
+		warn("[BuyTileIntegration] BuyTile system not found, cannot hook functions")
+		return false
+	end
+
+	-- Store original function reference
+	local originalBuyFunction = BuyTileSystem.buyTile
+
+	-- Only hook if the original function exists
+	if not originalBuyFunction then
+		warn("[BuyTileIntegration] BuyTile.buyTile function not found, cannot hook")
+		return false
+	end
+
+	-- Replace with our hooked version
+	BuyTileSystem.buyTile = function(player, tileId)
+		-- Call original function
+		local success, result = pcall(function()
+			return originalBuyFunction(player, tileId)
+		end)
+
+		-- If purchase successful, record it
+		if success and result then
+			debugPrint("Tile " .. tileId .. " purchased by " .. player.Name)
+
+			-- Record in DataStorage
+			if DataStorage and DataStorage.recordTilePurchase then
+				DataStorage.recordTilePurchase(player, tileId)
+			end
+
+			-- Notify GymTycoonConnector
+			if _G.GymTycoonConnector and _G.GymTycoonConnector.onTilePurchased then
+				_G.GymTycoonConnector.onTilePurchased(player, tileId)
+			end
+		end
+
+		-- Return original result
+		if success then
+			return result
+		else
+			warn("[BuyTileIntegration] Error in original buyTile function: " .. tostring(result))
+			return false
+		end
+	end
+
+	debugPrint("Successfully hooked BuyTile.buyTile function")
+	return true
+end
+
+-- Enhance gym parts with proper ID attributes
+local function enhanceGymParts()
+	if not BuyTileSystem then
+		warn("[BuyTileIntegration] BuyTile system not found, cannot enhance gym parts")
+		return false
+	end
+
+	local originalSpawnFunction = BuyTileSystem.spawnGymPart
+
+	if not originalSpawnFunction then
+		warn("[BuyTileIntegration] BuyTile.spawnGymPart function not found, cannot enhance")
+		return false
+	end
+
+	-- Replace with enhanced version
+	BuyTileSystem.spawnGymPart = function(tileId, ...)
+		-- Call original function
+		local success, result = pcall(function()
+			return originalSpawnFunction(tileId, ...)
+		end)
+
+		-- If spawning successful, add ID attribute
+		if success and result then
+			-- Set ID attribute for data saving
+			result:SetAttribute("ID", tileId)
+			result:SetAttribute("TileID", tileId)
+
+			debugPrint("Enhanced gym part " .. tileId .. " with ID attributes")
+		end
+
+		-- Return original result
+		if success then
+			return result
+		else
+			warn("[BuyTileIntegration] Error in original spawnGymPart function: " .. tostring(result))
+			return nil
+		end
+	end
+
+	debugPrint("Successfully enhanced BuyTile.spawnGymPart function")
+	return true
+	}
+
+	-- Setup EventBridge for purchase events
+local function setupPurchaseEvents()
+	-- Ensure EventBridge exists
+	if not ReplicatedStorage:FindFirstChild("EventBridge") then
+		local eventBridge = Instance.new("Folder")
+		eventBridge.Name = "EventBridge"
+		eventBridge.Parent = ReplicatedStorage
+	end
+
+	local eventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+
+	-- Create TilePurchased event if it doesn't exist
+	if not eventBridge:FindFirstChild("TilePurchased") then
+		local event = Instance.new("RemoteEvent")
+		event.Name = "TilePurchased"
+		event.Parent = eventBridge
+	end
+
+	return eventBridge:FindFirstChild("TilePurchased")
+	}
+
+	-- Initialize
+local function initialize()
+	debugPrint("Initializing...")
+
+	-- Setup events
+	local purchaseEvent = setupPurchaseEvents()
+
+	-- Hook functions
+	local hookSuccess = hookBuyTileFunction()
+	local enhanceSuccess = enhanceGymParts()
+
+	if hookSuccess and enhanceSuccess then
+		debugPrint("Successfully initialized")
+		return true
+	else
+		warn("[BuyTileIntegration] Initialization incomplete")
+		return false
+	end
+	}
+
+	-- Run initialization
+initialize()]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXC3BF8571E8BB44998537BD6C2E936639">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">CelebrityTrainerSystem</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{E04670A4-ECF2-4FAE-907F-E8BAE4A5F132}</string>
+				<ProtectedString name="Source"><![CDATA[-- Remove trainer benefits from a player
+function CelebrityTrainerSystem.removeTrainerBenefits(player, celebrityId)
+	if not player or not celebrityId then return false end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return false end
+
+	local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+	if not celebrity then return false end
+
+	-- Reset attributes - a more complex implementation would track individual 
+	-- contributions from each trainer rather than resetting everything
+	tycoon:SetAttribute("TrainerVIPChanceBoost", 0)
+	tycoon:SetAttribute("TrainerMembershipBoost", 1.0)
+	tycoon:SetAttribute("TrainerRetentionBoost", 1.0)
+	tycoon:SetAttribute("TrainerDuesBoost", 1.0)
+	tycoon:SetAttribute("TrainerVIPMultiplier", 1.0)
+
+	-- Re-apply benefits from any remaining trainers
+	if CelebrityTrainerSystem.playerTrainers[player.UserId] then
+		for id, data in pairs(CelebrityTrainerSystem.playerTrainers[player.UserId]) do
+			if id ~= celebrityId then
+				CelebrityTrainerSystem.applyTrainerBenefits(player, id)
+			end
+		end
+	end
+
+	-- Update revenue system
+	if GymRevenue and GymRevenue.updatePlayerConfig then
+		GymRevenue.updatePlayerConfig(player)
+	end
+
+	return true
+end
+
+-- Create a trainer model in the player's gym
+function CelebrityTrainerSystem.createTrainerInGym(player, celebrityId)
+	if not player or not celebrityId then return nil end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return nil end
+
+	local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+	if not celebrity then return nil end
+
+	-- Check if trainer model already exists
+	local existingTrainer = tycoon.Value:FindFirstChild("Trainer_" .. celebrityId)
+	if existingTrainer then
+		return existingTrainer
+	end
+
+	-- Create trainer model
+	local trainerModel = Instance.new("Model")
+	trainerModel.Name = "Trainer_" .. celebrityId
+
+	-- Try to load a custom model if available
+	local customModel = nil
+	pcall(function()
+		if celebrity.appearance.model_id then
+			customModel = game:GetObjects(celebrity.appearance.model_id)[1]
+		end
+	end)
+
+	if customModel then
+		-- Use the custom model
+		customModel.Parent = trainerModel
+	else
+		-- Create a simple placeholder model
+		local torso = Instance.new("Part")
+		torso.Name = "Torso"
+		torso.Size = Vector3.new(2, 2, 1)
+		torso.BrickColor = BrickColor.new("Bright blue")
+		torso.Anchored = true
+		torso.CanCollide = false
+		torso.Parent = trainerModel
+
+		local head = Instance.new("Part")
+		head.Name = "Head"
+		head.Shape = Enum.PartType.Ball
+		head.Size = Vector3.new(1.25, 1.25, 1.25)
+		head.BrickColor = BrickColor.new("Light yellow")
+		head.Anchored = true
+		head.CanCollide = false
+		head.Position = torso.Position + Vector3.new(0, 1.625, 0)
+		head.Parent = trainerModel
+
+		-- Add name label
+		local nameGui = Instance.new("BillboardGui")
+		nameGui.Name = "NameLabel"
+		nameGui.Size = UDim2.new(0, 100, 0, 40)
+		nameGui.StudsOffset = Vector3.new(0, 2, 0)
+		nameGui.AlwaysOnTop = true
+		nameGui.Parent = head
+
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Size = UDim2.new(1, 0, 1, 0)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.TextColor3 = Color3.new(1, 1, 1)
+		nameLabel.TextStrokeTransparency = 0
+		nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextSize = 14
+		nameLabel.Text = celebrity.name
+		nameLabel.Parent = nameGui
+	end
+
+	-- Find a good position in the gym
+	local position
+
+	-- Try to find front desk first
+	local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+	if frontDesk then
+		position = frontDesk:GetPivot().Position + Vector3.new(3, 0, 0)
+	else
+		-- If no front desk, find any suitable floor
+		for _, part in pairs(tycoon.Value:GetDescendants()) do
+			if part:IsA("BasePart") and part.Size.X > 5 and part.Size.Z > 5 and
+				math.abs(part.CFrame.UpVector.Y) > 0.9 then
+				position = part.Position + Vector3.new(0, part.Size.Y/2 + 1, 0)
+				break
+			end
+		end
+
+		-- If still no position, use the tycoon origin
+		if not position then
+			position = tycoon.Value:GetPivot().Position
+		end
+	end
+
+	-- Position the trainer
+	if customModel then
+		-- Position custom model
+		if customModel.PrimaryPart then
+			customModel:SetPrimaryPartCFrame(CFrame.new(position))
+		else
+			-- Find a part to use as reference
+			for _, part in pairs(customModel:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Position = part.Position - customModel:GetPivot().Position + position
+				end
+			end
+		end
+	else
+		-- Position basic model
+		local torso = trainerModel:FindFirstChild("Torso")
+		if torso then
+			torso.Position = position
+
+			-- Reposition head relative to torso
+			local head = trainerModel:FindFirstChild("Head")
+			if head then
+				head.Position = torso.Position + Vector3.new(0, 1.625, 0)
+			end
+		end
+	end
+
+	-- Add proximity prompt for interaction
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "TrainerPrompt"
+	prompt.ObjectText = celebrity.name
+	prompt.ActionText = "Talk to Trainer"
+	prompt.HoldDuration = 0.5
+	prompt.MaxActivationDistance = 10
+	prompt.RequiresLineOfSight = false
+
+	-- Find a part to parent the prompt to
+	local promptPart
+	if customModel and customModel.PrimaryPart then
+		promptPart = customModel.PrimaryPart
+	elseif trainerModel:FindFirstChild("Torso") then
+		promptPart = trainerModel.Torso
+	else
+		for _, part in pairs(trainerModel:GetDescendants()) do
+			if part:IsA("BasePart") then
+				promptPart = part
+				break
+			end
+		end
+	end
+
+	if promptPart then
+		prompt.Parent = promptPart
+
+		-- Connect prompt to interaction handler
+		prompt.Triggered:Connect(function(otherPlayer)
+			if otherPlayer == player then
+				-- Handle interaction
+				CelebrityTrainerSystem.interactWithTrainer(player, celebrityId)
+			else
+				-- Show message for other players
+				local message = Instance.new("Message")
+				message.Text = celebrity.name .. " is working exclusively with " .. player.Name .. "'s gym."
+				message.Parent = otherPlayer
+				game:GetService("Debris"):AddItem(message, 3)
+			end
+		end)
+	end
+
+	-- Parent the trainer to the gym
+	trainerModel.Parent = tycoon.Value
+
+	-- Animate trainer appearance
+	for _, part in pairs(trainerModel:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local originalTransparency = part.Transparency
+			part.Transparency = 1
+
+			-- Create transparency tween
+			local tween = TweenService:Create(
+				part,
+				TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+				{Transparency = originalTransparency}
+			)
+
+			tween:Play()
+		end
+	end
+
+	return trainerModel
+end
+
+-- Remove a trainer from a player's gym
+function CelebrityTrainerSystem.removeTrainerFromGym(player, celebrityId)
+	if not player or not celebrityId then return false end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return false end
+
+	-- Find trainer model
+	local trainerModel = tycoon.Value:FindFirstChild("Trainer_" .. celebrityId)
+	if not trainerModel then return false end
+
+	-- Animate trainer disappearance
+	for _, part in pairs(trainerModel:GetDescendants()) do
+		if part:IsA("BasePart") then
+			-- Create transparency tween
+			local tween = TweenService:Create(
+				part,
+				TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.In),
+				{Transparency = 1}
+			)
+
+			tween:Play()
+		end
+	end
+
+	-- Remove after animation
+	spawn(function()
+		wait(1)
+		trainerModel:Destroy()
+	end)
+
+	return true
+end
+
+-- Handle player interaction with a trainer
+function CelebrityTrainerSystem.interactWithTrainer(player, celebrityId)
+	if not player or not celebrityId then return end
+
+	local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+	if not celebrity then return end
+
+	-- Create interaction GUI
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "TrainerInteraction"
+	screenGui.ResetOnSpawn = false
+
+	-- Create main frame
+	local frame = Instance.new("Frame")
+	frame.Name = "MainFrame"
+	frame.Size = UDim2.new(0, 400, 0, 300)
+	frame.Position = UDim2.new(0.5, -200, 0.5, -150)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BackgroundTransparency = 0.1
+	frame.BorderSizePixel = 0
+	frame.Parent = screenGui
+
+	-- Add rounded corners
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = frame
+
+	-- Add trainer name
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "NameLabel"
+	nameLabel.Size = UDim2.new(1, -20, 0, 40)
+	nameLabel.Position = UDim2.new(0, 10, 0, 10)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextSize = 24
+	nameLabel.Text = celebrity.name
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+	nameLabel.Parent = frame
+
+	-- Add dialogue
+	local dialogue = Instance.new("TextLabel")
+	dialogue.Name = "Dialogue"
+	dialogue.Size = UDim2.new(1, -40, 0, 100)
+	dialogue.Position = UDim2.new(0, 20, 0, 60)
+	dialogue.BackgroundTransparency = 1
+	dialogue.Font = Enum.Font.Gotham
+	dialogue.TextColor3 = Color3.fromRGB(255, 255, 255)
+	dialogue.TextSize = 16
+	dialogue.TextWrapped = true
+
+	-- Choose random daily dialogue
+	if celebrity.dialogue.daily and #celebrity.dialogue.daily > 0 then
+		dialogue.Text = celebrity.dialogue.daily[math.random(1, #celebrity.dialogue.daily)]
+	else
+		dialogue.Text = "Hey there! Let's make this gym the best it can be!"
+	end
+
+	dialogue.Parent = frame
+
+	-- Add buttons
+	local buttonsContainer = Instance.new("Frame")
+	buttonsContainer.Name = "ButtonsContainer"
+	buttonsContainer.Size = UDim2.new(1, -40, 0, 100)
+	buttonsContainer.Position = UDim2.new(0, 20, 0, 170)
+	buttonsContainer.BackgroundTransparency = 1
+	buttonsContainer.Parent = frame
+
+	-- Define button functions
+	local buttonFunctions = {
+		{
+			name = "Special Ability",
+			action = function()
+				CelebrityTrainerSystem.useSpecialAbility(player, celebrityId)
+				screenGui:Destroy()
+			end
+		},
+		{
+			name = "View Benefits",
+			action = function()
+				CelebrityTrainerSystem.showTrainerBenefits(player, celebrityId)
+				screenGui:Destroy()
+			end
+		},
+		{
+			name = "Fire Trainer",
+			action = function()
+				CelebrityTrainerSystem.confirmFireTrainer(player, celebrityId)
+				screenGui:Destroy()
+			end
+		},
+		{
+			name = "Close",
+			action = function()
+				screenGui:Destroy()
+			end
+		}
+	}
+
+	-- Create buttons
+	for i, buttonInfo in ipairs(buttonFunctions) do
+		local button = Instance.new("TextButton")
+		button.Name = buttonInfo.name .. "Button"
+		button.Size = UDim2.new(0.48, 0, 0, 40)
+		button.Position = UDim2.new(i % 2 == 1 and 0 or 0.52, 0, i <= 2 and 0 or 0.55, 0)
+		button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+		button.TextColor3 = Color3.fromRGB(255, 255, 255)
+		button.Font = Enum.Font.GothamSemibold
+		button.TextSize = 16
+		button.Text = buttonInfo.name
+
+		-- Add rounded corners
+		local buttonCorner = Instance.new("UICorner")
+		buttonCorner.CornerRadius = UDim.new(0, 6)
+		buttonCorner.Parent = button
+
+		-- Connect click event
+		button.MouseButton1Click:Connect(buttonInfo.action)
+
+		button.Parent = buttonsContainer
+	end
+
+	-- Add close button
+	local closeButton = Instance.new("TextButton")
+	closeButton.Name = "CloseButton"
+	closeButton.Size = UDim2.new(0, 30, 0, 30)
+	closeButton.Position = UDim2.new(1, -40, 0, 10)
+	closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeButton.Font = Enum.Font.GothamBold
+	closeButton.TextSize = 18
+	closeButton.Text = "X"
+
+	-- Add rounded corners
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 15)
+	closeCorner.Parent = closeButton
+
+	-- Connect close button
+	closeButton.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	closeButton.Parent = frame
+
+	-- Parent the GUI to the player
+	screenGui.Parent = player.PlayerGui
+end
+
+-- Show trainer benefits
+function CelebrityTrainerSystem.showTrainerBenefits(player, celebrityId)
+	if not player or not celebrityId then return end
+
+	local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+	if not celebrity then return end
+
+	-- Create benefits GUI
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "TrainerBenefits"
+	screenGui.ResetOnSpawn = false
+
+	-- Create main frame
+	local frame = Instance.new("Frame")
+	frame.Name = "MainFrame"
+	frame.Size = UDim2.new(0, 400, 0, 350)
+	frame.Position = UDim2.new(0.5, -200, 0.5, -175)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BackgroundTransparency = 0.1
+	frame.BorderSizePixel = 0
+	frame.Parent = screenGui
+
+	-- Add rounded corners
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = frame
+
+	-- Add title
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Name = "TitleLabel"
+	titleLabel.Size = UDim2.new(1, -20, 0, 40)
+	titleLabel.Position = UDim2.new(0, 10, 0, 10)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleLabel.TextSize = 24
+	titleLabel.Text = celebrity.name .. " - Benefits"
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+	titleLabel.Parent = frame
+
+	-- Add benefits container
+	local benefitsContainer = Instance.new("ScrollingFrame")
+	benefitsContainer.Name = "BenefitsContainer"
+	benefitsContainer.Size = UDim2.new(1, -40, 0, 240)
+	benefitsContainer.Position = UDim2.new(0, 20, 0, 60)
+	benefitsContainer.BackgroundTransparency = 1
+	benefitsContainer.BorderSizePixel = 0
+	benefitsContainer.ScrollBarThickness = 6
+	benefitsContainer.Parent = frame
+
+	-- Add UIListLayout to organize benefits
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Padding = UDim.new(0, 10)
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Parent = benefitsContainer
+
+	-- Create benefits list
+	local benefitsList = {}
+	if celebrity.benefits.vip_chance_boost then
+		table.insert(benefitsList, {
+			name = "VIP Chance",
+			value = "+" .. (celebrity.benefits.vip_chance_boost * 100) .. "%",
+			description = "Increased chance for VIP members"
+		})
+	end
+
+	if celebrity.benefits.membership_boost and celebrity.benefits.membership_boost ~= 1.0 then
+		local percent = math.floor((celebrity.benefits.membership_boost - 1) * 100)
+		table.insert(benefitsList, {
+			name = "Membership",
+			value = "+" .. percent .. "%",
+			description = "More members join your gym"
+		})
+	end
+
+	if celebrity.benefits.membership_retention and celebrity.benefits.membership_retention ~= 1.0 then
+		local percent = math.floor((celebrity.benefits.membership_retention - 1) * 100)
+		table.insert(benefitsList, {
+			name = "Retention",
+			value = "+" .. percent .. "%",
+			description = "Better member retention"
+		})
+	end
+
+	if celebrity.benefits.dues_boost and celebrity.benefits.dues_boost ~= 1.0 then
+		local percent = math.floor((celebrity.benefits.dues_boost - 1) * 100)
+		table.insert(benefitsList, {
+			name = "Membership Fees",
+			value = "+" .. percent .. "%",
+			description = "Higher membership fees"
+		})
+	end
+
+	if celebrity.benefits.vip_multiplier and celebrity.benefits.vip_multiplier ~= 1.0 then
+		local percent = math.floor((celebrity.benefits.vip_multiplier - 1) * 100)
+		table.insert(benefitsList, {
+			name = "VIP Payments",
+			value = "+" .. percent .. "%",
+			description = "VIP members pay more"
+		})
+	end
+
+	if celebrity.benefits.special_ability then
+		table.insert(benefitsList, {
+			name = "Special Ability",
+			value = celebrity.benefits.special_ability,
+			description = "Special promotion or event"
+		})
+	end
+
+	if celebrity.benefits.exclusive_equipment then
+		table.insert(benefitsList, {
+			name = "Exclusive Equipment",
+			value = celebrity.benefits.exclusive_equipment,
+			description = "Unlock special equipment"
+		})
+	end
+
+	-- Add benefits to container
+	for i, benefit in ipairs(benefitsList) do
+		local benefitFrame = Instance.new("Frame")
+		benefitFrame.Name = "Benefit_" .. i
+		benefitFrame.Size = UDim2.new(1, 0, 0, 60)
+		benefitFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		benefitFrame.BorderSizePixel = 0
+		benefitFrame.LayoutOrder = i
+
+		-- Add rounded corners
+		local benefitCorner = Instance.new("UICorner")
+		benefitCorner.CornerRadius = UDim.new(0, 6)
+		benefitCorner.Parent = benefitFrame
+
+		-- Add benefit name
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Name = "NameLabel"
+		nameLabel.Size = UDim2.new(0.4, 0, 0, 30)
+		nameLabel.Position = UDim2.new(0, 10, 0, 5)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		nameLabel.TextSize = 16
+		nameLabel.Text = benefit.name
+		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+		nameLabel.Parent = benefitFrame
+
+		-- Add benefit value
+		local valueLabel = Instance.new("TextLabel")
+		valueLabel.Name = "ValueLabel"
+		valueLabel.Size = UDim2.new(0.3, 0, 0, 30)
+		valueLabel.Position = UDim2.new(0.4, 10, 0, 5)
+		valueLabel.BackgroundTransparency = 1
+		valueLabel.Font = Enum.Font.GothamBold
+		valueLabel.TextColor3 = Color3.fromRGB(0, 200, 100)
+		valueLabel.TextSize = 16
+		valueLabel.Text = benefit.value
+		valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+		valueLabel.Parent = benefitFrame
+
+		-- Add benefit description
+		local descriptionLabel = Instance.new("TextLabel")
+		descriptionLabel.Name = "DescriptionLabel"
+		descriptionLabel.Size = UDim2.new(1, -20, 0, 20)
+		descriptionLabel.Position = UDim2.new(0, 10, 0, 35)
+		descriptionLabel.BackgroundTransparency = 1
+		descriptionLabel.Font = Enum.Font.Gotham
+		descriptionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+		descriptionLabel.TextSize = 14
+		descriptionLabel.Text = benefit.description
+		descriptionLabel.TextXAlignment = Enum.TextXAlignment.Left
+		descriptionLabel.Parent = benefitFrame
+
+		benefitFrame.Parent = benefitsContainer
+	end
+
+	-- Update canvas size
+	benefitsContainer.CanvasSize = UDim2.new(0, 0, 0, #benefitsList * 70)
+
+	-- Add close button
+	local closeButton = Instance.new("TextButton")
+	closeButton.Name = "CloseButton"
+	closeButton.Size = UDim2.new(0, 100, 0, 40)
+	closeButton.Position = UDim2.new(0.5, -50, 0, 310)
+	closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeButton.Font = Enum.Font.GothamBold
+	closeButton.TextSize = 16
+	closeButton.Text = "Close"
+
+	-- Add rounded corners
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 6)
+	closeCorner.Parent = closeButton
+
+	-- Connect close button
+	closeButton.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	closeButton.Parent = frame
+
+	-- Parent the GUI to the player
+	screenGui.Parent = player.PlayerGui
+end
+
+-- Use trainer's special ability
+function CelebrityTrainerSystem.useSpecialAbility(player, celebrityId)
+	if not player or not celebrityId then return false end
+
+	local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+	if not celebrity or not celebrity.benefits.special_ability then return false end
+
+	-- Check if ability is on cooldown
+	if CelebrityTrainerSystem.playerTrainers[player.UserId] and
+		CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId] and
+		CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId].ability_cooldown then
+
+		local cooldownEndTime = CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId].ability_cooldown
+		if os.time() < cooldownEndTime then
+			-- Create cooldown notification
+			local timeLeft = math.ceil((cooldownEndTime - os.time()) / 60) -- Minutes
+
+			local message = Instance.new("Message")
+			message.Text = "Special ability on cooldown. Available in " .. timeLeft .. " minutes."
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 5)
+
+			return false
+		end
+	end
+
+	-- Implement ability effects based on type
+	local abilityName = celebrity.benefits.special_ability
+	local success = false
+
+	if abilityName == "PowerCompetition" then
+		-- Boost gym revenue for a limited time
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon then
+			tycoon:SetAttribute("PowerCompetitionBoost", 2.0) -- Double revenue
+
+			-- Create notification
+			local message = Instance.new("Message")
+			message.Text = celebrity.name .. " is hosting a power competition!\nDoubled revenue for 1 hour!"
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 5)
+
+			-- Remove boost after duration
+			spawn(function()
+				wait(60 * 60) -- 1 hour
+				if tycoon then
+					tycoon:SetAttribute("PowerCompetitionBoost", nil)
+
+					-- Notify end
+					local endMessage = Instance.new("Message")
+					endMessage.Text = "Power competition has ended."
+					endMessage.Parent = player
+					game:GetService("Debris"):AddItem(endMessage, 5)
+				end
+			end)
+
+			success = true
+		end
+	elseif abilityName == "CardioMarathon" then
+		-- Attract new members
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon then
+			-- Get current membership
+			local currentMembership = tycoon:GetAttribute("MembershipCount") or 0
+
+			-- Add 20% more members
+			local newMembers = math.floor(currentMembership * 0.2)
+			tycoon:SetAttribute("CardioMarathonBonus", newMembers)
+
+			-- Create notification
+			local message = Instance.new("Message")
+			message.Text = celebrity.name .. " organized a cardio marathon!\nAttracted " .. newMembers .. " new members!"
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 5)
+
+			success = true
+		end
+	elseif abilityName == "MindfulnessRetreat" then
+		-- Convert regular members to VIPs
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon then
+			-- Get current VIP count
+			local currentVIPs = tycoon:GetAttribute("VIPMembershipCount") or 0
+			local regularMembers = (tycoon:GetAttribute("MembershipCount") or 0) - currentVIPs
+
+			-- Convert 10% of regular members to VIPs
+			local newVIPs = math.floor(regularMembers * 0.1)
+			tycoon:SetAttribute("MindfulnessRetreatBonus", newVIPs)
+
+			-- Create notification
+			local message = Instance.new("Message")
+			message.Text = celebrity.name .. " hosted a luxury mindfulness retreat!\nConverted " .. newVIPs .. " members to VIP status!"
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 5)
+
+			success = true
+		end
+	elseif abilityName == "EliteChallenge" then
+		-- Boost member retention
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon then
+			tycoon:SetAttribute("EliteChallengeBoost", 1.5) -- 50% better retention
+
+			-- Create notification
+			local message = Instance.new("Message")
+			message.Text = celebrity.name .. " is running an elite challenge program!\nImproved member retention for 1 week!"
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 5)
+
+			-- Remove boost after duration
+			spawn(function()
+				wait(60 * 60 * 24 * 7) -- 1 week
+				if tycoon then
+					tycoon:SetAttribute("EliteChallengeBoost", nil)
+
+					-- Notify end
+					local endMessage = Instance.new("Message")
+					endMessage.Text = "Elite challenge program has ended."
+					endMessage.Parent = player
+					game:GetService("Debris"):AddItem(endMessage, 5)
+				end
+			end)
+
+			success = true
+		end
+	elseif abilityName == "MealPlanPromotion" then
+		-- Boost membership fees
+		local tycoon = player-- CelebrityTrainerSystem.lua
+		-- Place in ServerScriptService
+
+		local Players = game:GetService("Players")
+		local ServerScriptService = game:GetService("ServerScriptService")
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
+		local TweenService = game:GetService("TweenService")
+		local RunService = game:GetService("RunService")
+		local ServerStorage = game:GetService("ServerStorage")
+
+		-- Try to load dependencies
+		local SpecializationSystem
+		pcall(function()
+			SpecializationSystem = require(ServerScriptService:FindFirstChild("GymSpecializationSystem"))
+		end)
+
+		local GymRevenue
+		pcall(function()
+			GymRevenue = require(ServerScriptService:FindFirstChild("GymRevenueSystem"))
+		end)
+
+		local CelebrityTrainerSystem = {
+			-- Currently available celebrity trainers
+			availableTrainers = {},
+
+			-- Players' hired trainers
+			playerTrainers = {},
+
+			-- Celebrity trainer definitions
+			celebrities = {
+				powerMax = {
+					name = "Max Power",
+					description = "World-famous bodybuilding champion and 5-time Mr. Universe",
+					specialty = "bodybuilding",
+					hiring_cost = 50000,
+					salary = 5000, -- Weekly salary
+					appearance = {
+						model_id = "rbxassetid://12345683", -- Replace with actual model ID
+						icon = "rbxassetid://12345684" -- Replace with actual icon ID
+					},
+					benefits = {
+						vip_chance_boost = 0.1, -- +10% VIP chance
+						membership_boost = 1.15, -- 15% more members
+						special_ability = "PowerCompetition", -- Can host special competitions
+						exclusive_equipment = "PowerRack" -- Unlocks special equipment
+					},
+					dialogue = {
+						greeting = "Let's pump up your gym's revenue like I pump iron! ARE YOU READY?",
+						hired = "YEEAAH! Time to make this the best gym in town!",
+						fired = "Your loss, bro. I'll take my gains elsewhere.",
+						daily = {"Feel the burn!", "No pain, no gain!", "One more rep!"}
+					},
+					requirements = {
+						gym_level = 5,
+						specialization = "bodybuilding" -- Required specialization
+					}
+				},
+
+				cardioQueen = {
+					name = "Cardio Queen",
+					description = "Marathon champion and fitness influencer with over 10 million followers",
+					specialty = "cardio",
+					hiring_cost = 45000,
+					salary = 4500,
+					appearance = {
+						model_id = "rbxassetid://12345685",
+						icon = "rbxassetid://12345686"
+					},
+					benefits = {
+						membership_retention = 1.3, -- 30% better retention
+						dues_boost = 1.1, -- 10% higher dues
+						special_ability = "CardioMarathon",
+						exclusive_equipment = "PremiumTreadmill"
+					},
+					dialogue = {
+						greeting = "Hi there! Ready to take your cardio program to the next level?",
+						hired = "Fantastic! Let's get those hearts pumping!",
+						fired = "Oh, that's too bad. Call me if you change your mind!",
+						daily = {"Keep moving!", "Feel that endurance building!", "You're doing great!"}
+					},
+					requirements = {
+						gym_level = 4,
+						specialization = "cardio"
+					}
+				},
+
+				zenMaster = {
+					name = "Zen Master",
+					description = "Celebrity yoga instructor and wellness coach to the stars",
+					specialty = "luxury",
+					hiring_cost = 60000,
+					salary = 6000,
+					appearance = {
+						model_id = "rbxassetid://12345687",
+						icon = "rbxassetid://12345688"
+					},
+					benefits = {
+						vip_multiplier = 1.3, -- VIPs pay 30% more
+						vip_chance_boost = 0.15,
+						special_ability = "MindfulnessRetreat",
+						exclusive_equipment = "LuxurySpa"
+					},
+					dialogue = {
+						greeting = "Peace and prosperity to your establishment. Shall we elevate your members' experience?",
+						hired = "A wise choice. Together we will create harmony and balance.",
+						fired = "I understand. Our paths may cross again when the time is right.",
+						daily = {"Find your center.", "Breathe in prosperity.", "Align your business chakras."}
+					},
+					requirements = {
+						gym_level = 6,
+						specialization = "luxury"
+					}
+				},
+
+				crossfitChamp = {
+					name = "CrossFit Champ",
+					description = "CrossFit Games champion known for high-intensity functional training",
+					specialty = "crossfit",
+					hiring_cost = 55000,
+					salary = 5500,
+					appearance = {
+						model_id = "rbxassetid://12345689",
+						icon = "rbxassetid://12345690"
+					},
+					benefits = {
+						membership_boost = 1.2,
+						dues_boost = 1.15,
+						special_ability = "EliteChallenge",
+						exclusive_equipment = "FunctionalRig"
+					},
+					dialogue = {
+						greeting = "Hey! Want to transform your gym into a high-performance training ground?",
+						hired = "Let's do this! Time to push your gym to its limits!",
+						fired = "No worries, catch you on the next WOD!",
+						daily = {"Three, two, one, GO!", "Beat your yesterday!", "As many rounds as possible!"}
+					},
+					requirements = {
+						gym_level = 5,
+						specialization = "crossfit"
+					}
+				},
+
+				nutritionGuru = {
+					name = "Nutrition Guru",
+					description = "Celebrity nutritionist and author of bestselling fitness cookbooks",
+					specialty = "general", -- Works with any specialization
+					hiring_cost = 40000,
+					salary = 4000,
+					appearance = {
+						model_id = "rbxassetid://12345691",
+						icon = "rbxassetid://12345692"
+					},
+					benefits = {
+						membership_retention = 1.2,
+						vip_chance_boost = 0.05,
+						special_ability = "MealPlanPromotion",
+						exclusive_equipment = "JuiceBar"
+					},
+					dialogue = {
+						greeting = "Hello! Want to supercharge your gym's results with proper nutrition?",
+						hired = "Excellent! Nutrition is the foundation of fitness success!",
+						fired = "I understand. Nutrition is often overlooked, but always important!",
+						daily = {"Fuel your body right!", "Protein is key!", "Hydration leads to success!"}
+					},
+					requirements = {
+						gym_level = 3 -- Lower requirement, works with any specialization
+					}
+				}
+			}
+		}
+
+		-- Check if a player meets requirements for a celebrity trainer
+		function CelebrityTrainerSystem.checkRequirements(player, celebrityId)
+			if not player or not celebrityId then return false end
+
+			local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+			if not celebrity then return false end
+
+			local tycoon = player:FindFirstChild("Tycoon")
+			if not tycoon then return false end
+
+			-- Check gym level
+			local gymLevel = tycoon:GetAttribute("GymTier") or tycoon:GetAttribute("GymLevel") or 1
+			if gymLevel < celebrity.requirements.gym_level then
+				return false, "Your gym needs to be level " .. celebrity.requirements.gym_level
+			end
+
+			-- Check specialization if required
+			if celebrity.requirements.specialization and celebrity.requirements.specialization ~= "general" then
+				local hasRequiredSpec = false
+
+				-- Check if player has the specialization system
+				if SpecializationSystem then
+					local specs = SpecializationSystem.getPlayerSpecializations(player)
+					if specs and (specs.primary == celebrity.requirements.specialization or 
+						specs.secondary == celebrity.requirements.specialization) then
+						hasRequiredSpec = true
+					end
+				end
+
+				if not hasRequiredSpec then
+					return false, "You need the " .. celebrity.requirements.specialization .. " specialization"
+				end
+			end
+
+			-- Check if player has enough money
+			local leaderstats = player:FindFirstChild("leaderstats")
+			if not leaderstats or not leaderstats:FindFirstChild("Cash") then
+				return false, "Cannot verify funds"
+			end
+
+			if leaderstats.Cash.Value < celebrity.hiring_cost then
+				return false, "You need $" .. celebrity.hiring_cost .. " to hire this trainer"
+			end
+
+			return true
+		end
+
+		-- Hire a celebrity trainer
+		function CelebrityTrainerSystem.hireTrainer(player, celebrityId)
+			if not player or not celebrityId then return false end
+
+			local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+			if not celebrity then return false, "Invalid celebrity trainer" end
+
+			-- Check requirements
+			local meetsRequirements, reason = CelebrityTrainerSystem.checkRequirements(player, celebrityId)
+			if not meetsRequirements then
+				return false, reason
+			end
+
+			-- Check if player already has this trainer
+			if CelebrityTrainerSystem.playerTrainers[player.UserId] and 
+				CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId] then
+				return false, "You already hired this trainer"
+			end
+
+			-- Deduct hiring cost
+			local leaderstats = player:FindFirstChild("leaderstats")
+			leaderstats.Cash.Value = leaderstats.Cash.Value - celebrity.hiring_cost
+
+			-- Initialize player's trainers table if needed
+			if not CelebrityTrainerSystem.playerTrainers[player.UserId] then
+				CelebrityTrainerSystem.playerTrainers[player.UserId] = {}
+			end
+
+			-- Record hiring
+			CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId] = {
+				hired_time = os.time(),
+				last_salary_time = os.time(),
+				benefits_applied = false
+			}
+
+			-- Apply benefits
+			CelebrityTrainerSystem.applyTrainerBenefits(player, celebrityId)
+
+			-- Create trainer in player's gym
+			CelebrityTrainerSystem.createTrainerInGym(player, celebrityId)
+
+			-- Create notification
+			local message = Instance.new("Message")
+			message.Text = celebrity.name .. " has joined your team!\n" .. celebrity.dialogue.hired
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 5)
+
+			-- Mark trainer as unavailable for other players
+			table.insert(CelebrityTrainerSystem.availableTrainers, celebrityId)
+
+			return true, "Trainer hired successfully"
+		end
+
+		-- Fire a celebrity trainer
+		function CelebrityTrainerSystem.fireTrainer(player, celebrityId)
+			if not player or not celebrityId then return false end
+
+			-- Check if player has this trainer
+			if not CelebrityTrainerSystem.playerTrainers[player.UserId] or
+				not CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId] then
+				return false, "You haven't hired this trainer"
+			end
+
+			local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+			if not celebrity then return false, "Invalid celebrity trainer" end
+
+			-- Remove benefits
+			CelebrityTrainerSystem.removeTrainerBenefits(player, celebrityId)
+
+			-- Remove trainer from player's gym
+			CelebrityTrainerSystem.removeTrainerFromGym(player, celebrityId)
+
+			-- Remove from player's trainers
+			CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId] = nil
+
+			-- Create notification
+			local message = Instance.new("Message")
+			message.Text = celebrity.name .. " has left your team.\n" .. celebrity.dialogue.fired
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 5)
+
+			-- Make trainer available again after a cooldown
+			spawn(function()
+				wait(60 * 60) -- 1 hour cooldown
+
+				-- Remove from unavailable list
+				for i, id in ipairs(CelebrityTrainerSystem.availableTrainers) do
+					if id == celebrityId then
+						table.remove(CelebrityTrainerSystem.availableTrainers, i)
+						break
+					end
+				end
+			end)
+
+			return true, "Trainer fired successfully"
+		end
+
+		-- Apply trainer benefits to a player
+		function CelebrityTrainerSystem.applyTrainerBenefits(player, celebrityId)
+			if not player or not celebrityId then return false end
+
+			local tycoon = player:FindFirstChild("Tycoon")
+			if not tycoon then return false end
+
+			local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+			if not celebrity then return false end
+
+			-- Apply benefits to tycoon attributes
+			if celebrity.benefits.vip_chance_boost then
+				local currentBoost = tycoon:GetAttribute("TrainerVIPChanceBoost") or 0
+				tycoon:SetAttribute("TrainerVIPChanceBoost", currentBoost + celebrity.benefits.vip_chance_boost)
+			end
+
+			if celebrity.benefits.membership_boost then
+				local currentBoost = tycoon:GetAttribute("TrainerMembershipBoost") or 1.0
+				tycoon:SetAttribute("TrainerMembershipBoost", currentBoost * celebrity.benefits.membership_boost)
+			end
+
+			if celebrity.benefits.membership_retention then
+				local currentRetention = tycoon:GetAttribute("TrainerRetentionBoost") or 1.0
+				tycoon:SetAttribute("TrainerRetentionBoost", currentRetention * celebrity.benefits.membership_retention)
+			end
+
+			if celebrity.benefits.dues_boost then
+				local currentDuesBoost = tycoon:GetAttribute("TrainerDuesBoost") or 1.0
+				tycoon:SetAttribute("TrainerDuesBoost", currentDuesBoost * celebrity.benefits.dues_boost)
+			end
+
+			if celebrity.benefits.vip_multiplier then
+				local currentVIPMultiplier = tycoon:GetAttribute("TrainerVIPMultiplier") or 1.0
+				tycoon:SetAttribute("TrainerVIPMultiplier", currentVIPMultiplier * celebrity.benefits.vip_multiplier)
+			end
+
+			-- Unlock exclusive equipment if available
+			if celebrity.benefits.exclusive_equipment then
+				tycoon:SetAttribute("Unlocked_" .. celebrity.benefits.exclusive_equipment, true)
+
+				-- Notification about unlocked equipment
+				local message = Instance.new("Message")
+				message.Text = "New equipment unlocked: " .. celebrity.benefits.exclusive_equipment
+				message.Parent = player
+				game:GetService("Debris"):AddItem(message, 5)
+			end
+
+			-- Mark benefits as applied
+			if CelebrityTrainerSystem.playerTrainers[player.UserId] and
+				CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId] then
+				CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId].benefits_applied = true
+			end
+
+			-- Update revenue system
+			if GymRevenue and GymRevenue.updatePlayerConfig then
+				GymRevenue.updatePlayerConfig(player)
+			end
+
+			return true
+		end
+
+		-- Remove trainer benefits from a player
+		function CelebrityTrainerSystem.removeTrainerBenefits(player, celebrityId)
+			if not player or not celebrityId then return false end
+
+			local tycoon = player:FindFirstChild("Tycoon")
+			if not tycoon then return false end
+
+			local celebrity = CelebrityTrainerSystem
+			-- Complete the useSpecialAbility function
+			if abilityName == "MealPlanPromotion" then
+				-- Boost membership fees
+				local tycoon = player:FindFirstChild("Tycoon")
+				if tycoon then
+					tycoon:SetAttribute("MealPlanBoost", 1.3) -- 30% higher fees
+
+					-- Create notification
+					local message = Instance.new("Message")
+					message.Text = celebrity.name .. " launched a premium meal plan promotion!\nMembership fees increased by 30% for 3 days!"
+					message.Parent = player
+					game:GetService("Debris"):AddItem(message, 5)
+
+					-- Remove boost after duration
+					spawn(function()
+						wait(60 * 60 * 24 * 3) -- 3 days
+						if tycoon then
+							tycoon:SetAttribute("MealPlanBoost", nil)
+
+							-- Notify end
+							local endMessage = Instance.new("Message")
+							endMessage.Text = "Meal plan promotion has ended."
+							endMessage.Parent = player
+							game:GetService("Debris"):AddItem(endMessage, 5)
+						end
+					end)
+
+					success = true
+				end
+			end
+
+			-- Set ability cooldown if successful
+			if success then
+				-- Set 1 week cooldown
+				if not CelebrityTrainerSystem.playerTrainers[player.UserId] then
+					CelebrityTrainerSystem.playerTrainers[player.UserId] = {}
+				end
+
+				if not CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId] then
+					CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId] = {}
+				end
+
+				CelebrityTrainerSystem.playerTrainers[player.UserId][celebrityId].ability_cooldown = os.time() + (60 * 60 * 24 * 7) -- 1 week
+			end
+
+			return success
+		end
+
+		-- Handle confirmation dialog for firing a trainer
+		function CelebrityTrainerSystem.confirmFireTrainer(player, celebrityId)
+			if not player or not celebrityId then return end
+
+			local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+			if not celebrity then return end
+
+			-- Create confirmation GUI
+			local screenGui = Instance.new("ScreenGui")
+			screenGui.Name = "FireTrainerConfirmation"
+			screenGui.ResetOnSpawn = false
+
+			-- Create main frame
+			local frame = Instance.new("Frame")
+			frame.Name = "MainFrame"
+			frame.Size = UDim2.new(0, 350, 0, 200)
+			frame.Position = UDim2.new(0.5, -175, 0.5, -100)
+			frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+			frame.BackgroundTransparency = 0.1
+			frame.BorderSizePixel = 0
+			frame.Parent = screenGui
+
+			-- Add rounded corners
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 10)
+			corner.Parent = frame
+
+			-- Add title
+			local titleLabel = Instance.new("TextLabel")
+			titleLabel.Name = "TitleLabel"
+			titleLabel.Size = UDim2.new(1, -20, 0, 40)
+			titleLabel.Position = UDim2.new(0, 10, 0, 10)
+			titleLabel.BackgroundTransparency = 1
+			titleLabel.Font = Enum.Font.GothamBold
+			titleLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
+			titleLabel.TextSize = 22
+			titleLabel.Text = "Fire " .. celebrity.name .. "?"
+			titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+			titleLabel.Parent = frame
+
+			-- Add warning text
+			local warningText = Instance.new("TextLabel")
+			warningText.Name = "WarningText"
+			warningText.Size = UDim2.new(1, -40, 0, 80)
+			warningText.Position = UDim2.new(0, 20, 0, 60)
+			warningText.BackgroundTransparency = 1
+			warningText.Font = Enum.Font.Gotham
+			warningText.TextColor3 = Color3.fromRGB(255, 255, 255)
+			warningText.TextSize = 16
+			warningText.TextWrapped = true
+			warningText.Text = "Are you sure you want to fire " .. celebrity.name .. "? You will lose all benefits and will need to pay the full hiring cost to rehire them."
+			warningText.Parent = frame
+
+			-- Add buttons container
+			local buttonsContainer = Instance.new("Frame")
+			buttonsContainer.Name = "ButtonsContainer"
+			buttonsContainer.Size = UDim2.new(1, -40, 0, 40)
+			buttonsContainer.Position = UDim2.new(0, 20, 0, 150)
+			buttonsContainer.BackgroundTransparency = 1
+			buttonsContainer.Parent = frame
+
+			-- Add cancel button
+			local cancelButton = Instance.new("TextButton")
+			cancelButton.Name = "CancelButton"
+			cancelButton.Size = UDim2.new(0.48, 0, 1, 0)
+			cancelButton.Position = UDim2.new(0, 0, 0, 0)
+			cancelButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+			cancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+			cancelButton.Font = Enum.Font.GothamSemibold
+			cancelButton.TextSize = 16
+			cancelButton.Text = "Cancel"
+
+			-- Add rounded corners
+			local cancelCorner = Instance.new("UICorner")
+			cancelCorner.CornerRadius = UDim.new(0, 6)
+			cancelCorner.Parent = cancelButton
+
+			-- Add confirm button
+			local confirmButton = Instance.new("TextButton")
+			confirmButton.Name = "ConfirmButton"
+			confirmButton.Size = UDim2.new(0.48, 0, 1, 0)
+			confirmButton.Position = UDim2.new(0.52, 0, 0, 0)
+			confirmButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+			confirmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+			confirmButton.Font = Enum.Font.GothamSemibold
+			confirmButton.TextSize = 16
+			confirmButton.Text = "Fire Trainer"
+
+			-- Add rounded corners
+			local confirmCorner = Instance.new("UICorner")
+			confirmCorner.CornerRadius = UDim.new(0, 6)
+			confirmCorner.Parent = confirmButton
+
+			-- Connect buttons
+			cancelButton.MouseButton1Click:Connect(function()
+				screenGui:Destroy()
+			end)
+
+			confirmButton.MouseButton1Click:Connect(function()
+				screenGui:Destroy()
+				CelebrityTrainerSystem.fireTrainer(player, celebrityId)
+			end)
+
+			-- Parent buttons
+			cancelButton.Parent = buttonsContainer
+			confirmButton.Parent = buttonsContainer
+
+			-- Parent GUI to player
+			screenGui.Parent = player.PlayerGui
+		end
+
+		-- Process trainer salaries for all players
+		function CelebrityTrainerSystem.processSalaries()
+			local currentTime = os.time()
+
+			for userId, trainers in pairs(CelebrityTrainerSystem.playerTrainers) do
+				-- Get player from userId
+				local player = Players:GetPlayerByUserId(userId)
+				if not player then continue end
+
+				-- Get player cash
+				local leaderstats = player:FindFirstChild("leaderstats")
+				if not leaderstats or not leaderstats:FindFirstChild("Cash") then continue end
+
+				-- Process each trainer
+				for celebrityId, trainerData in pairs(trainers) do
+					local celebrity = CelebrityTrainerSystem.celebrities[celebrityId]
+					if not celebrity then continue end
+
+					-- Check if salary is due (weekly)
+					local salaryInterval = 60 * 60 * 24 * 7 -- 1 week in seconds
+					if currentTime - trainerData.last_salary_time >= salaryInterval then
+						-- Check if player can afford salary
+						if leaderstats.Cash.Value >= celebrity.salary then
+							-- Deduct salary
+							leaderstats.Cash.Value = leaderstats.Cash.Value - celebrity.salary
+
+							-- Update last salary time
+							trainerData.last_salary_time = currentTime
+
+							-- Notify player
+							local message = Instance.new("Message")
+							message.Text = "You paid " .. celebrity.name .. " their weekly salary of $" .. celebrity.salary
+							message.Parent = player
+							game:GetService("Debris"):AddItem(message, 5)
+						else
+							-- Not enough money, fire the trainer
+							CelebrityTrainerSystem.fireTrainer(player, celebrityId)
+
+							-- Notify player
+							local message = Instance.new("Message")
+							message.Text = "You couldn't afford to pay " .. celebrity.name .. "'s salary of $" .. celebrity.salary .. ". They've left your gym."
+							message.Parent = player
+							game:GetService("Debris"):AddItem(message, 5)
+						end
+					end
+				end
+			end
+		end
+
+		-- Create a GUI to browse and hire trainers
+		function CelebrityTrainerSystem.showTrainerBrowser(player)
+			if not player then return end
+
+			-- Create trainer browser GUI
+			local screenGui = Instance.new("ScreenGui")
+			screenGui.Name = "TrainerBrowser"
+			screenGui.ResetOnSpawn = false
+
+			-- Create main frame
+			local frame = Instance.new("Frame")
+			frame.Name = "MainFrame"
+			frame.Size = UDim2.new(0, 800, 0, 500)
+			frame.Position = UDim2.new(0.5, -400, 0.5, -250)
+			frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+			frame.BackgroundTransparency = 0.1
+			frame.BorderSizePixel = 0
+			frame.Parent = screenGui
+
+			-- Add rounded corners
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 10)
+			corner.Parent = frame
+
+			-- Add title
+			local titleLabel = Instance.new("TextLabel")
+			titleLabel.Name = "TitleLabel"
+			titleLabel.Size = UDim2.new(1, -20, 0, 50)
+			titleLabel.Position = UDim2.new(0, 10, 0, 10)
+			titleLabel.BackgroundTransparency = 1
+			titleLabel.Font = Enum.Font.GothamBold
+			titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			titleLabel.TextSize = 28
+			titleLabel.Text = "Celebrity Trainers"
+			titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+			titleLabel.Parent = frame
+
+			-- Add subtitle
+			local subtitleLabel = Instance.new("TextLabel")
+			subtitleLabel.Name = "SubtitleLabel"
+			subtitleLabel.Size = UDim2.new(1, -20, 0, 30)
+			subtitleLabel.Position = UDim2.new(0, 10, 0, 60)
+			subtitleLabel.BackgroundTransparency = 1
+			subtitleLabel.Font = Enum.Font.Gotham
+			subtitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+			subtitleLabel.TextSize = 18
+			subtitleLabel.Text = "Hire world-class trainers to boost your gym's performance"
+			subtitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+			subtitleLabel.Parent = frame
+
+			-- Add trainers container
+			local trainersContainer = Instance.new("ScrollingFrame")
+			trainersContainer.Name = "TrainersContainer"
+			trainersContainer.Size = UDim2.new(1, -40, 0, 380)
+			trainersContainer.Position = UDim2.new(0, 20, 0, 100)
+			trainersContainer.BackgroundTransparency = 1
+			trainersContainer.BorderSizePixel = 0
+			trainersContainer.ScrollBarThickness = 6
+			trainersContainer.Parent = frame
+
+			-- Create trainer cards
+			local yOffset = 0
+			local availableTrainers = {}
+
+			-- Check which trainers are available
+			for id, celebrity in pairs(CelebrityTrainerSystem.celebrities) do
+				-- Check if trainer is available
+				local isAvailable = true
+
+				-- Check if trainer is already hired by this player
+				if CelebrityTrainerSystem.playerTrainers[player.UserId] and 
+					CelebrityTrainerSystem.playerTrainers[player.UserId][id] then
+					isAvailable = false
+				end
+
+				-- Check if trainer is hired by another player
+				for _, unavailableId in ipairs(CelebrityTrainerSystem.availableTrainers) do
+					if unavailableId == id then
+						isAvailable = false
+						break
+					end
+				end
+
+				if isAvailable then
+					table.insert(availableTrainers, id)
+				end
+			end
+
+			-- Add trainer cards
+			for i, id in ipairs(availableTrainers) do
+				local celebrity = CelebrityTrainerSystem.celebrities[id]
+
+				-- Create trainer card
+				local card = Instance.new("Frame")
+				card.Name = id .. "Card"
+				card.Size = UDim2.new(1, 0, 0, 150)
+				card.Position = UDim2.new(0, 0, 0, yOffset)
+				card.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+				card.BorderSizePixel = 0
+
+				-- Add rounded corners
+				local cardCorner = Instance.new("UICorner")
+				cardCorner.CornerRadius = UDim.new(0, 8)
+				cardCorner.Parent = card
+
+				-- Add trainer icon placeholder
+				local iconFrame = Instance.new("Frame")
+				iconFrame.Name = "IconFrame"
+				iconFrame.Size = UDim2.new(0, 100, 0, 100)
+				iconFrame.Position = UDim2.new(0, 20, 0, 25)
+				iconFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+				iconFrame.Parent = card
+
+				-- Add rounded corners to icon
+				local iconCorner = Instance.new("UICorner")
+				iconCorner.CornerRadius = UDim.new(0, 8)
+				iconCorner.Parent = iconFrame
+
+				-- Add trainer icon if available
+				if celebrity.appearance.icon then
+					local icon = Instance.new("ImageLabel")
+					icon.Name = "Icon"
+					icon.Size = UDim2.new(1, 0, 1, 0)
+					icon.BackgroundTransparency = 1
+					icon.Image = celebrity.appearance.icon
+					icon.Parent = iconFrame
+
+					-- Add rounded corners to icon
+					local imgCorner = Instance.new("UICorner")
+					imgCorner.CornerRadius = UDim.new(0, 8)
+					imgCorner.Parent = icon
+				end
+
+				-- Add trainer name
+				local nameLabel = Instance.new("TextLabel")
+				nameLabel.Name = "NameLabel"
+				nameLabel.Size = UDim2.new(0, 300, 0, 30)
+				nameLabel.Position = UDim2.new(0, 140, 0, 20)
+				nameLabel.BackgroundTransparency = 1
+				nameLabel.Font = Enum.Font.GothamBold
+				nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+				nameLabel.TextSize = 20
+				nameLabel.Text = celebrity.name
+				nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+				nameLabel.Parent = card
+
+				-- Add specialty label
+				local specialtyLabel = Instance.new("TextLabel")
+				specialtyLabel.Name = "SpecialtyLabel"
+				specialtyLabel.Size = UDim2.new(0, 200, 0, 20)
+				specialtyLabel.Position = UDim2.new(0, 140, 0, 50)
+				specialtyLabel.BackgroundTransparency = 1
+				specialtyLabel.Font = Enum.Font.Gotham
+				specialtyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+				specialtyLabel.TextSize = 16
+				specialtyLabel.Text = "Specialty: " .. celebrity.specialty:sub(1,1):upper() .. celebrity.specialty:sub(2)
+				specialtyLabel.TextXAlignment = Enum.TextXAlignment.Left
+				specialtyLabel.Parent = card
+
+				-- Add description
+				local descriptionLabel = Instance.new("TextLabel")
+				descriptionLabel.Name = "DescriptionLabel"
+				descriptionLabel.Size = UDim2.new(0, 400, 0, 40)
+				descriptionLabel.Position = UDim2.new(0, 140, 0, 75)
+				descriptionLabel.BackgroundTransparency = 1
+				descriptionLabel.Font = Enum.Font.Gotham
+				descriptionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+				descriptionLabel.TextSize = 14
+				descriptionLabel.Text = celebrity.description
+				descriptionLabel.TextWrapped = true
+				descriptionLabel.TextXAlignment = Enum.TextXAlignment.Left
+				descriptionLabel.Parent = card
+
+				-- Add hire button
+				local hireButton = Instance.new("TextButton")
+				hireButton.Name = "HireButton"
+				hireButton.Size = UDim2.new(0, 120, 0, 40)
+				hireButton.Position = UDim2.new(1, -140, 0, 55)
+				hireButton.BackgroundColor3 = Color3.fromRGB(0, 150, 50)
+				hireButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+				hireButton.Font = Enum.Font.GothamBold
+				hireButton.TextSize = 16
+				hireButton.Text = "Hire: $" .. celebrity.hiring_cost
+
+				-- Add rounded corners
+				local buttonCorner = Instance.new("UICorner")
+				buttonCorner.CornerRadius = UDim.new(0, 6)
+				buttonCorner.Parent = hireButton
+
+				-- Check if player meets requirements
+				local meetsRequirements, reason = CelebrityTrainerSystem.checkRequirements(player, id)
+
+				if not meetsRequirements then
+					-- Disable button
+					hireButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+					hireButton.Text = "Unavailable"
+
+					-- Add tooltip with reason
+					local tooltip = Instance.new("TextLabel")
+					tooltip.Name = "Tooltip"
+					tooltip.Size = UDim2.new(0, 200, 0, 30)
+					tooltip.Position = UDim2.new(1, -200, 0, 95)
+					tooltip.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+					tooltip.BackgroundTransparency = 0.5
+					tooltip.TextColor3 = Color3.fromRGB(255, 100, 100)
+					tooltip.Font = Enum.Font.Gotham
+					tooltip.TextSize = 12
+					tooltip.Text = reason
+					tooltip.TextWrapped = true
+					tooltip.Visible = false
+
+					-- Add rounded corners
+					local tooltipCorner = Instance.new("UICorner")
+					tooltipCorner.CornerRadius = UDim.new(0, 4)
+					tooltipCorner.Parent = tooltip
+
+					tooltip.Parent = card
+
+					-- Show tooltip on hover
+					hireButton.MouseEnter:Connect(function()
+						tooltip.Visible = true
+					end)
+
+					hireButton.MouseLeave:Connect(function()
+						tooltip.Visible = false
+					end)
+				else
+					-- Connect hire button
+					hireButton.MouseButton1Click:Connect(function()
+						-- Close browser
+						screenGui:Destroy()
+
+						-- Hire trainer
+						CelebrityTrainerSystem.hireTrainer(player, id)
+					end)
+				end
+
+				hireButton.Parent = card
+
+				-- Add salary info
+				local salaryLabel = Instance.new("TextLabel")
+				salaryLabel.Name = "SalaryLabel"
+				salaryLabel.Size = UDim2.new(0, 120, 0, 20)
+				salaryLabel.Position = UDim2.new(1, -140, 0, 100)
+				salaryLabel.BackgroundTransparency = 1
+				salaryLabel.Font = Enum.Font.Gotham
+				salaryLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+				salaryLabel.TextSize = 12
+				salaryLabel.Text = "Salary: $" .. celebrity.salary .. "/week"
+				salaryLabel.Parent = card
+
+				-- Parent card to container
+				card.Parent = trainersContainer
+
+				-- Update y offset for next card
+				yOffset = yOffset + 165
+			end
+
+			-- Update container canvas size
+			trainersContainer.CanvasSize = UDim2.new(0, 0, 0, yOffset)
+
+			-- Add close button
+			local closeButton = Instance.new("TextButton")
+			closeButton.Name = "CloseButton"
+			closeButton.Size = UDim2.new(0, 30, 0, 30)
+			closeButton.Position = UDim2.new(1, -40, 0, 10)
+			closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+			closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+			closeButton.Font = Enum.Font.GothamBold
+			closeButton.TextSize = 18
+			closeButton.Text = "X"
+
+			-- Add rounded corners
+			local closeCorner = Instance.new("UICorner")
+			closeCorner.CornerRadius = UDim.new(0, 15)
+			closeCorner.Parent = closeButton
+
+			-- Connect close button
+			closeButton.MouseButton1Click:Connect(function()
+				screenGui:Destroy()
+			end)
+
+			closeButton.Parent = frame
+
+			-- Parent GUI to player
+			screenGui.Parent = player.PlayerGui
+		end
+
+		-- Create remotes for client-server communication
+		function CelebrityTrainerSystem.createRemotes()
+			-- Create remotes folder if it doesn't exist
+			local remotes = ReplicatedStorage:FindFirstChild("TrainerRemotes")
+			if not remotes then
+				remotes = Instance.new("Folder")
+				remotes.Name = "TrainerRemotes"
+				remotes.Parent = ReplicatedStorage
+			end
+
+			-- Create remotes
+			local functions = {
+				showTrainerBrowser = Instance.new("RemoteFunction"),
+				hireTrainer = Instance.new("RemoteFunction"),
+				fireTrainer = Instance.new("RemoteFunction"),
+				interactWithTrainer = Instance.new("RemoteFunction")
+			}
+
+			-- Parent and set up remotes
+			for name, remote in pairs(functions) do
+				remote.Name = name
+				remote.Parent = remotes
+			end
+
+			-- Connect remote functions
+			functions.showTrainerBrowser.OnServerInvoke = function(player)
+				CelebrityTrainerSystem.showTrainerBrowser(player)
+				return true
+			end
+
+			functions.hireTrainer.OnServerInvoke = function(player, celebrityId)
+				return CelebrityTrainerSystem.hireTrainer(player, celebrityId)
+			end
+
+			functions.fireTrainer.OnServerInvoke = function(player, celebrityId)
+				return CelebrityTrainerSystem.fireTrainer(player, celebrityId)
+			end
+
+			functions.interactWithTrainer.OnServerInvoke = function(player, celebrityId)
+				CelebrityTrainerSystem.interactWithTrainer(player, celebrityId)
+				return true
+			end
+		end
+
+		-- Start salary processing loop
+		function CelebrityTrainerSystem.startSalaryLoop()
+			spawn(function()
+				while true do
+					wait(60) -- Check every minute
+					CelebrityTrainerSystem.processSalaries()
+				end
+			end)
+		end
+
+		-- Initialize the system
+		function CelebrityTrainerSystem.initialize()
+			print("Initializing Celebrity Trainer System...")
+
+			-- Create remote functions
+			CelebrityTrainerSystem.createRemotes()
+
+			-- Start salary processing
+			CelebrityTrainerSystem.startSalaryLoop()
+
+			-- Set up player events
+			Players.PlayerRemoving:Connect(function(player)
+				-- Clean up player data when they leave
+				if CelebrityTrainerSystem.playerTrainers[player.UserId] then
+					CelebrityTrainerSystem.playerTrainers[player.UserId] = nil
+				end
+			end)
+
+			print("Celebrity Trainer System initialized!")
+		end
+
+		-- Initialize the system
+		CelebrityTrainerSystem.initialize()
+
+		-- Return the module
+		return CelebrityTrainerSystem
+	end
+end
+]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXD91AEFAFFCC54E1CAA5EF952D8FCAE0E">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">CompetitionSystem</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{ACE828D9-2068-45D6-A64C-E6D9B707559F}</string>
+				<ProtectedString name="Source"><![CDATA[-- CompetitionSystem.lua
+-- Server script for managing gym competitions
+-- Place in ServerScriptService
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local Players = game:GetService("Players")
+
+-- Try to load GymRevenueSystem
+local GymRevenueSystem
+pcall(function()
+	GymRevenueSystem = require(ServerScriptService:FindFirstChild("GymRevenueSystem"))
+end)
+
+if not GymRevenueSystem then
+	warn("GymRevenueSystem not found! CompetitionSystem will not function properly.")
+	return
+end
+
+-- Configuration
+local CONFIG = {
+	-- Competition types and their details
+	competitions = {
+		{
+			id = "fitness_challenge",
+			name = "Fitness Challenge",
+			description = "Challenge members to beat their personal records!",
+			duration = 1800, -- 30 minutes
+			boostMultiplier = 1.5, -- 50% more members
+			cost = 500,
+			minLevel = 1 -- Min gym level to start this competition
+		},
+		{
+			id = "bodybuilding_contest",
+			name = "Bodybuilding Contest",
+			description = "Show off muscles and attract new members!",
+			duration = 2700, -- 45 minutes
+			boostMultiplier = 1.75, -- 75% more members
+			cost = 1000,
+			minLevel = 3
+		},
+		{
+			id = "marathon_training",
+			name = "Marathon Training",
+			description = "Help members train for upcoming marathons!",
+			duration = 3600, -- 60 minutes
+			boostMultiplier = 2.0, -- 100% more members
+			cost = 2000,
+			minLevel = 5
+		},
+		{
+			id = "celebrity_visit",
+			name = "Celebrity Trainer Visit",
+			description = "A famous trainer is visiting your gym!",
+			duration = 1800, -- 30 minutes
+			boostMultiplier = 2.5, -- 150% more members
+			cost = 5000,
+			minLevel = 8
+		},
+		{
+			id = "championship",
+			name = "Fitness Championship",
+			description = "Host the ultimate fitness competition!",
+			duration = 3600, -- 60 minutes
+			boostMultiplier = 3.0, -- 200% more members
+			cost = 10000,
+			minLevel = 12
+		}
+	},
+
+	-- Cooldowns
+	globalCooldown = 300, -- 5 minutes between any competitions
+	typeCooldown = 7200,  -- 2 hours between same competition type
+
+	-- Unlock system
+	unlockByLevel = true, -- Whether competitions unlock by gym level
+
+	-- Miscellaneous
+	maxSimultaneousCompetitions = 1, -- How many competitions can run at once
+	debug = true
+}
+
+-- Module table
+local CompetitionSystem = {
+	CONFIG = CONFIG
+}
+
+-- State tracking
+local activeCompetitions = {}
+local competitionCooldowns = {}
+local lastGlobalCompetition = 0
+
+-- Debug function
+local function debugPrint(...)
+	if CONFIG.debug then
+		print("[Competition]", ...)
+	end
+end
+
+-- Get available competitions for a player
+function CompetitionSystem.getAvailableCompetitions(player)
+	local availableCompetitions = {}
+	local currentTime = os.time()
+
+	-- Get player gym level
+	local gymLevel = 1
+	if GymRevenueSystem then
+		gymLevel = GymRevenueSystem.calculateGymLevel(player)
+	end
+
+	-- Check each competition type
+	for _, competition in ipairs(CONFIG.competitions) do
+		-- Check if player meets level requirement
+		local meetsLevelRequirement = gymLevel >= competition.minLevel
+
+		-- Check cooldowns
+		local onGlobalCooldown = (currentTime - lastGlobalCompetition) < CONFIG.globalCooldown
+		local onTypeCooldown = competitionCooldowns[player.UserId] and 
+			competitionCooldowns[player.UserId][competition.id] and
+			(currentTime - competitionCooldowns[player.UserId][competition.id]) < CONFIG.typeCooldown
+
+		-- Check if too many active competitions
+		local tooManyActive = #activeCompetitions >= CONFIG.maxSimultaneousCompetitions
+
+		-- Check if this specific competition is already active
+		local isActive = false
+		for _, activeComp in pairs(activeCompetitions) do
+			if activeComp.competitionId == competition.id and activeComp.player == player then
+				isActive = true
+				break
+			end
+		end
+
+		local isAvailable = meetsLevelRequirement and not onGlobalCooldown and not onTypeCooldown and not tooManyActive and not isActive
+
+		-- Add to available list with status
+		table.insert(availableCompetitions, {
+			id = competition.id,
+			name = competition.name,
+			description = competition.description,
+			duration = competition.duration,
+			cost = competition.cost,
+			available = isAvailable,
+			reason = not isAvailable and (
+				not meetsLevelRequirement and "Level requirement not met" or
+					onGlobalCooldown and "Global cooldown active" or
+					onTypeCooldown and "Type cooldown active" or
+					tooManyActive and "Maximum competitions running" or
+					isActive and "Competition already active" or
+					"Unknown reason"
+			) or nil,
+			timeRemaining = onTypeCooldown and 
+				(CONFIG.typeCooldown - (currentTime - competitionCooldowns[player.UserId][competition.id])) or nil
+		})
+	end
+
+	return availableCompetitions
+end
+
+-- Start a competition
+function CompetitionSystem.startCompetition(player, competitionId)
+	if not player then return false, "Invalid player" end
+
+	-- Find competition config
+	local competitionConfig
+	for _, comp in ipairs(CONFIG.competitions) do
+		if comp.id == competitionId then
+			competitionConfig = comp
+			break
+		end
+	end
+
+	if not competitionConfig then
+		return false, "Invalid competition type"
+	end
+
+	-- Check if player can start this competition
+	local availableCompetitions = CompetitionSystem.getAvailableCompetitions(player)
+	local canStart = false
+
+	for _, comp in ipairs(availableCompetitions) do
+		if comp.id == competitionId and comp.available then
+			canStart = true
+			break
+		end
+	end
+
+	if not canStart then
+		return false, "Competition not available"
+	end
+
+	-- Check if player has enough money
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats or not leaderstats:FindFirstChild("Cash") then
+		return false, "Leaderstats not found"
+	end
+
+	if leaderstats.Cash.Value < competitionConfig.cost then
+		return false, "Not enough money"
+	end
+
+	-- Deduct cost
+	leaderstats.Cash.Value = leaderstats.Cash.Value - competitionConfig.cost
+
+	-- Start competition using GymRevenueSystem
+	if GymRevenueSystem and GymRevenueSystem.startCompetition then
+		local competitionKey = GymRevenueSystem.startCompetition(player, competitionConfig.name)
+		if not competitionKey then
+			return false, "Failed to start competition"
+		end
+
+		-- Track competition
+		table.insert(activeCompetitions, {
+			player = player,
+			competitionId = competitionId,
+			startTime = os.time(),
+			endTime = os.time() + competitionConfig.duration,
+			key = competitionKey
+		})
+
+		-- Update cooldowns
+		lastGlobalCompetition = os.time()
+
+		if not competitionCooldowns[player.UserId] then
+			competitionCooldowns[player.UserId] = {}
+		end
+
+		competitionCooldowns[player.UserId][competitionId] = os.time()
+
+		-- Notify all players about the competition
+		for _, otherPlayer in pairs(Players:GetPlayers()) do
+			if otherPlayer ~= player then
+				local message = Instance.new("Message")
+				message.Text = player.Name .. " has started a " .. competitionConfig.name .. "!"
+				message.Parent = otherPlayer
+				game:GetService("Debris"):AddItem(message, 5)
+			end
+		end
+
+		debugPrint(player.Name .. " started competition: " .. competitionConfig.name)
+		return true, "Competition started successfully"
+	else
+		-- Return money since we couldn't start
+		leaderstats.Cash.Value = leaderstats.Cash.Value + competitionConfig.cost
+		return false, "Revenue system not available"
+	end
+end
+
+-- End a competition (called automatically when duration expires)
+function CompetitionSystem.endCompetition(competitionData)
+	if not competitionData then return false end
+
+	local player = competitionData.player
+	if not player then return false end
+
+	-- End competition in GymRevenueSystem
+	if GymRevenueSystem and GymRevenueSystem.endCompetition then
+		GymRevenueSystem.endCompetition(player, competitionData.key)
+	end
+
+	-- Remove from active competitions
+	for i, comp in ipairs(activeCompetitions) do
+		if comp.player == player and comp.competitionId == competitionData.competitionId then
+			table.remove(activeCompetitions, i)
+			break
+		end
+	end
+
+	debugPrint("Competition ended for " .. player.Name .. ": " .. competitionData.competitionId)
+	return true
+end
+
+-- Initialize the competition system
+function CompetitionSystem.initialize()
+	debugPrint("Initializing Competition System...")
+
+	-- Set up remote functions
+	local getCompetitionsFunction = ReplicatedStorage:FindFirstChild("GetCompetitionsFunction")
+	if not getCompetitionsFunction then
+		getCompetitionsFunction = Instance.new("RemoteFunction")
+		getCompetitionsFunction.Name = "GetCompetitionsFunction"
+		getCompetitionsFunction.Parent = ReplicatedStorage
+	end
+
+	-- Handle competition data requests
+	getCompetitionsFunction.OnServerInvoke = function(player)
+		return CompetitionSystem.getAvailableCompetitions(player)
+	end
+
+	-- Competition start function
+	local startCompetitionFunction = ReplicatedStorage:FindFirstChild("StartCompetitionFunction")
+	if not startCompetitionFunction then
+		startCompetitionFunction = Instance.new("RemoteFunction")
+		startCompetitionFunction.Name = "StartCompetitionFunction"
+		startCompetitionFunction.Parent = ReplicatedStorage
+	end
+
+	-- Handle competition start requests
+	startCompetitionFunction.OnServerInvoke = function(player, competitionId)
+		return CompetitionSystem.startCompetition(player, competitionId)
+	end
+
+	-- Start a loop to check for expired competitions
+	spawn(function()
+		while true do
+			wait(1)
+
+			local currentTime = os.time()
+			local competitionsToEnd = {}
+
+			-- Find expired competitions
+			for _, comp in ipairs(activeCompetitions) do
+				if currentTime >= comp.endTime then
+					table.insert(competitionsToEnd, comp)
+				end
+			end
+
+			-- End expired competitions
+			for _, comp in ipairs(competitionsToEnd) do
+				CompetitionSystem.endCompetition(comp)
+			end
+		end
+	end)
+
+	-- Handle player removal
+	Players.PlayerRemoving:Connect(function(player)
+		-- End any active competitions for this player
+		for i = #activeCompetitions, 1, -1 do
+			if activeCompetitions[i].player == player then
+				CompetitionSystem.endCompetition(activeCompetitions[i])
+			end
+		end
+
+		-- Clear cooldowns
+		competitionCooldowns[player.UserId] = nil
+	end)
+
+	debugPrint("Competition System initialized")
+	return true
+end
+
+-- Initialize the system
+CompetitionSystem.initialize()
+
+-- Return the module
+return CompetitionSystem]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX3340DEF3C9044C01971B2D1FD8557688">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">EquipmentUpgrades</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{364E0E2F-EF0A-40B1-9D98-F73C8996300F}</string>
+				<ProtectedString name="Source"><![CDATA[-- EquipmentUpgrades.lua
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+
+-- List of equipment upgrades
+local upgrades = {
+	{name = "Treadmill Upgrade", cost = 100, benefit = "Increased NPC satisfaction"},
+	{name = "Free Weight Upgrade", cost = 200, benefit = "Increased membership fees"}
+}
+
+-- Function to upgrade equipment
+local function upgradeEquipment(equipmentName, upgradeName)
+	for _, upgrade in pairs(upgrades) do
+		if upgrade.name == upgradeName then
+			-- Logic to apply the upgrade benefits
+			print(equipmentName .. " upgraded with " .. upgradeName)
+			return
+		end
+	end
+end
+
+-- Example usage
+upgradeEquipment("Treadmill", "Treadmill Upgrade")
+]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX2090DA97BFFD4A59A905F6A18AFC2EB3">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">SeasonalSpecializationSystem</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{34003CE5-7C61-4903-8B55-E9428F351FE7}</string>
+				<ProtectedString name="Source"><![CDATA[-- SeasonalSpecializationSystem.lua
+-- Place in ServerScriptService
+
+local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- Try to load dependencies
+local SpecializationSystem
+pcall(function()
+	SpecializationSystem = require(ServerScriptService:FindFirstChild("GymSpecializationSystem"))
+end)
+
+local GymRevenue
+pcall(function()
+	GymRevenue = require(ServerScriptService:FindFirstChild("GymRevenueSystem"))
+end)
+
+local SeasonalSystem = {
+	-- Currently active seasonal event
+	currentSeason = nil,
+
+	-- Players with active seasonal bonuses
+	playerSeasonalBoosts = {},
+
+	-- Definitions of seasonal events
+	seasons = {
+		summerBeachBody = {
+			name = "Summer Beach Body Program",
+			description = "Attract more members with summer-focused training programs",
+			duration = 14, -- Days (use minutes for testing)
+			icon = "rbxassetid://12345678", -- Replace with actual ID
+			benefits = {
+				membership_boost = 1.4, -- 40% more members
+				specific_equipment_boost = {"outdoor", "cardio"}, -- Boost for specific equipment
+				member_satisfaction = 1.2
+			},
+			requirements = {
+				gym_level = 2 -- Minimum gym level to participate
+			}
+		},
+
+		newYearResolution = {
+			name = "New Year's Resolution Program",
+			description = "Capitalize on New Year's fitness resolutions with beginner-friendly programs",
+			duration = 21,
+			icon = "rbxassetid://12345679",
+			benefits = {
+				membership_boost = 1.5, -- 50% more members
+				retention_penalty = 0.7, -- But members leave faster
+				dues_boost = 1.2 -- 20% more membership fees
+			},
+			requirements = {
+				gym_level = 3
+			}
+		},
+
+		summerSlim = {
+			name = "Summer Slim Down Challenge",
+			description = "Help members get beach-ready with intensive cardio programs",
+			duration = 14,
+			icon = "rbxassetid://12345680",
+			benefits = {
+				cardio_equipment_boost = 1.5, -- Cardio equipment efficiency boost
+				membership_boost = 1.3,
+				vip_chance = 0.15
+			},
+			requirements = {
+				gym_level = 2,
+				min_cardio_equipment = 3 -- Requires at least 3 cardio machines
+			}
+		},
+
+		fallFitness = {
+			name = "Fall Fitness Challenge",
+			description = "Keep members engaged with seasonal challenges",
+			duration = 18,
+			icon = "rbxassetid://12345681",
+			benefits = {
+				retention_boost = 1.3, -- Better retention
+				dues_boost = 1.15,
+				competition_boost = 1.2
+			},
+			requirements = {
+				gym_level = 4
+			}
+		},
+
+		winterBulk = {
+			name = "Winter Bulk Program",
+			description = "Focused strength training during winter months",
+			duration = 28,
+			icon = "rbxassetid://12345682",
+			benefits = {
+				membership_boost = 1.2,
+				strength_equipment_boost = 1.4,
+				vip_chance = 0.18
+			},
+			requirements = {
+				gym_level = 3,
+				min_strength_equipment = 4
+			}
+		}
+	}
+}
+
+-- Check if player meets requirements for a seasonal event
+function SeasonalSystem.checkRequirements(player, seasonId)
+	if not player or not seasonId then return false end
+
+	local season = SeasonalSystem.seasons[seasonId]
+	if not season then return false end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return false end
+
+	-- Check gym level
+	local gymLevel = tycoon:GetAttribute("GymTier") or tycoon:GetAttribute("GymLevel") or 1
+	if gymLevel < season.requirements.gym_level then
+		return false, "Your gym needs to be level " .. season.requirements.gym_level
+	end
+
+	-- Check equipment requirements if any
+	if season.requirements.min_cardio_equipment then
+		-- Count cardio equipment (this would need to be implemented based on your equipment system)
+		local cardioCount = 0
+		-- Example implementation - replace with your actual equipment counting logic
+		-- This would likely use CollectionService tags or equipment attributes
+		if cardioCount < season.requirements.min_cardio_equipment then
+			return false, "You need at least " .. season.requirements.min_cardio_equipment .. " cardio machines"
+		end
+	end
+
+	if season.requirements.min_strength_equipment then
+		-- Count strength equipment (similar implementation needed)
+		local strengthCount = 0
+		-- Example implementation
+		if strengthCount < season.requirements.min_strength_equipment then
+			return false, "You need at least " .. season.requirements.min_strength_equipment .. " strength equipment pieces"
+		end
+	end
+
+	return true
+end
+
+-- Get available seasonal events for a player
+function SeasonalSystem.getAvailableSeasons(player)
+	if not player then return {} end
+
+	local available = {}
+
+	for id, season in pairs(SeasonalSystem.seasons) do
+		local meetsRequirements, reason = SeasonalSystem.checkRequirements(player, id)
+
+		table.insert(available, {
+			id = id,
+			name = season.name,
+			description = season.description,
+			duration = season.duration,
+			icon = season.icon,
+			available = meetsRequirements,
+			reason = not meetsRequirements and reason or nil
+		})
+	end
+
+	return available
+end
+
+-- Apply seasonal bonuses to a player
+function SeasonalSystem.applySeasonalBonuses(player, seasonId)
+	if not player or not seasonId then return false end
+
+	local season = SeasonalSystem.seasons[seasonId]
+	if not season then return false, "Invalid seasonal event" end
+
+	-- Check requirements
+	local meetsRequirements, reason = SeasonalSystem.checkRequirements(player, seasonId)
+	if not meetsRequirements then
+		return false, reason
+	end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return false, "Tycoon not found" end
+
+	-- Apply bonuses
+	if season.benefits.membership_boost then
+		tycoon:SetAttribute("SeasonalMembershipBoost", season.benefits.membership_boost)
+	end
+
+	if season.benefits.dues_boost then
+		tycoon:SetAttribute("SeasonalDuesBoost", season.benefits.dues_boost)
+	end
+
+	if season.benefits.vip_chance then
+		tycoon:SetAttribute("SeasonalVIPChance", season.benefits.vip_chance)
+	end
+
+	if season.benefits.retention_boost then
+		tycoon:SetAttribute("SeasonalRetentionBoost", season.benefits.retention_boost)
+	end
+
+	if season.benefits.retention_penalty then
+		tycoon:SetAttribute("SeasonalRetentionPenalty", season.benefits.retention_penalty)
+	end
+
+	if season.benefits.competition_boost then
+		tycoon:SetAttribute("SeasonalCompetitionBoost", season.benefits.competition_boost)
+	end
+
+	-- Calculate end time
+	local durationInSeconds = season.duration * 24 * 60 * 60 -- Convert days to seconds
+	local endTime = os.time() + durationInSeconds
+
+	-- Store in player data
+	tycoon:SetAttribute("ActiveSeason", seasonId)
+	tycoon:SetAttribute("SeasonEndTime", endTime)
+
+	-- Store in module data for tracking
+	SeasonalSystem.playerSeasonalBoosts[player.UserId] = {
+		seasonId = seasonId,
+		endTime = endTime
+	}
+
+	-- Create notification
+	local message = Instance.new("Message")
+	message.Text = "Seasonal Event Started: " .. season.name .. "\nActive for " .. season.duration .. " days!"
+	message.Parent = player
+	game:GetService("Debris"):AddItem(message, 5)
+
+	-- Update any relevant systems
+	if GymRevenue and GymRevenue.updatePlayerConfig then
+		GymRevenue.updatePlayerConfig(player)
+	end
+
+	return true, "Seasonal event started successfully"
+end
+
+-- Remove seasonal bonuses from a player
+function SeasonalSystem.removeSeasonalBonuses(player)
+	if not player then return false end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return false end
+
+	-- Remove all seasonal attributes
+	tycoon:SetAttribute("SeasonalMembershipBoost", nil)
+	tycoon:SetAttribute("SeasonalDuesBoost", nil)
+	tycoon:SetAttribute("SeasonalVIPChance", nil)
+	tycoon:SetAttribute("SeasonalRetentionBoost", nil)
+	tycoon:SetAttribute("SeasonalRetentionPenalty", nil)
+	tycoon:SetAttribute("SeasonalCompetitionBoost", nil)
+	tycoon:SetAttribute("ActiveSeason", nil)
+	tycoon:SetAttribute("SeasonEndTime", nil)
+
+	-- Remove from tracking
+	SeasonalSystem.playerSeasonalBoosts[player.UserId] = nil
+
+	-- Update any relevant systems
+	if GymRevenue and GymRevenue.updatePlayerConfig then
+		GymRevenue.updatePlayerConfig(player)
+	end
+
+	return true
+end
+
+-- Check for expired seasonal events
+function SeasonalSystem.checkExpiredEvents()
+	local currentTime = os.time()
+
+	for userId, data in pairs(SeasonalSystem.playerSeasonalBoosts) do
+		if currentTime >= data.endTime then
+			-- Find player
+			local player = game:GetService("Players"):GetPlayerByUserId(userId)
+			if player then
+				-- Create notification
+				local message = Instance.new("Message")
+				local seasonName = SeasonalSystem.seasons[data.seasonId] and SeasonalSystem.seasons[data.seasonId].name or "Seasonal Event"
+				message.Text = seasonName .. " has ended!\nYour gym has returned to normal operations."
+				message.Parent = player
+				game:GetService("Debris"):AddItem(message, 5)
+
+				-- Remove bonuses
+				SeasonalSystem.removeSeasonalBonuses(player)
+			else
+				-- Player not found, just remove from tracking
+				SeasonalSystem.playerSeasonalBoosts[userId] = nil
+			end
+		end
+	end
+end
+
+-- Get current season info
+function SeasonalSystem.getCurrentSeason()
+	return SeasonalSystem.currentSeason
+end
+
+-- Start a global seasonal event
+function SeasonalSystem.startGlobalSeason(seasonId)
+	if not seasonId or not SeasonalSystem.seasons[seasonId] then
+		return false, "Invalid seasonal event"
+	end
+
+	-- Set current global season
+	SeasonalSystem.currentSeason = {
+		id = seasonId,
+		name = SeasonalSystem.seasons[seasonId].name,
+		startTime = os.time(),
+		endTime = os.time() + (SeasonalSystem.seasons[seasonId].duration * 24 * 60 * 60)
+	}
+
+	-- Notify all players
+	for _, player in pairs(Players:GetPlayers()) do
+		local message = Instance.new("Message")
+		message.Text = "Seasonal Event Available: " .. SeasonalSystem.seasons[seasonId].name .. "\nCheck the Seasonal Events menu to participate!"
+		message.Parent = player
+		game:GetService("Debris"):AddItem(message, 5)
+	end
+
+	-- Create remote event to notify clients
+	local seasonEvent = ReplicatedStorage:FindFirstChild("SeasonalEventStarted")
+	if not seasonEvent then
+		seasonEvent = Instance.new("RemoteEvent")
+		seasonEvent.Name = "SeasonalEventStarted"
+		seasonEvent.Parent = ReplicatedStorage
+	end
+
+	-- Fire the event
+	seasonEvent:FireAllClients(seasonId, SeasonalSystem.seasons[seasonId].name)
+
+	return true
+end
+
+-- End global seasonal event
+function SeasonalSystem.endGlobalSeason()
+	if not SeasonalSystem.currentSeason then
+		return false, "No active seasonal event"
+	end
+
+	local oldSeason = SeasonalSystem.currentSeason
+	SeasonalSystem.currentSeason = nil
+
+	-- Notify all players
+	for _, player in pairs(Players:GetPlayers()) do
+		local message = Instance.new("Message")
+		message.Text = "Seasonal Event Ended: " .. oldSeason.name
+		message.Parent = player
+		game:GetService("Debris"):AddItem(message, 5)
+	end
+
+	-- Create remote event to notify clients
+	local seasonEvent = ReplicatedStorage:FindFirstChild("SeasonalEventEnded")
+	if not seasonEvent then
+		seasonEvent = Instance.new("RemoteEvent")
+		seasonEvent.Name = "SeasonalEventEnded"
+		seasonEvent.Parent = ReplicatedStorage
+	end
+
+	-- Fire the event
+	seasonEvent:FireAllClients()
+
+	return true
+end
+
+-- Initialize the system
+function SeasonalSystem.initialize()
+	print("Initializing Seasonal Specialization System...")
+
+	-- Create remote functions/events
+	local joinSeasonFunc = Instance.new("RemoteFunction")
+	joinSeasonFunc.Name = "JoinSeasonalEvent"
+	joinSeasonFunc.Parent = ReplicatedStorage
+
+	local getAvailableSeasonsFunc = Instance.new("RemoteFunction")
+	getAvailableSeasonsFunc.Name = "GetAvailableSeasons"
+	getAvailableSeasonsFunc.Parent = ReplicatedStorage
+
+	-- Handle join season requests
+	joinSeasonFunc.OnServerInvoke = function(player, seasonId)
+		return SeasonalSystem.applySeasonalBonuses(player, seasonId)
+	end
+
+	-- Handle get available seasons requests
+	getAvailableSeasonsFunc.OnServerInvoke = function(player)
+		return SeasonalSystem.getAvailableSeasons(player)
+	end
+
+	-- Set up event checking loop
+	spawn(function()
+		while wait(60) do -- Check every minute
+			SeasonalSystem.checkExpiredEvents()
+		end
+	end)
+
+	-- Test code - start with a seasonal event
+	-- SeasonalSystem.startGlobalSeason("summerBeachBody")
+
+	print("Seasonal Specialization System initialized")
+	return true
+end
+
+-- Run initialization
+SeasonalSystem.initialize()
+
+return SeasonalSystem]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX9B8EF4AA36DB49358E46FCF268696E60">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">GuiDetective</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{A8677EDC-8919-4900-9001-FC8C1275C520}</string>
+				<ProtectedString name="Source"><![CDATA[-- GuiOriginTracker.lua
+-- Place in ServerScriptService
+-- Tracks which scripts are creating GUIs on the front desk
+
+local Players = game:GetService("Players")
+
+-- Configuration
+local CONFIG = {
+	trackInterval = 1,  -- How often to check
+	debug = true        -- Show debug prints
+}
+
+-- Debug function
+local function debugPrint(...)
+	if CONFIG.debug then
+		print("[GuiTracker]", ...)
+	end
+end
+
+-- Function to check all scripts in the game
+local function findGuiCreatingScripts()
+	debugPrint("Starting search for GUI-creating scripts...")
+
+	-- Cache to track found GUIs
+	local foundGuis = {}
+
+	-- First, find all front desk GUIs
+	for _, player in pairs(Players:GetPlayers()) do
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon and tycoon.Value then
+			local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+			if frontDesk then
+				for _, gui in pairs(frontDesk:GetChildren()) do
+					if gui:IsA("BillboardGui") then
+						-- Track this GUI
+						foundGuis[gui] = true
+						debugPrint("Found GUI on " .. player.Name .. "'s front desk: " .. gui.Name)
+					end
+				end
+			end
+		end
+	end
+
+	-- Now set up monitoring to catch who creates new GUIs
+	for _, player in pairs(Players:GetPlayers()) do
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon and tycoon.Value then
+			local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+			if frontDesk then
+				-- Monitor for new GUIs being added
+				frontDesk.ChildAdded:Connect(function(child)
+					if child:IsA("BillboardGui") and not foundGuis[child] then
+						-- New GUI detected!
+						foundGuis[child] = true
+
+						-- Try to determine which script created it
+						debugPrint("NEW GUI DETECTED on " .. player.Name .. "'s front desk: " .. child.Name)
+
+						-- Get the current call stack to identify where this is being called from
+						local stack = debug.traceback()
+						debugPrint("Call stack for GUI creation:")
+						debugPrint(stack)
+
+						-- Attempt to check who's running right now 
+						local scriptName = "Unknown"
+						local scriptSource = "Unknown"
+
+						for line in stack:gmatch("[^\r\n]+") do
+							if line:find("Script ") then
+								scriptName = line
+								debugPrint("Suspected creator: " .. scriptName)
+								break
+							end
+						end
+					end
+				end)
+			end
+		end
+	end
+
+	-- Also look for specific script names that might be creating these GUIs
+	local suspiciousScriptNames = {
+		"FrontDeskSystem",
+		"GymMembershipSystem",
+		"BuyTile",
+		"UnifiedFrontDeskSystem",
+		"RevenueDisplay"
+	}
+
+	local function searchForScripts(parent)
+		for _, child in pairs(parent:GetChildren()) do
+			if child:IsA("Script") or child:IsA("LocalScript") or child:IsA("ModuleScript") then
+				local scriptName = child.Name
+				for _, suspiciousName in ipairs(suspiciousScriptNames) do
+					if scriptName:find(suspiciousName) then
+						debugPrint("Found suspicious script: " .. child:GetFullName())
+					end
+				end
+			end
+			searchForScripts(child)
+		end
+	end
+
+	searchForScripts(game)
+
+	debugPrint("Finished initial search for GUI-creating scripts")
+end
+
+-- Run the tracker
+findGuiCreatingScripts()
+
+-- Also track GUIs that get re-created
+spawn(function()
+	while wait(CONFIG.trackInterval) do
+		for _, player in pairs(Players:GetPlayers()) do
+			local tycoon = player:FindFirstChild("Tycoon")
+			if tycoon and tycoon.Value then
+				local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+				if frontDesk then
+					for _, gui in pairs(frontDesk:GetChildren()) do
+						if gui:IsA("BillboardGui") and gui.Name == "BillboardGui" then
+							-- Check when this was created
+							if tick() - (gui:GetAttribute("TrackTime") or 0) > 10 then
+								-- This might be a newly recreated GUI
+								debugPrint("Detected possible GUI recreation on " .. player.Name .. "'s front desk")
+								gui:SetAttribute("TrackTime", tick())
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- Check front desks when initialized
+for _, player in pairs(Players:GetPlayers()) do
+	local tycoon = player:FindFirstChild("Tycoon")
+	if tycoon and tycoon.Value then
+		local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+		if frontDesk then
+			debugPrint("Initial check for " .. player.Name .. "'s front desk:")
+			for _, child in pairs(frontDesk:GetChildren()) do
+				if child:IsA("BillboardGui") then
+					debugPrint("- Found: " .. child.Name)
+				end
+			end
+		end
+	end
+end
+
+return {
+	findGuiCreatingScripts = findGuiCreatingScripts
+}]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXD8B8B0CC602F474DBB87003EB4F850CF">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">NPCSpawner</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{0131580F-C53C-4E00-A4BF-B290A186674B}</string>
+				<ProtectedString name="Source"><![CDATA[-- Enhanced Decorative NPC System
+-- Place in ServerScriptService
+
+local Players = game:GetService("Players")
+local ServerStorage = game:GetService("ServerStorage")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Configuration
+local CONFIG = {
+	-- Spawning
+	initialSpawnDelay = 10,       -- Seconds to wait after player joins
+	spawnInterval = 45,           -- Seconds between NPC spawns
+
+	-- Progression
+	baseNPCCount = 3,             -- Start with this many NPCs
+	maxNPCCount = 25,             -- Maximum NPCs per floor
+	equipmentRequiredForNextNPC = 2, -- Equipment pieces needed per additional NPC
+
+	-- Movement
+	wanderRadius = 20,            -- How far NPCs will wander from their starting point
+	minMoveDelay = 15,            -- Minimum seconds NPCs wait before moving
+	maxMoveDelay = 45,            -- Maximum seconds NPCs wait before moving
+	moveSpeed = 5,                -- Walking speed of NPCs
+
+	-- Seat usage
+	seatCheckRadius = 12,         -- How far NPCs check for available seats
+	minSeatTime = 30,             -- Minimum seconds NPCs sit
+	maxSeatTime = 180,            -- Maximum seconds NPCs sit
+	seatSearchInterval = 20,      -- How often NPCs look for seats
+	seatProbability = 0.7,        -- Probability an NPC will sit when finding a seat
+
+	-- Appearance
+	npcScaleMin = 0.9,            -- Minimum scale for NPCs
+	npcScaleMax = 1.1,            -- Maximum scale for NPCs
+
+	-- Debug
+	debugMode = true,             -- Show debug prints
+}
+
+-- Debug function
+local function debugPrint(...)
+	if CONFIG.debugMode then
+		print("[Decorative NPC System]", ...)
+	end
+end
+
+-- Startup delay to let everything load
+task.wait(5)
+debugPrint("Initializing Decorative NPC System...")
+
+-- Get max NPCs based on equipment count
+local function getMaxNPCs(player)
+	-- Get equipment count
+	local tycoon = player:FindFirstChild("Tycoon")
+	local equipmentCount = 0
+
+	if tycoon then
+		equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+	end
+
+	-- Calculate max NPCs based on equipment
+	local maxNPCs = CONFIG.baseNPCCount + math.floor(equipmentCount / CONFIG.equipmentRequiredForNextNPC)
+
+	-- Cap at the absolute maximum
+	return math.min(maxNPCs, CONFIG.maxNPCCount)
+end
+
+-- Count current NPCs for a player
+local function countNPCs(player)
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return 0 end
+
+	local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+	if not npcsFolder then return 0 end
+
+	return #npcsFolder:GetChildren()
+end
+
+-- Find a suitable spawn position
+local function findSpawnPosition(tycoon)
+	-- Try to find spawn points first (for better control)
+	local spawnPoints = tycoon:FindFirstChild("NPCSpawnPoints")
+	if spawnPoints and #spawnPoints:GetChildren() > 0 then
+		local points = spawnPoints:GetChildren()
+		local chosenPoint = points[math.random(1, #points)]
+		return chosenPoint.Position + Vector3.new(0, 3, 0)
+	end
+
+	-- Try to use platform
+	local platform = tycoon:FindFirstChild("Platform")
+	if platform and platform:IsA("BasePart") then
+		return platform.Position + Vector3.new(math.random(-8, 8), 3, math.random(-8, 8))
+	end
+
+	-- Find any floor parts
+	local floorParts = {}
+	for _, part in pairs(tycoon:GetDescendants()) do
+		if part:IsA("BasePart") and 
+			string.lower(part.Name):find("floor") or
+			(part.Size.X > 8 and part.Size.Z > 8 and math.abs(part.CFrame.UpVector.Y) > 0.9) then
+			table.insert(floorParts, part)
+		end
+	end
+
+	if #floorParts > 0 then
+		local chosenFloor = floorParts[math.random(1, #floorParts)]
+		return chosenFloor.Position + Vector3.new(math.random(-5, 5), 3, math.random(-5, 5))
+	end
+
+	-- Last resort
+	return tycoon:GetPivot().Position + Vector3.new(0, 5, 0)
+end
+
+-- Find a good wander position
+local function findWanderPosition(npc)
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return nil end
+
+	local rootPart = npc:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return nil end
+
+	-- Get tycoon model
+	local tycoon = npc.Parent and npc.Parent.Parent
+	if not tycoon or not tycoon:IsA("Model") then return nil end
+
+	-- Choose a random direction and distance
+	local angle = math.random() * math.pi * 2
+	local distance = math.random(5, CONFIG.wanderRadius)
+
+	-- Calculate the target position
+	local startPos = rootPart.Position
+	local targetPos = startPos + Vector3.new(
+		math.cos(angle) * distance,
+		0,
+		math.sin(angle) * distance
+	)
+
+	-- Raycast to find floor
+	local raycastResult = workspace:Raycast(
+		targetPos + Vector3.new(0, 10, 0),
+		Vector3.new(0, -30, 0)
+	)
+
+	if raycastResult and raycastResult.Instance:IsDescendantOf(tycoon) then
+		return Vector3.new(targetPos.X, raycastResult.Position.Y + 3, targetPos.Z)
+	end
+
+	-- If no floor found, stay close to current position
+	return startPos + Vector3.new(math.random(-5, 5), 0, math.random(-5, 5))
+end
+
+-- Find nearby seats for NPCs to sit on
+local function findNearbySeats(npc)
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return nil end
+
+	local rootPart = npc:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return nil end
+
+	-- Get tycoon model
+	local tycoon = npc.Parent and npc.Parent.Parent
+	if not tycoon or not tycoon:IsA("Model") then return nil end
+
+	-- Find all seats within range
+	local availableSeats = {}
+
+	for _, desc in pairs(tycoon:GetDescendants()) do
+		-- Check for actual Seats or parts with "seat", "bench", etc. in name
+		local isSeat = desc:IsA("Seat") or desc:IsA("VehicleSeat") or 
+			(desc:IsA("Part") and (
+				string.lower(desc.Name):find("seat") or
+				string.lower(desc.Name):find("bench") or
+				string.lower(desc.Name):find("chair")))
+
+		if isSeat then
+			-- Check if seat is already occupied
+			local occupied = false
+			for _, sitter in pairs(Players:GetPlayers()) do
+				if sitter.Character and sitter.Character:IsA("Model") then
+					if desc.Occupant == sitter.Character:FindFirstChildOfClass("Humanoid") then
+						occupied = true
+						break
+					end
+				end
+			end
+
+			for _, otherNPC in pairs(tycoon:FindFirstChild("NPCs"):GetChildren()) do
+				if otherNPC ~= npc and otherNPC:GetAttribute("SittingOn") == desc:GetFullName() then
+					occupied = true
+					break
+				end
+			end
+
+			-- Check distance
+			if not occupied then
+				local distance = (desc.Position - rootPart.Position).Magnitude
+				if distance <= CONFIG.seatCheckRadius then
+					table.insert(availableSeats, desc)
+				end
+			end
+		end
+	end
+
+	if #availableSeats > 0 then
+		return availableSeats[math.random(1, #availableSeats)]
+	end
+
+	return nil
+end
+
+-- Make an NPC sit on a seat
+local function sitOnSeat(npc, seat)
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return false end
+
+	-- Stop current movement and set state
+	npc:SetAttribute("CurrentAction", "GoingToSeat")
+
+	-- First walk to the seat
+	humanoid:MoveTo(seat.Position)
+
+	-- Wait for NPC to reach the seat
+	local connection
+	connection = RunService.Heartbeat:Connect(function()
+		local rootPart = npc:FindFirstChild("HumanoidRootPart")
+		if not rootPart or not seat or not seat.Parent then
+			if connection then connection:Disconnect() end
+			return
+		end
+
+		local distance = (rootPart.Position - seat.Position).Magnitude
+		if distance < 4 then
+			connection:Disconnect()
+
+			-- Now sit on the seat
+			if seat:IsA("Seat") or seat:IsA("VehicleSeat") then
+				-- Use built-in sitting for actual Seats
+				humanoid.Sit = true
+				task.wait(0.2)
+				seat:Sit(humanoid)
+				npc:SetAttribute("SittingOn", seat:GetFullName())
+				npc:SetAttribute("CurrentAction", "Sitting")
+				debugPrint("NPC " .. npc.Name .. " is now sitting on " .. seat.Name)
+
+				-- Set a timer to get up
+				local sitTime = math.random(CONFIG.minSeatTime, CONFIG.maxSeatTime)
+				task.delay(sitTime, function()
+					if npc and npc.Parent and humanoid then
+						humanoid.Jump = true
+						humanoid.Sit = false
+						npc:SetAttribute("SittingOn", nil)
+						npc:SetAttribute("CurrentAction", "Idle")
+						npc:SetAttribute("NextMoveTime", os.time() + math.random(5, 15))
+						debugPrint("NPC " .. npc.Name .. " got up from " .. seat.Name)
+					end
+				end)
+			else
+				-- For parts that aren't actual seats, position NPC on top with sit animation
+				local cf = seat.CFrame * CFrame.new(0, seat.Size.Y/2 + 1, 0)
+				rootPart.CFrame = cf
+
+				-- Try to play a sitting animation if available
+				local animation = Instance.new("Animation")
+				animation.AnimationId = "rbxassetid://4097910771" -- Generic sitting animation
+				local animTrack = humanoid:LoadAnimation(animation)
+				animTrack:Play()
+
+				-- Store animation track and other sitting info
+				npc:SetAttribute("SittingOn", seat:GetFullName())
+				npc:SetAttribute("SittingAnimTrack", animTrack)
+				npc:SetAttribute("CurrentAction", "Sitting")
+				debugPrint("NPC " .. npc.Name .. " is now positioned on " .. seat.Name)
+
+				-- Set a timer to get up
+				local sitTime = math.random(CONFIG.minSeatTime, CONFIG.maxSeatTime)
+				task.delay(sitTime, function()
+					if npc and npc.Parent then
+						if animTrack then
+							animTrack:Stop()
+							animation:Destroy()
+						end
+						npc:SetAttribute("SittingOn", nil)
+						npc:SetAttribute("SittingAnimTrack", nil)
+						npc:SetAttribute("CurrentAction", "Idle")
+						npc:SetAttribute("NextMoveTime", os.time() + math.random(5, 15))
+						debugPrint("NPC " .. npc.Name .. " got up from " .. seat.Name)
+					end
+				end)
+			end
+
+			return true
+		end
+	end)
+
+	-- In case something goes wrong, clean up after a timeout
+	task.delay(10, function()
+		if connection then
+			connection:Disconnect()
+			npc:SetAttribute("CurrentAction", "Idle")
+		end
+	end)
+
+	return true
+end
+
+-- Spawn a single NPC
+local function spawnNPC(player)
+	debugPrint("Attempting to spawn NPC for " .. player.Name)
+
+	-- Check if player has a tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		debugPrint("No tycoon found for " .. player.Name)
+		return nil
+	end
+
+	-- Create NPCs folder if needed
+	local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+	if not npcsFolder then
+		npcsFolder = Instance.new("Folder")
+		npcsFolder.Name = "NPCs"
+		npcsFolder.Parent = tycoon.Value
+		debugPrint("Created NPCs folder for " .. player.Name)
+	end
+
+	-- Check if at or above max NPCs for this player's progression
+	local currentNPCs = countNPCs(player)
+	local maxNPCs = getMaxNPCs(player)
+
+	if currentNPCs >= maxNPCs then
+		debugPrint(player.Name .. " has reached NPC limit: " .. currentNPCs .. "/" .. maxNPCs)
+		return nil
+	end
+
+	-- Get NPC template
+	local npcFolder = ServerStorage:FindFirstChild("NPC_Character")
+	if not npcFolder or #npcFolder:GetChildren() == 0 then
+		debugPrint("No NPC models found in ServerStorage")
+		return nil
+	end
+
+	-- Select a random model
+	local models = npcFolder:GetChildren()
+	local modelTemplate = models[math.random(1, #models)]
+	debugPrint("Selected model: " .. modelTemplate.Name)
+
+	-- Clone the model
+	local npc = modelTemplate:Clone()
+
+	-- Give it a name with random activity
+	local activities = {
+		"Exerciser", "Member", "Trainer", "Athlete", "Visitor", 
+		"Fitness", "Runner", "Lifter", "Client", "Guest"
+	}
+	local activity = activities[math.random(1, #activities)]
+	npc.Name = activity .. "_" .. math.random(1000, 9999)
+
+	-- Find spawn position
+	local spawnPos = findSpawnPosition(tycoon.Value)
+
+	-- Set up humanoid
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		humanoid = Instance.new("Humanoid")
+		humanoid.Parent = npc
+	end
+
+	-- Set walk speed
+	humanoid.WalkSpeed = CONFIG.moveSpeed
+
+	-- Make sure HumanoidRootPart exists
+	local hrp = npc:FindFirstChild("HumanoidRootPart") 
+	if not hrp then
+		-- Find an existing part to rename
+		for _, part in pairs(npc:GetDescendants()) do
+			if part:IsA("BasePart") and 
+				(part.Name:lower():find("root") or part.Name:lower():find("torso")) then
+				part.Name = "HumanoidRootPart"
+				hrp = part
+				break
+			end
+		end
+
+		-- If no suitable part found, create one
+		if not hrp then
+			hrp = Instance.new("Part")
+			hrp.Name = "HumanoidRootPart"
+			hrp.Size = Vector3.new(2, 2, 1)
+			hrp.Transparency = 1
+			hrp.CanCollide = false
+
+			-- Find a part to position next to
+			local refPart = nil
+			for _, part in pairs(npc:GetDescendants()) do
+				if part:IsA("BasePart") then
+					refPart = part
+					break
+				end
+			end
+
+			if refPart then
+				hrp.CFrame = refPart.CFrame
+			else
+				hrp.Position = spawnPos
+			end
+
+			hrp.Parent = npc
+		end
+	end
+
+	-- Position the NPC
+	if hrp then
+		hrp.CFrame = CFrame.new(spawnPos)
+	end
+
+	-- Randomize the NPC scale slightly
+	local scale = math.random() * (CONFIG.npcScaleMax - CONFIG.npcScaleMin) + CONFIG.npcScaleMin
+	for _, part in pairs(npc:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Size = part.Size * scale
+
+			-- Disable collision with players but allow collision with environment
+			part.CanCollide = part.Name ~= "HumanoidRootPart"
+
+			-- Try to use collision groups if possible
+			pcall(function()
+				part.CollisionGroup = "NPCs"
+			end)
+		end
+	end
+
+	-- Remove any existing scripts that might interfere with movement
+	for _, script in pairs(npc:GetDescendants()) do
+		if script:IsA("Script") or script:IsA("LocalScript") then
+			script:Destroy()
+		end
+	end
+
+	-- Set attributes for NPC behavior
+	npc:SetAttribute("NextMoveTime", os.time() + math.random(CONFIG.minMoveDelay, CONFIG.maxMoveDelay))
+	npc:SetAttribute("NextSeatCheckTime", os.time() + math.random(10, CONFIG.seatSearchInterval))
+	npc:SetAttribute("HomePosition", spawnPos)
+	npc:SetAttribute("CurrentAction", "Idle")
+	npc:SetAttribute("SittingOn", nil)
+
+	-- Parent the NPC
+	npc.Parent = npcsFolder
+
+	debugPrint("Successfully spawned NPC " .. npc.Name .. " for " .. player.Name)
+	return npc
+end
+
+-- Function to update NPC behaviors
+local function updateNPCBehaviors()
+	for _, player in pairs(Players:GetPlayers()) do
+		local tycoon = player:FindFirstChild("Tycoon")
+		if not tycoon or not tycoon.Value then continue end
+
+		local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+		if not npcsFolder then continue end
+
+		for _, npc in pairs(npcsFolder:GetChildren()) do
+			-- Skip if not a valid NPC
+			if not npc:IsA("Model") or not npc:FindFirstChildOfClass("Humanoid") then continue end
+
+			-- Skip if NPC is already performing an action
+			local currentAction = npc:GetAttribute("CurrentAction")
+			if currentAction == "GoingToSeat" or currentAction == "Sitting" then continue end
+
+			-- Check if it's time to look for a seat
+			local nextSeatCheck = npc:GetAttribute("NextSeatCheckTime") or 0
+			if os.time() >= nextSeatCheck then
+				-- Reset the seat check timer
+				npc:SetAttribute("NextSeatCheckTime", os.time() + math.random(10, CONFIG.seatSearchInterval))
+
+				-- Only try to sit if probability check passes
+				if math.random() <= CONFIG.seatProbability then
+					local seat = findNearbySeats(npc)
+					if seat then
+						sitOnSeat(npc, seat)
+						continue -- Skip movement check
+					end
+				end
+			end
+
+			-- Check if it's time to move
+			local nextMoveTime = npc:GetAttribute("NextMoveTime") or 0
+			if os.time() >= nextMoveTime then
+				-- Get a new destination
+				local destination = findWanderPosition(npc)
+				if destination then
+					-- Move the NPC
+					local humanoid = npc:FindFirstChildOfClass("Humanoid")
+					humanoid:MoveTo(destination)
+
+					-- Set the next move time
+					npc:SetAttribute("NextMoveTime", os.time() + math.random(CONFIG.minMoveDelay, CONFIG.maxMoveDelay))
+					npc:SetAttribute("CurrentAction", "Walking")
+
+					-- Check when reached destination
+					task.spawn(function()
+						local startTime = os.time()
+						while true do
+							task.wait(0.5)
+							if os.time() - startTime > 30 then break end -- Timeout after 30 seconds
+
+							if not npc or not npc.Parent then break end
+							if npc:GetAttribute("CurrentAction") ~= "Walking" then break end
+
+							-- Check if NPC reached destination
+							local hrp = npc:FindFirstChild("HumanoidRootPart")
+							if hrp and (hrp.Position - destination).Magnitude < 3 then
+								npc:SetAttribute("CurrentAction", "Idle")
+								break
+							end
+						end
+					end)
+				end
+			end
+		end
+	end
+end
+
+-- Function to spawn initial NPCs for a player
+local function spawnInitialNPCs(player)
+	task.wait(CONFIG.initialSpawnDelay) -- Wait for tycoon to be ready
+
+	local maxInitialNPCs = getMaxNPCs(player)
+	debugPrint("Spawning " .. maxInitialNPCs .. " initial NPCs for " .. player.Name)
+
+	for i = 1, maxInitialNPCs do
+		spawnNPC(player)
+		task.wait(0.5) -- Space out spawns
+	end
+end
+
+-- Function to progressively spawn NPCs over time
+local function startProgressiveSpawning()
+	while true do
+		task.wait(CONFIG.spawnInterval)
+
+		for _, player in pairs(Players:GetPlayers()) do
+			-- Only attempt to spawn if player has room for more NPCs
+			local currentNPCs = countNPCs(player)
+			local maxNPCs = getMaxNPCs(player)
+
+			if currentNPCs < maxNPCs then
+				spawnNPC(player)
+			end
+		end
+	end
+end
+
+-- Set up NPC behavior update loop
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		updateNPCBehaviors()
+	end
+end)
+
+-- Connect player events
+Players.PlayerAdded:Connect(function(player)
+	task.spawn(function()
+		spawnInitialNPCs(player)
+	end)
+
+	-- Track equipment purchases to potentially spawn more NPCs
+	local function checkEquipment()
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon then
+			tycoon.AttributeChanged:Connect(function(attribute)
+				if attribute == "EquipmentCount" then
+					-- Check if player can have more NPCs now
+					local currentNPCs = countNPCs(player)
+					local maxNPCs = getMaxNPCs(player)
+
+					if currentNPCs < maxNPCs then
+						-- Try to spawn a new NPC with the new equipment count
+						task.wait(3) -- Wait a bit for equipment to be placed
+						spawnNPC(player)
+					end
+				end
+			end)
+		else
+			-- If tycoon isn't ready yet, try again soon
+			task.delay(5, checkEquipment)
+		end
+	end
+
+	checkEquipment()
+end)
+
+-- Initialize for existing players
+for _, player in pairs(Players:GetPlayers()) do
+	task.spawn(function()
+		spawnInitialNPCs(player)
+	end)
+end
+
+-- Create CollisionGroup for NPCs if it doesn't exist
+pcall(function()
+	local PhysicsService = game:GetService("PhysicsService")
+
+	-- Try to create collision group for NPCs
+	if not pcall(function() PhysicsService:GetCollisionGroupId("NPCs") end) then
+		PhysicsService:CreateCollisionGroup("NPCs")
+		PhysicsService:CollisionGroupSetCollidable("NPCs", "Players", false)
+	end
+end)
+
+-- Start progressive spawning
+task.spawn(startProgressiveSpawning)
+
+debugPrint("Decorative NPC System initialized")
+
+-- Return the API
+return {
+	spawnNPC = spawnNPC,
+	getMaxNPCs = getMaxNPCs,
+	countNPCs = countNPCs
+}]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXEDCD1EA0D1974B4A9B50BF6CA03E388F">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">NPCSystemIntegration</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{6581C722-C608-4061-A804-F88F069DB700}</string>
+				<ProtectedString name="Source"><![CDATA[-- Simplified NPC System
+-- Place in ServerScriptService
+-- Handles NPC creation, movement, and income generation
+
+local Players = game:GetService("Players")
+local ServerStorage = game:GetService("ServerStorage")
+local RunService = game:GetService("RunService")
+local PhysicsService = game:GetService("PhysicsService")
+local TweenService = game:GetService("TweenService")
+
+
+-- Configuration
+local CONFIG = {
+	-- NPC creation
+	npcFolderName = "NPC_Character",      -- Folder in ServerStorage containing NPC models
+	maxNPCsPerGym = 15,                   -- Maximum NPCs per player gym
+	spawnInterval = 60,                   -- How often to check for spawning new NPCs (seconds)
+	initialNPCCount = {min = 2, max = 4}, -- Initial NPC count range
+
+	-- Income generation
+	baseIncomeAmount = 15,                -- Base income per NPC
+	vipChance = 0.1,                      -- Chance for VIP NPCs (10%)
+	vipMultiplier = 3,                    -- Income multiplier for VIP NPCs
+
+	-- Movement
+	moveSpeed = 8,                        -- NPC walking speed
+	minStayTime = 10,                     -- Min time at a destination (seconds)
+	maxStayTime = 30,                     -- Max time at a destination (seconds)
+	equipmentTargetChance = 0.7,          -- Chance NPC will target gym equipment
+	wanderRadius = 15,                    -- Maximum wander distance
+
+	-- Visual effects
+	spawnEffectEnabled = true,            -- Whether to show spawn effects
+
+	-- Debug
+	debug = true                          -- Enable debug messages
+}
+
+-- Debug function
+local function debugPrint(...)
+	if CONFIG.debug then
+		print("[NPC System]", ...)
+	end
+end
+
+debugPrint("Initializing NPC System...")
+
+-- Create module table
+local NPCSystem = {}
+
+-- Setup collision groups
+local function setupCollisionGroups()
+	debugPrint("Setting up collision groups...")
+
+	-- Use pcall to handle potential errors
+	local success = pcall(function()
+		-- Check if groups already exist
+		local npcGroupExists = PhysicsService:CollisionGroupExists("NPCs")
+		local playerGroupExists = PhysicsService:CollisionGroupExists("Players")
+
+		if not npcGroupExists then
+			PhysicsService:RegisterCollisionGroup("NPCs")
+			debugPrint("Created 'NPCs' collision group")
+		end
+
+		if not playerGroupExists then
+			PhysicsService:RegisterCollisionGroup("Players")
+			debugPrint("Created 'Players' collision group")
+		end
+
+		-- Set collision behavior
+		PhysicsService:CollisionGroupSetCollidable("NPCs", "Players", false)
+		debugPrint("Set NPCs and Players to not collide")
+	end)
+
+	if not success then
+		debugPrint("Failed to set up collision groups. Using fallback method.")
+
+		-- Fallback: Make NPCs non-collidable with other objects
+		for _, player in pairs(Players:GetPlayers()) do
+			local tycoon = player:FindFirstChild("Tycoon")
+			if tycoon and tycoon.Value then
+				local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+				if npcsFolder then
+					for _, npc in pairs(npcsFolder:GetChildren()) do
+						for _, part in pairs(npc:GetDescendants()) do
+							if part:IsA("BasePart") then
+								part.CanCollide = false
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return success
+end
+
+-- Verify that the NPC character folder exists, or create it
+local function verifyNPCFolder()
+	local npcFolder = ServerStorage:FindFirstChild(CONFIG.npcFolderName)
+
+	if not npcFolder then
+		debugPrint("NPC folder not found, creating it")
+		npcFolder = Instance.new("Folder")
+		npcFolder.Name = CONFIG.npcFolderName
+		npcFolder.Parent = ServerStorage
+
+		-- Create a default NPC model if none exists
+		local defaultNPC = Instance.new("Model")
+		defaultNPC.Name = "DefaultNPC"
+
+		-- Add humanoid
+		local humanoid = Instance.new("Humanoid")
+		humanoid.Parent = defaultNPC
+
+		-- Add humanoid root part
+		local hrp = Instance.new("Part")
+		hrp.Name = "HumanoidRootPart"
+		hrp.Size = Vector3.new(2, 2, 1)
+		hrp.Transparency = 1
+		hrp.CanCollide = false
+		hrp.Parent = defaultNPC
+
+		-- Add head
+		local head = Instance.new("Part")
+		head.Name = "Head"
+		head.Shape = Enum.PartType.Ball
+		head.Size = Vector3.new(2, 2, 2)
+		head.Position = hrp.Position + Vector3.new(0, 2, 0)
+		head.BrickColor = BrickColor.new("Bright yellow")
+		head.Parent = defaultNPC
+
+		-- Add torso
+		local torso = Instance.new("Part")
+		torso.Name = "Torso"
+		torso.Size = Vector3.new(2, 2, 1)
+		torso.Position = hrp.Position + Vector3.new(0, 0, 0)
+		torso.BrickColor = BrickColor.new("Bright blue")
+		torso.Parent = defaultNPC
+
+		defaultNPC.PrimaryPart = hrp
+		defaultNPC.Parent = npcFolder
+
+		debugPrint("Created default NPC model in " .. CONFIG.npcFolderName)
+	elseif #npcFolder:GetChildren() == 0 then
+		debugPrint("NPC folder exists but is empty, creating default NPC")
+
+		-- Create a default NPC model
+		local defaultNPC = Instance.new("Model")
+		defaultNPC.Name = "DefaultNPC"
+
+		-- Add humanoid
+		local humanoid = Instance.new("Humanoid")
+		humanoid.Parent = defaultNPC
+
+		-- Add humanoid root part
+		local hrp = Instance.new("Part")
+		hrp.Name = "HumanoidRootPart"
+		hrp.Size = Vector3.new(2, 2, 1)
+		hrp.Transparency = 1
+		hrp.CanCollide = false
+		hrp.Parent = defaultNPC
+
+		-- Add head
+		local head = Instance.new("Part")
+		head.Name = "Head"
+		head.Shape = Enum.PartType.Ball
+		head.Size = Vector3.new(2, 2, 2)
+		head.Position = hrp.Position + Vector3.new(0, 2, 0)
+		head.BrickColor = BrickColor.new("Bright yellow")
+		head.Parent = defaultNPC
+
+		-- Add torso
+		local torso = Instance.new("Part")
+		torso.Name = "Torso"
+		torso.Size = Vector3.new(2, 2, 1)
+		torso.Position = hrp.Position + Vector3.new(0, 0, 0)
+		torso.BrickColor = BrickColor.new("Bright blue")
+		torso.Parent = defaultNPC
+
+		defaultNPC.PrimaryPart = hrp
+		defaultNPC.Parent = npcFolder
+	end
+
+	return npcFolder
+end
+
+-- Count NPCs for a player
+local function countNPCs(player)
+	if not player then return 0 end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return 0 end
+
+	local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+	if not npcsFolder then return 0 end
+
+	return #npcsFolder:GetChildren()
+end
+
+-- Find a spawn position for an NPC
+local function findSpawnPosition(tycoonModel)
+	if not tycoonModel then return Vector3.new(0, 5, 0) end
+
+	-- Try to use platform
+	local platform = tycoonModel:FindFirstChild("Platform")
+	if platform and platform:IsA("BasePart") then
+		return platform.Position + Vector3.new(math.random(-8, 8), 3, math.random(-8, 8))
+	end
+
+	-- If no platform, find any suitable part
+	for _, part in pairs(tycoonModel:GetDescendants()) do
+		if part:IsA("BasePart") and 
+			part.Size.X > 8 and part.Size.Z > 8 and
+			math.abs(part.CFrame.UpVector.Y) > 0.9 then
+			return part.Position + Vector3.new(math.random(-5, 5), 3, math.random(-5, 5))
+		end
+	end
+
+	-- Last resort
+	return tycoonModel:GetPivot().Position + Vector3.new(0, 5, 0)
+end
+
+-- Find equipment in a tycoon
+local function findEquipmentInTycoon(tycoonModel)
+	local equipment = {}
+
+	-- Search for equipment models
+	for _, model in pairs(tycoonModel:GetDescendants()) do
+		-- Check for common equipment names or attributes
+		if (model:IsA("Model") or model:IsA("BasePart")) and 
+			(string.lower(model.Name):find("treadmill") or
+				string.lower(model.Name):find("weight") or
+				string.lower(model.Name):find("bench") or
+				string.lower(model.Name):find("machine") or
+				string.lower(model.Name):find("equipment") or
+				model:GetAttribute("IsEquipment")) then
+			table.insert(equipment, model)
+		end
+	end
+
+	return equipment
+end
+
+-- Generate unique NPC name
+local function generateNPCName(isVIP)
+	local prefixes = {"Gym", "Fitness", "Health", "Power", "Iron", "Muscle"}
+	local suffixes = {"Member", "User", "Fan", "Enthusiast", "Pro", "Expert"}
+
+	if isVIP then
+		prefixes = {"VIP", "Elite", "Premium", "Gold", "Deluxe", "Champion"}
+	end
+
+	local prefix = prefixes[math.random(1, #prefixes)]
+	local suffix = suffixes[math.random(1, #suffixes)]
+	local number = tostring(math.random(1000, 9999))
+
+	return prefix .. "_" .. suffix .. "_" .. number
+end
+
+-- Find a destination for an NPC to move to
+local function findNPCDestination(npc, tycoonModel)
+	if not npc or not tycoonModel then return nil end
+
+	-- Get current position
+	local currentPosition
+	if npc:FindFirstChild("HumanoidRootPart") then
+		currentPosition = npc.HumanoidRootPart.Position
+	else
+		currentPosition = npc:GetPivot().Position
+	end
+
+	-- Decide if we should target equipment
+	local shouldTargetEquipment = math.random() <= CONFIG.equipmentTargetChance
+
+	if shouldTargetEquipment then
+		-- Find equipment in the tycoon
+		local equipment = findEquipmentInTycoon(tycoonModel)
+
+		if #equipment > 0 then
+			-- Choose a random piece of equipment
+			local targetEquipment = equipment[math.random(1, #equipment)]
+
+			-- Get position of the equipment
+			local equipmentPosition
+
+			if targetEquipment:IsA("Model") and targetEquipment.PrimaryPart then
+				equipmentPosition = targetEquipment.PrimaryPart.Position
+			elseif targetEquipment:IsA("BasePart") then
+				equipmentPosition = targetEquipment.Position
+			else
+				-- Find any part
+				for _, part in pairs(targetEquipment:GetDescendants()) do
+					if part:IsA("BasePart") then
+						equipmentPosition = part.Position
+						break
+					end
+				end
+			end
+
+			if equipmentPosition then
+				-- Add a small random offset to prevent NPCs from stacking
+				local offsetX = (math.random() - 0.5) * 4
+				local offsetZ = (math.random() - 0.5) * 4
+				return equipmentPosition + Vector3.new(offsetX, 0, offsetZ)
+			end
+		end
+	end
+
+	-- Fallback to random wandering
+	local radius = math.random(5, CONFIG.wanderRadius)
+	local angle = math.random() * math.pi * 2
+	local offsetX = math.cos(angle) * radius
+	local offsetZ = math.sin(angle) * radius
+
+	return currentPosition + Vector3.new(offsetX, 0, offsetZ)
+end
+
+-- Create an NPC
+function NPCSystem.createNPC(spawnPosition, tycoonModel, player, isVIP)
+	if not player or not tycoonModel then return nil end
+
+	-- Determine if NPC should be VIP if not specified
+	if isVIP == nil then
+		isVIP = math.random() < CONFIG.vipChance
+	end
+
+	-- Get NPC folder
+	local npcFolder = verifyNPCFolder()
+	if not npcFolder or #npcFolder:GetChildren() == 0 then
+		debugPrint("NPC folder is empty or invalid")
+		return nil
+	end
+
+	-- Get a random NPC model
+	local templates = npcFolder:GetChildren()
+	local modelTemplate = templates[math.random(1, #templates)]
+
+	-- Clone the model
+	local npc = modelTemplate:Clone()
+
+	-- Set NPC name
+	local npcName = generateNPCName(isVIP)
+	npc.Name = npcName
+
+	-- Make sure it has a humanoid
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		humanoid = Instance.new("Humanoid")
+		humanoid.Parent = npc
+	end
+
+	-- Set walk speed
+	humanoid.WalkSpeed = CONFIG.moveSpeed
+
+	-- Make sure it has a HumanoidRootPart
+	local hrp = npc:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		-- Create a root part if missing
+		hrp = Instance.new("Part")
+		hrp.Name = "HumanoidRootPart"
+		hrp.Size = Vector3.new(2, 2, 1)
+		hrp.Transparency = 1
+		hrp.CanCollide = false
+
+		-- Find a part to position relative to
+		local refPart
+		for _, part in pairs(npc:GetDescendants()) do
+			if part:IsA("BasePart") then
+				refPart = part
+				break
+			end
+		end
+
+		if refPart then
+			hrp.CFrame = refPart.CFrame
+		else
+			hrp.Position = spawnPosition
+		end
+
+		hrp.Parent = npc
+	end
+
+	-- Set Position
+	hrp.CFrame = CFrame.new(spawnPosition)
+
+	-- Update collision groups
+	for _, part in pairs(npc:GetDescendants()) do
+		if part:IsA("BasePart") then
+			-- Try to set collision group
+			pcall(function()
+				part.CollisionGroup = "NPCs"
+			end)
+
+			-- Always make HRP non-collidable
+			if part.Name == "HumanoidRootPart" then
+				part.CanCollide = false
+			end
+		end
+	end
+
+	-- Apply VIP appearance if needed
+	if isVIP then
+		-- Create a VIP badge
+		local badge = Instance.new("BillboardGui")
+		badge.Name = "VIPBadge"
+		badge.Size = UDim2.new(0, 100, 0, 30)
+		badge.StudsOffset = Vector3.new(0, 3, 0)
+		badge.AlwaysOnTop = true
+
+		local badgeLabel = Instance.new("TextLabel")
+		badgeLabel.Size = UDim2.new(1, 0, 1, 0)
+		badgeLabel.BackgroundTransparency = 0.5
+		badgeLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		badgeLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- Gold
+		badgeLabel.Font = Enum.Font.GothamBold
+		badgeLabel.Text = "★ VIP ★"
+		badgeLabel.TextScaled = true
+		badgeLabel.Parent = badge
+
+		badge.Parent = hrp
+	end
+
+	-- Set attributes for income generation
+	local membershipFee = isVIP 
+		and CONFIG.baseIncomeAmount * CONFIG.vipMultiplier 
+		or CONFIG.baseIncomeAmount
+
+	npc:SetAttribute("MembershipFee", membershipFee)
+	npc:SetAttribute("LastPaid", os.time())
+	npc:SetAttribute("IsVIP", isVIP)
+	npc:SetAttribute("NextMoveTime", os.time() + math.random(CONFIG.minStayTime, CONFIG.maxStayTime))
+	npc:SetAttribute("OwnerUserId", player.UserId)
+
+	-- Create NPCs folder if it doesn't exist
+	local npcsFolder = tycoonModel:FindFirstChild("NPCs")
+	if not npcsFolder then
+		npcsFolder = Instance.new("Folder")
+		npcsFolder.Name = "NPCs"
+		npcsFolder.Parent = tycoonModel
+	end
+
+	-- Create spawn effect if enabled
+	if CONFIG.spawnEffectEnabled then
+		-- Create effect part
+		local effect = Instance.new("Part")
+		effect.Size = Vector3.new(1, 1, 1)
+		effect.Anchored = true
+		effect.CanCollide = false
+		effect.Transparency = 0.5
+		effect.Shape = Enum.PartType.Ball
+		effect.Material = Enum.Material.Neon
+		effect.BrickColor = isVIP and BrickColor.new("Bright yellow") or BrickColor.new("Bright blue")
+		effect.Position = spawnPosition
+		effect.Parent = workspace
+
+		-- Animate the effect
+		task.spawn(function()
+			for i = 1, 10 do
+				effect.Size = Vector3.new(i/2, i/2, i/2)
+				effect.Transparency = 0.5 + (i * 0.05)
+				task.wait(0.05)
+			end
+			effect:Destroy()
+		end)
+	end
+
+	-- Parent the NPC
+	npc.Parent = npcsFolder
+
+	debugPrint("Created " .. (isVIP and "VIP " or "") .. "NPC " .. npcName .. " for " .. player.Name)
+	return npc
+end
+
+-- Update an NPC's movement
+local function updateNPCMovement(npc)
+	if not npc or not npc.Parent then return end
+
+	-- Get references to humanoid and root part
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	local rootPart = npc:FindFirstChild("HumanoidRootPart")
+
+	if not humanoid or not rootPart then return end
+
+	-- Check if it's time to move
+	local nextMoveTime = npc:GetAttribute("NextMoveTime") or 0
+	if os.time() < nextMoveTime then return end
+
+	-- Get the tycoon model
+	local tycoonModel = npc.Parent.Parent
+	if not tycoonModel or not tycoonModel:IsA("Model") then return end
+
+	-- Find a destination
+	local destination = findNPCDestination(npc, tycoonModel)
+	if not destination then return end
+
+	-- Move to the destination
+	humanoid:MoveTo(destination)
+
+	-- Set next move time
+	npc:SetAttribute("NextMoveTime", os.time() + math.random(CONFIG.minStayTime, CONFIG.maxStayTime))
+end
+
+-- Update all NPCs for a player
+local function updatePlayerNPCs(player)
+	if not player then return end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return end
+
+	local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+	if not npcsFolder then return end
+
+	for _, npc in pairs(npcsFolder:GetChildren()) do
+		if npc:IsA("Model") then
+			-- Use pcall to prevent one NPC error from affecting others
+			pcall(function()
+				updateNPCMovement(npc)
+			end)
+		end
+	end
+end
+
+-- Try to spawn an NPC for a player
+function NPCSystem.trySpawnNPC(player)
+	if not player then return nil end
+
+	-- Make sure the player has a valid tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then 
+		debugPrint("Player has no tycoon:", player.Name)
+		return nil 
+	end
+
+	-- Check if at max NPCs
+	local currentNPCCount = countNPCs(player)
+	if currentNPCCount >= CONFIG.maxNPCsPerGym then 
+		debugPrint("Max NPCs reached for player:", player.Name)
+		return nil 
+	end
+
+	-- Find a spawn position
+	local spawnPosition = findSpawnPosition(tycoon.Value)
+
+	-- Create the NPC
+	local npc = NPCSystem.createNPC(spawnPosition, tycoon.Value, player)
+
+	return npc
+end
+
+-- Initialize NPCs for a player
+function NPCSystem.initializePlayerNPCs(player)
+	if not player then return end
+
+	-- Make sure the player has a valid tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		debugPrint("No valid tycoon for player:", player.Name)
+		return
+	end
+
+	-- Create NPCs folder if it doesn't exist
+	local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+	if not npcsFolder then
+		npcsFolder = Instance.new("Folder")
+		npcsFolder.Name = "NPCs"
+		npcsFolder.Parent = tycoon.Value
+	end
+
+	-- Determine number of initial NPCs
+	local initialCount = math.random(
+		CONFIG.initialNPCCount.min, 
+		CONFIG.initialNPCCount.max
+	)
+
+	debugPrint("Spawning " .. initialCount .. " initial NPCs for " .. player.Name)
+
+	-- Spawn NPCs one at a time with delay
+	for i = 1, initialCount do
+		task.spawn(function()
+			local npc = NPCSystem.trySpawnNPC(player)
+			if npc then
+				debugPrint("Spawned initial NPC #" .. i .. " for " .. player.Name)
+			end
+		end)
+
+		-- Small delay between spawns
+		task.wait(0.5)
+	end
+end
+
+-- Fix any collision issues with existing NPCs
+function NPCSystem.fixNPCCollisions()
+	debugPrint("Fixing NPC collisions...")
+
+	local fixCount = 0
+
+	-- Find all NPCs
+	for _, player in pairs(Players:GetPlayers()) do
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon and tycoon.Value then
+			local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+			if npcsFolder then
+				for _, npc in pairs(npcsFolder:GetChildren()) do
+					if npc:IsA("Model") then
+						-- Fix parts
+						for _, part in pairs(npc:GetDescendants()) do
+							if part:IsA("BasePart") then
+								-- Try to set collision group
+								pcall(function() 
+									part.CollisionGroup = "NPCs" 
+								end)
+
+								-- Ensure HumanoidRootPart is non-collidable
+								if part.Name == "HumanoidRootPart" then
+									part.CanCollide = false
+								end
+
+								fixCount = fixCount + 1
+							end
+						end
+
+						-- Make sure NPC has a humanoid
+						if not npc:FindFirstChildOfClass("Humanoid") then
+							local humanoid = Instance.new("Humanoid")
+							humanoid.WalkSpeed = CONFIG.moveSpeed
+							humanoid.Parent = npc
+							debugPrint("Added missing Humanoid to " .. npc.Name)
+						end
+
+						-- Make sure NPC has HumanoidRootPart
+						if not npc:FindFirstChild("HumanoidRootPart") then
+							local hrp = Instance.new("Part")
+							hrp.Name = "HumanoidRootPart"
+							hrp.Size = Vector3.new(2, 2, 1)
+							hrp.Transparency = 1
+							hrp.CanCollide = false
+
+							-- Find a suitable position
+							local position
+							for _, part in pairs(npc:GetDescendants()) do
+								if part:IsA("BasePart") then
+									position = part.Position
+									break
+								end
+							end
+
+							if position then
+								hrp.Position = position
+							else
+								hrp.Position = npc:GetPivot().Position
+							end
+
+							hrp.Parent = npc
+							debugPrint("Added missing HumanoidRootPart to " .. npc.Name)
+						end
+					end
+				end
+			end
+		end
+	end
+
+	debugPrint("Fixed " .. fixCount .. " NPC parts")
+	return fixCount
+end
+
+-- Start the NPC spawner loop
+function NPCSystem.startNPCSpawner()
+	debugPrint("Starting NPC spawner loop...")
+
+	-- Run in a separate thread
+	task.spawn(function()
+		while true do
+			task.wait(CONFIG.spawnInterval)
+
+			for _, player in pairs(Players:GetPlayers()) do
+				-- Use pcall to prevent errors from affecting other players
+				pcall(function()
+					-- Random chance to spawn an NPC
+					if math.random() < 0.7 then -- 70% chance per interval
+						NPCSystem.trySpawnNPC(player)
+					end
+				end)
+			end
+		end
+	end)
+end
+
+-- Start the NPC movement update loop
+function NPCSystem.startMovementLoop()
+	debugPrint("Starting NPC movement loop...")
+
+	-- Run in a separate thread
+	task.spawn(function()
+		while true do
+			task.wait(1) -- Update every second
+
+			-- Update NPCs for each player
+			for _, player in ipairs(Players:GetPlayers()) do
+				task.spawn(function()
+					pcall(function()
+						updatePlayerNPCs(player)
+					end)
+				end)
+			end
+		end
+	end)
+end
+
+-- Initialize the NPC system
+function NPCSystem.initialize()
+	debugPrint("Initializing NPC System...")
+
+	-- Set up collision groups
+	setupCollisionGroups()
+
+	-- Verify NPC folder exists
+	verifyNPCFolder()
+
+	-- Fix any existing NPCs
+	NPCSystem.fixNPCCollisions()
+
+	-- Create event connections
+	Players.PlayerAdded:Connect(function(player)
+		-- Wait for player to fully load
+		task.wait(5)
+
+		-- Initialize NPCs
+		NPCSystem.initializePlayerNPCs(player)
+	end)
+
+	-- Initialize existing players
+	for _, player in pairs(Players:GetPlayers()) do
+		task.spawn(function()
+			task.wait(5)
+			NPCSystem.initializePlayerNPCs(player)
+		end)
+	end
+
+	-- Start system loops
+	NPCSystem.startNPCSpawner()
+	NPCSystem.startMovementLoop()
+
+	debugPrint("NPC System initialization complete!")
+	return true
+end
+
+-- Run initialization automatically
+NPCSystem.initialize()
+
+-- Return public API
+return NPCSystem]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX525A570695754FAD8991833F1718615D">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">NPC_Movement</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{0BF53C6E-B0CD-41F9-BC08-D0F8A7C7C03F}</string>
+				<ProtectedString name="Source"><![CDATA[-- Enhanced NPC Movement System
+-- Place this in ServerScriptService
+-- This script specifically manages NPC movement for better exploration
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+
+-- Configuration
+local CONFIG = {
+	updateFrequency = 1,       -- How often to update NPCs (seconds)
+	moveCheckFrequency = 10,   -- How often to check if NPCs should move (seconds)
+	equipmentTargetChance = 0.7, -- Chance NPC will target equipment
+	minStayTime = 15,          -- Min time at destination (seconds)
+	maxStayTime = 45,          -- Max time at destination (seconds)
+	maxPathfindingDistance = 100, -- Max distance for pathfinding
+	debugEnabled = true        -- Show debug messages
+}
+
+-- Debug function
+local function debug(...)
+	if CONFIG.debugEnabled then
+		print("[NPC Movement]", ...)
+	end
+end
+
+debug("Initializing Enhanced NPC Movement System...")
+
+-- Cache equipment in tycoons for faster targeting
+local equipmentCache = {}
+
+-- Function to find all equipment in a tycoon
+local function cacheEquipment(tycoon)
+	if equipmentCache[tycoon] then return equipmentCache[tycoon] end
+
+	local equipment = {}
+
+	-- Look for equipment models
+	for _, descendant in pairs(tycoon:GetDescendants()) do
+		-- Check if it's an equipment model by name keywords
+		if descendant:IsA("Model") and 
+			(descendant.Name:lower():find("treadmill") or
+				descendant.Name:lower():find("weight") or
+				descendant.Name:lower():find("bench") or
+				descendant.Name:lower():find("machine") or
+				descendant.Name:lower():find("equipment") or
+				descendant.Name:lower():find("rack") or
+				descendant:GetAttribute("IsEquipment")) then
+
+			table.insert(equipment, descendant)
+		end
+	end
+
+	-- Also look for parts that might be equipment
+	if #equipment == 0 then
+		for _, descendant in pairs(tycoon:GetDescendants()) do
+			if descendant:IsA("BasePart") and
+				(descendant.Name:lower():find("treadmill") or
+					descendant.Name:lower():find("weight") or
+					descendant.Name:lower():find("bench") or
+					descendant.Name:lower():find("equipment")) then
+
+				table.insert(equipment, descendant)
+			end
+		end
+	end
+
+	debug("Cached " .. #equipment .. " equipment pieces in " .. tycoon.Name)
+	equipmentCache[tycoon] = equipment
+	return equipment
+end
+
+-- Function to find floors in a tycoon
+local function findFloors(tycoon)
+	local floors = {}
+
+	for _, descendant in pairs(tycoon:GetDescendants()) do
+		if descendant:IsA("BasePart") and
+			descendant.Size.X >= 8 and descendant.Size.Z >= 8 and
+			math.abs(descendant.CFrame.UpVector.Y) > 0.9 and
+			(descendant.Name:lower():find("floor") or
+				descendant.Name:lower():find("platform") or
+				descendant.Name:lower():find("ground") or
+				descendant.Name == "Platform") then
+
+			table.insert(floors, descendant)
+		end
+	end
+
+	-- If no named floors found, use any large horizontal surface
+	if #floors == 0 then
+		for _, descendant in pairs(tycoon:GetDescendants()) do
+			if descendant:IsA("BasePart") and
+				descendant.Size.X >= 8 and descendant.Size.Z >= 8 and
+				math.abs(descendant.CFrame.UpVector.Y) > 0.9 then
+
+				table.insert(floors, descendant)
+			end
+		end
+	end
+
+	return floors
+end
+
+-- Function to find a good target position for an NPC
+local function findTargetPosition(npc)
+	-- Get the tycoon model
+	local npcsFolder = npc.Parent
+	if not npcsFolder then return nil end
+
+	local tycoon = npcsFolder.Parent
+	if not tycoon or not tycoon:IsA("Model") then return nil end
+	local function findFloorsInTycoon(tycoonModel)
+		local floors = {}
+
+		-- Look for parts with specific attributes or names indicating floors
+		for _, part in pairs(tycoonModel:GetDescendants()) do
+			if part:IsA("BasePart") then
+				-- Strict floor detection criteria
+				if part.Size.X >= 10 and part.Size.Z >= 10 and 
+					math.abs(part.CFrame.UpVector.Y) > 0.9 and 
+					part.Size.Y < 2 then
+					table.insert(floors, part)
+				end
+			end
+		end
+
+		return floors
+	end
+	-- Decide whether to target equipment or a random position
+	local targetEquipment = math.random() < CONFIG.equipmentTargetChance
+
+	if targetEquipment then
+		-- Get cached equipment or cache it if needed
+		local equipment = cacheEquipment(tycoon)
+
+		if #equipment > 0 then
+			-- Choose a random equipment
+			local targetEquip = equipment[math.random(1, #equipment)]
+			local targetPos
+
+			-- Get position based on equipment type
+			if targetEquip:IsA("Model") then
+				if targetEquip.PrimaryPart then
+					targetPos = targetEquip.PrimaryPart.Position
+				else
+					-- Find any part to use
+					for _, part in pairs(targetEquip:GetDescendants()) do
+						if part:IsA("BasePart") then
+							targetPos = part.Position
+							break
+						end
+					end
+				end
+			else
+				-- It's a BasePart
+				targetPos = targetEquip.Position
+			end
+
+			if targetPos then
+				-- Add random offset around equipment
+				local offsetX = math.random(-3, 3)
+				local offsetZ = math.random(-3, 3)
+
+				return targetPos + Vector3.new(offsetX, 0, offsetZ), "equipment"
+			end
+		end
+	end
+
+	-- If we get here, either we're not targeting equipment or we failed to find equipment
+	-- Look for floors to walk on instead
+	local floors = findFloors(tycoon)
+
+	if #floors > 0 then
+		-- Pick a random floor
+		local floor = floors[math.random(1, #floors)]
+
+		-- Get a random position on the floor
+		local size = floor.Size
+		local cf = floor.CFrame
+
+		-- Keep away from edges
+		local marginX = math.min(size.X * 0.4, 4)
+		local marginZ = math.min(size.Z * 0.4, 4)
+
+		local offsetX = (math.random() - 0.5) * (size.X - marginX)
+		local offsetZ = (math.random() - 0.5) * (size.Z - marginZ)
+
+		local targetPos = cf * CFrame.new(offsetX, size.Y/2 + 3, offsetZ)
+
+		return targetPos.Position, "floor"
+	end
+
+	-- Last resort - wander randomly around current position
+	local rootPart = npc:FindFirstChild("HumanoidRootPart")
+	if rootPart then
+		local currentPos = rootPart.Position
+		local radius = math.random(5, 15)
+		local angle = math.random() * math.pi * 2
+
+		return currentPos + Vector3.new(
+			math.cos(angle) * radius,
+			0,
+			math.sin(angle) * radius
+		), "random"
+	end
+
+	return nil, nil
+end
+
+-- Function to make an NPC move to a target
+local function moveNPCToTarget(npc, targetPosition)
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return false end
+
+	local rootPart = npc:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return false end
+
+	-- Check if targetPosition is too far away
+	local distance = (targetPosition - rootPart.Position).Magnitude
+	if distance > CONFIG.maxPathfindingDistance then
+		debug("Target too far for " .. npc.Name .. ": " .. math.floor(distance) .. " studs")
+		return false
+	end
+
+	-- Calculate correct Y position with raycast
+	local raycastResult = workspace:Raycast(
+		targetPosition + Vector3.new(0, 10, 0),
+		Vector3.new(0, -30, 0)
+	)
+
+	if raycastResult then
+		targetPosition = Vector3.new(
+			targetPosition.X,
+			raycastResult.Position.Y + 3,
+			targetPosition.Z
+		)
+	end
+
+	-- Move the NPC
+	humanoid:MoveTo(targetPosition)
+	debug(npc.Name .. " moving to new position: " .. tostring(targetPosition))
+
+	return true
+end
+
+-- Function to check if an NPC should start moving
+local function checkNPCMovement(npc)
+	-- Skip if NPC is already moving
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	-- Check if it's time to move
+	local nextMoveTime = npc:GetAttribute("NextMoveTime") or 0
+	if os.time() < nextMoveTime then return end
+
+	-- Find a target position
+	local targetPosition, targetType = findTargetPosition(npc)
+	if not targetPosition then return end
+
+	-- Move the NPC
+	local success = moveNPCToTarget(npc, targetPosition)
+
+	if success then
+		-- Set the next move time
+		local stayTime = math.random(CONFIG.minStayTime, CONFIG.maxStayTime)
+		npc:SetAttribute("NextMoveTime", os.time() + stayTime)
+		npc:SetAttribute("TargetType", targetType)
+
+		-- Connect to MoveToFinished to handle arrival
+		humanoid.MoveToFinished:Connect(function(reached)
+			if reached then
+				debug(npc.Name .. " reached destination: " .. (targetType or "unknown"))
+			end
+		end)
+	end
+end
+
+-- Main update function to process all NPCs
+local function updateNPCs()
+	for _, player in pairs(Players:GetPlayers()) do
+		local tycoon = player:FindFirstChild("Tycoon")
+		if not tycoon or not tycoon.Value then continue end
+
+		local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+		if not npcsFolder then continue end
+
+		for _, npc in pairs(npcsFolder:GetChildren()) do
+			if npc:IsA("Model") and npc:FindFirstChildOfClass("Humanoid") then
+				checkNPCMovement(npc)
+			end
+		end
+	end
+end
+
+-- Function to reset the equipment cache periodically
+local function resetEquipmentCache()
+	equipmentCache = {}
+	debug("Equipment cache reset")
+end
+
+-- Start the update loop
+spawn(function()
+	while true do
+		wait(CONFIG.updateFrequency)
+		updateNPCs()
+	end
+end)
+
+-- Periodically reset the equipment cache to account for new equipment
+spawn(function()
+	while true do
+		wait(60) -- Reset cache every minute
+		resetEquipmentCache()
+	end
+end)
+
+-- Fix any existing NPCs immediately
+local function fixExistingNPCs()
+	for _, player in pairs(Players:GetPlayers()) do
+		local tycoon = player:FindFirstChild("Tycoon")
+		if not tycoon or not tycoon.Value then continue end
+
+		local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+		if not npcsFolder then continue end
+
+		for _, npc in pairs(npcsFolder:GetChildren()) do
+			if npc:IsA("Model") then
+				-- Set initial NextMoveTime if missing
+				if not npc:GetAttribute("NextMoveTime") then
+					npc:SetAttribute("NextMoveTime", os.time() + math.random(5, 15))
+				end
+
+				-- Clear any existing movement scripts
+				for _, script in pairs(npc:GetDescendants()) do
+					if script:IsA("Script") and (
+						script.Name == "nottooclose" or 
+							script.Name:lower():find("movement") or
+							script.Name:lower():find("wander")) then
+						script:Destroy()
+					end
+				end
+
+				-- Make sure humanoid exists
+				if not npc:FindFirstChildOfClass("Humanoid") then
+					local humanoid = Instance.new("Humanoid")
+					humanoid.WalkSpeed = 8
+					humanoid.Parent = npc
+				end
+
+				-- Make sure HumanoidRootPart exists
+				if not npc:FindFirstChild("HumanoidRootPart") then
+					-- Try to find a suitable part
+					local foundPart = false
+					for _, part in pairs(npc:GetDescendants()) do
+						if part:IsA("BasePart") and 
+							(part.Name:lower():find("root") or part.Name:lower():find("torso")) then
+							part.Name = "HumanoidRootPart"
+							foundPart = true
+							break
+						end
+					end
+
+					-- If no suitable part found, create one
+					if not foundPart then
+						local hrp = Instance.new("Part")
+						hrp.Name = "HumanoidRootPart"
+						hrp.Size = Vector3.new(2, 2, 1)
+						hrp.Transparency = 1
+						hrp.CanCollide = false
+						hrp.Position = npc:GetPivot().Position
+						hrp.Parent = npc
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Fix existing NPCs
+fixExistingNPCs()
+
+debug("Enhanced NPC Movement System initialized!")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX81A820BBCEB445CD96497C6EFC8532D8">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">DynamicEconomyBalancer</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{EE0A547A-4E37-43AE-A19F-88DC57370EBD}</string>
+				<ProtectedString name="Source"><![CDATA[-- DynamicEconomyBalancer.lua
+-- Place this in ServerScriptService
+-- This script scans all BuyTiles, adjusts pricing and income scaling
+-- to make progression more challenging based on completion percentage
+
+local ServerStorage = game:GetService("ServerStorage")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+-- Helper function to ensure values are numbers
+local function ensureNumber(value)
+	if type(value) == "string" then
+		return tonumber(value) or 0
+	end
+	return value
+end
+
+-- Try to load EconomySystem
+local EconomySystem
+pcall(function()
+	EconomySystem = require(ServerScriptService:FindFirstChild("UnifiedGymEconomySystem"))
+end)
+
+-- Configuration
+local CONFIG = {
+	-- Tile pricing curve
+	initial_price = 100,           -- First tile price
+	final_price = 100000,          -- Last tile price
+	curve_steepness = 1.15,        -- Higher = steeper exponential growth
+
+	-- Income factors
+	base_income_initial = 15,      -- Starting base income
+	base_income_final = 25,        -- Max base income
+	income_scaling_factor = 0.8,   -- Lower = slower income growth (0-1)
+
+	-- NPC membership fee scaling
+	npc_fee_min = 15,              -- Minimum NPC membership fee
+	npc_fee_max = 45,              -- Maximum NPC membership fee
+	vip_multiplier = 3,            -- VIP members pay this much more
+
+	-- Thresholds
+	early_game_threshold = 0.2,    -- % of completion considered "early game"
+	mid_game_threshold = 0.6,      -- % of completion considered "mid game"
+
+	-- Difficulty scaling
+	early_game_multiplier = 1.0,   -- Early game income multiplier
+	mid_game_multiplier = 0.8,     -- Mid game income multiplier
+	late_game_multiplier = 0.6,    -- Late game income multiplier
+
+	-- Price jumps
+	price_jump_thresholds = {      -- Add price spikes at these completion %
+		[0.25] = 1.5,              -- 25% completion = 1.5x price multiplier
+		[0.5] = 2.0,               -- 50% completion = 2.0x price multiplier
+		[0.75] = 3.0,              -- 75% completion = 3.0x price multiplier
+	},
+
+	-- Misc settings
+	debug = true,                  -- Print debug information
+	update_interval = 60,          -- Run analysis every 60 seconds
+	apply_changes = true           -- Actually apply the calculated values
+}
+
+-- Module
+local DynamicEconomyBalancer = {}
+
+-- Variables
+local totalBuyTileCount = 0           -- Total number of BuyTiles in the game
+local analyzedBuyTiles = {}           -- Table of analyzed BuyTiles with their calculated prices
+local gameCompletionStats = {         -- Game completion statistics
+	totalTileCount = 0,
+	maxTileId = 0,
+	completionPercentageByTileCount = 0,
+	completionPercentageByTileId = 0,
+	currentPhase = "early_game",      -- "early_game", "mid_game", or "late_game"
+}
+
+-- Debug print function
+local function debugPrint(...)
+	if CONFIG.debug then
+		print("[EconomyBalancer]", ...)
+	end
+end
+
+-- Find all BuyTiles in ServerStorage
+local function findAllBuyTiles()
+	local buyTiles = {}
+	local buyTilesFolder = ServerStorage:FindFirstChild("BuyTiles")
+
+	if not buyTilesFolder then
+		debugPrint("BuyTiles folder not found in ServerStorage!")
+		return buyTiles
+	end
+
+	-- Recursive function to find all buy tiles
+	local function findBuyTilesInFolder(folder)
+		for _, item in ipairs(folder:GetChildren()) do
+			if item:IsA("Model") and item:GetAttribute("ID") then
+				table.insert(buyTiles, item)
+			elseif item:IsA("Folder") then
+				findBuyTilesInFolder(item)
+			end
+		end
+	end
+
+	findBuyTilesInFolder(buyTilesFolder)
+
+	-- Sort by ID - FIX: Ensure IDs are treated as numbers during comparison
+	table.sort(buyTiles, function(a, b)
+		local idA = ensureNumber(a:GetAttribute("ID"))
+		local idB = ensureNumber(b:GetAttribute("ID"))
+		return idA < idB
+	end)
+
+	return buyTiles
+end
+
+-- Calculate prices and completion stats
+local function analyzeBuyTiles()
+	local buyTiles = findAllBuyTiles()
+	totalBuyTileCount = #buyTiles
+
+	if totalBuyTileCount == 0 then
+		debugPrint("No BuyTiles found! Cannot calculate economy.")
+		return
+	end
+
+	debugPrint("Found " .. totalBuyTileCount .. " BuyTiles for economy calculation")
+
+	-- Reset analyzed tiles
+	analyzedBuyTiles = {}
+
+	-- Find the highest tile ID
+	local maxId = 0
+	for _, tile in ipairs(buyTiles) do
+		local id = ensureNumber(tile:GetAttribute("ID"))
+		maxId = math.max(maxId, id)
+	end
+
+	-- Update completion stats
+	gameCompletionStats.totalTileCount = totalBuyTileCount
+	gameCompletionStats.maxTileId = maxId
+
+	-- Analyze each BuyTile and calculate its price
+	for _, tile in ipairs(buyTiles) do
+		local id = ensureNumber(tile:GetAttribute("ID"))
+		local completionPercentage = id / maxId
+
+		-- Calculate base price using exponential curve
+		local priceRange = CONFIG.final_price - CONFIG.initial_price
+		local basePrice = CONFIG.initial_price + priceRange * (CONFIG.curve_steepness ^ (completionPercentage * 10) - 1) / (CONFIG.curve_steepness ^ 10 - 1)
+
+		-- Apply price jumps at thresholds
+		local priceMultiplier = 1
+		for threshold, multiplier in pairs(CONFIG.price_jump_thresholds) do
+			if completionPercentage >= threshold and completionPercentage < threshold + 0.05 then
+				priceMultiplier = multiplier
+				break
+			end
+		end
+
+		-- Final price calculation
+		local finalPrice = math.floor(basePrice * priceMultiplier)
+
+		-- Store the analysis
+		analyzedBuyTiles[id] = {
+			model = tile,
+			id = id,
+			completionPercentage = completionPercentage,
+			basePrice = basePrice,
+			priceMultiplier = priceMultiplier,
+			finalPrice = finalPrice
+		}
+	end
+
+	-- Debug output of price curve
+	if CONFIG.debug then
+		debugPrint("Buy Tile Price Curve:")
+		debugPrint("---------------------")
+		for i = 1, maxId do
+			if analyzedBuyTiles[i] then
+				local tile = analyzedBuyTiles[i]
+				debugPrint(string.format("Tile ID %2d: $%s (%.1f%% completion, x%.1f multiplier)", 
+					i, 
+					tostring(tile.finalPrice),
+					tile.completionPercentage * 100,
+					tile.priceMultiplier))
+			end
+		end
+	end
+
+	return analyzedBuyTiles
+end
+
+-- Apply calculated prices to BuyTiles
+local function applyPrices()
+	if not CONFIG.apply_changes then
+		debugPrint("Price application disabled in configuration.")
+		return
+	end
+
+	local appliedCount = 0
+
+	for id, tileInfo in pairs(analyzedBuyTiles) do
+		local tile = tileInfo.model
+
+		-- Set the price attribute
+		tile:SetAttribute("Price", tileInfo.finalPrice)
+
+		-- Calculate income bonus
+		local progressionPhase = "early_game"
+		if tileInfo.completionPercentage > CONFIG.mid_game_threshold then
+			progressionPhase = "late_game"
+		elseif tileInfo.completionPercentage > CONFIG.early_game_threshold then
+			progressionPhase = "mid_game"
+		end
+
+		-- Calculate income bonus based on progression phase
+		local baseIncomeRange = CONFIG.base_income_final - CONFIG.base_income_initial
+		local baseIncome = CONFIG.base_income_initial + (baseIncomeRange * tileInfo.completionPercentage)
+
+		-- Apply phase-based scaling
+		local phaseMultiplier = CONFIG.early_game_multiplier
+		if progressionPhase == "mid_game" then
+			phaseMultiplier = CONFIG.mid_game_multiplier
+		elseif progressionPhase == "late_game" then
+			phaseMultiplier = CONFIG.late_game_multiplier
+		end
+
+		-- Calculate final income bonus using non-linear scaling
+		local incomeBonus = math.floor(baseIncome * phaseMultiplier * (CONFIG.income_scaling_factor ^ id))
+
+		-- Set income bonus attribute
+		tile:SetAttribute("IncomeBonus", incomeBonus)
+
+		appliedCount = appliedCount + 1
+	end
+
+	debugPrint("Applied calculated prices to " .. appliedCount .. " BuyTiles")
+end
+
+-- Calculate game completion statistics
+local function updateCompletionStats()
+	-- Get the average completion percentage across all players
+	local totalCompletion = 0
+	local playerCount = 0
+
+	for _, player in pairs(Players:GetPlayers()) do
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon then
+			local equipmentCount = ensureNumber(tycoon:GetAttribute("EquipmentCount"))
+			if gameCompletionStats.totalTileCount > 0 then
+				local playerCompletion = equipmentCount / gameCompletionStats.totalTileCount
+				totalCompletion = totalCompletion + playerCompletion
+				playerCount = playerCount + 1
+			end
+		end
+	end
+
+	if playerCount > 0 then
+		gameCompletionStats.completionPercentageByTileCount = totalCompletion / playerCount
+	else
+		gameCompletionStats.completionPercentageByTileCount = 0
+	end
+
+	-- Determine game phase
+	if gameCompletionStats.completionPercentageByTileCount >= CONFIG.mid_game_threshold then
+		gameCompletionStats.currentPhase = "late_game"
+	elseif gameCompletionStats.completionPercentageByTileCount >= CONFIG.early_game_threshold then
+		gameCompletionStats.currentPhase = "mid_game"
+	else
+		gameCompletionStats.currentPhase = "early_game"
+	end
+
+	debugPrint("Game Statistics:")
+	debugPrint("- Average Completion: " .. string.format("%.1f%%", gameCompletionStats.completionPercentageByTileCount * 100))
+	debugPrint("- Current Phase: " .. gameCompletionStats.currentPhase)
+
+	return gameCompletionStats
+end
+
+-- Update Economy System configuration if available
+local function patchEconomySystem()
+	if not EconomySystem then
+		debugPrint("EconomySystem not found, cannot patch configuration.")
+		return
+	end
+
+	if not EconomySystem.CONFIG then
+		debugPrint("EconomySystem does not have CONFIG table, cannot patch.")
+		return
+	end
+
+	if not CONFIG.apply_changes then
+		debugPrint("Economy patching disabled in configuration.")
+		return
+	end
+
+	-- Copy original config for reference
+	local originalConfig = {}
+	for key, value in pairs(EconomySystem.CONFIG) do
+		originalConfig[key] = value
+	end
+
+	-- Calculate new values based on game progression
+	local completion = gameCompletionStats.completionPercentageByTileCount
+	local phase = gameCompletionStats.currentPhase
+
+	-- Patch NPC income values
+	if phase == "early_game" then
+		EconomySystem.CONFIG.baseIncomeAmount = CONFIG.base_income_initial
+		EconomySystem.CONFIG.npcBaseIncome = CONFIG.npc_fee_min
+	elseif phase == "mid_game" then
+		-- Scale between min and max based on completion
+		local scaleFactor = (completion - CONFIG.early_game_threshold) / 
+			(CONFIG.mid_game_threshold - CONFIG.early_game_threshold)
+
+		local baseIncome = CONFIG.base_income_initial + 
+			(CONFIG.base_income_final - CONFIG.base_income_initial) * scaleFactor * 0.5
+
+		local npcFee = CONFIG.npc_fee_min + 
+			(CONFIG.npc_fee_max - CONFIG.npc_fee_min) * scaleFactor * 0.5
+
+		EconomySystem.CONFIG.baseIncomeAmount = math.floor(baseIncome)
+		EconomySystem.CONFIG.npcBaseIncome = math.floor(npcFee)
+	else -- late_game
+		local scaleFactor = (completion - CONFIG.mid_game_threshold) / 
+			(1 - CONFIG.mid_game_threshold)
+
+		local baseIncome = CONFIG.base_income_initial + 
+			(CONFIG.base_income_final - CONFIG.base_income_initial) * 
+			(0.5 + scaleFactor * 0.5)
+
+		local npcFee = CONFIG.npc_fee_min + 
+			(CONFIG.npc_fee_max - CONFIG.npc_fee_min) * 
+			(0.5 + scaleFactor * 0.5)
+
+		EconomySystem.CONFIG.baseIncomeAmount = math.floor(baseIncome)
+		EconomySystem.CONFIG.npcBaseIncome = math.floor(npcFee)
+	end
+
+	-- Adjust difficulty based on phase
+	if phase == "early_game" then
+		EconomySystem.CONFIG.equipmentIncomeMultiplier = 1.5 * CONFIG.early_game_multiplier
+		EconomySystem.CONFIG.tierMultiplier = 1.2 * CONFIG.early_game_multiplier
+	elseif phase == "mid_game" then 
+		EconomySystem.CONFIG.equipmentIncomeMultiplier = 1.5 * CONFIG.mid_game_multiplier
+		EconomySystem.CONFIG.tierMultiplier = 1.2 * CONFIG.mid_game_multiplier
+	else -- late_game
+		EconomySystem.CONFIG.equipmentIncomeMultiplier = 1.5 * CONFIG.late_game_multiplier
+		EconomySystem.CONFIG.tierMultiplier = 1.2 * CONFIG.late_game_multiplier
+	end
+
+	-- Ensure VIP multiplier is consistent
+	EconomySystem.CONFIG.vipNpcMultiplier = CONFIG.vip_multiplier
+
+	-- Log changes
+	debugPrint("Patched EconomySystem configuration based on game progression:")
+	for key, newValue in pairs(EconomySystem.CONFIG) do
+		if originalConfig[key] ~= newValue then
+			debugPrint("- " .. key .. ": " .. tostring(originalConfig[key]) .. " -> " .. tostring(newValue))
+		end
+	end
+end
+
+-- Create startup indicator value
+local function createStartupIndicator()
+	local indicator = ReplicatedStorage:FindFirstChild("DynamicEconomyActive")
+	if not indicator then
+		indicator = Instance.new("BoolValue")
+		indicator.Name = "DynamicEconomyActive"
+		indicator.Value = true
+		indicator.Parent = ReplicatedStorage
+	end
+end
+
+-- Main update function
+function DynamicEconomyBalancer.update()
+	-- Use pcall to prevent errors from breaking the script
+	local success, result = pcall(function()
+		debugPrint("Running economy analysis and update...")
+
+		-- Find and analyze buy tiles
+		analyzeBuyTiles()
+
+		-- Update game completion statistics
+		updateCompletionStats()
+
+		-- Apply calculated prices to buy tiles
+		applyPrices()
+
+		-- Patch economy system if available
+		patchEconomySystem()
+
+		debugPrint("Economy update complete!")
+	end)
+
+	if not success then
+		warn("[EconomyBalancer] Error during update: " .. tostring(result))
+	end
+end
+
+-- Initialize the balancer
+function DynamicEconomyBalancer.initialize()
+	debugPrint("Initializing Dynamic Economy Balancer...")
+
+	-- Create startup indicator
+	createStartupIndicator()
+
+	-- Run initial update
+	DynamicEconomyBalancer.update()
+
+	-- Set up periodic updates
+	task.spawn(function()
+		while true do
+			task.wait(CONFIG.update_interval)
+			DynamicEconomyBalancer.update()
+		end
+	end)
+
+	-- Set up player events
+	Players.PlayerAdded:Connect(function(player)
+		task.wait(10) -- Wait for player to be fully loaded
+		updateCompletionStats() -- Update stats when a new player joins
+	end)
+
+	debugPrint("Dynamic Economy Balancer initialized!")
+	return true
+end
+
+-- Initialize immediately
+DynamicEconomyBalancer.initialize()
+
+-- Return the module
+return DynamicEconomyBalancer]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+	</Item>
+</roblox>
