@@ -1,0 +1,496 @@
+Project Overview
+The project is a gym tycoon game where players can build and manage their gyms. The game includes features like NPC interactions, gym revenue management, milestones, seasonal events, and more. The systems are modular and interconnected, allowing for scalability and flexibility.
+
+Key Systems and Features
+Core Systems:
+
+GymTycoonConnector: Acts as the central hub for managing all systems.
+DataStorageSystem: Handles reliable data saving and loading for player progress.
+EventBridge: Facilitates communication between different systems.
+Subsystems:
+
+NPCSystem: Manages NPC behavior, movement, and income generation.
+GymRevenueSystem: Calculates and manages gym revenue, including membership dues and special events.
+MilestoneSystem: Tracks player achievements and rewards them for reaching milestones.
+SpecializationSystem: Allows players to specialize their gyms (e.g., cardio-focused, luxury-focused) for unique benefits.
+SeasonalSpecializationSystem: Introduces seasonal events with special rewards and challenges.
+MemberSatisfactionSystem: Handles member satisfaction metrics affecting revenue and retention.
+
+Enhancements:
+
+DynamicEconomyBalancer: Adjusts pricing and income scaling dynamically based on game progression.
+StaffManagementSystem: Allows players to hire staff to improve gym efficiency and member satisfaction.
+UI/UX:
+
+Interactive GUIs for leaderboards, notifications, and player feedback.
+Systems like FrontDeskPrompt, CompetitionUI, and SatisfactionDisplay enhance player interaction.
+Mini-Games:
+
+Includes features like basketball courts (Basketball.luau) to engage players further.
+Workspace Structure
+ServerScriptService: Contains the main game logic, including connectors, enhancements, and essential systems.
+StarterGui: Houses GUI scripts for player interaction.
+Unused: Contains older or experimental scripts that are not currently in use.
+Backups: Stores backup versions of scripts for recovery or reference.
+Technical Requirements
+Dependencies:
+
+Roblox services like Players, ReplicatedStorage, and ServerScriptService.
+Interconnected systems like BuyTile, FrontDeskSystem, and MembershipSystem.
+Performance:
+
+Optimize NPC updates and event handling for smooth gameplay.
+Use staggered updates and efficient data structures to minimize lag.
+Development Goals
+Phase 1: Implement core systems (player setup, gym revenue, and data storage).
+Phase 2: Add NPC interactions and milestone tracking.
+Phase 3: Introduce specialization and seasonal events.
+Phase 4: Expand with mini-games and additional features.
+Risks and Mitigation
+Data Loss: Use redundant data storage systems.
+Performance Issues: Optimize NPC updates and stagger event handling.
+Player Retention: Regularly introduce new events and features.
+
+# System Architecture Improvements - Implementation Summary
+
+## Server-Side Architecture Improvements
+
+### Core Systems
+1. **CoreRegistry System**
+   - Created a central dependency management system
+   - Allows systems to register and retrieve other systems
+   - Handles initialization order based on dependencies
+
+2. **EventBridge System**
+   - Implemented a centralized event management system
+   - Provides consistent communication between systems
+   - Supports both server-side events and client-server communication
+
+3. **DataManager System**
+   - Consolidated redundant data storage systems into one robust solution
+   - Added redundant data storage with automatic retries
+   - Implemented data backups to prevent data loss
+   - Enhanced with versioned data storage (Berezaas method) using OrderedDataStore
+   - Added comprehensive session locking to prevent data duplication
+   - Implemented data migration system for backwards compatibility
+   - Added storage for all relevant player data:
+     - Equipment purchases and details
+     - Member counts (regular, VIP, premium)
+     - Revenue tracking with historical data
+     - Staff management data
+     - Gym attributes (satisfaction, cleanliness, reputation)
+     - Achievements and milestones
+     - Seasonal event participation
+   - Improved shutdown handling with robust save completion
+
+4. **NPCSystem**
+   - Unified functionality from NPCSpawner, NPCSystemIntegration, and UnifiedNPCSystem
+   - Added performance optimizations like object pooling and staggered updates
+   - Improved collision handling and movement logic
+
+5. **TycoonSystem**
+   - Created a centralized system for tycoon management
+   - Implemented better ownership tracking and tycoon creation
+   - Added performance features like part culling for distant tycoons
+
+6. **BuyTileSystem**
+   - Consolidated equipment purchase logic
+   - Added proper pricing progression
+   - Implemented intelligent equipment placement
+
+7. **SpecializationSystem**
+   - Migrated GymSpecializationSystem to new architecture pattern
+   - Implemented proper integration with CoreRegistry and EventBridge
+   - Added better data persistence through DataManager
+   - Maintained all specialization types and benefits with improved structure
+
+8. **SeasonalSystem**
+   - Migrated SeasonalSpecializationSystem to new architecture pattern
+   - Implemented seasonal events and benefits management
+   - Added proper integration with SpecializationSystem
+   - Created improved data persistence for seasonal events
+
+9. **MilestoneSystem**
+   - Created a unified achievement and progression system
+   - Added different milestone types (equipment, revenue, time played)
+   - Implemented rewards for progression
+
+### Bridging & Utilities
+1. **GymTycoonConnector**
+   - Created a bridge between new architecture and legacy systems
+   - Allows for gradual migration without breaking existing functionality
+   - Provides compatibility interfaces for legacy code
+
+2. **LegacyBridge**
+   - Added backward compatibility for older scripts
+   - Creates global references that match the old architecture
+
+3. **SystemBootstrap**
+   - Created a central initialization system
+   - Manages system startup order respecting dependencies
+   - Handles initialization failures and retries
+
+## Client-Side Architecture Improvements
+
+1. **ClientRegistry**
+   - Client-side counterpart to CoreRegistry
+   - Manages client-side systems and their dependencies
+
+2. **ClientEventBridge**
+   - Handles communication between client systems
+   - Manages server-client communication
+   - Provides a consistent event API
+
+3. **UIManager**
+   - Centralized UI management system
+   - Handles creation, display, and animation of UI elements
+   - Manages UI hierarchy and priorities
+
+4. **NotificationSystem**
+   - Handles different types of notifications (achievements, warnings, info)
+   - Provides consistent notification styling and behavior
+   - Includes sound and animation effects
+
+5. **SpecializationClient**
+   - Migrated to new architecture pattern
+   - Implemented UI interaction for specialization selection
+   - Added event handling through ClientEventBridge
+   - Ensured legacy compatibility for smooth transition
+
+6. **SeasonalClient**
+   - Created client-side controller for seasonal events
+   - Implemented UI interaction for seasonal event participation
+   - Added proper event handling for global and player events
+   - Created legacy compatibility for existing systems
+
+7. **ClientBootstrap**
+   - Initializes client-side systems in the correct order
+   - Handles dependencies between client systems
+   - Ensures client-side architecture is properly initialized
+
+## UI Modules
+
+1. **SeasonalEventsUI**
+   - Created dedicated UI for seasonal events
+   - Implemented interactive elements for joining/leaving events
+   - Added visual indicators for active events and requirements
+   - Used animation and responsive design principles
+
+## Methodologies Implemented
+
+1. **Dependency Injection Pattern**
+   - Systems can be accessed through the Registry
+   - Clear dependencies between systems
+   - Reduces tight coupling between components
+
+2. **Event-Driven Architecture**
+   - Systems communicate through events rather than direct calls
+   - Allows for loosely coupled components
+   - Makes extending the system easier
+
+3. **Object Pooling**
+   - Implemented for NPCs to improve performance
+   - Reduces garbage collection overhead
+   - Better handles frequent object creation/destruction
+
+4. **Staggered Updates**
+   - Distributes processing load across frames
+   - Prevents frame rate drops during heavy operations
+   - Improves overall game performance
+
+5. **Data Persistence with Redundancy**
+   - Multiple save attempts with automated retries
+   - Backup data stores for critical information
+   - Prevents data loss from failed saves
+
+6. **Module Pattern**
+   - Each system is a self-contained module
+   - Clear public API for each system
+   - Private implementation details
+
+## Progress Tracking
+
+### Completed Tasks
+- ✅ Created core server-side architecture (CoreRegistry, EventBridge)
+- ✅ Consolidated NPC systems into a unified implementation
+- ✅ Implemented robust data storage with redundancy
+- ✅ Created tycoon management system
+- ✅ Implemented equipment purchasing and placement system
+- ✅ Unified specialization and seasonal events systems
+- ✅ Created milestone and progression tracking
+- ✅ Implemented bridges for legacy code compatibility
+- ✅ Created basic client-side architecture
+- ✅ Implemented UI management system
+- ✅ Added notification system
+- ✅ Created specific UI modules for game features (specialization UI, milestones UI)
+- ✅ Implemented client-side tycoon interaction system
+- ✅ Added unit tests for critical systems
+- ✅ Created testing framework with in-game launcher
+- ✅ Migrated SpecializationSystem to new architecture
+- ✅ Created SpecializationClient using new pattern
+- ✅ Migrated SeasonalSpecializationSystem to new SeasonalSystem
+- ✅ Created SeasonalClient using new architecture
+- ✅ Implemented SeasonalEventsUI following UI module pattern
+- ✅ Added legacy compatibility for seasonal and specialization systems
+- ✅ Migrated CompetitionSystem to new architecture
+- ✅ Created CompetitionClient using new pattern
+- ✅ Implemented CompetitionUI module
+- ✅ Migrated JobSystem to new architecture
+- ✅ Created JobClient for client-side interactions
+- ✅ Implemented JobsUI module for job management
+- ✅ Migrated GymRevenueSystem to new RevenueSystem architecture
+- ✅ Created RevenueDisplay UI module using new UI pattern
+- ✅ Implemented RevenueClient for client-server communication
+- ✅ Migrated SaunaTemperatureSystem to new SaunaSystem architecture
+- ✅ Created TemperatureDisplay UI module using new UI pattern
+- ✅ Implemented SaunaClient for client-server communication
+- ✅ Migrated Basketball scripts to new BasketballSystem architecture
+- ✅ Created BasketballClient for client-side interactions
+- ✅ Created BasketballUI module using new UI pattern
+- ✅ Implemented RebirthSystem with progression mechanics
+- ✅ Created RebirthUI module with animated feedback
+- ✅ Integrated RebirthSystem with TycoonSystem and GymRevenueSystem
+- ✅ Designed member satisfaction system affecting revenue and retention
+- ✅ Created SatisfactionDisplay UI module with detailed metrics
+- ✅ Implemented SatisfactionClient for member satisfaction tracking
+- ✅ Integrated member satisfaction with revenue and staff systems
+- ✅ Implemented a comprehensive achievement system for gameplay milestones
+- ✅ Created achievement notifications with animations and sound effects
+- ✅ Added achievement menu UI for tracking progress
+- ✅ Integrated achievement system with existing game systems
+- ✅ Implemented achievement categories (business, fitness, membership, staff, facilities, specializations)
+- ✅ Create admin dashboard for game management
+
+### Remaining Tasks
+- ⬜ Migrate remaining UI elements from legacy system
+- ⬜ Create comprehensive system documentation
+- ⬜ Conduct integration testing with all systems
+- ⬜ Perform performance testing of migrated systems
+- ⬜ Optimize any identified performance bottlenecks
+- ⬜ Clean up legacy files after complete migration
+- ✅ Add performance optimization Framework
+- ✅ Add memory store for Temporary Data
+- ✅ Ensure proper configuration management
+- ✅ Ensure State Management - scripts should handle state in a consistent way
+- ✅ ensure there is a system for event based communication
+- ⬜ Implement analytics tracking for player behavior
+- ⬜ Enhance RebirthSystem with unlockable content progression
+- ⬜ Add visual effects for rebirth transformation
+- ⬜ Create RebirthStats tracking for leaderboards
+- ⬜ Implement RebirthPerks system for special abilities
+- ⬜ Balance rebirth economy for long-term progression
+- ⬜ Add tutorial system for new gameplay mechanics
+- ⬜ Implement social features for player interaction
+- ⬜ Consolidate duplicate scripts (GymMilestonesSystem with MilestoneSystem)
+- ⬜ Implement code minification and optimization pass for all systems
+- ⬜ Create a centralized ConfigManager for game parameters and balancing
+- ⬜ Implement a dynamic challenges system for daily/weekly player tasks
+- ⬜ Add a gym prestige system with visual upgrades for gym appearance
+- ⬜ Create an equipment wear system requiring maintenance/upgrades
+- ⬜ Develop a competitor AI system to create friendly competition in the game
+- ⬜ Implement a weather system affecting gym attendance and member behavior
+- ⬜ Create a gym marketing system allowing players to attract more members
+- ⬜ Build a progression-based unlock system for advanced gym features
+- ⬜ Develop a comprehensive gym staff management system with different roles
+- ⬜ Implement a gym reputation system affected by cleanliness and equipment quality
+- ⬜ Create interactive mini-games for various gym activities (not just basketball)
+- ⬜ Design a membership tier system with VIP and premium members
+- ⬜ Implement gym events (competitions, open days) to boost revenue
+- ⬜ Create a gym decoration system allowing players to personalize their space
+- ✅ Improve Daily Reward system with streak multipliers and rare rewards
+- ⬜ Implement Member Personality system with diverse preferences and behaviors
+- ⬜ Create Equipment Upgrade Path system with visual progression
+- ⬜ Enhance Staff Management with skill levels and training system
+- ⬜ Implement Gym Rival system for player competition and member retention challenges
+- ⬜ Enhance Marketing Campaign system with targeting different member demographics
+- ⬜ Create gym color and theme customization system with satisfaction bonuses
+- ⬜ Add Visual progress indicators for all major systems (equipment quality, staff performance)
+- ⬜ Implement special events triggered by high gym reputation and membership milestones
+
+## Enhanced Daily Reward System (Completed April 17, 2025)
+
+The Daily Reward system has been completely revamped to increase player engagement and retention:
+
+1. **Streak Multipliers System**
+   - Implemented escalating reward multipliers based on consecutive login days
+   - Day 1: Standard rewards (1.0x)
+   - Days 2-4: Small progressive bonuses (1.1x to 1.3x)
+   - Day 5+: Medium bonus (1.5x)
+   - Day 10+: Double rewards (2.0x)
+   - Day 20+: 2.5x rewards
+   - Day 30+: Triple rewards (3.0x)
+   - Multipliers apply to cash amounts, VIP member counts, and boost durations
+
+2. **Tiered Reward System**
+   - Added rarity levels to rewards: common, uncommon, rare, epic, and legendary
+   - Implemented a dynamic rare reward chance system (10% base + 1% per streak day, max 50%)
+   - Created special milestone rewards at streak thresholds (7, 14, 30, 60, and 90 days)
+   - Added new reward types:
+     - Temporary satisfaction boosts
+     - Staff efficiency multipliers
+     - Equipment quality improvements
+     - Premium packs with multiple benefits
+     - Exclusive decorations and special staff
+
+3. **Enhanced UI Experience**
+   - Redesigned the daily rewards interface with visual indicators for streak progress
+   - Added a streak progress bar showing progress toward next milestone
+   - Implemented color-coded rewards by rarity with matching celebration effects
+   - Added special visual celebration effects for legendary rewards
+   - Created a more engaging notification system with streak counter
+   - Added countdown timer for next reward availability
+
+4. **System Integration**
+   - Integrated with both legacy code and new CoreRegistry architecture
+   - Connected reward system to other game systems (Member Satisfaction, Staff Management, etc.)
+   - Implemented proper data persistence and tracking of lifetime stats
+   - Added precise buffing/debuffing logic when temporary boosts expire
+
+5. **Player Statistics**
+   - Added tracking for lifetime streaks and total claims
+   - Implemented unlockable reward tracking for special items
+   - Created celebration effects that scale with reward rarity
+
+## Updated Redundancy Verification List (April 2025)
+
+This list identifies potential redundant files that need to be reviewed now that much of the codebase has moved to the `src` directory with a better architecture.
+
+### Root Level Files to Verify
+- ✅ Verify BuyTile.luau - Confirmed redundant with src/server/Core/BuyTileSystem.server.luau
+- ✅ Verify EventSystem.luau - Confirmed redundant with src/server/Core/EventBridge.server.luau
+- ✅ Verify FrontDeskPrompt.luau - Confirmed redundant with src/server/Essentials/FrontDeskPrompt.server.luau
+- ✅ Verify Cleanup.luau - Confirmed redundant with src/server/Fixes/Cleanup.server.luau
+- ✅ Verify ErrorSuppressor.luau - Confirmed redundant with src/server/Fixes/ErrorSuppressor.server.luau
+- ✅ Verify SystemManager.luau - Confirmed redundant with src/server/Core/SystemBootstrap.server.luau
+- ✅ Verify CleanGymController.luau - Confirmed redundant with src/StarterGui/CleanGymController.server.luau
+- ✅ Verify AdminCommands.luau - Confirmed redundant with src/server/Essentials/AdminCommands.server.luau
+- ✅ Verify SaunaTemperatureSystem.luau - Confirmed redundant with src/server/Core/SaunaSystem.server.luau
+- ✅ Verify GymTycoonConnector.luau - Confirmed redundant with src/server/Core/GymTycoonConnector.server.luau
+- ✅ Verify GymTycoonInit.luau - Confirmed redundant with src/server/Core/InitializeCore.server.luau
+- ✅ Verify GymTycoonDataManager.luau - Confirmed redundant with src/server/Core/DataManager.server.luau
+- ✅ Verify JobSystem.luau - Confirmed redundant with src/server/Core/JobSystem.server.luau
+- ⚠️ BasketballSystem.luau - No direct predecessor found. Need to verify src/server/Core/BasketballSystem.server.luau against individual Basketball folder scripts
+- ⚠️ PlayerActivityReceiver.luau - No direct predecessor found. Appears to be a new implementation in src/server/Essentials/PlayerActivityReceiver.server.luau
+
+### Files Already Moved to Unused (Verify Complete Migration)
+- ⬜ Verify SeasonalSpecializationSystem.luau in Unused - Confirm all functionality is in src/server/Core/SeasonalSystem.server.luau
+- ⬜ Verify RevenueDisplay.luau and RevenueDisplayGui.luau in Unused - Confirm UI implementation in src/StarterGui
+- ⬜ Verify NPC_Movement.luau, NPCSpawner.luau, and NPCSystemIntegration.luau in Unused - Confirm functionality in src/server/Core/NPCSystem.server.luau
+- ⬜ Verify CompetitionSystem.luau and CompetitionUI.luau in Unused - Confirm functionality in src/server/Core/CompetitionSystem.server.luau and src UI modules
+- ✅ Verify DataStorageSystem.luau and DataClear.luau in Unused - Confirm functionality in src/server/Core/DataManager.server.luau
+- ⬜ Verify DynamicEconomyBalancer.luau in Unused - Identify if functionality needs to be implemented in src/server/Core/RevenueSystem.server.luau
+- ⬜ Verify CelebrityTrainerSystem.luau in Unused - Determine if functionality needs to be migrated to new architecture
+- ⬜ Verify GymMembershipDisplay.luau in Unused - Check against src/client/ClientCore modules
+- ⬜ Verify EquipmentUpgrades.luau in Unused - Check if functionality is now part of src/server/Core/BuyTileSystem.server.luau
+- ⬜ Verify NPCSystemIntegration.luau in Unused - Ensure full functionality is in src/server/Core/NPCSystem.server.luau
+
+### Potential Duplicates Between Backups and src
+- ⬜ Check for any custom functionality in Backups/Backup - 3-27/GymSpecializationSystem.luau not present in src/server/Core/SpecializationSystem.server.luau
+- ⬜ Check for any custom functionality in Backups/Backup - 3-27/JobSystem.luau not present in src/server/Core/JobSystem.server.luau
+- ✅ Check for any custom functionality in Backups/Backup - 3-27/DataSystemIntegration.luau not present in src/server/Core/DataManager.server.luau
+- ⬜ Check for any custom functionality in Backups/Backup - 3-27/GymRevenueSystem.luau not present in src/server/Core/RevenueSystem.server.luau
+- ⬜ Check for any custom functionality in Backups/Backup - 3-27/GymMilestonesSystem.luau not present in src/server/Core/MilestoneSystem.server.luau
+- ✅ Check for any custom functionality in Backups/Backup - 3-27/SaunaTemperatureSystem.luau not present in src/server/Core/SaunaSystem.server.luau
+- ⬜ Check for any custom functionality in Backups/Backup - 3-27/CompetitionSystem.luau not present in src/server/Core/CompetitionSystem.luau
+
+### Basketball System Migration Verification
+- ⬜ Review Basketball/bb sound.luau against src/server/Core/BasketballSystem.server.luau and src/client/BasketballClient.client.luau
+- ⬜ Review Basketball/Circle1Script.luau against src implementations
+- ⬜ Review Basketball/Glass.luau and Glass 2.luau against src implementations
+- ⬜ Review Basketball/GoalScript*.luau scripts against src implementations
+- ⬜ Review Basketball/MinutesScript.luau and SecondScript.luau against src/server/Core/BasketballSystem.server.luau timing functionality
+- ⬜ Review Basketball/ScoreboardGuiScript.luau against src/client implementations
+- ⬜ Review Basketball/ShotclockLight script.luau and TopLight script.luau against src implementations
+- ⬜ Verify all basketball functionality has been properly migrated to the new architecture
+- ⬜ Consider moving original Basketball scripts to Unused directory after verification
+
+### Client-Side Implementation Verification
+- ⬜ Verify RevenueClient implementation in src/client/ClientCore/RevenueClientLoader.client.luau
+- ⬜ Verify SaunaClient implementation in src/client/SaunaTemperatureClient.client.luau
+- ⬜ Check CompetitionClient implementation in src/client/ClientCore/CompetitionClient.client.luau
+- ⬜ Verify SpecializationClient implementation in src/client/SpecializationClient.client.luau
+- ⬜ Verify SeasonalClient implementation in src/client/SeasonalClient.client.luau
+- ⬜ Check JobClient implementation in src/client/JobClient.client.luau
+- ⬜ Verify RebirthClient implementation in src/client/Core/RebirthClient.client.luau
+- ⬜ Check that all legacy client-side scripts have corresponding implementations in src/client
+
+### StarterGui Script Verification
+- ⬜ Review StarterGui scripts in src/StarterGui to ensure they follow new UI architecture
+- ⬜ Check for any duplicate or redundant UI scripts between root level and src structure
+- ⬜ Verify RevenueDisplay UI components in src/StarterGui
+- ⬜ Verify CompetitionUI components in src/StarterGui
+- ⬜ Verify SatisfactionDisplay UI components in src/StarterGui
+- ⬜ Verify BasketballUI components in src/StarterGui
+- ⬜ Verify RebirthUI components in src/StarterGui
+- ⬜ Verify SeasonalEventsUI components in src/StarterGui
+
+### Core System Verification
+- ⬜ Verify CoreRegistry system implementation completeness
+- ⬜ Verify EventBridge functionality for all event types
+- ⬜ Verify DataManager handles all necessary data types
+- ⬜ Verify NPCSystem fully replaces all legacy NPC functionality
+- ⬜ Verify TycoonSystem ownership and management is complete
+- ⬜ Verify SpecializationSystem covers all specialization types
+- ⬜ Verify SeasonalSystem implements all seasonal event types
+- ⬜ Verify MilestoneSystem implements all progression metrics
+- ⬜ Verify RevenueSystem implements all revenue sources
+- ⬜ Verify MemberSatisfactionSystem implementation
+- ⬜ Verify integration between systems via CoreRegistry
+
+### Verification Process
+For each item on the list:
+
+1. Compare code functionality between old and new implementations
+2. Test systems with the new implementation to ensure all features are preserved
+3. Document any missing functionality that needs to be migrated
+4. Move verified redundant files to the Unused directory
+5. Update this list with results (✅ for completed verification, ❌ for items requiring additional work)
+
+### Migration Priority
+Focus on verifying and potentially removing these systems first:
+1. Core systems (BuyTile, EventSystem, SystemManager)
+2. UI components (FrontDeskPrompt, RevenueDisplay)
+3. Utility scripts (Cleanup, ErrorSuppressor, AdminCommands)
+4. Basketball system scripts
+5. Backup comparisons
+
+### Additional Notes
+- Before removing any file, ensure it is backed up in the Unused or Backups directory
+- Document any functionality that hasnt been migrated but should be preserved
+- Consider creating unit tests for crucial systems during verification
+- Use the TestingFramework.server.luau to verify system functionality
+- Unused folder are a collection of old scripts that will not move to the new architecture but may be good to reference on functionality. 
+- Folder script naming considerations: client scripts should end with .client.luau, server scripts should end with .server.luau, and shared scripts should end with .luau. This will help identify the purpose of each script at a glance and tell Roblox the specific type of script that they are.
+
+### New Systems to Implement
+- ✅ Memory Store for Temporary Data
+- ✅ ConfigManager for centralized configuration
+- ✅ State Management Framework
+- ✅ Enhanced Event System for efficient communication
+- ⬜ Analytics Tracking System
+- ⬜ Enhanced RebirthSystem with progression
+- ⬜ Social Features Framework
+- ⬜ Prestige System with visual upgrades
+- ⬜ Equipment Wear System
+- ⬜ Competitor AI System
+- ⬜ Weather System affecting gym attendance
+- ⬜ Marketing System for attracting members
+- ⬜ Progression-based Unlock System
+- ⬜ Enhanced Staff Management System
+- ⬜ Reputation System with multiple factors
+- ⬜ Additional Mini-games beyond basketball
+- ⬜ Enhanced Membership Tier System
+- ⬜ Gym Events System for revenue boosts
+- ⬜ Decoration System for personalization
+
+Once all items have been verified, conduct final integration testing to ensure all systems work together properly in the new architecture.
+
+### April 2025 Implementation Focus
+1. Complete verification of all potentially redundant files
+2. Finalize RevenueClient and SaunaClient in src/client/ClientCore
+3. Implement Memory Store for Temporary Data
+4. Create ConfigManager for centralized configuration
+5. Establish consistent State Management framework
+6. Enhance Event System for more efficient communication
+7. Clean up legacy files after verification
+
