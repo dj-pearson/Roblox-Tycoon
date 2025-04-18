@@ -580,10 +580,7 @@ function PerformanceManager:getSystemPerformance(systemName)
             maxExecutionTime = 0,
             operationTimes = {}
         }
-        totalOperations = 0,
-        totalExecutionTime = 0,
-        maxExecutionTime = 0,
-        operationTimes = {}
+        totalOperations = 0
     end
 end
 
