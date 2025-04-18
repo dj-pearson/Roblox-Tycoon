@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Get UI modules
 local CompetitionUI = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("CompetitionUI"))
+local UIStyle = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("UIStyle"))
 
 -- Private variables
 local player = Players.LocalPlayer
