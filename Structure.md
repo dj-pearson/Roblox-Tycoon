@@ -1,10 +1,11 @@
-# Roblox Explorer - Full Folder Structure (Updated April 17, 2025)
+# Roblox Explorer - Full Folder Structure (Updated April 18, 2025)
 
 Includes all top-level services and main contents within each one.
 
 ---
 
 ## Workspace
+
 - Camera
 - Terrain
 - GuiFolder (Used for shared values like basketball scorekeeping)
@@ -17,6 +18,7 @@ Includes all top-level services and main contents within each one.
 ## Lighting
 
 ## MaterialService
+
 - Custom Materials for the game
 
 ## NetworkClient
@@ -24,6 +26,7 @@ Includes all top-level services and main contents within each one.
 ## ReplicatedFirst
 
 ## ReplicatedStorage
+
 - UIModules
   - AchievementNotification
   - AchievementsMenu
@@ -34,17 +37,24 @@ Includes all top-level services and main contents within each one.
   - SatisfactionDisplay (UI module for member satisfaction)
   - SaunaTemperatureUI
   - SeasonalEventsUI
+  - SettingsMenu
   - SpecializationMenu
   - SpecializationsUI
+  - StaffManagementUI
   - TemperatureDisplay
+  - UIComponent
+  - UIModuleTemplate
+  - UIStyle
 
 ## ServerScriptService
+
 - Connectors
   - GymTycoonConnector (Bridge between new architecture and legacy code)
   - GymTycoonInit
   - SystemManager
 - Core
   - AchievementSystem
+  - AdminDashboardSystem (Dashboard for administrator controls)
   - BasketballSystem (Manages basketball courts and gameplay)
   - BuyTileSystem (Handles equipment purchasing)
   - CompetitionSystem
@@ -124,6 +134,7 @@ Includes all top-level services and main contents within each one.
   - SteamSauna
 
 ## ServerStorage
+
 - BuyTiles (Equipment templates)
 - CommandScripts (Admin commands)
 - Elliptical_Upgrade
@@ -144,6 +155,7 @@ Includes all top-level services and main contents within each one.
 - UnusedScripts
 
 ## StarterGui
+
 - CleanGymController
 - DirectResetButton
 - RebirthUI
@@ -155,9 +167,11 @@ Includes all top-level services and main contents within each one.
 ## StarterPack
 
 ## StarterPlayer
+
 - StarterCharacterScripts
 - StarterPlayerScripts
   - BasketballClient (Client-side basketball system)
+  - ClientBootstrap (Client initialization system)
   - CompetitionClient
   - JobClient (Staff management client)
   - PlayerActivityTracker
@@ -166,6 +180,7 @@ Includes all top-level services and main contents within each one.
   - SpecializationClient (Gym specialization client)
   - TileSound
   - ClientCore
+    - AdminDashboardClient (Admin interface client)
     - AchievementClient
     - AchievementClientLoader.client
     - ClientPerformanceManager (Client-side performance optimization)
@@ -182,6 +197,7 @@ Includes all top-level services and main contents within each one.
     - NotificationSystem
     - RebirthClient
     - TycoonClient
+    - UIHub (Centralized UI management system)
     - UIManager (UI management system)
 
 ## Teams
@@ -191,6 +207,7 @@ Includes all top-level services and main contents within each one.
 ## TextChatService
 
 ## Unused
+
 - CelebrityTrainerSystem
 - CompetitionSystem
 - CompetitionUI

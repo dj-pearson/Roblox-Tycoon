@@ -1,30 +1,19 @@
 -- CompetitionUI.luau
 -- UI Module for competition management
--- Part of the UI module pattern
+-- Updated as part of UI refinements (April 2025)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
+local UIStyle = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("UIStyle"))
 
 -- Configuration
 local CONFIG = {
 	-- UI Placement
-	buttonPosition = UDim2.new(0, 20, 0.7, 0),
-	buttonSize = UDim2.new(0, 150, 0, 40),
-
-	menuSize = UDim2.new(0, 400, 0, 450),
-	menuPosition = UDim2.new(0.5, -200, 0.5, -225),
-
-	-- Colors
-	buttonColor = Color3.fromRGB(220, 50, 50),
-	buttonHoverColor = Color3.fromRGB(240, 70, 70),
-	menuBackgroundColor = Color3.fromRGB(30, 30, 30),
-	menuHeaderColor = Color3.fromRGB(20, 20, 20),
-	textColor = Color3.fromRGB(255, 255, 255),
-	accentColor = Color3.fromRGB(220, 50, 50),
-	availableColor = Color3.fromRGB(50, 200, 50),
-	unavailableColor = Color3.fromRGB(150, 150, 150),
+	menuSize = UDim2.new(0, 500, 0, 450),
+	menuPosition = UDim2.new(0.5, 0, 0.5, 0),
 
 	-- Animation
 	tweenDuration = 0.3
@@ -61,141 +50,31 @@ function CompetitionUI:Initialize(UIManager)
 	-- Store reference to UIManager for use in callbacks
 	self.UIManager = UIManager
 	
-	-- Create UI components
-	self:CreateUI()
-	
-	-- Register handlers
-	self:RegisterHandlers()
-	
 	isInitialized = true
 	return true
 end
 
 -- Create the competition UI components
 function CompetitionUI:CreateUI()
-	-- Create ScreenGui
-	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "CompetitionGui"
-	screenGui.ResetOnSpawn = false
-	screenGui.Parent = player.PlayerGui
-
-	-- Create button
-	local button = Instance.new("TextButton")
-	button.Name = "CompetitionButton"
-	button.Size = CONFIG.buttonSize
-	button.Position = CONFIG.buttonPosition
-	button.BackgroundColor3 = CONFIG.buttonColor
-	button.Text = "Competitions"
-	button.TextColor3 = CONFIG.textColor
-	button.Font = Enum.Font.GothamBold
-	button.TextSize = 16
-	button.AutoButtonColor = false
-	button.Parent = screenGui
-
-	-- Add rounded corners
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = button
-
-	-- Add drop shadow
-	local shadow = Instance.new("ImageLabel")
-	shadow.Name = "Shadow"
-	shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-	shadow.BackgroundTransparency = 1
-	shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-	shadow.Size = UDim2.new(1, 20, 1, 20)
-	shadow.ZIndex = -1
-	shadow.Image = "rbxassetid://6014254928" -- Shadow image
-	shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-	shadow.ImageTransparency = 0.5
-	shadow.Parent = button
-
-	-- Create the menu (hidden by default)
-	local menu = Instance.new("Frame")
-	menu.Name = "CompetitionMenu"
-	menu.Size = CONFIG.menuSize
-	menu.Position = CONFIG.menuPosition
-	menu.BackgroundColor3 = CONFIG.menuBackgroundColor
-	menu.BackgroundTransparency = 0.1
-	menu.BorderSizePixel = 0
-	menu.Visible = false
-	menu.ZIndex = 10
-	menu.Parent = screenGui
-
-	-- Add rounded corners to menu
-	local menuCorner = Instance.new("UICorner")
-	menuCorner.CornerRadius = UDim.new(0, 12)
-	menuCorner.Parent = menu
-
-	-- Add menu shadow
-	local menuShadow = Instance.new("ImageLabel")
-	menuShadow.Name = "Shadow"
-	menuShadow.AnchorPoint = Vector2.new(0.5, 0.5)
-	menuShadow.BackgroundTransparency = 1
-	menuShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-	menuShadow.Size = UDim2.new(1, 40, 1, 40)
-	menuShadow.ZIndex = 9
-	menuShadow.Image = "rbxassetid://6014254928" -- Shadow image
-	menuShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-	menuShadow.ImageTransparency = 0.5
-	menuShadow.Parent = menu
-
-	-- Menu header
-	local header = Instance.new("Frame")
-	header.Name = "Header"
-	header.Size = UDim2.new(1, 0, 0, 50)
-	header.BackgroundColor3 = CONFIG.menuHeaderColor
-	header.BorderSizePixel = 0
-	header.ZIndex = 11
-	header.Parent = menu
-
-	-- Header corner
-	local headerCorner = Instance.new("UICorner")
-	headerCorner.CornerRadius = UDim.new(0, 12)
-	headerCorner.Parent = header
-
-	-- Fix bottom corners of header
-	local headerFix = Instance.new("Frame")
-	headerFix.Name = "HeaderFix"
-	headerFix.Size = UDim2.new(1, 0, 0, 12)
-	headerFix.Position = UDim2.new(0, 0, 1, -12)
-	headerFix.BackgroundColor3 = CONFIG.menuHeaderColor
-	headerFix.BorderSizePixel = 0
-	headerFix.ZIndex = 11
-	headerFix.Parent = header
-
-	-- Header text
-	local headerText = Instance.new("TextLabel")
-	headerText.Name = "HeaderText"
-	headerText.Size = UDim2.new(1, -50, 1, 0)
-	headerText.Position = UDim2.new(0, 20, 0, 0)
-	headerText.BackgroundTransparency = 1
-	headerText.Font = Enum.Font.GothamBold
-	headerText.TextColor3 = CONFIG.textColor
-	headerText.TextSize = 22
-	headerText.TextXAlignment = Enum.TextXAlignment.Left
-	headerText.Text = "Gym Competitions"
-	headerText.ZIndex = 12
-	headerText.Parent = header
-
-	-- Close button
-	local closeButton = Instance.new("TextButton")
-	closeButton.Name = "CloseButton"
-	closeButton.Size = UDim2.new(0, 30, 0, 30)
-	closeButton.Position = UDim2.new(1, -40, 0, 10)
-	closeButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-	closeButton.Text = "X"
-	closeButton.TextColor3 = CONFIG.textColor
-	closeButton.Font = Enum.Font.GothamBold
-	closeButton.TextSize = 18
-	closeButton.ZIndex = 12
-	closeButton.Parent = header
-
-	-- Close button corner
-	local closeCorner = Instance.new("UICorner")
-	closeCorner.CornerRadius = UDim.new(0, 8)
-	closeCorner.Parent = closeButton
-
+	-- Create main frame
+	local menu = UIStyle.createShadowFrame({
+		name = "CompetitionMenu",
+		size = CONFIG.menuSize,
+		position = CONFIG.menuPosition,
+		anchorPoint = Vector2.new(0.5, 0.5),
+		color = UIStyle.colors.background,
+		cornerRadius = UIStyle.cornerRadius.large
+	})
+	
+	-- Create header
+	local header = UIStyle.createHeader({
+		name = "Header",
+		text = "Gym Competitions",
+		color = UIStyle.colors.headerBackground,
+		fixBottomCorners = true,
+		parent = menu
+	})
+	
 	-- Competition container
 	local container = Instance.new("ScrollingFrame")
 	container.Name = "CompetitionContainer"
@@ -206,7 +85,7 @@ function CompetitionUI:CreateUI()
 	container.ScrollBarThickness = 6
 	container.ScrollBarImageColor3 = Color3.fromRGB(150, 150, 150)
 	container.CanvasSize = UDim2.new(0, 0, 0, 0) -- Will be updated dynamically
-	container.ZIndex = 11
+	container.ZIndex = UIStyle.zIndex.content
 	container.Parent = menu
 
 	-- Competition list layout
@@ -222,122 +101,97 @@ function CompetitionUI:CreateUI()
 	statusText.Size = UDim2.new(1, -40, 0, 20)
 	statusText.Position = UDim2.new(0, 20, 1, -30)
 	statusText.BackgroundTransparency = 1
-	statusText.Font = Enum.Font.Gotham
-	statusText.TextColor3 = CONFIG.textColor
-	statusText.TextSize = 14
+	statusText.Font = UIStyle.fonts.body
+	statusText.TextColor3 = UIStyle.colors.textPrimary
+	statusText.TextSize = UIStyle.textSizes.body
 	statusText.TextXAlignment = Enum.TextXAlignment.Center
 	statusText.Text = "Select a competition to boost your gym's memberships!"
-	statusText.ZIndex = 11
+	statusText.ZIndex = UIStyle.zIndex.content
 	statusText.Parent = menu
+
+	-- Connect close button
+	header.CloseButton.MouseButton1Click:Connect(function()
+		self:Close()
+	end)
 
 	-- Store UI elements for future reference
 	uiElements = {
-		screenGui = screenGui,
-		button = button,
 		menu = menu,
 		container = container,
 		statusText = statusText,
-		closeButton = closeButton,
+		closeButton = header.CloseButton,
 		layout = layout
 	}
+	
+	return menu
 end
 
--- Register handlers for UI interactions
-function CompetitionUI:RegisterHandlers()
-	local button = uiElements.button
-	local menu = uiElements.menu
-	local closeButton = uiElements.closeButton
-	
-	-- Button hover effects
-	button.MouseEnter:Connect(function()
-		TweenService:Create(
-			button,
-			TweenInfo.new(CONFIG.tweenDuration, Enum.EasingStyle.Quad),
-			{BackgroundColor3 = CONFIG.buttonHoverColor}
-		):Play()
-	end)
-
-	button.MouseLeave:Connect(function()
-		TweenService:Create(
-			button,
-			TweenInfo.new(CONFIG.tweenDuration, Enum.EasingStyle.Quad),
-			{BackgroundColor3 = CONFIG.buttonColor}
-		):Play()
-	end)
-
-	-- Toggle menu visibility on button click
-	button.MouseButton1Click:Connect(function()
-		self:Toggle()
-	end)
-
-	-- Close menu on close button click
-	closeButton.MouseButton1Click:Connect(function()
-		self:Toggle(false)
-	end)
-end
-
--- Toggle the menu visibility
-function CompetitionUI:Toggle(state)
-	local menu = uiElements.menu
-	
-	if state ~= nil then
-		menu.Visible = state
-	else
-		menu.Visible = not menu.Visible
+-- Open the UI
+function CompetitionUI:Open(data)
+	if not uiElements.menu then
+		self:CreateUI()
 	end
 	
-	if menu.Visible and callbacks.onOpen then
+	if callbacks.onOpen then
 		callbacks.onOpen()
 	end
 	
-	return menu.Visible
+	return uiElements.menu
+end
+
+-- Close the UI
+function CompetitionUI:Close()
+	if self.UIManager then
+		self.UIManager.closeUI("CompetitionUI")
+	end
 end
 
 -- Set status message
 function CompetitionUI:SetStatus(message, color)
 	local statusText = uiElements.statusText
+	if not statusText then return end
 	
 	statusText.Text = message or "Select a competition to boost your gym's memberships!"
-	statusText.TextColor3 = color or CONFIG.textColor
+	statusText.TextColor3 = color or UIStyle.colors.textPrimary
 end
 
 -- Reset status after delay
 function CompetitionUI:ResetStatus(delay)
 	delay = delay or 3
 	
-	wait(delay)
-	self:SetStatus()
+	task.delay(delay, function()
+		self:SetStatus()
+	end)
 end
 
 -- Create a competition card
 function CompetitionUI:CreateCompetitionCard(competition)
 	local container = uiElements.container
+	if not container then return end
 	
-	-- Create card frame
-	local card = Instance.new("Frame")
-	card.Name = competition.id .. "Card"
-	card.Size = UDim2.new(1, 0, 0, 120)
-	card.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	card.BorderSizePixel = 0
-	card.ZIndex = 12
-
-	-- Card corner
-	local cardCorner = Instance.new("UICorner")
-	cardCorner.CornerRadius = UDim.new(0, 8)
-	cardCorner.Parent = card
-
+	-- Create card frame with shadow
+	local card = UIStyle.createShadowFrame({
+		name = competition.id .. "Card",
+		size = UDim2.new(1, 0, 0, 120),
+		position = UDim2.new(0, 0, 0, 0),
+		color = UIStyle.colors.cardBackground,
+		cornerRadius = UIStyle.cornerRadius.medium
+	})
+	
+	card.ZIndex = UIStyle.zIndex.content
+	
 	-- Competition title
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
 	title.Size = UDim2.new(1, -20, 0, 25)
 	title.Position = UDim2.new(0, 10, 0, 10)
 	title.BackgroundTransparency = 1
-	title.Font = Enum.Font.GothamBold
-	title.TextColor3 = competition.available and CONFIG.textColor or CONFIG.unavailableColor
-	title.TextSize = 18
+	title.Font = UIStyle.fonts.subheader
+	title.TextColor3 = competition.available and UIStyle.colors.textPrimary or UIStyle.colors.textDisabled
+	title.TextSize = UIStyle.textSizes.subheader
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Text = competition.name
-	title.ZIndex = 13
+	title.ZIndex = UIStyle.zIndex.content + 1
 	title.Parent = card
 
 	-- Description
@@ -346,14 +200,14 @@ function CompetitionUI:CreateCompetitionCard(competition)
 	description.Size = UDim2.new(1, -20, 0, 35)
 	description.Position = UDim2.new(0, 10, 0, 35)
 	description.BackgroundTransparency = 1
-	description.Font = Enum.Font.Gotham
-	description.TextColor3 = competition.available and CONFIG.textColor or CONFIG.unavailableColor
-	description.TextSize = 14
+	description.Font = UIStyle.fonts.body
+	description.TextColor3 = competition.available and UIStyle.colors.textSecondary or UIStyle.colors.textDisabled
+	description.TextSize = UIStyle.textSizes.body
 	description.TextXAlignment = Enum.TextXAlignment.Left
 	description.TextYAlignment = Enum.TextYAlignment.Top
 	description.TextWrapped = true
 	description.Text = competition.description
-	description.ZIndex = 13
+	description.ZIndex = UIStyle.zIndex.content + 1
 	description.Parent = card
 
 	-- Details container
@@ -362,7 +216,7 @@ function CompetitionUI:CreateCompetitionCard(competition)
 	detailsContainer.Size = UDim2.new(1, -140, 0, 30)
 	detailsContainer.Position = UDim2.new(0, 10, 0, 80)
 	detailsContainer.BackgroundTransparency = 1
-	detailsContainer.ZIndex = 13
+	detailsContainer.ZIndex = UIStyle.zIndex.content + 1
 	detailsContainer.Parent = card
 
 	-- Duration icon
@@ -371,9 +225,9 @@ function CompetitionUI:CreateCompetitionCard(competition)
 	durationIcon.Size = UDim2.new(0, 16, 0, 16)
 	durationIcon.Position = UDim2.new(0, 0, 0, 0)
 	durationIcon.BackgroundTransparency = 1
-	durationIcon.Image = "rbxassetid://6031280882" -- Clock icon
-	durationIcon.ImageColor3 = competition.available and CONFIG.textColor or CONFIG.unavailableColor
-	durationIcon.ZIndex = 13
+	durationIcon.Image = UIStyle.icons.refresh -- Clock icon
+	durationIcon.ImageColor3 = competition.available and UIStyle.colors.textSecondary or UIStyle.colors.textDisabled
+	durationIcon.ZIndex = UIStyle.zIndex.content + 1
 	durationIcon.Parent = detailsContainer
 
 	-- Duration text
@@ -382,12 +236,12 @@ function CompetitionUI:CreateCompetitionCard(competition)
 	durationText.Size = UDim2.new(0, 100, 0, 16)
 	durationText.Position = UDim2.new(0, 22, 0, 0)
 	durationText.BackgroundTransparency = 1
-	durationText.Font = Enum.Font.Gotham
-	durationText.TextColor3 = competition.available and CONFIG.textColor or CONFIG.unavailableColor
-	durationText.TextSize = 14
+	durationText.Font = UIStyle.fonts.body
+	durationText.TextColor3 = competition.available and UIStyle.colors.textSecondary or UIStyle.colors.textDisabled
+	durationText.TextSize = UIStyle.textSizes.body
 	durationText.TextXAlignment = Enum.TextXAlignment.Left
 	durationText.Text = formatDuration(competition.duration)
-	durationText.ZIndex = 13
+	durationText.ZIndex = UIStyle.zIndex.content + 1
 	durationText.Parent = detailsContainer
 
 	-- Cost icon
@@ -397,8 +251,8 @@ function CompetitionUI:CreateCompetitionCard(competition)
 	costIcon.Position = UDim2.new(0, 0, 0, 20)
 	costIcon.BackgroundTransparency = 1
 	costIcon.Image = "rbxassetid://6034684949" -- Money icon
-	costIcon.ImageColor3 = competition.available and CONFIG.textColor or CONFIG.unavailableColor
-	costIcon.ZIndex = 13
+	costIcon.ImageColor3 = competition.available and UIStyle.colors.textSecondary or UIStyle.colors.textDisabled
+	costIcon.ZIndex = UIStyle.zIndex.content + 1
 	costIcon.Parent = detailsContainer
 
 	-- Cost text
@@ -407,33 +261,27 @@ function CompetitionUI:CreateCompetitionCard(competition)
 	costText.Size = UDim2.new(0, 100, 0, 16)
 	costText.Position = UDim2.new(0, 22, 0, 20)
 	costText.BackgroundTransparency = 1
-	costText.Font = Enum.Font.Gotham
-	costText.TextColor3 = competition.available and CONFIG.textColor or CONFIG.unavailableColor
-	costText.TextSize = 14
+	costText.Font = UIStyle.fonts.body
+	costText.TextColor3 = competition.available and UIStyle.colors.textSecondary or UIStyle.colors.textDisabled
+	costText.TextSize = UIStyle.textSizes.body
 	costText.TextXAlignment = Enum.TextXAlignment.Left
 	costText.Text = "$" .. competition.cost
-	costText.ZIndex = 13
+	costText.ZIndex = UIStyle.zIndex.content + 1
 	costText.Parent = detailsContainer
 
 	-- Start button or status
 	if competition.available then
-		local startButton = Instance.new("TextButton")
-		startButton.Name = "StartButton"
-		startButton.Size = UDim2.new(0, 100, 0, 30)
-		startButton.Position = UDim2.new(1, -110, 0, 80)
-		startButton.BackgroundColor3 = CONFIG.availableColor
-		startButton.Text = "Start"
-		startButton.TextColor3 = CONFIG.textColor
-		startButton.Font = Enum.Font.GothamBold
-		startButton.TextSize = 16
-		startButton.ZIndex = 13
-		startButton.Parent = card
-
-		-- Start button corner
-		local startCorner = Instance.new("UICorner")
-		startCorner.CornerRadius = UDim.new(0, 6)
-		startCorner.Parent = startButton
-
+		local startButton = UIStyle.createButton({
+			name = "StartButton",
+			size = UDim2.new(0, 100, 0, 30),
+			position = UDim2.new(1, -110, 0, 80),
+			text = "Start",
+			color = UIStyle.colors.success,
+			parent = card
+		})
+		
+		startButton.ZIndex = UIStyle.zIndex.content + 1
+		
 		-- Handle start button click
 		startButton.MouseButton1Click:Connect(function()
 			if callbacks.onStartCompetition then
@@ -446,39 +294,48 @@ function CompetitionUI:CreateCompetitionCard(competition)
 		statusLabel.Name = "StatusLabel"
 		statusLabel.Size = UDim2.new(0, 100, 0, 30)
 		statusLabel.Position = UDim2.new(1, -110, 0, 80)
-		statusLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-		statusLabel.TextColor3 = CONFIG.unavailableColor
-		statusLabel.Font = Enum.Font.GothamBold
-		statusLabel.TextSize = 13
+		statusLabel.BackgroundColor3 = UIStyle.colors.buttonDisabled
+		statusLabel.TextColor3 = UIStyle.colors.textDisabled
+		statusLabel.Font = UIStyle.fonts.subheader
+		statusLabel.TextSize = UIStyle.textSizes.small
 		statusLabel.Text = "Unavailable"
-		statusLabel.ZIndex = 13
+		statusLabel.ZIndex = UIStyle.zIndex.content + 1
 		statusLabel.Parent = card
-
-		-- Status corner
+		
+		-- Add rounded corners
 		local statusCorner = Instance.new("UICorner")
-		statusCorner.CornerRadius = UDim.new(0, 6)
+		statusCorner.CornerRadius = UIStyle.cornerRadius.small
 		statusCorner.Parent = statusLabel
 
 		-- Show reason on hover
 		if competition.reason then
-			local reasonTip = Instance.new("TextLabel")
-			reasonTip.Name = "ReasonTip"
-			reasonTip.Size = UDim2.new(0, 200, 0, 40)
-			reasonTip.Position = UDim2.new(0.5, -100, 0, -45)
-			reasonTip.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-			reasonTip.TextColor3 = CONFIG.textColor
-			reasonTip.Font = Enum.Font.Gotham
-			reasonTip.TextSize = 12
-			reasonTip.Text = competition.reason
-			reasonTip.TextWrapped = true
+			local reasonTip = UIStyle.createShadowFrame({
+				name = "ReasonTip",
+				size = UDim2.new(0, 200, 0, 40),
+				position = UDim2.new(0.5, 0, 0, -45),
+				anchorPoint = Vector2.new(0.5, 0),
+				color = UIStyle.colors.cardBackground,
+				cornerRadius = UIStyle.cornerRadius.small
+			})
+			
 			reasonTip.Visible = false
-			reasonTip.ZIndex = 15
+			reasonTip.ZIndex = UIStyle.zIndex.tooltip
+			
+			-- Tooltip text
+			local tipText = Instance.new("TextLabel")
+			tipText.Name = "TipText"
+			tipText.Size = UDim2.new(1, -16, 1, -8)
+			tipText.Position = UDim2.new(0, 8, 0, 4)
+			tipText.BackgroundTransparency = 1
+			tipText.Font = UIStyle.fonts.body
+			tipText.TextColor3 = UIStyle.colors.textPrimary
+			tipText.TextSize = UIStyle.textSizes.small
+			tipText.TextWrapped = true
+			tipText.Text = competition.reason
+			tipText.ZIndex = UIStyle.zIndex.tooltip + 1
+			tipText.Parent = reasonTip
+			
 			reasonTip.Parent = statusLabel
-
-			-- Tip corner
-			local tipCorner = Instance.new("UICorner")
-			tipCorner.CornerRadius = UDim.new(0, 6)
-			tipCorner.Parent = reasonTip
 
 			-- Show on hover
 			statusLabel.MouseEnter:Connect(function()
@@ -491,7 +348,7 @@ function CompetitionUI:CreateCompetitionCard(competition)
 
 			-- If there's a time remaining, show it
 			if competition.timeRemaining then
-				reasonTip.Text = competition.reason .. "\nAvailable in: " .. formatTime(competition.timeRemaining)
+				tipText.Text = competition.reason .. "\nAvailable in: " .. formatTime(competition.timeRemaining)
 			end
 		end
 	end
@@ -505,6 +362,8 @@ end
 -- Update the UI with competition data
 function CompetitionUI:UpdateCompetitions(competitions)
 	local container = uiElements.container
+	if not container then return end
+	
 	local layout = uiElements.layout
 	
 	-- Clear existing cards
@@ -542,24 +401,37 @@ function CompetitionUI:SetCallbacks(callbackTable)
 	callbacks = callbackTable or {}
 end
 
--- Public methods
-function CompetitionUI:IsVisible()
-	return uiElements.menu and uiElements.menu.Visible or false
+-- For module API pattern compatibility
+function CompetitionUI.create(data)
+	if not isInitialized then
+		CompetitionUI:Initialize()
+	end
+	
+	local menu = CompetitionUI:CreateUI()
+	
+	-- Update if data is provided
+	if data and data.competitions then
+		CompetitionUI:UpdateCompetitions(data.competitions)
+	end
+	
+	return menu
 end
 
-function CompetitionUI:Destroy()
-	if uiElements.screenGui then
-		uiElements.screenGui:Destroy()
+function CompetitionUI.open(ui, data)
+	-- Update if data is provided
+	if data and data.competitions then
+		CompetitionUI:UpdateCompetitions(data.competitions)
+	end
+	
+	return ui
+end
+
+function CompetitionUI.close(ui)
+	if ui and ui.Parent then
+		ui:Destroy()
 	end
 	
 	uiElements = {}
-	callbacks = {}
-	isInitialized = false
-end
-
--- For UI module pattern
-function CompetitionUI:GetUI()
-	return uiElements.screenGui
 end
 
 return CompetitionUI

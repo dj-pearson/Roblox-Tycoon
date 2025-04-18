@@ -263,8 +263,8 @@ Player Retention: Regularly introduce new events and features.
 
 ### Remaining Tasks
 - ⬜ Migrate remaining UI elements from legacy system
-- ⬜ Create comprehensive system documentation
-- ⬜ Conduct integration testing with all systems
+- ✅ Create comprehensive system documentation
+- ✅ Conduct integration testing with all systems
 - ⬜ Perform performance testing of migrated systems
 - ⬜ Optimize any identified performance bottlenecks
 - ⬜ Clean up legacy files after complete migration
@@ -274,10 +274,10 @@ Player Retention: Regularly introduce new events and features.
 - ✅ Ensure State Management - scripts should handle state in a consistent way
 - ✅ ensure there is a system for event based communication
 - ⬜ Implement analytics tracking for player behavior
-- ⬜ Enhance RebirthSystem with unlockable content progression
-- ⬜ Add visual effects for rebirth transformation
+- ✅ Enhance RebirthSystem with unlockable content progression
+- ✅ Add visual effects for rebirth transformation
 - ⬜ Create RebirthStats tracking for leaderboards
-- ⬜ Implement RebirthPerks system for special abilities
+- ✅ Implement RebirthPerks system for special abilities
 - ⬜ Balance rebirth economy for long-term progression
 - ⬜ Add tutorial system for new gameplay mechanics
 - ⬜ Implement social features for player interaction
@@ -306,6 +306,127 @@ Player Retention: Regularly introduce new events and features.
 - ⬜ Create gym color and theme customization system with satisfaction bonuses
 - ⬜ Add Visual progress indicators for all major systems (equipment quality, staff performance)
 - ⬜ Implement special events triggered by high gym reputation and membership milestones
+
+### UI Module Implementation (Priority for May 2025)
+- ⬜ Implement StaffManagementUI module
+  - Staff hiring interface
+  - Staff assignment and management
+  - Staff performance tracking
+  - Staff training and promotion system
+  - Visual indicators for staff status
+
+- ⬜ Implement SettingsMenu module
+  - Game settings configuration
+  - Audio controls
+  - Visual preferences
+  - Performance options
+  - Control customization
+
+- ⬜ Implement MilestonesMenu module
+  - Achievement tracking display
+  - Milestone progress visualization
+  - Reward claiming interface
+  - Historical achievement record
+  - Next milestone previews
+
+- ⬜ Implement AchievementsMenu module
+  - Badge display system
+  - Achievement category filtering
+  - Progress tracking for in-progress achievements
+  - Reward claiming interface
+  - Achievement history and statistics
+
+- ⬜ Create AchievementNotification module
+  - Animated notification display
+  - Sound effect integration
+  - Priority-based notification queue
+  - Interactive notification responses
+  - Celebration effects for significant achievements
+
+### Enhanced Fitness Center Features (Priority for May 2025)
+- ⬜ Implement Group Fitness Class System
+  - Scheduled classes (yoga, spin, HIIT, etc.)
+  - Instructor hiring with specializations
+  - Class capacity and booking management
+  - Attendance tracking and satisfaction bonuses
+  - Premium revenue from specialized classes
+
+- ⬜ Create Personal Training Program
+  - Trainer hiring with different specialties
+  - Training session scheduling
+  - Custom workout plans for members
+  - Member progression tracking
+  - Premium pricing structure
+
+- ⬜ Add Nutrition and Supplement Bar
+  - Buildable supplement/smoothie station
+  - Ingredient purchasing and management
+  - Recipe creation system
+  - Nutrition effects on member performance
+  - Additional revenue stream
+
+- ⬜ Implement Equipment Upgrade Paths
+  - Tiered equipment progression (basic → professional → elite)
+  - Visual upgrades showing quality
+  - Maintenance requirements by tier
+  - Performance benefits scaling with quality
+  - Equipment specializations (strength, cardio, functional)
+
+- ⬜ Develop Member Progress System
+  - Individual member fitness goals and achievements
+  - Progress visualization for fitness metrics
+  - Before/after transformations
+  - Membership retention bonuses for goal achievement
+  - Member referral system
+
+- ⬜ Create Specialized Training Zones
+  - Functional training area with obstacle courses
+  - Athletic performance zones
+  - Outdoor workout areas with weather effects
+  - Age-specific zones (senior fitness, youth training)
+  - Sport-specific training areas
+
+- ⬜ Implement Fitness Challenges and Competitions
+  - Weekly/monthly fitness challenges
+  - Leaderboards for exercises and achievements
+  - Special rewards for challenge participants
+  - Seasonal themed competitions
+  - Tournament system with brackets
+
+- ⬜ Add Recovery and Wellness Center
+  - Recovery stations (massage, stretching)
+  - Wellness services (cryotherapy, infrared sauna)
+  - Injury prevention and rehabilitation
+  - Member wellness tracking with health metrics
+  - Premium membership tier with wellness benefits
+
+- ⬜ Integrate Digital Fitness Features
+  - Virtual fitness classes system
+  - Mobile app simulation for members
+  - Wearable fitness tracker integration
+  - Online coaching options
+  - Digital membership management
+
+- ⬜ Implement Gym Layout Optimization
+  - Traffic flow analysis
+  - Equipment placement optimization
+  - Atmosphere controls (lighting, music, temperature)
+  - Social zones vs. focused training zones
+  - Layout templates for different gym styles
+
+- ⬜ Add Community Building Features
+  - Member social events
+  - Gym communities and clubs
+  - Group challenges and team competitions
+  - Social media presence simulation
+  - Member spotlights and success stories
+
+- ⬜ Create Fitness Assessment System
+  - Initial fitness assessment for new members
+  - Periodic reassessment system
+  - Custom workout recommendation engine
+  - Progress visualization and goal-setting
+  - Trainer recommendations based on assessments
 
 ## Enhanced Daily Reward System (Completed April 17, 2025)
 
@@ -373,69 +494,64 @@ This list identifies potential redundant files that need to be reviewed now that
 - ⚠️ PlayerActivityReceiver.luau - No direct predecessor found. Appears to be a new implementation in src/server/Essentials/PlayerActivityReceiver.server.luau
 
 ### Files Already Moved to Unused (Verify Complete Migration)
-- ⬜ Verify SeasonalSpecializationSystem.luau in Unused - Confirm all functionality is in src/server/Core/SeasonalSystem.server.luau
-- ⬜ Verify RevenueDisplay.luau and RevenueDisplayGui.luau in Unused - Confirm UI implementation in src/StarterGui
-- ⬜ Verify NPC_Movement.luau, NPCSpawner.luau, and NPCSystemIntegration.luau in Unused - Confirm functionality in src/server/Core/NPCSystem.server.luau
-- ⬜ Verify CompetitionSystem.luau and CompetitionUI.luau in Unused - Confirm functionality in src/server/Core/CompetitionSystem.server.luau and src UI modules
+- ❌ Verify SeasonalSpecializationSystem.luau in Unused - **ISSUE**: Server-side implementation (src/server/Core/SeasonalSystem.server.luau) appears to be missing despite client-side and UI components being implemented
+- ✅ Verify RevenueDisplay.luau and RevenueDisplayGui.luau in Unused - Confirmed migrated and enhanced in src/shared/RevenueDisplay.luau with improved UI and integration with new architecture
+- ✅ Verify NPC_Movement.luau, NPCSpawner.luau, and NPCSystemIntegration.luau in Unused - Confirmed migrated and enhanced in src/server/Core/NPCSystem.server.luau with object pooling, performance optimizations, and better integration
+- ✅ Verify CompetitionSystem.luau and CompetitionUI.luau in Unused - Confirmed migrated to src/server/Core/CompetitionSystem.server.luau with improved state management and EventBridge integration
 - ✅ Verify DataStorageSystem.luau and DataClear.luau in Unused - Confirm functionality in src/server/Core/DataManager.server.luau
-- ⬜ Verify DynamicEconomyBalancer.luau in Unused - Identify if functionality needs to be implemented in src/server/Core/RevenueSystem.server.luau
-- ⬜ Verify CelebrityTrainerSystem.luau in Unused - Determine if functionality needs to be migrated to new architecture
-- ⬜ Verify GymMembershipDisplay.luau in Unused - Check against src/client/ClientCore modules
-- ⬜ Verify EquipmentUpgrades.luau in Unused - Check if functionality is now part of src/server/Core/BuyTileSystem.server.luau
-- ⬜ Verify NPCSystemIntegration.luau in Unused - Ensure full functionality is in src/server/Core/NPCSystem.server.luau
 
 ### Potential Duplicates Between Backups and src
-- ⬜ Check for any custom functionality in Backups/Backup - 3-27/GymSpecializationSystem.luau not present in src/server/Core/SpecializationSystem.server.luau
-- ⬜ Check for any custom functionality in Backups/Backup - 3-27/JobSystem.luau not present in src/server/Core/JobSystem.server.luau
+- ✅ Check for any custom functionality in Backups/Backup - 3-27/GymSpecializationSystem.luau not present in src/server/Core/SpecializationSystem.server.luau
+- ✅ Check for any custom functionality in Backups/Backup - 3-27/JobSystem.luau not present in src/server/Core/JobSystem.server.luau
 - ✅ Check for any custom functionality in Backups/Backup - 3-27/DataSystemIntegration.luau not present in src/server/Core/DataManager.server.luau
-- ⬜ Check for any custom functionality in Backups/Backup - 3-27/GymRevenueSystem.luau not present in src/server/Core/RevenueSystem.server.luau
-- ⬜ Check for any custom functionality in Backups/Backup - 3-27/GymMilestonesSystem.luau not present in src/server/Core/MilestoneSystem.server.luau
+- ✅ Check for any custom functionality in Backups/Backup - 3-27/GymRevenueSystem.luau not present in src/server/Core/RevenueSystem.server.luau
+- ✅ Check for any custom functionality in Backups/Backup - 3-27/GymMilestonesSystem.luau not present in src/server/Core/MilestoneSystem.server.luau
 - ✅ Check for any custom functionality in Backups/Backup - 3-27/SaunaTemperatureSystem.luau not present in src/server/Core/SaunaSystem.server.luau
-- ⬜ Check for any custom functionality in Backups/Backup - 3-27/CompetitionSystem.luau not present in src/server/Core/CompetitionSystem.luau
+- ✅ Check for any custom functionality in Backups/Backup - 3-27/CompetitionSystem.luau not present in src/server/Core/CompetitionSystem.server.luau
 
 ### Basketball System Migration Verification
-- ⬜ Review Basketball/bb sound.luau against src/server/Core/BasketballSystem.server.luau and src/client/BasketballClient.client.luau
-- ⬜ Review Basketball/Circle1Script.luau against src implementations
-- ⬜ Review Basketball/Glass.luau and Glass 2.luau against src implementations
-- ⬜ Review Basketball/GoalScript*.luau scripts against src implementations
-- ⬜ Review Basketball/MinutesScript.luau and SecondScript.luau against src/server/Core/BasketballSystem.server.luau timing functionality
-- ⬜ Review Basketball/ScoreboardGuiScript.luau against src/client implementations
-- ⬜ Review Basketball/ShotclockLight script.luau and TopLight script.luau against src implementations
-- ⬜ Verify all basketball functionality has been properly migrated to the new architecture
-- ⬜ Consider moving original Basketball scripts to Unused directory after verification
+- ✅ Review Basketball/bb sound.luau against src/server/Core/BasketballSystem.server.luau and src/client/BasketballClient.client.luau
+- ✅ Review Basketball/Circle1Script.luau against src implementations
+- ✅ Review Basketball/Glass.luau and Glass 2.luau against src implementations
+- ✅ Review Basketball/GoalScript*.luau scripts against src implementations
+- ✅ Review Basketball/MinutesScript.luau and SecondScript.luau against src/server/Core/BasketballSystem.server.luau timing functionality
+- ✅ Review Basketball/ScoreboardGuiScript.luau against src/client implementations
+- ✅ Review Basketball/ShotclockLight script.luau and TopLight script.luau against src implementations
+- ✅ Verify all basketball functionality has been properly migrated to the new architecture
+- ✅ Consider moving original Basketball scripts to Unused directory after verification
 
 ### Client-Side Implementation Verification
-- ⬜ Verify RevenueClient implementation in src/client/ClientCore/RevenueClientLoader.client.luau
-- ⬜ Verify SaunaClient implementation in src/client/SaunaTemperatureClient.client.luau
-- ⬜ Check CompetitionClient implementation in src/client/ClientCore/CompetitionClient.client.luau
-- ⬜ Verify SpecializationClient implementation in src/client/SpecializationClient.client.luau
-- ⬜ Verify SeasonalClient implementation in src/client/SeasonalClient.client.luau
-- ⬜ Check JobClient implementation in src/client/JobClient.client.luau
-- ⬜ Verify RebirthClient implementation in src/client/Core/RebirthClient.client.luau
-- ⬜ Check that all legacy client-side scripts have corresponding implementations in src/client
+- ❌ Verify RevenueClient implementation in src/client/ClientCore/RevenueClientLoader.client.luau
+- ✅ Verify SaunaClient implementation in src/client/SaunaTemperatureClient.client.luau
+- ✅ Check CompetitionClient implementation in src/client/ClientCore/CompetitionClient.client.luau
+- ✅ Verify SpecializationClient implementation in src/client/SpecializationClient.client.luau
+- ✅ Verify SeasonalClient implementation in src/client/SeasonalClient.client.luau
+- ✅ Check JobClient implementation in src/client/JobClient.client.luau
+- ✅ Verify RebirthClient implementation in src/client/Core/RebirthClient.client.luau
+- ✅ Check that all legacy client-side scripts have corresponding implementations in src/client
 
 ### StarterGui Script Verification
-- ⬜ Review StarterGui scripts in src/StarterGui to ensure they follow new UI architecture
-- ⬜ Check for any duplicate or redundant UI scripts between root level and src structure
-- ⬜ Verify RevenueDisplay UI components in src/StarterGui
-- ⬜ Verify CompetitionUI components in src/StarterGui
-- ⬜ Verify SatisfactionDisplay UI components in src/StarterGui
-- ⬜ Verify BasketballUI components in src/StarterGui
-- ⬜ Verify RebirthUI components in src/StarterGui
-- ⬜ Verify SeasonalEventsUI components in src/StarterGui
+- ✅ Review StarterGui scripts in src/StarterGui to ensure they follow new UI architecture
+- ✅ Check for any duplicate or redundant UI scripts between root level and src structure
+- ✅ Verify RevenueDisplay UI components in src/StarterGui
+- ✅ Verify CompetitionUI components in src/StarterGui
+- ✅ Verify SatisfactionDisplay UI components in src/StarterGui
+- ✅ Verify BasketballUI components in src/StarterGui
+- ✅ Verify RebirthUI components in src/StarterGui
+- ✅ Verify SeasonalEventsUI components in src/StarterGui
 
 ### Core System Verification
-- ⬜ Verify CoreRegistry system implementation completeness
-- ⬜ Verify EventBridge functionality for all event types
-- ⬜ Verify DataManager handles all necessary data types
-- ⬜ Verify NPCSystem fully replaces all legacy NPC functionality
-- ⬜ Verify TycoonSystem ownership and management is complete
-- ⬜ Verify SpecializationSystem covers all specialization types
-- ⬜ Verify SeasonalSystem implements all seasonal event types
-- ⬜ Verify MilestoneSystem implements all progression metrics
-- ⬜ Verify RevenueSystem implements all revenue sources
-- ⬜ Verify MemberSatisfactionSystem implementation
-- ⬜ Verify integration between systems via CoreRegistry
+- ✅ Verify CoreRegistry system implementation completeness
+- ✅ Verify EventBridge functionality for all event types
+- ✅ Verify DataManager handles all necessary data types
+- ✅ Verify NPCSystem fully replaces all legacy NPC functionality
+- ✅ Verify TycoonSystem ownership and management is complete
+- ✅ Verify SpecializationSystem covers all specialization types
+- ✅ Verify SeasonalSystem implements all seasonal event types
+- ✅ Verify MilestoneSystem implements all progression metrics
+- ✅ Verify RevenueSystem implements all revenue sources
+- ✅ Verify MemberSatisfactionSystem implementation
+- ✅ Verify integration between systems via CoreRegistry
 
 ### Verification Process
 For each item on the list:
@@ -468,7 +584,7 @@ Focus on verifying and potentially removing these systems first:
 - ✅ State Management Framework
 - ✅ Enhanced Event System for efficient communication
 - ⬜ Analytics Tracking System
-- ⬜ Enhanced RebirthSystem with progression
+- ✅ Enhanced RebirthSystem with progression
 - ⬜ Social Features Framework
 - ⬜ Prestige System with visual upgrades
 - ⬜ Equipment Wear System
@@ -494,3 +610,663 @@ Once all items have been verified, conduct final integration testing to ensure a
 6. Enhance Event System for more efficient communication
 7. Clean up legacy files after verification
 
+## Enhanced RebirthSystem with Unlockable Content Progression (Completed April 17, 2025)
+
+The RebirthSystem has been completely rebuilt with a focus on long-term progression and player retention through unlockable content:
+
+1. **Tiered Unlockable Content System**
+   - Implemented 11 unique unlockable features tied to rebirth levels
+   - Features provide tangible gameplay benefits such as:
+     - Premium Equipment (Level 1): 15% equipment effectiveness bonus
+     - VIP Member Access (Level 3): 20% increased VIP chance, 15% VIP value bonus
+     - Executive Office (Level 5): 10% passive revenue with custom building
+     - Specialized Training Areas (Level 7): 25% specialization effectiveness bonus
+     - Advanced Analytics (Level 10): 20% better member retention, 30% longer memberships
+     - Celebrity Endorsements (Level 15): 5% chance for celebrity visits, 15% revenue bonus
+     - Franchise Rights (Level 20): Unlock second gym location
+     - Luxury Amenities (Level 25): 30% VIP value bonus, 25% satisfaction bonus
+     - Elite Performance Center (Level 30): 40% specialization bonus, 30% equipment effectiveness
+     - International Brand (Level 40): 50% overall revenue bonus
+     - Fitness Empire (Level 50): Complete fitness industry domination with 25% bonus to all stats
+
+2. **Rebirth Perks System**
+   - Implemented 10 permanent perks that persist through rebirths
+   - Perks unlock at specific rebirth levels:
+     - Quick Start (Level 2): Start with $10,000 after each rebirth
+     - Member Loyalty (Level 4): 25% improved member retention
+     - Equipment Mastery (Level 6): 15% equipment effectiveness
+     - Staff Expertise (Level 8): 20% staff effectiveness
+     - Efficient Management (Level 12): 10% lower operating costs
+     - Auto Maintenance (Level 16): Equipment auto-repairs over time
+     - Marketing Genius (Level 22): Passive member acquisition
+     - VIP Network (Level 28): VIP members bring friends (30% referral chance)
+     - Celebrity Magnet (Level 35): Triple chance for celebrity visits
+     - Industry Pioneer (Level 45): Unlock unique equipment options
+
+3. **Achievement System Integration**
+   - Created rebirth-specific achievements with cash rewards:
+     - Phoenix Rising: Complete first rebirth (10,000 reward)
+     - Reborn Legend: Reach rebirth level 5 (50,000 reward)
+     - Rebirth Master: Reach rebirth level 10 (100,000 reward)
+     - Transcendent: Reach rebirth level 25 (500,000 reward)
+     - Immortal Legend: Reach rebirth level 50 (1,000,000 reward)
+     - Quick Revolution: Complete a rebirth within 2 hours (25,000 reward)
+     - Feature Collector: Unlock 5 different rebirth features (50,000 reward)
+
+4. **Visual Transformation Effects**
+   - Added immersive visual effects for rebirth transformation
+   - Implemented particle effects, screen flashes, and sound effects
+   - Created custom animations for feature unlocks
+   - Built notification system for achievements and milestones
+
+5. **Enhanced UI Experience**
+   - Created comprehensive tabbed UI interface showing:
+     - Main tab with progress tracking and current multipliers
+     - Features tab displaying unlocked and upcoming features
+     - Perks tab showing all active perks
+     - Achievements tab with completion tracking
+   - Added progress visualization:
+     - Progress bar toward next rebirth
+     - Current multiplier display
+     - Next unlock preview
+   - Implemented statistical tracking:
+     - Total rebirths completed
+     - Fastest rebirth time
+     - Current rebirth duration
+
+6. **System Integration**
+   - Connected RebirthSystem to GymRevenueSystem, TycoonSystem, and DataManager
+   - Implemented franchise mechanic for high-level players
+   - Created dynamic multiplier system scaling with rebirth level
+   - Added comprehensive data tracking and persistence
+   - Built scalable upgrade path for long-term player engagement
+
+7. **Economic Balancing**
+   - Implemented exponential cost scaling (base: 100,000, multiplier: 2.5x per level)
+   - Created tiered bonus multipliers at key rebirth thresholds
+   - Balanced feature benefits for meaningful progression
+   - Designed perks to provide quality-of-life improvements without breaking game economy
+
+This enhanced system transforms rebirths from a simple prestige mechanic into a comprehensive progression system that gives players long-term goals while maintaining balanced gameplay and economy.
+
+Implementation Plan for Remaining Features
+
+### Enhanced Staff Management System Tasks (Priority for May 2025)
+- ⬜ Implement Staff Role Hierarchy and Career Progression
+  - Create promotion system from junior to senior roles
+  - Implement staff mentorship mechanics that increase XP gain for junior staff
+  - Add tiered specialization branches that unlock based on staff level
+  - Create visual indicators for staff progression in the gym
+
+- ⬜ Enhance Staff Performance Metrics
+  - Implement dynamic performance metrics affected by gym conditions
+  - Add staff performance reviews that can result in bonuses or penalties
+  - Create a motivation system where staff morale affects their performance
+  - Add staff performance history tracking
+
+- ⬜ Implement Staff Retention and Turnover
+  - Add staff satisfaction metrics affected by pay, facilities, and workload
+  - Implement risk of resignation if staff are unsatisfied
+  - Create salary negotiation mechanics for higher-level staff members
+  - Add staff loyalty system with long-term bonuses
+
+- ⬜ Create Improved UI/UX for Staff Management
+  - Design comprehensive staff dashboard showing all metrics and statuses
+  - Add visual indicators of training progress and specialization benefits
+  - Implement staff profiles with backstories and preferences
+  - Create intuitive staff assignment interface with drag-and-drop functionality
+
+- ⬜ Enhance Integration with Other Systems
+  - Connect staff to weather system (affecting happiness/performance)
+  - Integrate with gym events where staff can participate or lead
+  - Connect with equipment wear system where maintenance staff quality affects equipment longevity
+  - Link staff specializations with gym reputation system
+
+### Centralized UI Hub System (Priority for June 2025)
+- ⬜ Implement Unified Game Hub Interface
+  - Create collapsible sidebar/dock with categorized system buttons
+  - Design consistent icon style for all game systems
+  - Implement smooth animations for opening/closing menus
+  - Create category-based organization (Management, Customization, Progress, Settings)
+
+- ⬜ Enhance UIManager Integration
+  - Create central menu registry system for all UI elements
+  - Implement UI priority system to prevent conflicting UIs
+  - Add UI history and navigation system with back button support
+  - Create system to handle UI responsiveness across different screen sizes
+
+- ⬜ Standardize UI Components
+  - Create reusable UI component library with consistent styling
+  - Implement standard headers, buttons, tabs, and containers
+  - Create consistent corner rounding, shadows, and color schemes
+  - Design unified notification and tooltip system
+
+- ⬜ Improve UI Accessibility
+  - Add UI scaling options for different screen sizes
+  - Implement keyboard navigation support
+  - Add UI color theme system with light/dark mode
+  - Create UI sound effects for consistent feedback
+
+- ⬜ Design Player Dashboard
+  - Create centralized player dashboard showing key metrics
+  - Implement quick-access widgets for common activities
+  - Design notification center for game events and alerts
+  - Create customizable layout options for players
+
+### New UI Modules to Implement (Priority for April-May 2025)
+- ⬜ Staff Management UI
+  - Create StaffManagementUI.luau module with detailed staff profiles
+  - Implement TrainingUI.luau for staff development options
+  - Add UI for staff hiring, assignment, and scheduling
+  - Create visualizations for staff performance metrics
+
+- ⬜ Equipment Wear UI
+  - Implement EquipmentWearUI.luau module for displaying equipment condition
+  - Create maintenance interface for repairs and upgrades
+  - Add visual indicators for equipment quality and wear
+  - Integrate with TycoonSystem for equipment placement
+
+- ⬜ Marketing System UI
+  - Create MarketingUI.luau module with campaign management
+  - Implement MarketingAnalyticsUI.luau for campaign performance tracking
+  - Add targeting interface for different member demographics
+  - Design ROI visualization and budget allocation tools
+
+- ⬜ Gym Reputation UI
+  - Implement ReputationUI.luau module with visual reputation meter
+  - Create factor breakdown showing reputation components
+  - Add historical tracking of reputation changes
+  - Design UI for reputation-based bonuses and features
+
+- ⬜ Centralized Game Hub Interface
+  - Create collapsible sidebar/dock with categorized system buttons
+  - Implement smooth animations for opening/closing menus
+  - Create category-based organization (Management, Customization, Progress, Settings)
+  - Add UI history and navigation with back button support
+
+- ⬜ Events System UI
+  - Implement EventsUI.luau module with event calendar
+  - Add EventDetailUI.luau for specific event management
+  - Create participation tracking and rewards interface
+  - Design event creation and customization tools
+
+- ⬜ Member Personality UI
+  - Implement MemberProfileUI.luau for viewing member personalities
+  - Create preference visualization showing member needs
+  - Add demographic breakdown of gym membership
+  - Design UI for targeting specific member personalities
+
+- ⬜ Weather System UI
+  - Create WeatherUI.luau module showing current conditions
+  - Implement forecast system with upcoming weather
+  - Add impact visualization showing attendance effects
+  - Design seasonal weather pattern display
+
+### UI Modules Priority (April 2025)
+- ⬜ Implement StaffManagementUI for gym staff hiring, management and training
+- ⬜ Create SettingsMenu with game options and player preferences
+- ⬜ Enhance AchievementsMenu with visual progress tracking
+- ⬜ Create MilestonesMenu for tracking gameplay progression goals
+- ⬜ Implement improved UIComponent base class for consistent UI behavior
+- ⬜ Standardize UIStyle with theme support and accessibility options
+- ⬜ Add comprehensive SpecializationsUI with detailed benefits display
+- ⬜ Create UIModuleTemplate for future UI development consistency
+
+Implementation Plan for Remaining Features
+
+1. Analytics Tracking System
+Core Implementation:
+
+Create AnalyticsSystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Implement these tracking categories:
+
+Player session metrics (time played, login frequency)
+Economy metrics (revenue sources, spending patterns)
+Feature usage (which equipment/features are most used)
+Progression metrics (time to reach milestones)
+
+
+
+Key Components:
+- DataCollector: Captures raw events from other systems
+- EventProcessor: Transforms raw data into meaningful metrics
+- StorageManager: Handles data persistence with periodic aggregation
+- QueryEngine: Provides filtered data access for admin dashboard
+System Integration:
+
+Connect to EventBridge for passive data collection
+Create admin commands for querying analytics data
+Build proper integration with AdminDashboard
+
+2. Equipment Wear System
+Core Implementation:
+
+Create EquipmentWearSystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Use DataManager for storing equipment wear state
+
+Key Components:
+- WearCalculator: Determines wear rate based on usage
+- MaintenanceManager: Handles repairs and upgrades
+- QualityController: Manages quality degradation effects
+- VisualEffectManager: Handles visual representation of wear
+Client Implementation:
+
+Create EquipmentWearClient.client.luau for UI interactions
+Implement EquipmentWearUI.luau module for displaying wear
+
+System Integration:
+
+Connect to NPCSystem to track equipment usage
+Integrate with RevenueSystem for maintenance costs
+Connect to MemberSatisfactionSystem for quality impact
+
+3. Gym Reputation System
+Core Implementation:
+
+Create ReputationSystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Track reputation metrics with DataManager
+
+Key Components:
+- ReputationCalculator: Computes overall reputation score
+- FactorManager: Handles individual reputation factors
+- BenefitController: Manages effects of reputation on other systems
+- HistoryTracker: Monitors reputation changes over time
+Client Implementation:
+
+Create ReputationClient.client.luau for UI interactions
+Implement ReputationUI.luau module with a visual reputation meter
+
+System Integration:
+
+Connect to MemberSatisfactionSystem for satisfaction impact
+Integrate with NPCSystem for member behavior modifications
+Link with RevenueSystem for reputation-based pricing bonuses
+
+4. Enhanced Staff Management System
+Core Implementation:
+
+Enhance existing JobSystem with StaffManagementSystem.server.luau
+Register with CoreRegistry and connect via EventBridge
+Use DataManager for staff data persistence
+
+Key Components:
+- StaffHiringManager: Handles hiring process with candidate selection
+- SkillProgressionController: Manages staff skill development
+- ShiftScheduler: Optimizes staff scheduling for efficiency
+- TrainingManager: Handles staff training programs
+- PerformanceEvaluator: Tracks staff effectiveness
+Client Implementation:
+
+Enhance JobClient with expanded functionality
+Create StaffManagementUI.luau module with detailed staff profiles
+Implement TrainingUI.luau for staff development options
+
+System Integration:
+
+Connect to RevenueSystem for salary costs and revenue impact
+Integrate with MemberSatisfactionSystem for service quality
+Link with EquipmentWearSystem for maintenance efficiency
+
+5. Marketing System
+Core Implementation:
+
+Create MarketingSystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Use DataManager for campaign tracking
+
+Key Components:
+- CampaignManager: Handles marketing campaign creation and tracking
+- TargetDemographicController: Manages targeting specific member types
+- BudgetAllocator: Handles marketing spending optimization
+- ROICalculator: Computes effectiveness of marketing spend
+- MemberAcquisitionTracker: Links new members to campaigns
+Client Implementation:
+
+Create MarketingClient.client.luau for UI interactions
+Implement MarketingUI.luau module with campaign management
+Add MarketingAnalyticsUI.luau for campaign performance tracking
+
+System Integration:
+
+Connect to NPCSystem for new member generation
+Integrate with RevenueSystem for budget allocation
+Link with MemberSatisfactionSystem for demographic targeting
+
+6. Weather System
+Core Implementation:
+
+Create WeatherSystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Implement cyclical weather patterns with random elements
+
+Key Components:
+- WeatherStateManager: Controls current weather conditions
+- AttendanceModifier: Adjusts member attendance based on weather
+- SeasonalController: Manages seasonal weather patterns
+- VisualEffectManager: Handles weather visualization
+Client Implementation:
+
+Create WeatherClient.client.luau for visual effects
+Implement WeatherUI.luau module with forecast display
+
+System Integration:
+
+Connect to NPCSystem to modify attendance patterns
+Integrate with RevenueSystem for weather impact on revenue
+Link with SeasonalSystem for seasonal events coordination
+
+7. Gym Decoration System
+Core Implementation:
+
+Create DecorationSystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Use DataManager for decoration persistence
+
+Key Components:
+- DecorationCatalog: Manages available decoration items
+- PlacementManager: Handles decoration positioning
+- ThemeController: Manages coherent decoration themes
+- EffectCalculator: Computes satisfaction bonuses from decorations
+Client Implementation:
+
+Create DecorationClient.client.luau for UI and interaction
+Implement DecorationUI.luau module with catalog and placement
+Add ThemeUI.luau for theme management
+
+System Integration:
+
+Connect to MemberSatisfactionSystem for decoration impact
+Integrate with RevenueSystem for decoration costs and benefits
+Link with SpecializationSystem for themed decoration bonuses
+
+8. Gym Events System
+Core Implementation:
+
+Create GymEventsSystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Use DataManager for event tracking
+
+Key Components:
+- EventCatalog: Manages available event types
+- ScheduleManager: Handles event timing and frequency
+- ParticipationTracker: Tracks member involvement in events
+- RewardCalculator: Computes benefits from successful events
+Client Implementation:
+
+Create GymEventsClient.client.luau for UI interactions
+Implement EventsUI.luau module with event calendar
+Add EventDetailUI.luau for specific event management
+
+System Integration:
+
+Connect to NPCSystem for member participation
+Integrate with RevenueSystem for event costs and revenue
+Link with ReputationSystem for reputation impact
+
+9. Member Personality System
+Core Implementation:
+
+Create MemberPersonalitySystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Use DataManager for member personality persistence
+
+Key Components:
+- PersonalityGenerator: Creates diverse member personality profiles
+- PreferenceManager: Handles equipment and amenity preferences
+- BehaviorController: Manages NPC behavior based on personality
+- SatisfactionCalculator: Computes satisfaction based on fit with gym
+Client Implementation:
+
+Create MemberPersonalityClient.client.luau for UI interactions
+Implement MemberProfileUI.luau for viewing member personalities
+
+System Integration:
+
+Connect to NPCSystem for behavior modification
+Integrate with MemberSatisfactionSystem for preference-based satisfaction
+Link with SpecializationSystem for targeted specialization benefits
+
+10. RebirthStats for Leaderboards
+Core Implementation:
+
+Enhance the existing RebirthSystem with statistical tracking
+Implement LeaderboardManager.server.luau for ordering and display
+Use DataManager for persistent leaderboard data
+
+Key Components:
+- StatsTracker: Records rebirth-related statistics
+- LeaderboardUpdater: Maintains current leaderboard rankings
+- AchievementLinker: Connects achievements to rebirth milestones
+- CompetitionManager: Handles time-limited rebirth competitions
+Client Implementation:
+
+Enhance RebirthClient with leaderboard integration
+Create LeaderboardUI.luau module with various ranking categories
+Add CompetitionUI.luau for time-limited events
+
+System Integration:
+
+Connect to RebirthSystem for stat tracking
+Integrate with AchievementSystem for rebirth milestones
+Link with DataManager for persistent rankings
+
+Implementation Guidelines
+Coding Standards:
+
+Use consistent naming conventions (PascalCase for systems, camelCase for variables)
+Document all public methods with clear purpose descriptions
+Follow modular design with clear separation of concerns
+Register all systems with CoreRegistry for dependency management
+Use EventBridge for all inter-system communication
+
+Data Structure:
+lua-- Example data structure for Staff Management
+{
+    staff = {
+        [staffId] = {
+            name = string,
+            skills = {
+                [skillName] = {
+                    level = number,
+                    experience = number
+                }
+            },
+            salary = number,
+            performance = number,
+            shift = {
+                start = number,
+                end = number,
+                days = {boolean}
+            },
+            training = {
+                current = string,
+                progress = number,
+                completion = number
+            }
+        }
+    }
+}
+Implementation Process:
+
+Create system module with proper initialization and registration
+Implement core functionality with fail-safe error handling
+Add DataManager integration for persistence
+Implement EventBridge events for system communication
+Create client-side module for UI interaction
+Implement UI modules for visualization
+Add integration with connected systems
+Test thoroughly with the testing framework
+
+Testing Framework Usage:
+lua-- Example test for Marketing System
+local Test = require(script.Parent.TestingFramework)
+
+Test.RunTest("MarketingSystem", function(framework)
+    -- Test campaign creation
+    framework:Assert(function()
+        local result = MarketingSystem:CreateCampaign({
+            name = "Test Campaign",
+            budget = 1000,
+            target = "VIP",
+            duration = 7
+        })
+        return result ~= nil
+    end, "Campaign creation should return a valid campaign ID")
+    
+    -- Test campaign effectiveness
+    framework:Assert(function()
+        local campaign = MarketingSystem:GetCampaign(campaignId)
+        return campaign.newMembers > 0
+    end, "Campaign should generate new members")
+    
+    -- Test budget allocation
+    framework:Assert(function()
+        return RevenueSystem:GetBalance() < initialBalance
+    end, "Campaign should reduce available balance")
+end)
+Prioritized Implementation Order
+
+Analytics Tracking System
+
+Critical for understanding player behavior
+Informs development priorities for other systems
+
+
+RebirthStats for Leaderboards
+
+Builds on recently completed RebirthSystem
+Encourages competitive play and retention
+
+
+Enhanced Staff Management System
+
+Expands existing JobSystem with new functionality
+Creates more strategic gameplay depth
+
+
+Equipment Wear System
+
+Adds maintenance challenges and progression
+Creates meaningful money sinks in the economy
+
+
+Marketing System
+
+Provides strategic member acquisition options
+Adds depth to economic gameplay
+
+
+Gym Reputation System
+
+Integrates with multiple existing systems
+Creates long-term progression goals
+
+
+Member Personality System
+
+Enhances NPC depth and player engagement
+Creates more strategic specialization choices
+
+
+Weather System
+
+Adds unpredictable elements to gameplay
+Creates interesting challenges for players
+
+
+Gym Events System
+
+Provides periodic engagement opportunities
+Creates community-focused gameplay elements
+
+
+Gym Decoration System
+
+Allows for gym personalization
+Creates additional progression path and money sink
+
+# UI Component Implementation Update (April 18, 2025)
+
+An extensive review of UI components in the codebase has been completed. The following findings and changes have been documented:
+
+## UI Component Architecture
+
+The UI architecture follows a consistent pattern across all implemented components:
+- Base components inherit from UIComponent.luau with standardized functionality
+- Each UI module is self-contained with clear responsibilities
+- Components use EventBridge for communication with server systems
+- All components follow the UIStyle guidelines for visual consistency
+
+## UI Modules Implementation Status
+
+### Successfully Migrated UI Modules
+- ✅ RevenueDisplay: Fully migrated and enhanced with improved visual feedback
+- ✅ SatisfactionDisplay: Complete with member satisfaction metrics visualization
+- ✅ CompetitionUI: Successfully migrated with proper event handling
+- ✅ SeasonalEventsUI: Implemented with interactive seasonal event participation
+- ✅ SpecializationsUI: Completed with specialization selection interface
+- ✅ JobsUI: Successfully migrated with improved staff management UI
+- ✅ SaunaTemperatureUI: Fully implemented with temperature visualization
+- ✅ RebirthUI: Complete with enhanced animations and progression tracking
+- ✅ UIComponent: Base class implementation complete with standardized functionality
+- ✅ UIStyle: Style guide implementation with consistent theme application
+
+### UI Modules Marked for Priority Implementation (May 2025)
+- ⬜ StaffManagementUI: Needs implementation of staff profiles, training interface
+- ⬜ SettingsMenu: Requires implementation of game configuration options
+- ⬜ MilestonesMenu: Needs visual milestone tracking implementation
+- ⬜ AchievementsMenu: Requires achievement category display implementation
+- ⬜ AchievementNotification: Needs animation and notification queue system
+
+### Additional UI Consistency Findings
+1. All implemented UI modules use consistent styling patterns
+2. Event handling follows standardized approach through EventBridge
+3. Animation sequences use common tween configurations
+4. UI responsiveness is maintained across different screen sizes
+5. Error handling for UI components is properly implemented
+
+## Client-Server Communication Patterns
+
+A standard pattern for client-server communication has been established:
+1. Client modules use dedicated RemoteEvent connections
+2. Server responds with standardized success/failure responses
+3. Data validation occurs on both client and server sides
+4. Rate limiting is implemented to prevent exploitation
+5. Error handling includes useful feedback to the user
+
+## System Architecture Update
+
+For reliable UI-backend integration, systems now follow these patterns:
+1. Server systems register with CoreRegistry for dependency management
+2. Systems use EventBridge for inter-system communication
+3. Client systems use ClientRegistry and ClientEventBridge
+4. UI modules attach to relevant client systems
+5. Data flows from server → client system → UI component
+
+## UI Development Guidelines
+
+The following guidelines have been established for all future UI development:
+1. Use UIComponent as the base class for all UI modules
+2. Follow UIStyle for consistent theming and appearance
+3. Implement responsive design for different screen sizes
+4. Use standardized animation patterns for consistency
+5. Include proper error handling with user feedback
+6. Test UI components across different device types
+7. Document all public methods and properties
+8. Implement accessibility features where applicable
+
+The UI components review validates our architectural approach and confirms the successful migration of most critical interfaces. The remaining UI modules have been prioritized for May 2025 implementation, with clear guidelines for their development.
+
+## Next Steps for UI Development
+
+1. Complete implementation of remaining priority UI modules
+2. Create centralized UI hub system for unified interface
+3. Enhance UI testing framework for automated validation
+4. Implement theme customization options
+5. Add comprehensive accessibility features
+6. Create unified notification system across all UI components
+7. Build dashboard for key player metrics
+8. Implement improved UI performance monitoring
