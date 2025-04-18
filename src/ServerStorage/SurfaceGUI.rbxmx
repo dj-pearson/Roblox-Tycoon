@@ -1,0 +1,523 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="SurfaceGui" referent="RBXE201E34013F444E185A98F769F1E59BD">
+		<Properties>
+			<bool name="Active">true</bool>
+			<Ref name="Adornee">null</Ref>
+			<bool name="AlwaysOnTop">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<bool name="AutoLocalize">true</bool>
+			<float name="Brightness">1</float>
+			<Vector2 name="CanvasSize">
+				<X>500</X>
+				<Y>500</Y>
+			</Vector2>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="ClipsDescendants">true</bool>
+			<bool name="DefinesCapabilities">false</bool>
+			<bool name="Enabled">true</bool>
+			<token name="Face">5</token>
+			<float name="LightInfluence">0.5</float>
+			<float name="MaxDistance">0</float>
+			<string name="Name">SurfaceGui</string>
+			<float name="PixelsPerStud">50</float>
+			<bool name="ResetOnSpawn">true</bool>
+			<Ref name="RootLocalizationTable">null</Ref>
+			<token name="SelectionBehaviorDown">0</token>
+			<token name="SelectionBehaviorLeft">0</token>
+			<token name="SelectionBehaviorRight">0</token>
+			<token name="SelectionBehaviorUp">0</token>
+			<bool name="SelectionGroup">false</bool>
+			<token name="SizingMode">0</token>
+			<int64 name="SourceAssetId">-1</int64>
+			<BinaryString name="Tags"></BinaryString>
+			<float name="ToolPunchThroughDistance">0</float>
+			<token name="ZIndexBehavior">0</token>
+			<float name="ZOffset">0</float>
+		</Properties>
+		<Item class="Frame" referent="RBX731226659C934ADFB7C0F14981058E97">
+			<Properties>
+				<bool name="Active">false</bool>
+				<Vector2 name="AnchorPoint">
+					<X>0.5</X>
+					<Y>0.5</Y>
+				</Vector2>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<bool name="AutoLocalize">true</bool>
+				<token name="AutomaticSize">0</token>
+				<Color3 name="BackgroundColor3">
+					<R>1</R>
+					<G>1</G>
+					<B>1</B>
+				</Color3>
+				<float name="BackgroundTransparency">0.899999976</float>
+				<Color3 name="BorderColor3">
+					<R>0.105882362</R>
+					<G>0.164705887</G>
+					<B>0.207843155</B>
+				</Color3>
+				<token name="BorderMode">0</token>
+				<int name="BorderSizePixel">1</int>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="ClipsDescendants">false</bool>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Draggable">false</bool>
+				<bool name="Interactable">true</bool>
+				<int name="LayoutOrder">0</int>
+				<string name="Name">Overlay</string>
+				<Ref name="NextSelectionDown">null</Ref>
+				<Ref name="NextSelectionLeft">null</Ref>
+				<Ref name="NextSelectionRight">null</Ref>
+				<Ref name="NextSelectionUp">null</Ref>
+				<UDim2 name="Position">
+					<XS>0.5</XS>
+					<XO>0</XO>
+					<YS>0.5</YS>
+					<YO>0</YO>
+				</UDim2>
+				<Ref name="RootLocalizationTable">null</Ref>
+				<float name="Rotation">0</float>
+				<bool name="Selectable">false</bool>
+				<token name="SelectionBehaviorDown">0</token>
+				<token name="SelectionBehaviorLeft">0</token>
+				<token name="SelectionBehaviorRight">0</token>
+				<token name="SelectionBehaviorUp">0</token>
+				<bool name="SelectionGroup">false</bool>
+				<Ref name="SelectionImageObject">null</Ref>
+				<int name="SelectionOrder">0</int>
+				<UDim2 name="Size">
+					<XS>1</XS>
+					<XO>0</XO>
+					<YS>1</YS>
+					<YO>0</YO>
+				</UDim2>
+				<token name="SizeConstraint">0</token>
+				<int64 name="SourceAssetId">-1</int64>
+				<token name="Style">0</token>
+				<BinaryString name="Tags"></BinaryString>
+				<bool name="Visible">true</bool>
+				<int name="ZIndex">1</int>
+			</Properties>
+		</Item>
+		<Item class="ViewportFrame" referent="RBXA0D5D0E8BCC6491A9E22BA32764E6A4E">
+			<Properties>
+				<bool name="Active">false</bool>
+				<Color3 name="Ambient">
+					<R>0.784313738</R>
+					<G>0.784313738</G>
+					<B>0.784313738</B>
+				</Color3>
+				<Vector2 name="AnchorPoint">
+					<X>0</X>
+					<Y>0</Y>
+				</Vector2>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<bool name="AutoLocalize">true</bool>
+				<token name="AutomaticSize">0</token>
+				<Color3 name="BackgroundColor3">
+					<R>0.513725519</R>
+					<G>0.764705956</G>
+					<B>0.933333397</B>
+				</Color3>
+				<float name="BackgroundTransparency">0</float>
+				<Color3 name="BorderColor3">
+					<R>0.105882362</R>
+					<G>0.164705887</G>
+					<B>0.207843155</B>
+				</Color3>
+				<token name="BorderMode">0</token>
+				<int name="BorderSizePixel">0</int>
+				<CoordinateFrame name="CameraCFrame">
+					<X>0</X>
+					<Y>0</Y>
+					<Z>0</Z>
+					<R00>1</R00>
+					<R01>0</R01>
+					<R02>0</R02>
+					<R10>0</R10>
+					<R11>1</R11>
+					<R12>0</R12>
+					<R20>0</R20>
+					<R21>0</R21>
+					<R22>1</R22>
+				</CoordinateFrame>
+				<float name="CameraFieldOfView">70</float>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="ClipsDescendants">false</bool>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Draggable">false</bool>
+				<Color3 name="ImageColor3">
+					<R>1</R>
+					<G>1</G>
+					<B>1</B>
+				</Color3>
+				<float name="ImageTransparency">0</float>
+				<bool name="Interactable">true</bool>
+				<int name="LayoutOrder">0</int>
+				<Color3 name="LightColor">
+					<R>0.549019635</R>
+					<G>0.549019635</G>
+					<B>0.549019635</B>
+				</Color3>
+				<Vector3 name="LightDirection">
+					<X>-1</X>
+					<Y>-1</Y>
+					<Z>-1</Z>
+				</Vector3>
+				<string name="Name">ViewportFrame</string>
+				<Ref name="NextSelectionDown">null</Ref>
+				<Ref name="NextSelectionLeft">null</Ref>
+				<Ref name="NextSelectionRight">null</Ref>
+				<Ref name="NextSelectionUp">null</Ref>
+				<UDim2 name="Position">
+					<XS>0</XS>
+					<XO>0</XO>
+					<YS>0</YS>
+					<YO>0</YO>
+				</UDim2>
+				<Ref name="RootLocalizationTable">null</Ref>
+				<float name="Rotation">0</float>
+				<bool name="Selectable">false</bool>
+				<token name="SelectionBehaviorDown">0</token>
+				<token name="SelectionBehaviorLeft">0</token>
+				<token name="SelectionBehaviorRight">0</token>
+				<token name="SelectionBehaviorUp">0</token>
+				<bool name="SelectionGroup">false</bool>
+				<Ref name="SelectionImageObject">null</Ref>
+				<int name="SelectionOrder">0</int>
+				<UDim2 name="Size">
+					<XS>1</XS>
+					<XO>0</XO>
+					<YS>1</YS>
+					<YO>0</YO>
+				</UDim2>
+				<token name="SizeConstraint">0</token>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+				<bool name="Visible">true</bool>
+				<int name="ZIndex">0</int>
+			</Properties>
+		</Item>
+		<Item class="LocalScript" referent="RBX77173B7C42C34F9EB57CA80FCC9358D2">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">CameraController</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{0E8029B3-4B6D-4B4C-97B2-09EA9D2E2AE5}</string>
+				<ProtectedString name="Source"><![CDATA[--Script Edit by Dragonfire1710
+--Credits to boatbomber for the ViewportFrame Handler
+
+
+workspace:WaitForChild("Mirror")
+local ViewportHandler = require(script.ViewportHandler)
+
+local Frame = script.Parent.ViewportFrame
+wait(1)
+local c = Instance.new("Camera")
+	c.CFrame = workspace.Mirror.Part.Cam1.CFrame
+	Frame.CurrentCamera = c
+
+local VF_Handler = ViewportHandler.new(Frame)
+
+-- Render the map at 0FPS (static since we know it doesn't change)
+
+	--for i,d in pairs(workspace.Map:GetDescendants()) do
+--		if d:IsA("BasePart") then
+	--		local mapObj_Handler = VF_Handler:RenderObject(d)
+	--	end
+--	end
+
+-- Render other objects at medium FPS
+
+	for i,d in pairs(workspace:GetDescendants()) do
+		if d.Name ~= "Terrain" and game.Players:FindFirstChild(d.Parent.Name) == nil and game.Players:FindFirstChild(d.Name) == nil and d.Parent.Name ~= "Mirror" then
+		if d:IsA("BasePart") then
+			local ball_Handler = VF_Handler:RenderObject(d, 30)			
+		end
+		end
+	end
+
+-- Render players (Will run at max FPS)
+
+	-- initial players
+	for i,plr in pairs(game.Players:GetPlayers()) do
+		local plr_Handler = VF_Handler:RenderHumanoid(plr.Character or plr.CharacterAdded:Wait())
+	end
+	
+	-- joining players
+	game.Players.PlayerAdded:Connect(function(plr)
+		local plr_Handler = VF_Handler:RenderHumanoid(plr.Character or plr.CharacterAdded:Wait())
+	end)
+
+-- Put us by the screen so we can see it's working
+--local c = game.Players.LocalPlayer.Character or game.game.Players.LocalPlayer.CharacterAdded:Wait()
+--c.HumanoidRootPart.CFrame = CFrame.new(workspace.Screen.Position+Vector3.new(5,0,0))]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+			<Item class="ModuleScript" referent="RBXED1524DAA45A4120BA684C8F74EB71AB">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<Content name="LinkedSource"><null></null></Content>
+					<string name="Name">ViewportHandler</string>
+					<string name="ScriptGuid">{408E3D39-5ECC-4967-B962-AFCF1C433A62}</string>
+					<ProtectedString name="Source"><![CDATA[local RS, HTTP = game:GetService("RunService"), game:GetService("HttpService")
+
+--Prefab stateless humanoid (used to wrap clothes)
+local StatelessHumanoid = Instance.new("Humanoid")
+	StatelessHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,true);StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
+	StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Running,false);StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
+	StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,false);StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,false)
+	StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,false);StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,false)
+	StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false);StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,false)
+	StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,false);StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,false)
+	StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Dead,false);StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
+	StatelessHumanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,false)
+
+--Define valids
+local ValidChildren		= {
+	Decal = true; Texture = true; SpecialMesh = true;
+}
+local ValidProperties	= {
+	Color = true; Material = true; Reflectance = true; Transparency = true; Shape = true; Size = true;
+	BackSurface = true; BottomSurface = true; FrontSurface = true; LeftSurface = true; RightSurface = true; TopSurface = true;
+}
+
+--Don't want scripts or welds in our clone object
+local function ClearInvalidChildren(Object)
+	local Children = Object:GetChildren()
+	
+	for i=1, #Children do
+		local c = Children[i]
+		
+		if not ValidChildren[c.ClassName] then
+			c:Destroy()
+		end
+	end
+	
+	return Object
+end
+
+local ObjectHandler = {}
+ObjectHandler.__index = ObjectHandler
+
+function ObjectHandler.new(Handler, Object,ObjectClone,FPS)
+	
+	local objHandler = {}
+	
+	objHandler.Enabled		= FPS and true or false
+	objHandler.Handler		= Handler
+	objHandler.Object		= Object
+	objHandler.ObjectClone	= ObjectClone
+	objHandler.WaitTime		= FPS and 1/math.clamp(FPS,0,9999) or 0.033333333333333
+	objHandler.LastUpdate	= 0
+	objHandler.ObjectID		= HTTP:GenerateGUID(false)
+	objHandler.Showing		= true
+	objHandler.Running		= true
+	
+	
+	setmetatable(objHandler, ObjectHandler)
+	
+	if FPS and FPS>0 then
+		Handler.ObjectsRenderQueue[objHandler.ObjectID] = objHandler
+	end
+	
+	return objHandler
+end
+
+function ObjectHandler:Destroy()
+	self.Handler.ObjectsRenderQueue[self.ObjectID] = nil
+	self.ObjectClone:Destroy()
+end
+
+function ObjectHandler:SetFPS(NewFPS)
+	if NewFPS and type(NewFPS) == "number" then		
+		self.WaitTime = 1/math.clamp(NewFPS,0,9999)
+		
+		if NewFPS>0 then
+			self.Handler.ObjectsRenderQueue[self.ObjectID] = self
+		else
+			self.Handler.ObjectsRenderQueue[self.ObjectID] = nil
+		end
+	end
+end
+
+function ObjectHandler:Pause()
+	self.Enabled = false
+	self.Running = false
+end
+
+function ObjectHandler:Resume()
+	self.Enabled = self.Showing
+	self.Running = true
+end
+
+function ObjectHandler:Hide()
+	self.Enabled = false
+	self.ObjectClone.Transparency =1
+	self.Showing = false
+end
+
+function ObjectHandler:Show()	
+	self.Enabled = self.Running
+	self.ObjectClone.Transparency = self.Object.Transparency
+	self.Showing = true
+end
+
+function ObjectHandler:Refresh()
+	if self.Enabled then return end
+	
+	self.ObjectClone.CFrame = self.Object.CFrame
+	
+	for prop,_ in pairs(ValidProperties) do
+		self.ObjectClone[prop] = self.Object[prop]
+	end
+	
+end
+
+
+
+local ViewportHandler = {}
+ViewportHandler.__index = ViewportHandler
+
+function ViewportHandler.new(Frame)
+	
+	--Sanity checks
+	if not Frame or not (typeof(Frame) == "Instance" and Frame:IsA("ViewportFrame")) then warn("Invalid ViewportFrame") return end
+	
+	local Handler = {
+		HandlerID = HTTP:GenerateGUID(false);
+		Frame = Frame;
+		ObjectsRenderQueue = {};
+	}
+	
+	setmetatable(Handler, ViewportHandler)
+	
+	RS:BindToRenderStep("VH-"..Handler.HandlerID, Enum.RenderPriority.Camera.Value+1, function(Delta)
+		for ObjectID, ObjectInfo in pairs(Handler.ObjectsRenderQueue) do
+			local Object,ObjectClone,WaitTime = ObjectInfo.Object,ObjectInfo.ObjectClone,ObjectInfo.WaitTime
+			
+			if Object and Object.Parent then
+				
+				ObjectInfo.LastUpdate = ObjectInfo.LastUpdate + Delta
+							
+				if ObjectInfo.Enabled and Object.CFrame ~= ObjectClone.CFrame and ObjectInfo.LastUpdate >= WaitTime then
+					--If it has moved and FPS time has passed, then update
+					ObjectInfo.LastUpdate = 0
+					ObjectClone.CFrame = Object.CFrame
+				end
+			else
+				ObjectInfo:Destroy()
+			end
+		end
+	end)
+	
+	return Handler
+end
+
+
+function ViewportHandler:RenderObject(Object, FPS, Parent)
+	
+	--Sanity checks
+	if not Object or not (typeof(Object) == "Instance" and Object:IsA("BasePart")) then warn("Invalid Object") return end
+	
+	--Create clone for viewport
+	local ObjectClone = ClearInvalidChildren(Object:Clone())
+	
+	--Create handler
+	local objHandler = ObjectHandler.new(self, Object,ObjectClone,FPS)
+	
+	--Auto update visual properties
+	Object.Changed:Connect(function(Property)
+		if objHandler.Enabled and ValidProperties[Property] then
+			ObjectClone[Property] = Object[Property]
+		end
+	end)
+	
+	
+	
+	--Display
+	ObjectClone.Parent = Parent or self.Frame
+	
+	return objHandler
+end
+
+
+function ViewportHandler:RenderHumanoid(Character, Parent)
+	
+	--Sanity checks
+	if not Character or not (typeof(Character) == "Instance" and Character:IsA("Model")) then warn("Invalid Humanoid") return end
+	if not Character:FindFirstChildOfClass("Humanoid",true) then warn("Invalid Humanoid") return end
+	
+	
+	local humHandler = {
+		ObjHandlers = {}
+	}
+	
+	local CharacterClone = Instance.new("Model")
+		CharacterClone.Name = Character.Name
+		
+	local Descendants	= Character:GetDescendants()
+	for i=1, #Descendants do
+		local d = Descendants[i]
+		
+		if d:IsA("BasePart") then
+			humHandler.ObjHandlers[#humHandler.ObjHandlers+1] = self:RenderObject(d,99,CharacterClone)
+		end
+	end
+	
+	local Shirt,Pants = Character:FindFirstChildOfClass("Shirt"),Character:FindFirstChildOfClass("Pants")
+	
+	if Shirt then Shirt:Clone().Parent = CharacterClone end
+	if Pants then Pants:Clone().Parent = CharacterClone end
+	
+	
+	local Humanoid = StatelessHumanoid:Clone()
+		Humanoid.RigType = Character:FindFirstChildOfClass("Humanoid",true).RigType
+		Humanoid.Parent = CharacterClone
+	
+	CharacterClone.Parent = Parent or self.Frame
+	
+	
+	
+	function humHandler:Destroy()
+		for i=1, #self.ObjHandlers do
+			self.ObjHandlers[i]:Destroy()
+		end
+		CharacterClone:Destroy()
+	end
+	
+	return humHandler
+end
+
+function ViewportHandler:Destroy()
+	RS:UnbindFromRenderStep("VH-"..self.HandlerID)
+	
+	for ObjectID, ObjectInfo in pairs(self.ObjectsRenderQueue) do
+		if ObjectInfo.ObjectClone then
+			ObjectInfo.ObjectClone:Destroy()
+		end
+	end
+	
+	self.ObjectsRenderQueue = nil
+	self.Frame = nil
+end
+
+return ViewportHandler
+]]></ProtectedString>
+					<int64 name="SourceAssetId">-1</int64>
+					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+			</Item>
+		</Item>
+	</Item>
+</roblox>

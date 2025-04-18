@@ -6,7 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Get the CoreRegistry and dependencies
-local CoreRegistry = require(script.Parent.CoreRegistry)
+local CoreRegistry = require(game:GetService("ServerScriptService").Core.CoreRegistry)
 local EventBridge = CoreRegistry.getSystem("EventBridge")
 local DataManager = CoreRegistry.getSystem("DataManager") 
 local TycoonSystem = CoreRegistry.getSystem("TycoonSystem")

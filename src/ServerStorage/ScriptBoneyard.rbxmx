@@ -1,0 +1,5481 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Folder" referent="RBXFBD4826497954877A4406D1B71DED2D1">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">ScriptBoneyard</string>
+			<int64 name="SourceAssetId">-1</int64>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+		<Item class="Script" referent="RBX1BE50EB172C143A3A9BA4FCD695409C4">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">DynamicNPCMovement</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{2A358727-C3C4-4F31-A6AF-BD183501C4F7}</string>
+				<ProtectedString name="Source"><![CDATA[-- DynamicNPCMovement.lua
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+-- List of NPC movement points
+local movementPoints = {
+	Vector3.new(0, 5, 0),
+	Vector3.new(10, 5, 0),
+	Vector3.new(-10, 5, 0)
+}
+
+-- Function to move an NPC to a random point
+local function moveNPC(npc)
+	local targetPoint = movementPoints[math.random(1, #movementPoints)]
+	local tweenInfo = TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+	local tween = TweenService:Create(npc, tweenInfo, {Position = targetPoint})
+	tween:Play()
+
+	-- Repeat movement after tween completes
+	tween.Completed:Connect(function()
+		moveNPC(npc)
+	end)
+end
+
+-- Apply movement to all NPCs
+for _, npc in pairs(Workspace:GetDescendants()) do
+	if npc.Name == "NPC" then
+		moveNPC(npc)
+	end
+end
+
+]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXCE8E8D34762A44378C04D14695495B33">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">FrontDeskBillboard</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{AFA6B30A-43AA-41B4-863F-A12FFCE27228}</string>
+				<ProtectedString name="Source"><![CDATA[-- FrontDeskBillboard.luau
+-- Place this in ServerScriptService
+-- This script will add a visible BillboardGui to your front desk
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Configuration
+local CONFIG = {
+	-- Billboard position
+	yOffset = 3,                      -- How high above the desk
+
+	-- Appearance
+	backgroundColor = Color3.new(0, 0, 0),
+	backgroundTransparency = 0.5,
+	textColor = Color3.fromRGB(255, 255, 0),  -- Yellow
+	borderRadius = 0.2,                       -- Corner rounding
+
+	-- Update frequency
+	updateInterval = 1,                       -- Update every 1 second
+
+	-- Debug
+	debug = true
+}
+
+-- Debug function
+local function print_debug(...)
+	if CONFIG.debug then
+		print("[FrontDeskBillboard]", ...)
+	end
+end
+
+print_debug("Starting Front Desk Billboard script")
+
+-- Function to find front desk for a player
+local function findFrontDesk(player)
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return nil end
+
+	-- SEARCH IN TYCOON FIRST
+	-- Look for common front desk names directly in tycoon
+	local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+	if frontDesk then 
+		print_debug("Found front desk directly in tycoon for " .. player.Name)
+		return frontDesk 
+	end
+
+	frontDesk = tycoon.Value:FindFirstChild("FrontDesk") 
+	if frontDesk then return frontDesk end
+
+	-- Look for "desk" in the name in tycoon
+	for _, child in pairs(tycoon.Value:GetDescendants()) do
+		if (child:IsA("Model") or child:IsA("BasePart")) and 
+			(string.lower(child.Name):find("desk") or string.lower(child.Name):find("counter")) then
+			print_debug("Found front desk by name search in tycoon for " .. player.Name)
+			return child
+		end
+	end
+
+	-- SEARCH IN WORKSPACE
+	-- Try to find in GymParts > 1st Floor > Furniture > Front Desk path in Workspace
+	local workspaceGymParts = workspace:FindFirstChild("GymParts")
+	if workspaceGymParts then
+		if workspaceGymParts:FindFirstChild("1st Floor") and 
+			workspaceGymParts:FindFirstChild("1st Floor"):FindFirstChild("Furniture") and
+			workspaceGymParts:FindFirstChild("1st Floor"):FindFirstChild("Furniture"):FindFirstChild("Front Desk") then
+			frontDesk = workspaceGymParts:FindFirstChild("1st Floor"):FindFirstChild("Furniture"):FindFirstChild("Front Desk")
+			print_debug("Found front desk in Workspace GymParts path for " .. player.Name)
+			return frontDesk
+		end
+
+		-- Look for desk in workspace GymParts
+		for _, child in pairs(workspaceGymParts:GetDescendants()) do
+			if (child:IsA("Model") or child:IsA("BasePart")) and 
+				(string.lower(child.Name):find("front desk") or string.lower(child.Name) == "frontdesk") then
+				print_debug("Found front desk by name search in Workspace GymParts for " .. player.Name)
+				return child
+			end
+		end
+	end
+
+	-- SEARCH IN SERVERSTORAGE
+	-- Look in ServerStorage GymParts > 1st Floor > Furniture > Front Desk
+	local serverStorage = game:GetService("ServerStorage")
+	local ssGymParts = serverStorage:FindFirstChild("GymParts")
+
+	if ssGymParts then
+		if ssGymParts:FindFirstChild("1st Floor") and 
+			ssGymParts:FindFirstChild("1st Floor"):FindFirstChild("Furniture") and
+			ssGymParts:FindFirstChild("1st Floor"):FindFirstChild("Furniture"):FindFirstChild("Front Desk") then
+			frontDesk = ssGymParts:FindFirstChild("1st Floor"):FindFirstChild("Furniture"):FindFirstChild("Front Desk")
+			print_debug("Found front desk in ServerStorage GymParts path for " .. player.Name)
+			return frontDesk
+		end
+
+		-- Look for desk in ServerStorage GymParts
+		for _, child in pairs(ssGymParts:GetDescendants()) do
+			if (child:IsA("Model") or child:IsA("BasePart")) and 
+				(string.lower(child.Name):find("front desk") or string.lower(child.Name) == "frontdesk") then
+				print_debug("Found front desk by name search in ServerStorage GymParts for " .. player.Name)
+				return child
+			end
+		end
+	end
+
+	print_debug("No front desk found for " .. player.Name)
+	return nil
+end
+
+-- Function to find the specific Part within a Front Desk model
+local function findDeskPart(frontDesk)
+	if not frontDesk then return nil end
+
+	-- If it's already a BasePart, return it
+	if frontDesk:IsA("BasePart") then 
+		return frontDesk
+	end
+
+	-- If it's a model, look for a part specifically named "Part"
+	if frontDesk:IsA("Model") then
+		local specificPart = frontDesk:FindFirstChild("Part")
+		if specificPart and specificPart:IsA("BasePart") then
+			print_debug("Found specific 'Part' in front desk model")
+			return specificPart
+		end
+
+		-- Check if it has a primary part
+		if frontDesk.PrimaryPart then
+			print_debug("Using primary part of front desk model")
+			return frontDesk.PrimaryPart
+		end
+
+		-- Otherwise, find the first BasePart
+		for _, part in pairs(frontDesk:GetDescendants()) do
+			if part:IsA("BasePart") then
+				print_debug("Using first BasePart found in front desk model")
+				return part
+			end
+		end
+	end
+
+	-- If nothing found, return the original object
+	print_debug("No suitable part found in front desk, using original object")
+	return frontDesk
+end
+
+-- Function to create or update the billboard
+local function createOrUpdateBillboard(frontDesk, player)
+	if not frontDesk or not player then return end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return end
+
+	local deskPart = findDeskPart(frontDesk)
+
+	-- Create billboard if it doesn't exist
+	local billboard = frontDesk:FindFirstChild("DuesBillboardGui")
+	if not billboard then
+		print_debug("Creating new billboard for " .. player.Name)
+
+		billboard = Instance.new("BillboardGui")
+		billboard.Name = "DuesBillboardGui"
+		billboard.Size = UDim2.new(0, 200, 0, 50)
+		billboard.StudsOffset = Vector3.new(0, CONFIG.yOffset, 0)
+		billboard.Adornee = deskPart
+		billboard.AlwaysOnTop = true
+		billboard.Parent = frontDesk
+
+		-- Create background frame
+		local frame = Instance.new("Frame")
+		frame.Name = "Background"
+		frame.Size = UDim2.new(1, 0, 1, 0)
+		frame.BackgroundColor3 = CONFIG.backgroundColor
+		frame.BackgroundTransparency = CONFIG.backgroundTransparency
+		frame.BorderSizePixel = 0
+		frame.Parent = billboard
+
+		-- Add rounded corners
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(CONFIG.borderRadius, 0)
+		corner.Parent = frame
+
+		-- Create text label
+		local label = Instance.new("TextLabel")
+		label.Name = "DuesLabel"
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = CONFIG.textColor
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBold
+		label.Text = "Dues: $0"
+		label.Parent = frame
+	end
+
+	-- Update the label with current dues
+	local dues = tycoon:GetAttribute("AccruedDues") or 0
+	local label = billboard.Background:FindFirstChild("DuesLabel")
+	if label then
+		label.Text = "Dues: $" .. math.floor(dues)
+	end
+end
+
+-- Function to find and update all front desks
+local function updateAllBillboards()
+	for _, player in pairs(Players:GetPlayers()) do
+		pcall(function()
+			local frontDesk = findFrontDesk(player)
+			if frontDesk then
+				createOrUpdateBillboard(frontDesk, player)
+			else
+				print_debug("No front desk found for " .. player.Name)
+			end
+		end)
+	end
+end
+
+-- Monitor for when front desks are created
+workspace.DescendantAdded:Connect(function(descendant)
+	if (descendant.Name == "Front Desk" or descendant.Name == "FrontDesk" or
+		(descendant:IsA("BasePart") and string.lower(descendant.Name):find("desk"))) then
+
+		wait(1) -- Wait for tycoon to be set up
+
+		-- Find which player this desk belongs to
+		for _, player in pairs(Players:GetPlayers()) do
+			local tycoon = player:FindFirstChild("Tycoon")
+			if tycoon and tycoon.Value and descendant:IsDescendantOf(tycoon.Value) then
+				print_debug("New front desk found for " .. player.Name)
+				createOrUpdateBillboard(descendant, player)
+				break
+			end
+		end
+	end
+end)
+
+-- Watch for when AccruedDues changes
+local function setupDuesMonitoring(player)
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return end
+
+	-- Monitor for attribute changes
+	tycoon.AttributeChanged:Connect(function(attributeName)
+		if attributeName == "AccruedDues" then
+			local frontDesk = findFrontDesk(player)
+			if frontDesk then
+				createOrUpdateBillboard(frontDesk, player)
+			end
+		end
+	end)
+end
+
+-- Set up for existing players
+for _, player in pairs(Players:GetPlayers()) do
+	setupDuesMonitoring(player)
+end
+
+-- Set up for new players
+Players.PlayerAdded:Connect(function(player)
+	wait(3) -- Wait for player to load
+	setupDuesMonitoring(player)
+end)
+
+-- Start update loop
+spawn(function()
+	while true do
+		wait(CONFIG.updateInterval)
+		updateAllBillboards()
+	end
+end)
+
+print_debug("Front Desk Billboard script running")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXFB8A5E2BBD3644AC8CD852C1AB9D0A52">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">FrontDeskBillboardCreator</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{F6C81A14-1295-4508-B17D-FDF2B0EA91DA}</string>
+				<ProtectedString name="Source"><![CDATA[-- This script should be placed in ServerScriptService
+-- It watches for gym parts with ID 1 and adds the appropriate BillboardGui
+
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+
+-- Function to create the BillboardGui for Front Desk
+local function createBillboardGui(frontDesk, playerName)
+	-- Remove any existing BillboardGui
+	local existingBillboard = frontDesk:FindFirstChild("BillboardGui")
+	if existingBillboard then
+		existingBillboard:Destroy()
+	end
+
+	-- Create new BillboardGui
+	local billboardGui = Instance.new("BillboardGui")
+	billboardGui.Name = "BillboardGui"
+	billboardGui.Size = UDim2.new(5, 0, 3, 0)
+	billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+	billboardGui.AlwaysOnTop = true
+	billboardGui.Parent = frontDesk
+
+	-- Create Frame
+	local frame = Instance.new("Frame")
+	frame.Name = "Frame"
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundTransparency = 0.5
+	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	frame.BorderSizePixel = 0
+	frame.Parent = billboardGui
+
+	-- Create TextLabel for Owner Name
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "NameLabel"
+	nameLabel.Size = UDim2.new(1, 0, 0.4, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextScaled = true
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.Text = playerName .. "'s Gym"
+	nameLabel.Parent = frame
+
+	-- Create TextLabel for Accrued Dues
+	local duesLabel = Instance.new("TextLabel")
+	duesLabel.Name = "DuesLabel"
+	duesLabel.Position = UDim2.new(0, 0, 0.4, 0)
+	duesLabel.Size = UDim2.new(1, 0, 0.4, 0)
+	duesLabel.BackgroundTransparency = 1
+	duesLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+	duesLabel.TextScaled = true
+	duesLabel.Font = Enum.Font.GothamBold
+	duesLabel.Text = "Membership Dues: $0"
+	duesLabel.Parent = frame
+
+	-- Create TextLabel for instruction
+	local instructionLabel = Instance.new("TextLabel")
+	instructionLabel.Name = "InstructionLabel"
+	instructionLabel.Position = UDim2.new(0, 0, 0.8, 0)
+	instructionLabel.Size = UDim2.new(1, 0, 0.2, 0)
+	instructionLabel.BackgroundTransparency = 1
+	instructionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	instructionLabel.TextScaled = true
+	instructionLabel.Font = Enum.Font.Gotham
+	instructionLabel.Text = "[E] Collect Dues"
+	instructionLabel.Parent = frame
+
+	-- Add ProximityPrompt for collection
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "CollectionPrompt"
+	prompt.ActionText = "Collect Membership Dues"
+	prompt.ObjectText = playerName .. "'s Gym"
+	prompt.HoldDuration = 0.5
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = frontDesk
+
+	-- Connect to the Triggered event
+	prompt.Triggered:Connect(function(triggerPlayer)
+		-- Find the owner of this gym
+		local owner = nil
+		for _, player in pairs(Players:GetPlayers()) do
+			local tycoon = player:FindFirstChild("Tycoon")
+			if tycoon and tycoon.Value then
+				if tycoon.Value:FindFirstChild("Front Desk") == frontDesk then
+					owner = player
+					break
+				end
+			end
+		end
+
+		if not owner or triggerPlayer ~= owner then return end -- Only the owner can collect
+
+		local tycoon = owner:FindFirstChild("Tycoon")
+		if tycoon then
+			local accrued = tycoon:GetAttribute("AccruedDues") or 0
+			if accrued > 0 then
+				-- Add to player's cash
+				local leaderstats = owner:FindFirstChild("leaderstats")
+				if leaderstats and leaderstats:FindFirstChild("Cash") then
+					leaderstats.Cash.Value = leaderstats.Cash.Value + accrued
+
+					-- Reset accrued dues
+					tycoon:SetAttribute("AccruedDues", 0)
+
+					-- Play collection sound
+					local sound = Instance.new("Sound")
+					sound.SoundId = "rbxassetid://142472270" -- Cash register sound
+					sound.Volume = 1
+					sound.Parent = frontDesk
+					sound:Play()
+					game:GetService("Debris"):AddItem(sound, 3)
+
+					-- Update billboard GUI
+					local billboardGui = frontDesk:FindFirstChild("BillboardGui")
+					if billboardGui and billboardGui:FindFirstChild("Frame") then
+						local duesLabel = billboardGui.Frame:FindFirstChild("DuesLabel")
+						if duesLabel then
+							duesLabel.Text = "Membership Dues: $0"
+						end
+					end
+
+					-- Show message to player
+					local message = Instance.new("Message")
+					message.Text = "Collected $" .. accrued .. " in membership dues!"
+					message.Parent = owner
+					game:GetService("Debris"):AddItem(message, 3)
+
+					print("👍 " .. owner.Name .. " collected $" .. tostring(accrued) .. " from membership fees.")
+				end
+			else
+				-- Notify player that there are no dues to collect
+				local message = Instance.new("Message")
+				message.Text = "No membership dues to collect yet!"
+				message.Parent = owner
+				game:GetService("Debris"):AddItem(message, 3)
+			end
+		end
+	end)
+
+	print("✅ Added BillboardGui to " .. playerName .. "'s Front Desk")
+
+	return billboardGui
+end
+
+-- Function to find owner of a tycoon or front desk
+local function findOwnerOfTycoon(model)
+	for _, player in pairs(Players:GetPlayers()) do
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon and tycoon.Value == model then
+			return player
+		end
+	end
+
+	return nil
+end
+
+-- Function to find the nearest player to a position
+local function findNearestPlayer(position)
+	local nearestPlayer = nil
+	local nearestDistance = math.huge
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local distance = (player.Character.HumanoidRootPart.Position - position).Magnitude
+			if distance < nearestDistance then
+				nearestPlayer = player
+				nearestDistance = distance
+			end
+		end
+	end
+
+	-- Only return if reasonably close (within 50 studs)
+	if nearestDistance <= 50 then
+		return nearestPlayer
+	end
+
+	return nil
+end
+
+-- Set up a watcher for the first gym part (ID = 1)
+local function watchForFirstGymPart()
+	Workspace.ChildAdded:Connect(function(child)
+		-- Wait a moment for the model to fully load
+		task.wait(0.5)
+
+		-- Check if this is a gym part with ID = 1
+		if child:IsA("Model") and child:GetAttribute("ID") == 1 then
+			print("🏋️ First gym equipment spotted! ID: " .. child:GetAttribute("ID"))
+
+			-- Front desk typically appears after the first gym part
+			task.wait(1)
+
+			-- Look for a front desk that may have been created
+			local frontDesk = Workspace:FindFirstChild("Front Desk")
+			if not frontDesk then
+				-- Try to find front desk in tycoons folder
+				local tycoonsFolder = Workspace:FindFirstChild("Tycoons")
+				if tycoonsFolder then
+					for _, tycoon in pairs(tycoonsFolder:GetChildren()) do
+						frontDesk = tycoon:FindFirstChild("Front Desk")
+						if frontDesk then
+							print("🔍 Found Front Desk in tycoon: " .. tycoon.Name)
+							break
+						end
+					end
+				end
+
+				-- If still not found, search the entire workspace
+				if not frontDesk then
+					for _, obj in pairs(Workspace:GetDescendants()) do
+						if obj.Name == "Front Desk" and obj:IsA("Model") then
+							frontDesk = obj
+							print("🔍 Found Front Desk in workspace: " .. obj:GetFullName())
+							break
+						end
+					end
+				end
+			end
+
+			if frontDesk then
+				-- Find the owner
+				local owner = findOwnerOfTycoon(frontDesk.Parent)
+
+				-- If can't find by tycoon reference, use nearest player
+				if not owner then
+					owner = findNearestPlayer(child:GetPivot().Position)
+				end
+
+				if owner then
+					print("👤 Found owner of front desk: " .. owner.Name)
+
+					-- Create the billboard GUI
+					createBillboardGui(frontDesk, owner.Name)
+
+					-- Set up a loop to update the dues display
+					task.spawn(function()
+						while frontDesk and frontDesk.Parent do
+							task.wait(1) -- Update every second
+
+							if not owner or not owner:FindFirstChild("Tycoon") then
+								break -- Stop updating if player or tycoon is gone
+							end
+
+							local currentDues = owner.Tycoon:GetAttribute("AccruedDues") or 0
+
+							local billboardGui = frontDesk:FindFirstChild("BillboardGui")
+							if billboardGui and billboardGui:FindFirstChild("Frame") then
+								local duesLabel = billboardGui.Frame:FindFirstChild("DuesLabel")
+								if duesLabel then
+									duesLabel.Text = "Membership Dues: $" .. currentDues
+								end
+							end
+						end
+					end)
+				else
+					print("❌ Could not find owner of Front Desk")
+				end
+			else
+				print("❌ Could not find Front Desk after first gym part appeared")
+			end
+		end
+	end)
+
+	-- Also watch for front desks directly
+	Workspace.ChildAdded:Connect(function(child)
+		if child.Name == "Front Desk" and child:IsA("Model") then
+			print("🏢 Front Desk added directly to workspace")
+
+			-- Wait a moment for any other setup
+			task.wait(0.5)
+
+			-- Find the closest player
+			local owner = findNearestPlayer(child:GetPivot().Position)
+			if owner then
+				print("👤 Found nearest player to front desk: " .. owner.Name)
+				createBillboardGui(child, owner.Name)
+
+				-- Set up a loop to update the dues display
+				task.spawn(function()
+					while child and child.Parent do
+						task.wait(1) -- Update every second
+
+						if not owner or not owner:FindFirstChild("Tycoon") then
+							break -- Stop updating if player or tycoon is gone
+						end
+
+						local currentDues = owner.Tycoon:GetAttribute("AccruedDues") or 0
+
+						local billboardGui = child:FindFirstChild("BillboardGui")
+						if billboardGui and billboardGui:FindFirstChild("Frame") then
+							local duesLabel = billboardGui.Frame:FindFirstChild("DuesLabel")
+							if duesLabel then
+								duesLabel.Text = "Membership Dues: $" .. currentDues
+							end
+						end
+					end
+				end)
+			else
+				print("❌ Could not find owner of Front Desk")
+			end
+		end
+	end)
+
+	-- Check for any existing gym parts or front desks
+	for _, child in pairs(Workspace:GetDescendants()) do
+		if child:IsA("Model") and child:GetAttribute("ID") == 1 then
+			print("🏋️ Found existing first gym equipment")
+
+			-- Find front desk
+			local frontDesk = Workspace:FindFirstChild("Front Desk")
+			if not frontDesk then
+				for _, obj in pairs(Workspace:GetDescendants()) do
+					if obj.Name == "Front Desk" and obj:IsA("Model") then
+						frontDesk = obj
+						print("🔍 Found existing Front Desk: " .. obj:GetFullName())
+						break
+					end
+				end
+			end
+
+			if frontDesk then
+				-- Find the owner
+				local owner = findOwnerOfTycoon(frontDesk.Parent)
+
+				-- If can't find by tycoon reference, use nearest player
+				if not owner then
+					owner = findNearestPlayer(child:GetPivot().Position)
+				end
+
+				if owner then
+					print("👤 Found owner of existing front desk: " .. owner.Name)
+					createBillboardGui(frontDesk, owner.Name)
+
+					-- Set up a loop to update the dues display
+					task.spawn(function()
+						while frontDesk and frontDesk.Parent do
+							task.wait(1) -- Update every second
+
+							if not owner or not owner:FindFirstChild("Tycoon") then
+								break -- Stop updating if player or tycoon is gone
+							end
+
+							local currentDues = owner.Tycoon:GetAttribute("AccruedDues") or 0
+
+							local billboardGui = frontDesk:FindFirstChild("BillboardGui")
+							if billboardGui and billboardGui:FindFirstChild("Frame") then
+								local duesLabel = billboardGui.Frame:FindFirstChild("DuesLabel")
+								if duesLabel then
+									duesLabel.Text = "Membership Dues: $" .. currentDues
+								end
+							end
+						end
+					end)
+				end
+			end
+
+			break
+		end
+	end
+end
+
+-- Start watching for the first gym part and front desk
+watchForFirstGymPart()
+
+print("🔍 Front Desk Billboard GUI Creator initialized")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXBC51B66265A14C0C871AD86F80C6B13E">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">GymEconomyProgressionSystem</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{C3252B5B-57FE-495F-A552-16E93D2DF07D}</string>
+				<ProtectedString name="Source"><![CDATA[-- Gym Economy Progression System
+-- This script handles the income scaling as players buy more tiles
+-- Place in ServerScriptService
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Configuration values
+local ECONOMY_CONFIG = {
+	-- Base income settings
+	baseIncomeAmount = 15,             -- Starting income per interval
+	incomeInterval = 20,              -- How often income is generated (seconds)
+
+	-- Progression multipliers
+	equipmentIncomeMultiplier = 1.5,  -- How much each equipment boosts income
+	npcIncomeAmount = 15,             -- How much each NPC generates
+	gymTierThreshold = 5,             -- Equipment count for tier increase
+	tierMultiplier = 1.2,             -- Income boost per gym tier
+
+	-- Special events
+	specialEventChance = 0.05,        -- Chance of special event per interval
+	specialEventMultiplier = 2,       -- Income boost during special events
+	specialEventDuration = 300,       -- Duration of special events (seconds)
+
+	-- Time-based progression
+	playTimeBonus = 0.001,            -- Additional income per minute played (0.1%)
+	maxPlayTimeBonus = 0.5,           -- Maximum bonus from play time (50%)
+
+	-- Rebirth mechanics
+	rebirthCost = 100000,             -- Cost to rebirth
+	rebirthBonus = 0.25,              -- Income multiplier after rebirth (25% increase)
+}
+
+-- Create a Folder for the economy system
+local economySystem = ReplicatedStorage:FindFirstChild("GymEconomySystem")
+if not economySystem then
+	economySystem = Instance.new("Folder")
+	economySystem.Name = "GymEconomySystem"
+	economySystem.Parent = ReplicatedStorage
+	print("Created GymEconomySystem folder in ReplicatedStorage")
+end
+
+-- Active special events
+local activeSpecialEvent = nil
+local specialEventEndTime = 0
+
+-- Player session times
+local playerSessionTimes = {}
+
+-- Function to calculate a player's gym tier based on equipment
+local function calculateGymTier(player)
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return 1 end
+
+	local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+	return math.floor(equipmentCount / ECONOMY_CONFIG.gymTierThreshold) + 1
+end
+
+-- Function to calculate total income for a player
+local function calculatePlayerIncome(player)
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return ECONOMY_CONFIG.baseIncomeAmount end
+
+	-- Get base attributes
+	local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+	local gymTier = calculateGymTier(player)
+	local rebirthCount = tycoon:GetAttribute("RebirthCount") or 0
+
+	-- Base calculation
+	local baseIncome = ECONOMY_CONFIG.baseIncomeAmount
+
+	-- Equipment bonus
+	local equipmentBonus = equipmentCount * ECONOMY_CONFIG.equipmentIncomeMultiplier
+
+	-- NPC contribution
+	local npcIncome = 0
+	if tycoon.Value then
+		local npcsFolder = tycoon.Value:FindFirstChild("NPCs")
+		if npcsFolder then
+			for _, npc in pairs(npcsFolder:GetChildren()) do
+				local membershipFee = npc:GetAttribute("MembershipFee") or ECONOMY_CONFIG.npcIncomeAmount
+				npcIncome = npcIncome + membershipFee
+			end
+		end
+	end
+
+	-- Tier multiplier
+	local tierBonus = (baseIncome + equipmentBonus + npcIncome) * ((ECONOMY_CONFIG.tierMultiplier ^ (gymTier - 1)) - 1)
+
+	-- Playtime bonus
+	local playTimeMinutes = (playerSessionTimes[player.UserId] or 0) / 60
+	local playTimeMultiplier = math.min(
+		playTimeMinutes * ECONOMY_CONFIG.playTimeBonus, 
+		ECONOMY_CONFIG.maxPlayTimeBonus
+	)
+	local playTimeBonus = (baseIncome + equipmentBonus + npcIncome + tierBonus) * playTimeMultiplier
+
+	-- Rebirth bonus
+	local rebirthBonus = (baseIncome + equipmentBonus + npcIncome + tierBonus + playTimeBonus) * 
+		(rebirthCount * ECONOMY_CONFIG.rebirthBonus)
+
+	-- Calculate total income
+	local totalIncome = baseIncome + equipmentBonus + npcIncome + tierBonus + playTimeBonus + rebirthBonus
+
+	-- Apply special event bonus if active
+	if activeSpecialEvent and os.time() < specialEventEndTime then
+		totalIncome = totalIncome * ECONOMY_CONFIG.specialEventMultiplier
+	end
+
+	-- Round to nearest whole number
+	return math.floor(totalIncome)
+end
+
+-- Function to start a special event
+local function startSpecialEvent()
+	local eventTypes = {
+		{name = "Fitness Competition", duration = ECONOMY_CONFIG.specialEventDuration},
+		{name = "Celebrity Visit", duration = ECONOMY_CONFIG.specialEventDuration},
+		{name = "Membership Drive", duration = ECONOMY_CONFIG.specialEventDuration}
+	}
+
+	local event = eventTypes[math.random(1, #eventTypes)]
+	activeSpecialEvent = event.name
+	specialEventEndTime = os.time() + event.duration
+
+	print("SPECIAL EVENT: " .. event.name .. " has begun!")
+
+	-- Notify all players
+	for _, player in pairs(Players:GetPlayers()) do
+		local message = Instance.new("Message")
+		message.Text = "SPECIAL EVENT: " .. event.name .. "! All income doubled for a limited time!"
+		message.Parent = player
+		game:GetService("Debris"):AddItem(message, 5)
+	end
+
+	-- Schedule end notification
+	task.delay(event.duration, function()
+		activeSpecialEvent = nil
+		print("Special event has ended.")
+
+		for _, player in pairs(Players:GetPlayers()) do
+			local message = Instance.new("Message")
+			message.Text = "The special event has ended. Income returned to normal."
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 3)
+		end
+	end)
+end
+
+-- Function to handle rebirth for a player
+local function playerRebirth(player)
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return false end
+
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats or not leaderstats:FindFirstChild("Cash") then return false end
+
+	local cash = leaderstats.Cash
+
+	if cash.Value >= ECONOMY_CONFIG.rebirthCost then
+		-- Deduct the rebirth cost
+		cash.Value = cash.Value - ECONOMY_CONFIG.rebirthCost
+
+		-- Increment rebirth count
+		local currentRebirths = tycoon:GetAttribute("RebirthCount") or 0
+		tycoon:SetAttribute("RebirthCount", currentRebirths + 1)
+
+		-- Reset equipment count but keep the rebirth bonus
+		tycoon:SetAttribute("EquipmentCount", 0)
+
+		-- Notify the player
+		local message = Instance.new("Message")
+		message.Text = "Rebirth successful! You now earn " .. 
+			((currentRebirths + 1) * ECONOMY_CONFIG.rebirthBonus * 100) .. 
+			"% more income!"
+		message.Parent = player
+		game:GetService("Debris"):AddItem(message, 5)
+
+		print(player.Name .. " performed rebirth #" .. (currentRebirths + 1))
+		return true
+	else
+		-- Notify insufficient funds
+		local message = Instance.new("Message")
+		message.Text = "You need $" .. ECONOMY_CONFIG.rebirthCost .. " to rebirth!"
+		message.Parent = player
+		game:GetService("Debris"):AddItem(message, 3)
+		return false
+	end
+end
+
+-- Main income update loop
+local function startEconomyLoop()
+	while true do
+		task.wait(ECONOMY_CONFIG.incomeInterval)
+
+		-- Check for special event
+		if not activeSpecialEvent and math.random() < ECONOMY_CONFIG.specialEventChance then
+			startSpecialEvent()
+		end
+
+		-- Update income for all players
+		for _, player in pairs(Players:GetPlayers()) do
+			local tycoon = player:FindFirstChild("Tycoon")
+			if tycoon then
+				-- Check if player has started their tycoon
+				local hasStarted = economySystem:FindFirstChild(player.UserId .. "_GameStarted")
+				if not hasStarted then continue end
+
+				-- Update session time
+				playerSessionTimes[player.UserId] = (playerSessionTimes[player.UserId] or 0) + ECONOMY_CONFIG.incomeInterval
+
+				-- Calculate and add income
+				local income = calculatePlayerIncome(player)
+				local currentDues = tycoon:GetAttribute("AccruedDues") or 0
+
+				-- Update accrued dues
+				tycoon:SetAttribute("AccruedDues", currentDues + income)
+
+				-- Update attributes
+				local gymTier = calculateGymTier(player)
+				tycoon:SetAttribute("GymTier", gymTier)
+
+				print(player.Name .. " earned $" .. income .. " (Tier: " .. gymTier .. ")")
+
+				-- Create income indicator if front desk exists
+				if tycoon.Value then
+					local frontDesk = tycoon.Value:FindFirstChild("Front Desk")
+					if frontDesk then
+						-- Create income indicator
+						if income >= 10 then
+							local incomeIndicator = Instance.new("BillboardGui")
+							incomeIndicator.Name = "IncomeIndicator"
+							incomeIndicator.Size = UDim2.new(0, 100, 0, 50)
+							incomeIndicator.StudsOffset = Vector3.new(0, 5, 0)
+							incomeIndicator.Adornee = frontDesk
+							incomeIndicator.Parent = frontDesk
+
+							local incomeLabel = Instance.new("TextLabel")
+							incomeLabel.Size = UDim2.new(1, 0, 1, 0)
+							incomeLabel.BackgroundTransparency = 1
+							incomeLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+							incomeLabel.TextStrokeTransparency = 0
+							incomeLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+							incomeLabel.Font = Enum.Font.GothamBold
+							incomeLabel.TextScaled = true
+							incomeLabel.Text = "+$" .. income
+							incomeLabel.Parent = incomeIndicator
+
+							-- Animate the income indicator floating up
+							local startPos = incomeIndicator.StudsOffset
+							local endPos = startPos + Vector3.new(0, 3, 0)
+
+							for i = 1, 20 do
+								incomeIndicator.StudsOffset = startPos:Lerp(endPos, i/20)
+								incomeLabel.TextTransparency = i/20
+								incomeLabel.TextStrokeTransparency = i/20
+								task.wait(0.05)
+							end
+
+							incomeIndicator:Destroy()
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Function to handle when a player buys a tile
+local function onTilePurchased(player, tileId)
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then return end
+
+	-- Update equipment count
+	local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+	tycoon:SetAttribute("EquipmentCount", equipmentCount + 1)
+
+	-- Mark player as having started if this is their first purchase
+	if tileId == 1 then
+		local gameStarted = Instance.new("BoolValue")
+		gameStarted.Name = player.UserId .. "_GameStarted"
+		gameStarted.Value = true
+		gameStarted.Parent = economySystem
+		print("Marked " .. player.Name .. "'s tycoon as started in economy system")
+	end
+
+	print(player.Name .. " purchased tile #" .. tileId .. ", now has " .. (equipmentCount + 1) .. " equipment")
+end
+
+-- Set up player tracking
+Players.PlayerAdded:Connect(function(player)
+	-- Initialize tracking for this player
+	playerSessionTimes[player.UserId] = 0
+
+	-- Make sure player has a Tycoon value
+	if not player:FindFirstChild("Tycoon") then
+		local tycoon = Instance.new("ObjectValue")
+		tycoon.Name = "Tycoon"
+		tycoon.Parent = player
+	end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+
+	-- Initialize attributes if they don't exist
+	if not tycoon:GetAttribute("EquipmentCount") then
+		tycoon:SetAttribute("EquipmentCount", 0)
+	end
+
+	if not tycoon:GetAttribute("AccruedDues") then
+		tycoon:SetAttribute("AccruedDues", 0)
+	end
+
+	if not tycoon:GetAttribute("RebirthCount") then
+		tycoon:SetAttribute("RebirthCount", 0)
+	end
+
+	if not tycoon:GetAttribute("GymTier") then
+		tycoon:SetAttribute("GymTier", 1)
+	end
+
+	print("Initialized economy tracking for " .. player.Name)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	-- Clean up tracking data
+	playerSessionTimes[player.UserId] = nil
+end)
+
+-- Create a RemoteFunction for rebirth
+local rebirthFunction = ReplicatedStorage:FindFirstChild("RebirthFunction")
+if not rebirthFunction then
+	rebirthFunction = Instance.new("RemoteFunction")
+	rebirthFunction.Name = "RebirthFunction"
+	rebirthFunction.Parent = ReplicatedStorage
+end
+
+-- Connect rebirth function
+rebirthFunction.OnServerInvoke = playerRebirth
+
+-- Start the economy system
+task.spawn(startEconomyLoop)
+
+-- Return the module
+return {
+	onTilePurchased = onTilePurchased,
+	playerRebirth = playerRebirth,
+	calculatePlayerIncome = calculatePlayerIncome,
+	calculateGymTier = calculateGymTier
+}]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX40A70DA296F84133B3F9D414E0A15C52">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">NPCInteractions</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{8BF00E7B-A46F-4A6A-B67E-C482EA98DC54}</string>
+				<ProtectedString name="Source"><![CDATA[-- NPCInteractions.lua
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+-- List of NPC interactions
+local interactions = {
+	{npc1 = "NPC1", npc2 = "NPC2", dialogue = "Hello!"},
+	{npc1 = "NPC1", npc2 = "NPC3", dialogue = "How's it going?"}
+}
+
+-- Function to make NPCs interact
+local function interact(npc1Name, npc2Name)
+	for _, interaction in pairs(interactions) do
+		if (interaction.npc1 == npc1Name and interaction.npc2 == npc2Name) or (interaction.npc1 == npc2Name and interaction.npc2 == npc1Name) then
+			local npc1 = Workspace:FindFirstChild(npc1Name)
+			local npc2 = Workspace:FindFirstChild(npc2Name)
+			if npc1 and npc2 then
+				-- Use ChatService to display dialogue
+				local Chat = game:GetService("Chat")
+				Chat:Chat(npc1.Head, interaction.dialogue)
+			end
+			return
+		end
+	end
+end
+
+-- Example usage
+interact("NPC1", "NPC2")
+]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX0C8B897091114841B7358ED7AEE1DA03">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">NPCModelCreator</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{0993482C-E392-4D03-BA75-47C219592816}</string>
+				<ProtectedString name="Source"><![CDATA[-- NPCModelCreator.lua (Fixed)
+-- This script creates proper NPC models and places them in ServerStorage
+-- Place this in ServerScriptService
+
+local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Create NPCModel in ServerStorage if it doesn't exist
+local function createNPCModel()
+	-- Check if model already exists
+	local existingModel = ServerStorage:FindFirstChild("NPCModel")
+	if existingModel then
+		print("?? NPCModel already exists in ServerStorage.")
+		return existingModel
+	end
+
+	print("?? Creating NPCModel in ServerStorage...")
+
+	-- Create a new model
+	local npcModel = Instance.new("Model")
+	npcModel.Name = "NPCModel"
+
+	-- Create humanoid root part (essential for NPCs)
+	local humanoidRootPart = Instance.new("Part")
+	humanoidRootPart.Name = "HumanoidRootPart"
+	humanoidRootPart.Size = Vector3.new(2, 2, 1)
+	humanoidRootPart.Transparency = 1
+	humanoidRootPart.CanCollide = false
+	humanoidRootPart.Position = Vector3.new(0, 3, 0)
+	humanoidRootPart.Parent = npcModel
+
+	-- Create torso
+	local torso = Instance.new("Part")
+	torso.Name = "Torso"
+	torso.Size = Vector3.new(2, 2, 1)
+	torso.Position = humanoidRootPart.Position
+	torso.BrickColor = BrickColor.new("Bright blue")
+	torso.Parent = npcModel
+
+	-- Create head
+	local head = Instance.new("Part")
+	head.Name = "Head"
+	head.Size = Vector3.new(1.2, 1.2, 1.2)
+	head.Shape = Enum.PartType.Ball
+	head.Position = humanoidRootPart.Position + Vector3.new(0, 1.6, 0)
+	head.BrickColor = BrickColor.new("Bright yellow")
+	head.Parent = npcModel
+
+	-- Create left arm
+	local leftArm = Instance.new("Part")
+	leftArm.Name = "Left Arm"
+	leftArm.Size = Vector3.new(1, 2, 1)
+	leftArm.Position = humanoidRootPart.Position + Vector3.new(-1.5, 0, 0)
+	leftArm.BrickColor = BrickColor.new("Bright blue")
+	leftArm.Parent = npcModel
+
+	-- Create right arm
+	local rightArm = Instance.new("Part")
+	rightArm.Name = "Right Arm"
+	rightArm.Size = Vector3.new(1, 2, 1)
+	rightArm.Position = humanoidRootPart.Position + Vector3.new(1.5, 0, 0)
+	rightArm.BrickColor = BrickColor.new("Bright blue")
+	rightArm.Parent = npcModel
+
+	-- Create left leg
+	local leftLeg = Instance.new("Part")
+	leftLeg.Name = "Left Leg"
+	leftLeg.Size = Vector3.new(1, 2, 1)
+	leftLeg.Position = humanoidRootPart.Position + Vector3.new(-0.5, -2, 0)
+	leftLeg.BrickColor = BrickColor.new("Bright blue")
+	leftLeg.Parent = npcModel
+
+	-- Create right leg
+	local rightLeg = Instance.new("Part")
+	rightLeg.Name = "Right Leg"
+	rightLeg.Size = Vector3.new(1, 2, 1)
+	rightLeg.Position = humanoidRootPart.Position + Vector3.new(0.5, -2, 0)
+	rightLeg.BrickColor = BrickColor.new("Bright blue")
+	rightLeg.Parent = npcModel
+
+	-- Create humanoid
+	local humanoid = Instance.new("Humanoid")
+	humanoid.Parent = npcModel
+
+	-- Set HumanoidRootPart as PrimaryPart
+	npcModel.PrimaryPart = humanoidRootPart
+
+	-- Create motor6D joints to connect the parts (makes animations work properly)
+	-- Root to torso
+	local rootJoint = Instance.new("Motor6D")
+	rootJoint.Name = "RootJoint"
+	rootJoint.Part0 = humanoidRootPart
+	rootJoint.Part1 = torso
+	rootJoint.C0 = CFrame.new(0, 0, 0)
+	rootJoint.C1 = CFrame.new(0, 0, 0)
+	rootJoint.Parent = humanoidRootPart
+
+	-- Neck (torso to head)
+	local neck = Instance.new("Motor6D")
+	neck.Name = "Neck"
+	neck.Part0 = torso
+	neck.Part1 = head
+	neck.C0 = CFrame.new(0, 1, 0)
+	neck.C1 = CFrame.new(0, -0.5, 0)
+	neck.Parent = torso
+
+	-- Left shoulder
+	local leftShoulder = Instance.new("Motor6D")
+	leftShoulder.Name = "Left Shoulder"
+	leftShoulder.Part0 = torso
+	leftShoulder.Part1 = leftArm
+	leftShoulder.C0 = CFrame.new(-1, 0.5, 0)
+	leftShoulder.C1 = CFrame.new(0.5, 0.5, 0)
+	leftShoulder.Parent = torso
+
+	-- Right shoulder
+	local rightShoulder = Instance.new("Motor6D")
+	rightShoulder.Name = "Right Shoulder"
+	rightShoulder.Part0 = torso
+	rightShoulder.Part1 = rightArm
+	rightShoulder.C0 = CFrame.new(1, 0.5, 0)
+	rightShoulder.C1 = CFrame.new(-0.5, 0.5, 0)
+	rightShoulder.Parent = torso
+
+	-- Left hip
+	local leftHip = Instance.new("Motor6D")
+	leftHip.Name = "Left Hip"
+	leftHip.Part0 = torso
+	leftHip.Part1 = leftLeg
+	leftHip.C0 = CFrame.new(-0.5, -1, 0)
+	leftHip.C1 = CFrame.new(0, 1, 0)
+	leftHip.Parent = torso
+
+	-- Right hip
+	local rightHip = Instance.new("Motor6D")
+	rightHip.Name = "Right Hip"
+	rightHip.Part0 = torso
+	rightHip.Part1 = rightLeg
+	rightHip.C0 = CFrame.new(0.5, -1, 0)
+	rightHip.C1 = CFrame.new(0, 1, 0)
+	rightHip.Parent = torso
+
+	-- Instead of creating an actual script, just use animation attributes
+	-- This avoids the Source property limitation
+	npcModel:SetAttribute("WalkSpeed", 4)
+	npcModel:SetAttribute("IsNPC", true)
+
+	-- Add an Animator to the Humanoid
+	local animator = Instance.new("Animator")
+	animator.Parent = humanoid
+
+	-- Create a Configuration Instance
+	local config = Instance.new("Configuration")
+	config.Name = "NPCConfig"
+	config.Parent = npcModel
+
+	-- Set the model's parent to ServerStorage
+	npcModel.Parent = ServerStorage
+
+	print("?? Successfully created NPCModel in ServerStorage!")
+	return npcModel
+end
+
+-- Create gym parts folder if it doesn't exist
+local function createGymPartsFolder()
+	local gymPartsFolder = ServerStorage:FindFirstChild("GymParts")
+	if not gymPartsFolder then
+		gymPartsFolder = Instance.new("Folder")
+		gymPartsFolder.Name = "GymParts"
+		gymPartsFolder.Parent = ServerStorage
+		print("?? Created GymParts folder in ServerStorage")
+
+		-- Create some basic gym equipment
+
+		-- Treadmill
+		local treadmill = Instance.new("Model")
+		treadmill.Name = "Treadmill"
+		treadmill:SetAttribute("ID", 1)
+
+		local base = Instance.new("Part")
+		base.Name = "Base"
+		base.Size = Vector3.new(6, 1, 3)
+		base.Position = Vector3.new(0, 0.5, 0)
+		base.BrickColor = BrickColor.new("Black")
+		base.Anchored = true
+		base.Parent = treadmill
+
+		local console = Instance.new("Part")
+		console.Name = "Console"
+		console.Size = Vector3.new(2, 2, 1)
+		console.Position = Vector3.new(0, 2, -1)
+		console.BrickColor = BrickColor.new("Dark grey")
+		console.Anchored = true
+		console.Parent = treadmill
+
+		treadmill.PrimaryPart = base
+		treadmill.Parent = gymPartsFolder
+
+		-- Weight Rack
+		local weightRack = Instance.new("Model")
+		weightRack.Name = "Weight Rack"
+		weightRack:SetAttribute("ID", 2)
+
+		local rackBase = Instance.new("Part")
+		rackBase.Name = "Base"
+		rackBase.Size = Vector3.new(8, 1, 3)
+		rackBase.Position = Vector3.new(0, 0.5, 0)
+		rackBase.BrickColor = BrickColor.new("Medium stone grey")
+		rackBase.Anchored = true
+		rackBase.Parent = weightRack
+
+		local rackFrame = Instance.new("Part")
+		rackFrame.Name = "Frame"
+		rackFrame.Size = Vector3.new(7, 5, 1)
+		rackFrame.Position = Vector3.new(0, 3, 1)
+		rackFrame.BrickColor = BrickColor.new("Dark stone grey")
+		rackFrame.Anchored = true
+		rackFrame.Parent = weightRack
+
+		-- Add some weights
+		for i = 1, 4 do
+			local weight = Instance.new("Part")
+			weight.Name = "Weight" .. i
+			weight.Size = Vector3.new(1, 1, 1)
+			weight.Position = Vector3.new(-3 + (i * 2), 2, 0.5)
+			weight.BrickColor = BrickColor.new("Bright red")
+			weight.Shape = Enum.PartType.Cylinder
+			weight.Anchored = true
+			weight.Parent = weightRack
+		end
+
+		weightRack.PrimaryPart = rackBase
+		weightRack.Parent = gymPartsFolder
+	end
+end
+
+-- Create buy tiles folder if it doesn't exist
+local function createBuyTilesFolder()
+	local buyTilesFolder = ServerStorage:FindFirstChild("BuyTiles")
+	if not buyTilesFolder then
+		buyTilesFolder = Instance.new("Folder")
+		buyTilesFolder.Name = "BuyTiles"
+		buyTilesFolder.Parent = ServerStorage
+		print("?? Created BuyTiles folder in ServerStorage")
+
+		-- Create sample buy tiles
+
+		-- Treadmill buy tile
+		local treadmillTile = Instance.new("Model")
+		treadmillTile.Name = "TreadmillTile"
+		treadmillTile:SetAttribute("ID", 1)
+		treadmillTile:SetAttribute("Name", "Treadmill")
+		treadmillTile:SetAttribute("Price", 100)
+
+		local buyTilePart = Instance.new("Part")
+		buyTilePart.Name = "BuyTilePart"
+		buyTilePart.Size = Vector3.new(4, 1, 4)
+		buyTilePart.Position = Vector3.new(0, 0.5, 0)
+		buyTilePart.BrickColor = BrickColor.new("Bright green")
+		buyTilePart.Transparency = 0.5
+		buyTilePart.Anchored = true
+		buyTilePart.CanCollide = true
+		buyTilePart.Parent = treadmillTile
+
+		treadmillTile.PrimaryPart = buyTilePart
+		treadmillTile.Parent = buyTilesFolder
+
+		-- Weight rack buy tile
+		local weightRackTile = Instance.new("Model")
+		weightRackTile.Name = "WeightRackTile"
+		weightRackTile:SetAttribute("ID", 2)
+		weightRackTile:SetAttribute("Name", "Weight Rack")
+		weightRackTile:SetAttribute("Price", 150)
+
+		local wrBuyTilePart = Instance.new("Part")
+		wrBuyTilePart.Name = "BuyTilePart"
+		wrBuyTilePart.Size = Vector3.new(4, 1, 4)
+		wrBuyTilePart.Position = Vector3.new(0, 0.5, 0)
+		wrBuyTilePart.BrickColor = BrickColor.new("Bright green")
+		wrBuyTilePart.Transparency = 0.5
+		wrBuyTilePart.Anchored = true
+		wrBuyTilePart.CanCollide = true
+		wrBuyTilePart.Parent = weightRackTile
+
+		weightRackTile.PrimaryPart = wrBuyTilePart
+		weightRackTile.Parent = buyTilesFolder
+	end
+end
+
+-- Create the necessary models and folders
+createNPCModel()
+createGymPartsFolder()
+createBuyTilesFolder()
+
+print("?? Models and folders created successfully!")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXCB8B004472B94AE3B101A605DA39F4A6">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">TycoonInitializer</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{707DDCE6-5CF9-46C6-93C0-8414319D4FE6}</string>
+				<ProtectedString name="Source"><![CDATA[-- TycoonInitializer.lua
+-- Place this in ServerScriptService to initialize tycoons correctly
+-- This script fixes the issue with Tycoon values not being set properly
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+print("== TYCOON INITIALIZER STARTING ==")
+
+-- Function to find a player's tycoon
+local function findPlayerTycoon(player)
+	print("Looking for tycoon for: " .. player.Name)
+
+	-- First check in Workspace directly
+	local tycoonName = player.Name .. "'s Gym"
+	local tycoon = workspace:FindFirstChild(tycoonName)
+
+	if tycoon then
+		print("Found tycoon in workspace: " .. tycoon:GetFullName())
+		return tycoon
+	end
+
+	-- Check in Tycoons folder if it exists
+	local tycoonsFolder = workspace:FindFirstChild("Tycoons")
+	if tycoonsFolder then
+		tycoon = tycoonsFolder:FindFirstChild(tycoonName)
+		if tycoon then
+			print("Found tycoon in Tycoons folder: " .. tycoon:GetFullName())
+			return tycoon
+		end
+	end
+
+	-- Try partial name match
+	for _, model in pairs(workspace:GetChildren()) do
+		if model:IsA("Model") and string.find(model.Name, player.Name) and string.find(model.Name, "Gym") then
+			print("Found tycoon with partial name match: " .. model:GetFullName())
+			return model
+		end
+	end
+
+	if tycoonsFolder then
+		for _, model in pairs(tycoonsFolder:GetChildren()) do
+			if model:IsA("Model") and string.find(model.Name, player.Name) and string.find(model.Name, "Gym") then
+				print("Found tycoon with partial name match in Tycoons folder: " .. model:GetFullName())
+				return model
+			end
+		end
+	end
+
+	-- Look for a tycoon with player's name anywhere in hierarchy
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj:IsA("Model") and string.find(obj.Name, player.Name) and string.find(obj.Name, "Gym") then
+			print("Found tycoon in deeper hierarchy: " .. obj:GetFullName())
+			return obj
+		end
+	end
+
+	print("No existing tycoon found for " .. player.Name)
+	return nil
+end
+
+-- Function to create a basic tycoon if none exists
+local function createBasicTycoon(player)
+	print("Creating basic tycoon for " .. player.Name)
+
+	local tycoon = Instance.new("Model")
+	tycoon.Name = player.Name .. "'s Gym"
+
+	-- Create a base platform
+	local platform = Instance.new("Part")
+	platform.Name = "Platform"
+	platform.Size = Vector3.new(40, 1, 40)
+	platform.Position = Vector3.new(0, 0, 0)
+	platform.Anchored = true
+	platform.BrickColor = BrickColor.new("Medium stone grey")
+	platform.Parent = tycoon
+
+	-- Create front desk
+	local frontDesk = Instance.new("Model")
+	frontDesk.Name = "Front Desk"
+
+	local deskPart = Instance.new("Part")
+	deskPart.Name = "DeskPart"
+	deskPart.Size = Vector3.new(8, 1, 3)
+	deskPart.Position = Vector3.new(0, 1, -10)
+	deskPart.BrickColor = BrickColor.new("Reddish brown")
+	deskPart.Anchored = true
+	deskPart.Parent = frontDesk
+
+	frontDesk.PrimaryPart = deskPart
+	frontDesk.Parent = tycoon
+
+	-- Set the primary part
+	tycoon.PrimaryPart = platform
+
+	-- Position the tycoon (find an empty spot)
+	local position = Vector3.new(player.UserId % 100, 1, player.UserId % 100)
+	tycoon:SetPrimaryPartCFrame(CFrame.new(position))
+
+	-- Parent to workspace
+	tycoon.Parent = workspace
+
+	print("Created basic tycoon at position: " .. tostring(position))
+	return tycoon
+end
+
+-- Function to ensure player has a valid tycoon
+local function ensurePlayerTycoon(player)
+	print("Ensuring tycoon for " .. player.Name)
+
+	-- Get or create the Tycoon value
+	local tycoonValue = player:FindFirstChild("Tycoon")
+	if not tycoonValue then
+		tycoonValue = Instance.new("ObjectValue")
+		tycoonValue.Name = "Tycoon"
+		tycoonValue.Parent = player
+		print("Created Tycoon ObjectValue for " .. player.Name)
+	end
+
+	-- Check if Tycoon value already points to something valid
+	if tycoonValue.Value and tycoonValue.Value:IsA("Model") and tycoonValue.Value.Parent ~= nil then
+		print("Tycoon value already set to: " .. tycoonValue.Value:GetFullName())
+
+		-- Make sure it has NPCs folder
+		if not tycoonValue.Value:FindFirstChild("NPCs") then
+			local npcFolder = Instance.new("Folder")
+			npcFolder.Name = "NPCs"
+			npcFolder.Parent = tycoonValue.Value
+			print("Added NPCs folder to existing tycoon")
+		end
+
+		return
+	end
+
+	-- Find or create the player's tycoon
+	local tycoon = findPlayerTycoon(player)
+
+	if not tycoon then
+		tycoon = createBasicTycoon(player)
+	end
+
+	-- Set the Tycoon value
+	tycoonValue.Value = tycoon
+	print("Set Tycoon value to: " .. tycoon:GetFullName())
+
+	-- Make sure it has an NPCs folder
+	if not tycoon:FindFirstChild("NPCs") then
+		local npcFolder = Instance.new("Folder")
+		npcFolder.Name = "NPCs"
+		npcFolder.Parent = tycoon
+		print("Added NPCs folder to tycoon")
+	end
+
+	-- Initialize attributes
+	tycoonValue:SetAttribute("AccruedDues", 0)
+	tycoonValue:SetAttribute("GymLevel", 1)
+	tycoonValue:SetAttribute("EquipmentCount", 0)
+
+	print("Tycoon setup complete for " .. player.Name)
+end
+
+-- Process existing players
+for _, player in pairs(Players:GetPlayers()) do
+	task.spawn(function()
+		ensurePlayerTycoon(player)
+	end)
+end
+
+-- Handle new players
+Players.PlayerAdded:Connect(function(player)
+	-- Wait for player to fully load
+	task.delay(5, function()
+		ensurePlayerTycoon(player)
+	end)
+end)
+
+-- Periodic check to ensure tycoons remain valid
+task.spawn(function()
+	while true do
+		wait(30)
+
+		print("Periodic tycoon validation check")
+		for _, player in pairs(Players:GetPlayers()) do
+			local tycoonValue = player:FindFirstChild("Tycoon")
+
+			if not tycoonValue or not tycoonValue.Value or not tycoonValue.Value.Parent then
+				print("Found invalid tycoon for " .. player.Name .. ", fixing...")
+				ensurePlayerTycoon(player)
+			end
+		end
+	end
+end)
+
+print("== TYCOON INITIALIZER LOADED SUCCESSFULLY ==")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX1D9959BEA32A4147B9ED9E696F071EC2">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">BuyTileFix</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{013F2EE2-A389-472D-BE6B-6DF75C2B435C}</string>
+				<ProtectedString name="Source"><![CDATA[-- BuyTileFix.lua
+-- Place in ServerScriptService
+-- This script ensures the BuyTiles folder exists in either Workspace or ServerStorage
+
+local ServerStorage = game:GetService("ServerStorage")
+local Workspace = game:GetService("Workspace")
+
+print("Starting BuyTile folder fix...")
+
+-- Check if BuyTiles folder exists in Workspace
+local workspaceBuyTiles = Workspace:FindFirstChild("BuyTiles")
+
+-- Check if BuyTiles folder exists in ServerStorage
+local serverStorageBuyTiles = ServerStorage:FindFirstChild("BuyTiles")
+
+-- Create the folder in ServerStorage if it doesn't exist in either location
+if not workspaceBuyTiles and not serverStorageBuyTiles then
+	local buyTilesFolder = Instance.new("Folder")
+	buyTilesFolder.Name = "BuyTiles"
+	buyTilesFolder.Parent = ServerStorage
+	print("Created BuyTiles folder in ServerStorage")
+
+	-- Create a simple example tile for testing
+	local exampleTile = Instance.new("Model")
+	exampleTile.Name = "ExampleTile"
+	exampleTile:SetAttribute("ID", 1)
+	exampleTile:SetAttribute("Price", 100)
+	exampleTile:SetAttribute("Name", "Example Tile")
+
+	-- Add a part to make it visible
+	local part = Instance.new("Part")
+	part.Name = "BuyTilePart"
+	part.Size = Vector3.new(4, 1, 4)
+	part.Anchored = true
+	part.CanCollide = true
+	part.Parent = exampleTile
+
+	exampleTile.Parent = buyTilesFolder
+	print("Added example tile to BuyTiles folder")
+end
+
+-- Also check for GymParts folder in both locations
+local workspaceGymParts = Workspace:FindFirstChild("GymParts")
+local serverStorageGymParts = ServerStorage:FindFirstChild("GymParts")
+
+if not serverStorageGymParts and workspaceGymParts then
+	-- If GymParts exists in workspace but not in ServerStorage, create a reference
+	local gymPartsFolder = Instance.new("Folder")
+	gymPartsFolder.Name = "GymParts"
+	gymPartsFolder.Parent = ServerStorage
+	print("Created GymParts folder in ServerStorage")
+end
+
+print("BuyTile folder fix completed!")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX3CA4551F437A41B3BEA4F5F816459C3D">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">FrontDeskFix</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{B53BBDCF-636B-4158-8167-F434C0DE5662}</string>
+				<ProtectedString name="Source"><![CDATA[-- EmergencyDeskFix.lua
+-- Place this in ServerScriptService
+
+local Players = game:GetService("Players")
+local ServerStorage = game:GetService("ServerStorage")
+
+print("## EMERGENCY DESK FIX - INITIALIZING ##")
+
+-- Get the front desk model
+local frontDeskModel = ServerStorage.GymParts["1st Floor"].Furniture["Front Desk"]
+if not frontDeskModel then
+	error("CRITICAL ERROR: Front Desk model not found at expected path!")
+end
+
+print("Found front desk model at: " .. frontDeskModel:GetFullName())
+
+local function fixPlayerDesk(player)
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return end
+
+	-- Check if player already has a front desk
+	local existingDesk = tycoon.Value:FindFirstChild("Front Desk")
+	if existingDesk then
+		-- Desk exists but might be improperly positioned
+		print("Player " .. player.Name .. " has a desk, fixing position...")
+
+		-- Find desk primary part or any part
+		local deskPart = nil
+		if existingDesk.PrimaryPart then
+			deskPart = existingDesk.PrimaryPart
+		else
+			for _, part in pairs(existingDesk:GetDescendants()) do
+				if part:IsA("BasePart") then
+					deskPart = part
+					break
+				end
+			end
+		end
+
+		if deskPart then
+			-- Remove desk and create a new one
+			existingDesk:Destroy()
+			print("Removed existing desk for " .. player.Name)
+		else
+			print("Existing desk has no parts, keeping it")
+			return
+		end
+	end
+
+	-- Create a new desk
+	print("Creating new desk for " .. player.Name)
+
+	-- Clone the model
+	local newDesk = frontDeskModel:Clone()
+
+	-- Get tycoon position
+	local tycoonPos = Vector3.new(0, 0, 0)
+	if tycoon.Value.PrimaryPart then
+		tycoonPos = tycoon.Value.PrimaryPart.Position
+	else
+		for _, part in pairs(tycoon.Value:GetDescendants()) do
+			if part:IsA("BasePart") then
+				tycoonPos = part.Position
+				break
+			end
+		end
+	end
+
+	-- Position of front desk DIRECTLY in front of player's view
+	local deskPos = tycoonPos + Vector3.new(0, 1, -20)
+
+	-- Check if we have primary part
+	if not newDesk.PrimaryPart then
+		for _, part in pairs(newDesk:GetDescendants()) do
+			if part:IsA("BasePart") then
+				newDesk.PrimaryPart = part
+				break
+			end
+		end
+	end
+
+	-- Manually position ALL parts to ensure they're visible
+	if newDesk.PrimaryPart then
+		-- Get original offset from primary part
+		local originalCFrame = newDesk.PrimaryPart.CFrame
+		local targetCFrame = CFrame.new(deskPos)
+
+		-- Position the whole model
+		newDesk:SetPrimaryPartCFrame(targetCFrame)
+	else
+		-- If no primary part, position each part directly
+		local mainPart = nil
+
+		for _, part in pairs(newDesk:GetDescendants()) do
+			if part:IsA("BasePart") then
+				if not mainPart then
+					mainPart = part
+					part.Position = deskPos
+				else
+					-- Position relative to main part
+					local offset = part.Position - mainPart.Position
+					part.Position = deskPos + offset
+				end
+
+				-- Make sure it's anchored
+				part.Anchored = true
+			end
+		end
+	end
+
+	-- Add dues label if needed
+	local needsDuesLabel = true
+	for _, part in pairs(newDesk:GetDescendants()) do
+		if part:IsA("BasePart") and part:FindFirstChild("BillboardGui") then
+			needsDuesLabel = false
+			break
+		end
+	end
+
+	if needsDuesLabel then
+		-- Find a part to attach GUI
+		for _, part in pairs(newDesk:GetDescendants()) do
+			if part:IsA("BasePart") then
+				local billboard = Instance.new("BillboardGui")
+				billboard.Size = UDim2.new(0, 200, 0, 50)
+				billboard.StudsOffset = Vector3.new(0, 5, 0)
+				billboard.Adornee = part
+				billboard.AlwaysOnTop = true
+				billboard.Parent = part
+
+				local frame = Instance.new("Frame")
+				frame.Size = UDim2.new(1, 0, 1, 0)
+				frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+				frame.BackgroundTransparency = 0.5
+				frame.BorderSizePixel = 0
+				frame.Parent = billboard
+
+				local label = Instance.new("TextLabel")
+				label.Size = UDim2.new(1, 0, 1, 0)
+				label.BackgroundTransparency = 1
+				label.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow
+				label.Font = Enum.Font.GothamBold
+				label.TextScaled = true
+				label.Text = "Dues: $0"
+				label.Parent = frame
+
+				break
+			end
+		end
+	end
+
+	-- Parent desk to tycoon
+	newDesk.Parent = tycoon.Value
+
+	print("Successfully fixed/created desk for " .. player.Name)
+
+	-- Also patch the player's income tracking to start working
+	if EconomySystem then
+		local dues = tycoon:GetAttribute("AccruedDues") or 0
+		tycoon:SetAttribute("AccruedDues", dues + 10) -- Add some initial dues
+
+		-- Update front desk display
+		for _, part in pairs(newDesk:GetDescendants()) do
+			if part:IsA("BasePart") and part:FindFirstChild("BillboardGui") then
+				for _, label in pairs(part.BillboardGui:GetDescendants()) do
+					if label:IsA("TextLabel") then
+						label.Text = "Dues: $" .. (dues + 10)
+					end
+				end
+			end
+		end
+	end
+
+	return newDesk
+end
+
+-- Check if Economy System is available
+local EconomySystem
+pcall(function()
+	EconomySystem = require(game.ServerScriptService:FindFirstChild("UnifiedGymEconomySystem"))
+end)
+
+-- Fix for existing players
+for _, player in pairs(Players:GetPlayers()) do
+	fixPlayerDesk(player)
+end
+
+-- Connect to player added event
+Players.PlayerAdded:Connect(function(player)
+	wait(5) -- Wait for player to fully load
+	fixPlayerDesk(player)
+
+	-- Also connect to character added
+	player.CharacterAdded:Connect(function()
+		wait(3)
+		fixPlayerDesk(player)
+	end)
+end)
+
+-- Patch BuyTile function to add front desk on first purchase
+local originalOnTilePurchased = _G.GymTycoonConnector and _G.GymTycoonConnector.onTilePurchased
+
+_G.GymTycoonConnector.onTilePurchased = function(player, tileId)
+	-- Call original function
+	if originalOnTilePurchased then
+		originalOnTilePurchased(player, tileId)
+	end
+
+	-- Create front desk for first tile
+	if tileId == 1 then
+		wait(1) -- Wait for tile to process
+		fixPlayerDesk(player)
+	end
+end
+
+-- Also patch the direct function
+_G.handleTilePurchasePatched = function(player, tileId)
+	print("EMERGENCY PATCH: Tile purchase " .. tileId .. " by " .. player.Name)
+
+	-- If first tile, ensure front desk spawns
+	if tileId == 1 then
+		wait(1) -- Wait for tile to process
+		fixPlayerDesk(player)
+	end
+
+	-- Call connector if it exists
+	if _G.GymTycoonConnector and _G.GymTycoonConnector.onTilePurchased then
+		_G.GymTycoonConnector.onTilePurchased(player, tileId)
+	end
+end
+
+-- Run periodic checks
+spawn(function()
+	while true do
+		wait(30) -- Check every 30 seconds
+
+		for _, player in pairs(Players:GetPlayers()) do
+			local tycoon = player:FindFirstChild("Tycoon")
+			if tycoon and tycoon.Value then
+				local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+
+				if equipmentCount > 0 and not tycoon.Value:FindFirstChild("Front Desk") then
+					print("Periodic check found missing desk for " .. player.Name)
+					fixPlayerDesk(player)
+				end
+			end
+		end
+	end
+end)
+
+print("## EMERGENCY DESK FIX - INITIALIZED ##")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX8DFF12C5A9B848A4ADE840B05E735BC2">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">FrontDeskSpawner</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{727BF28C-B1D9-448E-9ACF-8C51D9ECB100}</string>
+				<ProtectedString name="Source"><![CDATA[-- DirectFrontDeskSpawner.lua
+-- Place this in ServerScriptService
+-- This script will run immediately when added
+
+local Players = game:GetService("Players")
+local ServerStorage = game:GetService("ServerStorage")
+local CollectionService = game:GetService("CollectionService")
+
+-------------------------------------------------
+-- EXACT PATH TO FRONT DESK MODEL BASED ON LOGS
+-------------------------------------------------
+local FRONT_DESK_PATH = ServerStorage:WaitForChild("GymParts")
+	:WaitForChild("1st Floor")
+	:WaitForChild("Furniture")
+	:WaitForChild("Front Desk")
+
+print("DIRECT SPAWNER: Looking for front desk at " .. FRONT_DESK_PATH:GetFullName())
+
+-- Create a simple function to spawn the desk with minimal complexity
+local function spawnDeskForPlayer(player)
+	-- Safety check
+	if not FRONT_DESK_PATH or not FRONT_DESK_PATH:IsA("Model") then
+		warn("DIRECT SPAWNER: Could not find front desk model!")
+		return false
+	end
+
+	-- Check if player has a tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		warn("DIRECT SPAWNER: " .. player.Name .. " has no tycoon")
+		return false
+	end
+
+	-- Check if front desk already exists
+	if tycoon.Value:FindFirstChild("Front Desk") then
+		print("DIRECT SPAWNER: " .. player.Name .. " already has a front desk")
+		return true
+	end
+
+	print("DIRECT SPAWNER: Creating front desk for " .. player.Name)
+
+	-- Clone the desk
+	local desk = FRONT_DESK_PATH:Clone()
+
+	-- Find position in tycoon
+	local position = Vector3.new(0, 0, 0)
+
+	if tycoon.Value.PrimaryPart then
+		position = tycoon.Value.PrimaryPart.Position + Vector3.new(0, 0, -10)
+	else
+		for _, part in pairs(tycoon.Value:GetDescendants()) do
+			if part:IsA("BasePart") then
+				position = part.Position + Vector3.new(0, 0, -10)
+				break
+			end
+		end
+	end
+
+	-- Position the desk
+	if desk.PrimaryPart then
+		desk:SetPrimaryPartCFrame(CFrame.new(position))
+	else
+		-- Find a part to use as primary
+		for _, part in pairs(desk:GetDescendants()) do
+			if part:IsA("BasePart") then
+				desk.PrimaryPart = part
+				desk:SetPrimaryPartCFrame(CFrame.new(position))
+				break
+			end
+		end
+	end
+
+	-- Make sure all parts are anchored
+	for _, part in pairs(desk:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Anchored = true
+		end
+	end
+
+	-- Parent to tycoon
+	desk.Parent = tycoon.Value
+
+	-- Update any dues display
+	local dues = tycoon:GetAttribute("AccruedDues") or 0
+
+	for _, part in pairs(desk:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local billboard = part:FindFirstChild("BillboardGui")
+			if billboard then
+				for _, label in pairs(billboard:GetDescendants()) do
+					if label:IsA("TextLabel") then
+						label.Text = "Dues: $" .. tostring(dues)
+					end
+				end
+			end
+		end
+	end
+
+	print("DIRECT SPAWNER: Successfully created front desk for " .. player.Name)
+	return true
+end
+
+-- Override global function specifically for first tile purchase
+_G.handleTilePurchasePatched = function(player, tileId)
+	print("DIRECT SPAWNER: Tile purchase detected: " .. player.Name .. ", ID: " .. tileId)
+
+	if tileId == 1 then
+		print("DIRECT SPAWNER: First tile purchase detected!")
+		spawnDeskForPlayer(player)
+	end
+
+	-- Call original connector if it exists
+	if _G.GymTycoonConnector and _G.GymTycoonConnector.onTilePurchased then
+		_G.GymTycoonConnector.onTilePurchased(player, tileId)
+	end
+end
+
+-- Immediately check all existing players
+for _, player in pairs(Players:GetPlayers()) do
+	local tycoon = player:FindFirstChild("Tycoon")
+	if tycoon and tycoon.Value then
+		local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+
+		if equipmentCount > 0 and not tycoon.Value:FindFirstChild("Front Desk") then
+			print("DIRECT SPAWNER: Fixing missing front desk for " .. player.Name)
+			spawnDeskForPlayer(player)
+		end
+	end
+end
+
+-- Listen for new players
+Players.PlayerAdded:Connect(function(player)
+	wait(5) -- Wait for player to load
+
+	-- If player buys a tile while we're waiting, this will still work via the patched function
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if tycoon and tycoon.Value then
+		local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+
+		if equipmentCount > 0 and not tycoon.Value:FindFirstChild("Front Desk") then
+			print("DIRECT SPAWNER: New player needs a front desk")
+			spawnDeskForPlayer(player)
+		end
+	end
+end)
+
+print("DIRECT SPAWNER: Front desk direct spawner initialized")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX7D4395DC05D24C30AFA519A4C963BACD">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">BuyTileDataConnector</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{2B3FE050-70D1-4837-8E6B-558488F03D46}</string>
+				<ProtectedString name="Source"><![CDATA[-- BuyTileDataConnector.lua
+-- This script ensures that the BuyTile system correctly interacts with the data storage system
+-- Place in ServerScriptService
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+-- Load systems
+local DataStorageSystem
+local BuyTileSystem
+
+local DEBUG = true
+
+local function debugPrint(...)
+	if DEBUG then
+		print("[BuyTileConnector]", ...)
+	end
+end
+
+-- Try to load the data storage system
+local success, result = pcall(function()
+	return require(ServerScriptService:FindFirstChild("ImprovedDataStorageSystem") or ServerScriptService:FindFirstChild("EnhancedDataStorageSystem"))
+end)
+
+if success and result then
+	DataStorageSystem = result
+	debugPrint("Successfully loaded data storage system")
+else
+	warn("Failed to load data storage system:", result)
+end
+
+-- Try to load the BuyTile system
+success, result = pcall(function()
+	return require(ServerScriptService:FindFirstChild("BuyTile"))
+end)
+
+if success and result then
+	BuyTileSystem = result
+	debugPrint("Successfully loaded BuyTile system")
+else
+	warn("Failed to load BuyTile system:", result)
+end
+
+-- Ensure EventBridge exists
+local function ensureEventBridge()
+	if not ReplicatedStorage:FindFirstChild("EventBridge") then
+		local eventBridge = Instance.new("Folder")
+		eventBridge.Name = "EventBridge"
+		eventBridge.Parent = ReplicatedStorage
+		debugPrint("Created EventBridge in ReplicatedStorage")
+	end
+
+	-- Ensure TilePurchased event exists
+	local eventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+	if not eventBridge:FindFirstChild("TilePurchased") then
+		local event = Instance.new("BindableEvent")
+		event.Name = "TilePurchased"
+		event.Parent = eventBridge
+		debugPrint("Created TilePurchased event in EventBridge")
+	end
+
+	return ReplicatedStorage:FindFirstChild("EventBridge")
+end
+
+-- Create a wrapper function for BuyTile.spawnGymPart
+local originalSpawnGymPart
+local function enhancedSpawnGymPart(player, tileId)
+	debugPrint("Enhanced spawnGymPart called for player", player.Name, "tileId", tileId)
+
+	-- Call the original function
+	local result = originalSpawnGymPart(player, tileId)
+
+	if result then
+		-- Find out the price if possible
+		local price = 0
+		if result:IsA("BasePart") and result:GetAttribute("Price") then
+			price = result:GetAttribute("Price")
+		end
+
+		-- Fire the TilePurchased event
+		local EventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+		if EventBridge then
+			local tileEvent = EventBridge:FindFirstChild("TilePurchased")
+			if tileEvent then
+				tileEvent:Fire(player, tileId, price)
+				debugPrint("Fired TilePurchased event for", player.Name, "tileId", tileId, "price", price)
+			end
+		end
+	end
+
+	return result
+end
+
+-- Connect BuyTile system to enhanced data storage
+local function connectBuyTileSystem()
+	if not BuyTileSystem then
+		warn("BuyTile system not found, cannot connect to data storage")
+		return false
+	end
+
+	-- Replace the original spawnGymPart function with our enhanced version
+	if BuyTileSystem.spawnGymPart then
+		originalSpawnGymPart = BuyTileSystem.spawnGymPart
+		BuyTileSystem.spawnGymPart = enhancedSpawnGymPart
+		debugPrint("Replaced BuyTileSystem.spawnGymPart with enhanced version")
+	else
+		warn("BuyTileSystem.spawnGymPart function not found")
+		return false
+	end
+
+	-- Create a wrapper for the tile purchase handler
+	if BuyTileSystem.handleTilePurchase then
+		local originalHandleTilePurchase = BuyTileSystem.handleTilePurchase
+
+		BuyTileSystem.handleTilePurchase = function(buyTile)
+			-- Call the original function first
+			originalHandleTilePurchase(buyTile)
+
+			-- Get the tile ID
+			local id = buyTile:GetAttribute("ID")
+			if not id then return end
+
+			-- Set up a touched event that also records the purchase in data storage
+			local buyTilePart = buyTile:FindFirstChild("BuyTilePart")
+			if not buyTilePart then return end
+
+			-- Make a copy of the original touched connection with data storage
+			buyTilePart.Touched:Connect(function(hit)
+				-- Find the player who touched the part
+				local player = Players:GetPlayerFromCharacter(hit.Parent)
+				if not player then return end
+
+				-- Check if player has leaderstats and Cash stat
+				local leaderstats = player:FindFirstChild("leaderstats")
+				if not leaderstats or not leaderstats:FindFirstChild("Cash") then return end
+
+				local cashStat = leaderstats.Cash
+				local price = buyTile:GetAttribute("Price") or 0
+
+				-- Check if player has enough cash
+				if cashStat.Value >= price then
+					-- This means the purchase will go through
+					-- We'll handle the actual events in spawnGymPart
+					debugPrint("Player", player.Name, "is purchasing tile", id, "for", price)
+				end
+			end)
+		end
+
+		debugPrint("Enhanced handleTilePurchase function")
+		else 
+	warn("BuyTileSystem.handleTilePurchase function not found")
+	
+
+	debugPrint("Successfully connected BuyTile system to enhanced data storage")
+	return true
+		end
+end
+
+
+-- Export direct spawn function for other systems to use
+local function spawnTileForPlayer(player, tileId)
+	if not BuyTileSystem or not BuyTileSystem.spawnGymPart then
+		warn("Cannot spawn tile - BuyTileSystem not available")
+		return nil
+	end
+
+	return BuyTileSystem.spawnGymPart(player, tileId)
+end
+
+-- Main initialization function
+local function initialize()
+	debugPrint("Initializing BuyTile data system integration...")
+
+	-- Ensure EventBridge exists
+	ensureEventBridge()
+
+	-- Connect BuyTile system to enhanced data storage
+	connectBuyTileSystem()
+
+	debugPrint("BuyTile data system integration complete!")
+	return true
+end
+
+-- Make available for external use
+local BuyTileConnector = {
+	initialize = initialize,
+	spawnTileForPlayer = spawnTileForPlayer
+}
+
+-- Initialize the system
+initialize()
+
+-- Make it available globally
+_G.BuyTileConnector = BuyTileConnector
+
+return BuyTileConnector]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX1517A90A40D74528904AC6B3D6962F5A">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">DataSystemDebugger</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{0E782D8E-F2B1-498D-9FF9-D705A86B2C9B}</string>
+				<ProtectedString name="Source"><![CDATA[-- DataSystemDebugger.lua
+-- This script helps diagnose problems with data persistence
+-- Place in ServerScriptService
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local Players = game:GetService("Players")
+
+-- Load data storage system
+local DataStorage
+pcall(function()
+	DataStorage = require(ServerScriptService:FindFirstChild("ImprovedDataStorageSystem") or 
+		ServerScriptService:FindFirstChild("EnhancedDataStorageSystem"))
+end)
+
+local DataDebugger = {}
+
+-- Colors for console output
+local COLORS = {
+	INFO = "⚪",
+	SUCCESS = "🟢",
+	WARNING = "🟡",
+	ERROR = "🔴",
+	HIGHLIGHT = "🔵"
+}
+
+-- Print colored debug message
+local function colorPrint(color, ...)
+	print(color, "[DataDebugger]", ...)
+end
+
+-- Check if a player has all required components
+function DataDebugger.checkPlayerComponents(player)
+	if not player then return end
+
+	colorPrint(COLORS.INFO, "Checking player components for " .. player.Name)
+
+	-- Check leaderstats
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then
+		colorPrint(COLORS.ERROR, "Missing leaderstats for " .. player.Name)
+	else
+		colorPrint(COLORS.SUCCESS, "Found leaderstats")
+
+		-- Check Cash
+		local cash = leaderstats:FindFirstChild("Cash")
+		if not cash then
+			colorPrint(COLORS.ERROR, "Missing Cash in leaderstats for " .. player.Name)
+		else
+			colorPrint(COLORS.SUCCESS, "Found Cash: " .. cash.Value)
+		end
+	end
+
+	-- Check Tycoon reference
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then
+		colorPrint(COLORS.ERROR, "Missing Tycoon reference for " .. player.Name)
+	else
+		colorPrint(COLORS.SUCCESS, "Found Tycoon reference")
+
+		-- Check if Tycoon.Value is set
+		if not tycoon.Value then
+			colorPrint(COLORS.ERROR, "Tycoon.Value is nil for " .. player.Name)
+		else
+			colorPrint(COLORS.SUCCESS, "Tycoon.Value is set to " .. tycoon.Value.Name)
+
+			-- Print key attributes
+			local attributeNames = {
+				"EquipmentCount", "GymTier", "MemberCount", "VIPCount", "AccruedDues", "Cash", 
+				"GymLevel", "TotalEarned", "Cleanliness", "Morale"
+			}
+
+			colorPrint(COLORS.INFO, "Tycoon attributes:")
+			for _, name in ipairs(attributeNames) do
+				local value = tycoon:GetAttribute(name)
+				if value ~= nil then
+					colorPrint(COLORS.SUCCESS, "  " .. name .. ": " .. tostring(value))
+				else
+					colorPrint(COLORS.WARNING, "  " .. name .. ": nil")
+				end
+			end
+		end
+	end
+end
+
+-- Check the equipment in a player's tycoon
+function DataDebugger.checkPlayerEquipment(player)
+	if not player then return end
+
+	colorPrint(COLORS.INFO, "Checking equipment for " .. player.Name)
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		colorPrint(COLORS.ERROR, "Cannot check equipment - missing valid tycoon reference")
+		return
+	end
+
+	-- Find all equipment with IDs
+	local equipment = {}
+	for _, item in pairs(tycoon.Value:GetDescendants()) do
+		local id = item:GetAttribute("ID")
+		if id then
+			table.insert(equipment, {
+				id = id,
+				price = item:GetAttribute("Price"),
+				name = item.Name,
+				className = item.ClassName
+			})
+		end
+	end
+
+	-- Print equipment info
+	if #equipment == 0 then
+		colorPrint(COLORS.WARNING, "No equipment found in tycoon")
+	else
+		colorPrint(COLORS.SUCCESS, "Found " .. #equipment .. " equipment pieces:")
+		for i, item in ipairs(equipment) do
+			colorPrint(COLORS.INFO, i .. ". ID: " .. item.id .. 
+				" | Price: " .. (item.price or "N/A") .. 
+				" | Name: " .. item.name .. 
+				" | Type: " .. item.className)
+		end
+	end
+
+	-- Check if equipment count matches the attribute
+	local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+	if equipmentCount ~= #equipment then
+		colorPrint(COLORS.WARNING, "Equipment count mismatch: attribute says " .. 
+			equipmentCount .. " but found " .. #equipment .. " actual equipment pieces")
+	else
+		colorPrint(COLORS.SUCCESS, "Equipment count matches: " .. equipmentCount)
+	end
+end
+
+-- Comprehensive check of a player's data state
+function DataDebugger.fullPlayerDataCheck(player)
+	if not player then return end
+
+	colorPrint(COLORS.HIGHLIGHT, "===== FULL DATA CHECK FOR " .. player.Name .. " =====")
+
+	-- Check player components
+	DataDebugger.checkPlayerComponents(player)
+
+	-- Check equipment
+	DataDebugger.checkPlayerEquipment(player)
+
+	-- Check saved data
+	if DataStorage then
+		local data = DataStorage.getPlayerData(player)
+		if data then
+			colorPrint(COLORS.SUCCESS, "Found saved data in DataStorage")
+
+			-- Print key data fields
+			colorPrint(COLORS.INFO, "Saved data:")
+			colorPrint(COLORS.INFO, "  Cash: " .. (data.cash or "N/A"))
+			colorPrint(COLORS.INFO, "  Gym Level: " .. (data.gymLevel or "N/A"))
+			colorPrint(COLORS.INFO, "  Equipment Count: " .. (data.equipmentCount or "N/A"))
+			colorPrint(COLORS.INFO, "  Member Count: " .. (data.memberCount or "N/A"))
+			colorPrint(COLORS.INFO, "  VIP Count: " .. (data.vipCount or "N/A"))
+			colorPrint(COLORS.INFO, "  Accrued Dues: " .. (data.accruedDues or "N/A"))
+
+			-- Check purchased equipment
+			if data.equipmentPurchased then
+				local count = 0
+				for id, _ in pairs(data.equipmentPurchased) do
+					count = count + 1
+				end
+
+				colorPrint(COLORS.INFO, "  Purchased Equipment: " .. count .. " pieces")
+			else
+				colorPrint(COLORS.WARNING, "  No purchased equipment data")
+			end
+
+			-- Check data restoration status
+			if DataStorage.isPlayerFullyLoaded and DataStorage.isPlayerFullyLoaded(player) then
+				colorPrint(COLORS.SUCCESS, "Player data is fully loaded and restored")
+			else
+				colorPrint(COLORS.WARNING, "Player data is not fully loaded or restored")
+			end
+		else
+			colorPrint(COLORS.ERROR, "No saved data found in DataStorage")
+		end
+	else
+		colorPrint(COLORS.ERROR, "DataStorage system not available")
+	end
+
+	colorPrint(COLORS.HIGHLIGHT, "===== END DATA CHECK =====")
+end
+
+-- Apply this check to all players
+function DataDebugger.checkAllPlayers()
+	colorPrint(COLORS.INFO, "Checking all players...")
+
+	for _, player in pairs(Players:GetPlayers()) do
+		DataDebugger.fullPlayerDataCheck(player)
+	end
+end
+
+-- Fix a player's tycoon reference if it's pointing incorrectly
+function DataDebugger.fixTycoonReference(player)
+	if not player then return false end
+
+	colorPrint(COLORS.INFO, "Attempting to fix tycoon reference for " .. player.Name)
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then
+		tycoon = Instance.new("ObjectValue")
+		tycoon.Name = "Tycoon"
+		tycoon.Parent = player
+		colorPrint(COLORS.SUCCESS, "Created missing Tycoon reference")
+	end
+
+	-- Check if tycoon value is already set and valid
+	if tycoon.Value and tycoon.Value:IsA("Model") and tycoon.Value.Parent then
+		colorPrint(COLORS.SUCCESS, "Tycoon reference already valid: " .. tycoon.Value.Name)
+		return true
+	end
+
+	-- Try to find correct tycoon
+	local correctTycoon
+
+	-- Method 1: Check in workspace for player name + "'s Gym"
+	correctTycoon = workspace:FindFirstChild(player.Name .. "'s Gym")
+	if correctTycoon then
+		tycoon.Value = correctTycoon
+		colorPrint(COLORS.SUCCESS, "Fixed tycoon reference using workspace lookup")
+		return true
+	end
+
+	-- Method 2: Check in Tycoons folder if it exists
+	local tycoonsFolder = workspace:FindFirstChild("Tycoons")
+	if tycoonsFolder then
+		correctTycoon = tycoonsFolder:FindFirstChild(player.Name .. "'s Gym")
+		if correctTycoon then
+			tycoon.Value = correctTycoon
+			colorPrint(COLORS.SUCCESS, "Fixed tycoon reference using Tycoons folder lookup")
+			return true
+		end
+	end
+
+	colorPrint(COLORS.ERROR, "Could not find a valid tycoon model for " .. player.Name)
+	return false
+end
+
+-- Force data reload for a player
+function DataDebugger.forceReloadData(player)
+	if not player or not DataStorage then
+		colorPrint(COLORS.ERROR, "Cannot reload data - player or DataStorage not available")
+		return false
+	end
+
+	colorPrint(COLORS.INFO, "Forcing data reload for " .. player.Name)
+
+	-- Clear existing data
+	local userId = player.UserId
+	DataStorage.loadedData[userId] = nil
+	DataStorage.loadedPlayers[userId] = nil
+	DataStorage.restorationStatus[userId] = nil
+
+	-- Load data again
+	local data = DataStorage.loadData(player)
+	if data then
+		DataStorage.applyDataToPlayer(player)
+		colorPrint(COLORS.SUCCESS, "Successfully reloaded and applied data")
+
+		-- Restore equipment after a short delay
+		task.delay(2, function()
+			DataStorage.restorePurchasedEquipment(player)
+			colorPrint(COLORS.INFO, "Started equipment restoration process")
+		end)
+
+		return true
+	else
+		colorPrint(COLORS.ERROR, "Failed to reload data")
+		return false
+	end
+end
+
+-- Force restore equipment for a player
+function DataDebugger.forceRestoreEquipment(player)
+	if not player or not DataStorage then
+		colorPrint(COLORS.ERROR, "Cannot restore equipment - player or DataStorage not available")
+		return false
+	end
+
+	colorPrint(COLORS.INFO, "Forcing equipment restoration for " .. player.Name)
+
+	-- Make sure tycoon reference is valid
+	DataDebugger.fixTycoonReference(player)
+
+	-- Clear restoration status to allow retry
+	local userId = player.UserId
+	DataStorage.restorationStatus[userId] = nil
+
+	-- Start equipment restoration
+	local success = DataStorage.restorePurchasedEquipment(player)
+
+	if success then
+		colorPrint(COLORS.SUCCESS, "Started equipment restoration process")
+		return true
+	else
+		colorPrint(COLORS.ERROR, "Failed to start equipment restoration")
+		return false
+	end
+end
+
+-- Create command functions
+local function onDebugCommand(speaker, targetName)
+	local target
+
+	if targetName and targetName ~= "" then
+		target = Players:FindFirstChild(targetName)
+		if not target then
+			colorPrint(COLORS.ERROR, "Player not found: " .. targetName)
+			return
+		end
+	else
+		target = Players:FindFirstChild(speaker)
+	end
+
+	if target then
+		DataDebugger.fullPlayerDataCheck(target)
+	else
+		colorPrint(COLORS.ERROR, "No target player specified or found")
+	end
+end
+
+local function onFixCommand(speaker, targetName)
+	local target
+
+	if targetName and targetName ~= "" then
+		target = Players:FindFirstChild(targetName)
+		if not target then
+			colorPrint(COLORS.ERROR, "Player not found: " .. targetName)
+			return
+		end
+	else
+		target = Players:FindFirstChild(speaker)
+	end
+
+	if target then
+		DataDebugger.fixTycoonReference(target)
+	else
+		colorPrint(COLORS.ERROR, "No target player specified or found")
+	end
+end
+
+local function onReloadCommand(speaker, targetName)
+	local target
+
+	if targetName and targetName ~= "" then
+		target = Players:FindFirstChild(targetName)
+		if not target then
+			colorPrint(COLORS.ERROR, "Player not found: " .. targetName)
+			return
+		end
+	else
+		target = Players:FindFirstChild(speaker)
+	end
+
+	if target then
+		DataDebugger.forceReloadData(target)
+	else
+		colorPrint(COLORS.ERROR, "No target player specified or found")
+	end
+end
+
+local function onRestoreCommand(speaker, targetName)
+	local target
+
+	if targetName and targetName ~= "" then
+		target = Players:FindFirstChild(targetName)
+		if not target then
+			colorPrint(COLORS.ERROR, "Player not found: " .. targetName)
+			return
+		end
+	else
+		target = Players:FindFirstChild(speaker)
+	end
+
+	if target then
+		DataDebugger.forceRestoreEquipment(target)
+	else
+		colorPrint(COLORS.ERROR, "No target player specified or found")
+	end
+end
+
+-- Register chat commands if available
+local ChatService = require(game:GetService("ServerScriptService"):FindFirstChild("ChatServiceRunner") and 
+	game:GetService("ServerScriptService").ChatServiceRunner.ChatService or 
+	game:GetService("Chat"):WaitForChild("ChatService", 5))
+
+if ChatService then
+	ChatService:RegisterProcessCommandsFunction("DataDebuggerCommands", function(speakerName, message, channel)
+		local speaker = Players:FindFirstChild(speakerName)
+		if not speaker or not speaker:GetAttribute("Admin") then return false end
+
+		if message:sub(1, 11) == "/datacheck " then
+			onDebugCommand(speakerName, message:sub(12))
+			return true
+		elseif message:sub(1, 10) == "/datacheck" then
+			onDebugCommand(speakerName, nil)
+			return true
+		elseif message:sub(1, 9) == "/datafix " then
+			onFixCommand(speakerName, message:sub(10))
+			return true
+		elseif message:sub(1, 8) == "/datafix" then
+			onFixCommand(speakerName, nil)
+			return true
+		elseif message:sub(1, 11) == "/datareload " then
+			onReloadCommand(speakerName, message:sub(12))
+			return true
+		elseif message:sub(1, 10) == "/datareload" then
+			onReloadCommand(speakerName, nil)
+			return true
+		elseif message:sub(1, 13) == "/datarestore " then
+			onRestoreCommand(speakerName, message:sub(14))
+			return true
+		elseif message:sub(1, 12) == "/datarestore" then
+			onRestoreCommand(speakerName, nil)
+			return true
+		end
+
+		return false
+	end)
+
+	colorPrint(COLORS.SUCCESS, "Registered chat commands: /datacheck, /datafix, /datareload, /datarestore")
+else
+	colorPrint(COLORS.WARNING, "ChatService not found, chat commands not registered")
+end
+
+-- Check all players at start
+task.delay(10, function()
+	DataDebugger.checkAllPlayers()
+end)
+
+-- Make data debugger available globally
+_G.DataDebugger = DataDebugger
+
+return DataDebugger]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX9CCF7E35E550459C8998308075A3ECE8">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">DataSystemFixer</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{93049282-8087-485A-8B99-64D720891532}</string>
+				<ProtectedString name="Source"><![CDATA[-- DataSystemFixer.lua
+-- Corrected version with syntax errors fixed
+-- Place this in ServerScriptService to fix data persistence issues
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local DEBUG = true
+
+local function log(...)
+	if DEBUG then
+		print("[DataSystemFixer]", ...)
+	end
+end
+
+-- Step 1: Identify all active data systems
+local activeSystems = {}
+
+-- Check for the original data manager
+local originalDataManager
+pcall(function()
+	originalDataManager = require(ServerScriptService:FindFirstChild("GymTycoonDataManager"))
+	if originalDataManager then
+		activeSystems.originalSystem = originalDataManager
+		log("Found original GymTycoonDataManager")
+	end
+end)
+
+-- Check for the enhanced data system
+local enhancedDataSystem
+pcall(function()
+	enhancedDataSystem = require(ServerScriptService:FindFirstChild("EnhancedDataStorageSystem") or 
+		ServerScriptService:FindFirstChild("ImprovedDataStorageSystem"))
+	if enhancedDataSystem then
+		activeSystems.enhancedSystem = enhancedDataSystem
+		log("Found EnhancedDataStorageSystem")
+	end
+end)
+
+-- Check for BuyTile system
+local buyTileSystem
+pcall(function()
+	buyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
+	if buyTileSystem then
+		log("Found BuyTile system")
+	end
+end)
+
+-- Step 2: Resolve conflicts between data systems
+local function resolveDataSystemConflicts()
+	if #activeSystems == 0 then
+		log("No data systems found, nothing to fix")
+		return
+	end
+
+	-- If both systems are active, we need to make one inactive
+	if activeSystems.originalSystem and activeSystems.enhancedSystem then
+		log("CONFLICT: Both original and enhanced data systems are active")
+
+		-- We'll keep the original system active since it's already working
+		-- But we'll fix integration points
+
+		-- Check if we need to fix the spawnGymPart function
+		if buyTileSystem then
+			-- Create reference to the BuyTile.spawnGymPart function in global scope
+			if buyTileSystem.spawnGymPart then
+				log("Exposing spawnGymPart function globally")
+				_G.spawnGymPart = buyTileSystem.spawnGymPart
+
+				-- Also create a more robust version that handles player parameter
+				_G.spawnGymPartForPlayer = function(player, tileId)
+					return buyTileSystem.spawnGymPart(tileId)
+				end
+			else
+				log("WARNING: BuyTile system found but spawnGymPart function is missing")
+			end
+		end
+	end
+end
+
+-- Step 3: Fix UI labels and GUI issues
+local function fixGUIIssues()
+	-- Find and fix the 'Label' GUI
+	for _, player in ipairs(Players:GetPlayers()) do
+		-- Check for Label GUI in the player's Tycoon
+		local tycoon = player:FindFirstChild("Tycoon")
+		if tycoon and tycoon.Value then
+			local labelGui = tycoon.Value:FindFirstChild("Label")
+			if labelGui then
+				log("Found incorrect Label GUI in " .. player.Name .. "'s tycoon, fixing...")
+
+				-- Replace with proper MembershipDisplay
+				local membershipDisplay = labelGui:FindFirstChild("MembershipDisplay")
+				if not membershipDisplay then
+					membershipDisplay = Instance.new("BillboardGui")
+					membershipDisplay.Name = "MembershipDisplay"
+					membershipDisplay.Size = UDim2.new(8, 0, 4, 0)
+					membershipDisplay.StudsOffset = Vector3.new(0, 4, 0)
+					membershipDisplay.AlwaysOnTop = true
+
+					local frame = Instance.new("Frame")
+					frame.Size = UDim2.new(1, 0, 1, 0)
+					frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+					frame.BackgroundTransparency = 0.5
+					frame.BorderSizePixel = 0
+					frame.Parent = membershipDisplay
+
+					local title = Instance.new("TextLabel")
+					title.Size = UDim2.new(1, 0, 0.3, 0)
+					title.Text = player.Name .. "'s Gym"
+					title.TextColor3 = Color3.fromRGB(255, 255, 255)
+					title.TextScaled = true
+					title.BackgroundTransparency = 1
+					title.Parent = frame
+
+					local stats = Instance.new("TextLabel")
+					stats.Size = UDim2.new(1, 0, 0.4, 0)
+					stats.Position = UDim2.new(0, 0, 0.3, 0)
+					stats.Text = "Members: 0\nVIP Members: 0"
+					stats.TextColor3 = Color3.fromRGB(255, 255, 255)
+					stats.TextScaled = true
+					stats.BackgroundTransparency = 1
+					stats.Parent = frame
+
+					local dues = Instance.new("TextLabel")
+					dues.Size = UDim2.new(1, 0, 0.3, 0)
+					dues.Position = UDim2.new(0, 0, 0.7, 0)
+					dues.Text = "Accrued Dues: $0"
+					dues.TextColor3 = Color3.fromRGB(85, 255, 127)
+					dues.TextScaled = true
+					dues.BackgroundTransparency = 1
+					dues.Parent = frame
+
+					membershipDisplay.Parent = tycoon.Value
+
+					-- Try to destroy the incorrect Label
+					pcall(function()
+						labelGui:Destroy()
+					end)
+
+					log("Fixed GUI for " .. player.Name)
+				end
+			end
+		end
+	end
+end
+
+-- Step 4: Fix the cash overwriting issue
+local function fixCashIssue(player)
+	if not player then return end
+
+	local userId = player.UserId
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then return end
+
+	local cashValue = leaderstats:FindFirstChild("Cash")
+	if not cashValue then return end
+
+	-- Get data from the original system
+	local data
+	if activeSystems.originalSystem and activeSystems.originalSystem.getPlayerData then
+		data = activeSystems.originalSystem.getPlayerData(player)
+	elseif activeSystems.originalSystem and activeSystems.originalSystem.loadedData then
+		data = activeSystems.originalSystem.loadedData[userId]
+	end
+
+	if data and data.cash then
+		log("Setting correct cash value for " .. player.Name .. ": " .. data.cash)
+		cashValue.Value = data.cash
+	end
+
+	-- Fix tycoon attributes to ensure members are tracked correctly
+	local tycoon = player:FindFirstChild("Tycoon")
+	if tycoon and data then
+		if data.memberCount ~= nil then
+			tycoon:SetAttribute("MemberCount", data.memberCount)
+		end
+
+		if data.vipCount ~= nil then
+			tycoon:SetAttribute("VIPCount", data.vipCount)
+		end
+
+		if data.accruedDues ~= nil then
+			tycoon:SetAttribute("AccruedDues", data.accruedDues)
+		end
+
+		-- Update GUI display
+		task.spawn(function()
+			task.wait(1) -- Wait for other systems to initialize
+
+			-- Try to call the front desk update function if it exists
+			if _G.updateFrontDeskDisplay then
+				pcall(function()
+					_G.updateFrontDeskDisplay(player)
+				end)
+			end
+
+			-- Find and update the membership display
+			if tycoon.Value then
+				local membershipDisplay = tycoon.Value:FindFirstChild("MembershipDisplay")
+				if membershipDisplay then
+					local frame = membershipDisplay:FindFirstChild("Frame")
+					if frame then
+						local stats = frame:FindFirstChild("TextLabel", true)
+						if stats then
+							local memberCount = tycoon:GetAttribute("MemberCount") or 0
+							local vipCount = tycoon:GetAttribute("VIPCount") or 0
+							stats.Text = "Members: " .. memberCount .. "\nVIP Members: " .. vipCount
+						end
+
+						local dues = frame:FindFirstChildOfClass("TextLabel")
+						if dues and dues.Name ~= "TextLabel" then
+							local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+							dues.Text = "Accrued Dues: $" .. accruedDues
+						end
+					end
+				end
+			end
+		end)
+	end
+end
+
+-- Step 5: Fix event connections
+local function fixEventConnections()
+	-- Make sure the EventBridge exists
+	if not ReplicatedStorage:FindFirstChild("EventBridge") then
+		local eventBridge = Instance.new("Folder")
+		eventBridge.Name = "EventBridge"
+		eventBridge.Parent = ReplicatedStorage
+		log("Created EventBridge folder")
+	end
+
+	local eventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+
+	-- Make sure TilePurchased event exists
+	if not eventBridge:FindFirstChild("TilePurchased") then
+		local event = Instance.new("BindableEvent")
+		event.Name = "TilePurchased"
+		event.Parent = eventBridge
+		log("Created TilePurchased event")
+	end
+
+	-- Make sure MemberCountUpdated event exists
+	if not eventBridge:FindFirstChild("MemberCountUpdated") then
+		local event = Instance.new("BindableEvent")
+		event.Name = "MemberCountUpdated"
+		event.Parent = eventBridge
+		log("Created MemberCountUpdated event")
+	end
+
+	-- Make sure DuesCollected event exists
+	if not eventBridge:FindFirstChild("DuesCollected") then
+		local event = Instance.new("BindableEvent")
+		event.Name = "DuesCollected"
+		event.Parent = eventBridge
+		log("Created DuesCollected event")
+	end
+
+	-- Check if we have the front desk update function, if not create it
+	if not _G.updateFrontDeskDisplay and activeSystems.originalSystem then
+		_G.updateFrontDeskDisplay = function(player)
+			if not player then return end
+
+			local tycoon = player:FindFirstChild("Tycoon")
+			if not tycoon or not tycoon.Value then return end
+
+			local membershipDisplay = tycoon.Value:FindFirstChild("MembershipDisplay")
+			if not membershipDisplay then return end
+
+			local frame = membershipDisplay:FindFirstChild("Frame")
+			if not frame then return end
+
+			-- Update the title
+			local title = frame:FindFirstChild("TextLabel")
+			if title then
+				title.Text = player.Name .. "'s Gym"
+			end
+
+			-- Update member counts
+			local stats = frame:FindFirstChild("TextLabel", true)
+			if stats and stats ~= title then
+				local memberCount = tycoon:GetAttribute("MemberCount") or 0
+				local vipCount = tycoon:GetAttribute("VIPCount") or 0
+				stats.Text = "Members: " .. memberCount .. "\nVIP Members: " .. vipCount
+			end
+
+			-- Update dues
+			local dues = frame:FindFirstChild("TextLabel", true)
+			if dues and dues ~= title and dues ~= stats then
+				local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+				dues.Text = "Accrued Dues: $" .. accruedDues
+			end
+		end
+
+		log("Created global updateFrontDeskDisplay function")
+	end
+end
+
+-- Execute the fixes for all current players
+local function fixAllPlayers()
+	for _, player in ipairs(Players:GetPlayers()) do
+		fixCashIssue(player)
+	end
+
+	fixGUIIssues()
+end
+
+-- Set up fix for new players joining
+Players.PlayerAdded:Connect(function(player)
+	-- Wait for data to be loaded
+	task.wait(5)
+	fixCashIssue(player)
+end)
+
+-- Run the fixes
+resolveDataSystemConflicts()
+fixEventConnections()
+fixAllPlayers()
+
+log("Data system fixes applied")
+
+return {
+	fixPlayer = fixCashIssue,
+	fixGUI = fixGUIIssues,
+	fixAllPlayers = fixAllPlayers
+}]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXE6CC51AC9775469C90DB1D12213559EC">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">BuyTilePurchaseHandler</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{81F3B73A-918D-4B18-8C9D-3AD8D3DA7DD7}</string>
+				<ProtectedString name="Source"><![CDATA[-- BuyTilePurchaseHandler.lua - Fixed
+-- This script fixes the connection between BuyTile purchases and data saving
+-- Place in ServerScriptService
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local DEBUG = true
+
+local function log(...)
+	if DEBUG then
+		print("[BuyTileFixer]", ...)
+	end
+end
+
+-- Try to find the original BuyTile system
+local BuyTileSystem
+pcall(function()
+	BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
+end)
+
+-- Try to find the data manager
+local DataManager
+pcall(function()
+	DataManager = require(ServerScriptService:FindFirstChild("GymTycoonDataManager"))
+end)
+
+-- Ensure EventBridge exists
+local function ensureEventBridge()
+	if not ReplicatedStorage:FindFirstChild("EventBridge") then
+		local eventBridge = Instance.new("Folder")
+		eventBridge.Name = "EventBridge"
+		eventBridge.Parent = ReplicatedStorage
+		log("Created EventBridge folder")
+	end
+
+	local eventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+
+	-- Ensure TilePurchased event exists
+	if not eventBridge:FindFirstChild("TilePurchased") then
+		local event = Instance.new("BindableEvent")
+		event.Name = "TilePurchased"
+		event.Parent = eventBridge
+		log("Created TilePurchased event")
+	end
+
+	return eventBridge
+end
+
+-- Fix the BuyTile Touched connections
+local function fixBuyTilePurchaseHandlers()
+	if not BuyTileSystem then
+		log("BuyTile system not found, cannot fix purchase handlers")
+		return false
+	end
+
+	local eventBridge = ensureEventBridge()
+	local tilePurchasedEvent = eventBridge:FindFirstChild("TilePurchased")
+
+	-- Fix the spawnGymPart function if it exists
+	if BuyTileSystem.spawnGymPart then
+		local originalSpawnGymPart = BuyTileSystem.spawnGymPart
+
+		-- Replace with enhanced version that fires events
+		BuyTileSystem.spawnGymPart = function(tileId, ...)
+			log("Enhanced spawnGymPart called for tileId: " .. tostring(tileId))
+
+			-- Find the player from the arguments or context
+			local player
+			local args = {...}
+			if #args > 0 and typeof(args[1]) == "Instance" then
+				local firstArg = args[1]
+				if firstArg:IsA("Player") then
+					player = firstArg
+				end
+			end
+
+			-- If we couldn't determine player from args, try to find from context
+			if not player then
+				for _, p in ipairs(Players:GetPlayers()) do
+					local tycoon = p:FindFirstChild("Tycoon")
+					if tycoon and tycoon.Value then
+						-- Check if this player's tycoon contains the buy tile that triggered this
+						local success = pcall(function()
+							return tycoon.Value:FindFirstChild("BuyTile " .. tileId)
+						end)
+
+						if success then
+							player = p
+							break
+						end
+					end
+				end
+			end
+
+			-- Call the original function
+			local result = originalSpawnGymPart(tileId, ...)
+
+			if result then
+				-- Get the price if possible
+				local price = 0
+				if result:IsA("Model") or result:IsA("BasePart") then
+					price = result:GetAttribute("Price") or 0
+				end
+
+				-- Fire the event if we have a player
+				if player and tilePurchasedEvent then
+					tilePurchasedEvent:Fire(player, tileId, price)
+					log("Fired TilePurchased event for tileId: " .. tileId)
+
+					-- Update equipment count
+					local tycoon = player:FindFirstChild("Tycoon")
+					if tycoon then
+						local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+						tycoon:SetAttribute("EquipmentCount", equipmentCount + 1)
+
+						-- Update gym tier if needed (1 tier per 5 equipment pieces)
+						local newTier = math.floor((equipmentCount + 1) / 5) + 1
+						tycoon:SetAttribute("GymTier", newTier)
+
+						log("Updated equipment count for " .. player.Name .. " to " .. (equipmentCount + 1))
+					end
+
+					-- Save data 
+					if DataManager and DataManager.recordEquipmentPurchase then
+						DataManager.recordEquipmentPurchase(player, tileId, price)
+						log("Recorded purchase in data storage")
+
+						-- Trigger a save soon
+						task.delay(5, function()
+							if player and player.Parent then
+								DataManager.savePlayerData(player, false)
+							end
+						end)
+					end
+				end
+			end
+
+			return result
+		end
+
+		-- Make the function globally accessible
+		_G.spawnGymPart = BuyTileSystem.spawnGymPart
+
+		log("Enhanced and exposed spawnGymPart function")
+	else
+		log("BuyTileSystem.spawnGymPart function not found")
+	end
+
+	-- Fix the handleTilePurchase function if it exists
+	if BuyTileSystem.handleTilePurchase then
+		local originalHandleTilePurchase = BuyTileSystem.handleTilePurchase
+
+		BuyTileSystem.handleTilePurchase = function(buyTile)
+			-- Call the original function first
+			local result = originalHandleTilePurchase(buyTile)
+
+			-- Add our enhancement
+			local id = buyTile:GetAttribute("ID")
+			if not id then return result end
+
+			-- Get the BuyTilePart
+			local buyTilePart = buyTile:FindFirstChild("BuyTilePart")
+			if not buyTilePart then return result end
+
+			-- Add a special property to track if this has been enhanced
+			if not buyTilePart:GetAttribute("EnhancedHandler") then
+				buyTilePart:SetAttribute("EnhancedHandler", true)
+
+				-- Connect the Touched event with enhanced handling
+				buyTilePart.Touched:Connect(function(hit)
+					-- Find the player who touched the part
+					local player = Players:GetPlayerFromCharacter(hit.Parent)
+					if not player then return end
+
+					-- Check if player has leaderstats and Cash stat
+					local leaderstats = player:FindFirstChild("leaderstats")
+					if not leaderstats or not leaderstats:FindFirstChild("Cash") then return end
+
+					local cashStat = leaderstats:FindFirstChild("Cash")
+					local price = buyTile:GetAttribute("Price") or 0
+
+					-- Check if player has enough cash
+					if cashStat.Value >= price then
+						log("Player " .. player.Name .. " is purchasing tile " .. id)
+
+						-- Record the purchase in tycoon attributes
+						local tycoon = player:FindFirstChild("Tycoon")
+						if tycoon then
+							-- Update equipment count after a short delay to ensure the purchase went through
+							task.delay(0.5, function()
+								local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+								tycoon:SetAttribute("EquipmentCount", equipmentCount + 1)
+
+								-- Update gym tier if needed
+								local newTier = math.floor((equipmentCount + 1) / 5) + 1
+								tycoon:SetAttribute("GymTier", newTier)
+
+								-- Fire event
+								if tilePurchasedEvent then
+									tilePurchasedEvent:Fire(player, id, price)
+								end
+
+								-- Save data
+								if DataManager and DataManager.recordEquipmentPurchase then
+									DataManager.recordEquipmentPurchase(player, id, price)
+
+									-- Trigger a save soon
+									task.delay(5, function()
+										if player and player.Parent then
+											DataManager.savePlayerData(player, false)
+										end
+									end)
+								end
+							end)
+						end
+					end
+				end)
+
+				log("Enhanced touch handler for BuyTile with ID: " .. id)
+			end
+
+			return result
+		end
+
+		log("Enhanced handleTilePurchase function")
+	end
+
+	return true
+end
+
+-- Fix the existing buy tiles in the game
+local function fixExistingBuyTiles()
+	local eventBridge = ensureEventBridge()
+	local tilePurchasedEvent = eventBridge:FindFirstChild("TilePurchased")
+
+	-- Look for all BuyTileParts in the workspace
+	local buyTileParts = {}
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj.Name == "BuyTilePart" and obj:IsA("BasePart") then
+			table.insert(buyTileParts, obj)
+		end
+	end
+
+	log("Found " .. #buyTileParts .. " existing BuyTileParts")
+
+	-- Enhance each one
+	for _, buyTilePart in ipairs(buyTileParts) do
+		if not buyTilePart:GetAttribute("EnhancedHandler") then
+			buyTilePart:SetAttribute("EnhancedHandler", true)
+
+			-- Get the parent buy tile and ID
+			local buyTile = buyTilePart.Parent
+			if not buyTile then 
+				continue 
+			end
+
+			local id = buyTile:GetAttribute("ID")
+			if not id then 
+				continue 
+			end
+
+			local price = buyTile:GetAttribute("Price") or 0
+
+			-- Connect the Touched event with enhanced handling
+			buyTilePart.Touched:Connect(function(hit)
+				-- Find the player who touched the part
+				local player = Players:GetPlayerFromCharacter(hit.Parent)
+				if not player then return end
+
+				-- Check if player has leaderstats and Cash stat
+				local leaderstats = player:FindFirstChild("leaderstats")
+				if not leaderstats or not leaderstats:FindFirstChild("Cash") then return end
+
+				local cashStat = leaderstats:FindFirstChild("Cash")
+
+				-- Check if player has enough cash
+				if cashStat.Value >= price then
+					log("Player " .. player.Name .. " is purchasing tile " .. id)
+
+					-- Record the purchase in tycoon attributes
+					local tycoon = player:FindFirstChild("Tycoon")
+					if tycoon then
+						-- Fire event
+						if tilePurchasedEvent then
+							task.delay(0.5, function()
+								tilePurchasedEvent:Fire(player, id, price)
+
+								-- Update equipment count to ensure consistency
+								local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
+								tycoon:SetAttribute("EquipmentCount", equipmentCount + 1)
+
+								-- Update gym tier if needed
+								local newTier = math.floor((equipmentCount + 1) / 5) + 1
+								tycoon:SetAttribute("GymTier", newTier)
+							end)
+						end
+
+						-- Save data
+						if DataManager and DataManager.recordEquipmentPurchase then
+							task.delay(0.5, function()
+								DataManager.recordEquipmentPurchase(player, id, price)
+
+								-- Trigger a save soon
+								task.delay(5, function()
+									if player and player.Parent then
+										DataManager.savePlayerData(player, false)
+									end
+								end)
+							end)
+						end
+					end
+				end
+			end)
+
+			log("Enhanced existing BuyTilePart for ID: " .. id)
+		end
+	end
+end
+
+-- Make some functions globally available
+local BuyTileFixer = {
+	fixPurchaseHandlers = fixBuyTilePurchaseHandlers,
+	fixExistingBuyTiles = fixExistingBuyTiles
+}
+
+-- Run the fixes
+ensureEventBridge()
+fixBuyTilePurchaseHandlers()
+fixExistingBuyTiles()
+
+-- Make available globally
+_G.BuyTileFixer = BuyTileFixer
+
+log("BuyTile purchase handler fixes applied")
+
+return BuyTileFixer]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX7938EACAAF7F47A2B0640BA80DA25AD1">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">FrontDeskFixer</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{81DC2EFD-DD23-45B0-9AFE-5D08B4721BCD}</string>
+				<ProtectedString name="Source"><![CDATA[-- FrontDeskFixer.lua
+-- This script fixes issues with membership display and front desk functionality
+-- Place in ServerScriptService
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local DEBUG = true
+
+local function log(...)
+	if DEBUG then
+		print("[FrontDeskFixer]", ...)
+	end
+end
+
+-- Try to find the data manager
+local DataManager
+pcall(function()
+	DataManager = require(ServerScriptService:FindFirstChild("GymTycoonDataManager"))
+end)
+
+-- Create or get the EventBridge
+local function ensureEventBridge()
+	if not ReplicatedStorage:FindFirstChild("EventBridge") then
+		local eventBridge = Instance.new("Folder")
+		eventBridge.Name = "EventBridge"
+		eventBridge.Parent = ReplicatedStorage
+		log("Created EventBridge folder")
+	end
+
+	return ReplicatedStorage:FindFirstChild("EventBridge")
+end
+
+-- Create or get events
+local function ensureEvents()
+	local eventBridge = ensureEventBridge()
+
+	local events = {
+		"MemberCountUpdated",
+		"DuesCollected",
+		"VIPCountUpdated"
+	}
+
+	for _, eventName in ipairs(events) do
+		if not eventBridge:FindFirstChild(eventName) then
+			local event = Instance.new("BindableEvent")
+			event.Name = eventName
+			event.Parent = eventBridge
+			log("Created " .. eventName .. " event")
+		end
+	end
+end
+
+
+	-- Update a player's front desk display
+local function updateFrontDeskDisplay(player)
+	if not player then return end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		log("Cannot update front desk - no valid tycoon for " .. player.Name)
+		return
+	end
+
+	-- Find front desk and membership display
+	local frontDesk = tycoon.Value:FindFirstChild("Membership Desk") or tycoon.Value:FindFirstChild("Front Desk")
+	local membershipDisplay = tycoon.Value:FindFirstChild("MembershipDisplay")
+
+	-- If we couldn't find the display, try to create one
+	if not membershipDisplay and frontDesk then
+		membershipDisplay = Instance.new("BillboardGui")
+		membershipDisplay.Name = "MembershipDisplay"
+		membershipDisplay.Size = UDim2.new(8, 0, 4, 0)
+		membershipDisplay.StudsOffset = Vector3.new(0, 4, 0)
+		membershipDisplay.AlwaysOnTop = true
+
+		local frame = Instance.new("Frame")
+		frame.Name = "MainFrame"
+		frame.Size = UDim2.new(1, 0, 1, 0)
+		frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		frame.BackgroundTransparency = 0.5
+		frame.BorderSizePixel = 0
+		frame.Parent = membershipDisplay
+
+		local title = Instance.new("TextLabel")
+		title.Name = "Title"
+		title.Size = UDim2.new(1, 0, 0.3, 0)
+		title.Text = player.Name .. "'s Gym"
+		title.TextColor3 = Color3.fromRGB(255, 255, 255)
+		title.Font = Enum.Font.GothamBold
+		title.TextScaled = true
+		title.BackgroundTransparency = 1
+		title.Parent = frame
+
+		local stats = Instance.new("TextLabel")
+		stats.Name = "MemberStats"
+		stats.Size = UDim2.new(1, 0, 0.4, 0)
+		stats.Position = UDim2.new(0, 0, 0.3, 0)
+		stats.Text = "Members: 0\nVIP Members: 0"
+		stats.TextColor3 = Color3.fromRGB(255, 255, 255)
+		stats.Font = Enum.Font.Gotham
+		stats.TextScaled = true
+		stats.BackgroundTransparency = 1
+		stats.Parent = frame
+
+		local dues = Instance.new("TextLabel")
+		dues.Name = "DuesLabel"
+		dues.Size = UDim2.new(1, 0, 0.3, 0)
+		dues.Position = UDim2.new(0, 0, 0.7, 0)
+		dues.Text = "Accrued Dues: $0"
+		dues.TextColor3 = Color3.fromRGB(85, 255, 127)
+		dues.Font = Enum.Font.Gotham
+		dues.TextScaled = true
+		dues.BackgroundTransparency = 1
+		dues.Parent = frame
+
+		membershipDisplay.Parent = frontDesk
+
+		log("Created membership display for " .. player.Name)
+	end
+
+	-- Update the display with current stats
+	if membershipDisplay then
+		local frame = membershipDisplay:FindFirstChild("MainFrame") or membershipDisplay:FindFirstChild("Frame")
+		if frame then
+			-- Update title
+			local title = frame:FindFirstChild("Title") or frame:FindFirstChildOfClass("TextLabel")
+			if title then
+				title.Text = player.Name .. "'s Gym"
+			end
+
+			-- Update stats
+			local stats = frame:FindFirstChild("MemberStats")
+			if not stats then
+				stats = frame:FindFirstChild("TextLabel", true)
+				if stats ~= title then
+					stats.Name = "MemberStats"
+				end
+			end
+
+			if stats then
+				local memberCount = tycoon:GetAttribute("MemberCount") or 0
+				local vipCount = tycoon:GetAttribute("VIPCount") or 0
+				stats.Text = "Members: " .. memberCount .. "\nVIP Members: " .. vipCount
+			end
+
+			-- Update dues
+			local dues = frame:FindFirstChild("DuesLabel")
+			if not dues then
+				local children = frame:GetChildren()
+				for _, child in ipairs(children) do
+					if child:IsA("TextLabel") and child ~= title and child ~= stats then
+						dues = child
+						dues.Name = "DuesLabel"
+						break
+					end
+				end
+			end
+
+			if dues then
+				local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+				dues.Text = "Accrued Dues: $" .. accruedDues
+			end
+		end
+	end
+
+	-- Check for "Label" GUI and remove it
+	local labelGui = tycoon.Value:FindFirstChild("Label")
+	if labelGui then
+		pcall(function()
+			labelGui:Destroy()
+		end)
+		log("Removed incorrect Label GUI from " .. player.Name .. "'s tycoon")
+	end
+end
+
+-- Fix the front desk for a player
+local function fixFrontDesk(player)
+	if not player then return end
+
+	log("Applying front desk fix for " .. player.Name)
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		log("Cannot fix front desk - no valid tycoon for " .. player.Name)
+		return
+	end
+
+	-- Find the front desk
+	local frontDesk = tycoon.Value:FindFirstChild("Membership Desk") or tycoon.Value:FindFirstChild("Front Desk")
+	if not frontDesk then
+		log("Cannot find front desk for " .. player.Name)
+		return
+	end
+
+	-- Create or update proximity prompt
+	local proximityPrompt = frontDesk:FindFirstChildOfClass("ProximityPrompt")
+	if not proximityPrompt then
+		proximityPrompt = Instance.new("ProximityPrompt")
+		proximityPrompt.Name = "CollectDuesPrompt"
+		proximityPrompt.ActionText = "Collect Dues"
+		proximityPrompt.ObjectText = "Front Desk"
+		proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E
+		proximityPrompt.HoldDuration = 0.5
+		proximityPrompt.MaxActivationDistance = 10
+		proximityPrompt.Parent = frontDesk
+
+		log("Created proximity prompt for " .. player.Name .. "'s front desk")
+	end
+
+	-- Connect the prompt to the dues collection function
+	proximityPrompt.Triggered:Connect(function(playerWhoTriggered)
+		if playerWhoTriggered ~= player then return end
+
+		local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+
+		if accruedDues <= 0 then
+			-- No dues to collect
+			return
+		end
+
+		-- Reset dues
+		tycoon:SetAttribute("AccruedDues", 0)
+
+		-- Add to player's cash
+		local leaderstats = player:FindFirstChild("leaderstats")
+		if not leaderstats then return end
+
+		local cashValue = leaderstats:FindFirstChild("Cash")
+		if not cashValue then return end
+
+		cashValue.Value = cashValue.Value + accruedDues
+
+		-- Update the display
+		updateFrontDeskDisplay(player)
+
+		-- Fire event
+		local eventBridge = ensureEventBridge()
+		local duesCollectedEvent = eventBridge:FindFirstChild("DuesCollected")
+		if duesCollectedEvent then
+			duesCollectedEvent:Fire(player, accruedDues)
+		end
+
+		-- Save data
+		if DataManager and DataManager.savePlayerData then
+			task.delay(5, function()
+				if player and player.Parent then
+					DataManager.savePlayerData(player, false)
+				end
+			end)
+		end
+
+		log(player.Name .. " collected $" .. accruedDues .. " in dues")
+	end)
+
+	-- Update the display
+	updateFrontDeskDisplay(player)
+
+	log("Front desk fix applied for " .. player.Name)
+end
+
+
+	-- Fix all existing players
+local function fixAllPlayers()
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function()
+			fixFrontDesk(player)
+		end)
+	end
+end
+
+
+	-- Make function available globally
+_G.updateFrontDeskDisplay = updateFrontDeskDisplay
+
+-- Set up player connections
+Players.PlayerAdded:Connect(function(player)
+	-- Wait for tycoon to be created
+	task.wait(5)
+	fixFrontDesk(player)
+end
+)
+
+	-- Set up events
+ensureEvents()
+
+-- Fix existing players
+fixAllPlayers()
+
+log("Front desk fixer initialized")
+
+return {
+	updateFrontDeskDisplay = updateFrontDeskDisplay,
+	fixFrontDesk = fixFrontDesk,
+	fixAllPlayers = fixAllPlayers
+}]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX8DECE712CDA44C02BD08AC396A5B60CE">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">ProgressRestorationCoordinator</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{29569FCF-7AB2-4599-A8FF-475C52866EF1}</string>
+				<ProtectedString name="Source"><![CDATA[-- ProgressRestorationCoordinator.lua
+-- This script coordinates the restoration of player progress between systems
+-- Place in ServerScriptService
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local DEBUG = true
+
+local function log(...)
+	if DEBUG then
+		print("[ProgressCoordinator]", ...)
+	end
+end
+
+-- Try to load the original data manager
+local DataManager
+pcall(function()
+	DataManager = require(ServerScriptService:FindFirstChild("GymTycoonDataManager"))
+end)
+
+-- Try to load the enhanced data system
+local EnhancedDataSystem
+pcall(function()
+	EnhancedDataSystem = require(ServerScriptService:FindFirstChild("EnhancedDataStorageSystem") or 
+		ServerScriptService:FindFirstChild("ImprovedDataStorageSystem"))
+end)
+
+-- Try to load BuyTile system
+local BuyTileSystem
+pcall(function()
+	BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
+end)
+
+-- Function to restore a player's progress using the primary data system
+local function restorePlayerProgress(player)
+	if not player then return false end
+
+	log("Starting progress restoration for " .. player.Name)
+
+	-- Make sure the player has a tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon then
+		log("No Tycoon found for " .. player.Name .. ", creating one")
+		tycoon = Instance.new("ObjectValue")
+		tycoon.Name = "Tycoon"
+		tycoon.Parent = player
+	end
+
+	-- Find tycoon model
+	if not tycoon.Value then
+		-- Try to find it
+		local tycoonsFolder = workspace:FindFirstChild("Tycoons")
+		if tycoonsFolder then
+			local playerTycoon = tycoonsFolder:FindFirstChild(player.Name .. "'s Gym")
+			if playerTycoon then
+				tycoon.Value = playerTycoon
+				log("Found tycoon model for " .. player.Name)
+			else
+				log("No tycoon model found for " .. player.Name)
+				return false
+			end
+		else
+			log("No Tycoons folder found in workspace")
+			return false
+		end
+	end
+
+	-- Get player data
+	local playerData
+
+	if DataManager and DataManager.getPlayerData then
+		playerData = DataManager.getPlayerData(player)
+		log("Got player data from original DataManager")
+	elseif DataManager and DataManager.loadedData then
+		playerData = DataManager.loadedData[player.UserId]
+		log("Got player data from DataManager.loadedData")
+	elseif EnhancedDataSystem and EnhancedDataSystem.getPlayerData then
+		playerData = EnhancedDataSystem.getPlayerData(player)
+		log("Got player data from EnhancedDataSystem")
+	elseif EnhancedDataSystem and EnhancedDataSystem.loadedData then
+		playerData = EnhancedDataSystem.loadedData[player.UserId]
+		log("Got player data from EnhancedDataSystem.loadedData")
+	end
+
+	if not playerData then
+		log("No data found for " .. player.Name)
+		return false
+	end
+
+	-- Apply cash value
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then
+		leaderstats = Instance.new("Folder")
+		leaderstats.Name = "leaderstats"
+		leaderstats.Parent = player
+
+		local cash = Instance.new("IntValue")
+		cash.Name = "Cash"
+		cash.Value = playerData.cash or 1000
+		cash.Parent = leaderstats
+	else
+		local cash = leaderstats:FindFirstChild("Cash")
+		if cash then
+			cash.Value = playerData.cash or 1000
+		else
+			local cash = Instance.new("IntValue")
+			cash.Name = "Cash"
+			cash.Value = playerData.cash or 1000
+			cash.Parent = leaderstats
+		end
+	end
+
+	log("Applied cash value: " .. (playerData.cash or 1000) .. " for " .. player.Name)
+
+	-- Apply tycoon attributes
+	tycoon:SetAttribute("MemberCount", playerData.memberCount or 0)
+	tycoon:SetAttribute("VIPCount", playerData.vipCount or 0)
+	tycoon:SetAttribute("AccruedDues", playerData.accruedDues or 0)
+
+	-- Usually these attributes are named differently in different systems
+	tycoon:SetAttribute("EquipmentCount", playerData.equipmentCount or 0)
+	tycoon:SetAttribute("GymTier", playerData.gymLevel or 1)
+
+	-- Also set with alternate names for compatibility
+	tycoon:SetAttribute("GymLevel", playerData.gymLevel or 1)
+	tycoon:SetAttribute("MembershipCount", playerData.memberCount or 0)
+	tycoon:SetAttribute("VIPMembershipCount", playerData.vipCount or 0)
+
+	log("Applied tycoon attributes for " .. player.Name)
+
+	-- Restore purchased equipment
+	if playerData.equipmentPurchased and type(playerData.equipmentPurchased) == "table" then
+		local tileIds = {}
+
+		-- Extract tile IDs from the equipmentPurchased table
+		for tileId, _ in pairs(playerData.equipmentPurchased) do
+			local numericId = tonumber(tileId) or tonumber(string.match(tileId, "%d+"))
+			if numericId then
+				table.insert(tileIds, numericId)
+			end
+		end
+
+		-- Sort IDs for orderly placement
+		table.sort(tileIds)
+
+		log("Restoring " .. #tileIds .. " tiles for " .. player.Name)
+
+		-- Define a function to spawn tiles, with built-in error handling
+		local function spawnTile(tileId)
+			-- Try different spawn functions
+			if BuyTileSystem and BuyTileSystem.spawnGymPart then
+				-- Standard BuyTile.spawnGymPart
+				return BuyTileSystem.spawnGymPart(tileId)
+			elseif _G.spawnGymPart then
+				-- Global spawnGymPart function
+				return _G.spawnGymPart(tileId)
+			elseif DataManager and DataManager.spawnTile then
+				-- Custom DataManager spawn function
+				return DataManager.spawnTile(player, tileId)
+			else
+				-- Fallback method - find and clone from templates
+				if tileId == 1 then
+					-- Special case for initial BuyTile
+					for _, obj in pairs(workspace:GetDescendants()) do
+						if obj.Name == "BuyTile 1" or (obj.Name:match("BuyTile") and obj:GetAttribute("ID") == 1) then
+							local clone = obj:Clone()
+							clone.Parent = tycoon.Value
+							return clone
+						end
+					end
+
+					-- Also check ServerStorage
+					local serverStorage = game:GetService("ServerStorage")
+					if serverStorage then
+						local gymParts = serverStorage:FindFirstChild("GymParts")
+						if gymParts then
+							for _, obj in pairs(gymParts:GetDescendants()) do
+								if (obj.Name:match("BuyTile") and obj:GetAttribute("ID") == 1) then
+									local clone = obj:Clone()
+									clone.Parent = tycoon.Value
+									return clone
+								end
+							end
+						end
+					end
+				else
+					-- Regular GymPart
+					-- Check ServerStorage first
+					local serverStorage = game:GetService("ServerStorage")
+					if serverStorage then
+						local gymParts = serverStorage:FindFirstChild("GymParts")
+						if gymParts then
+							for _, obj in pairs(gymParts:GetDescendants()) do
+								if obj:GetAttribute("ID") == tileId then
+									local clone = obj:Clone()
+									clone.Parent = tycoon.Value
+									return clone
+								end
+							end
+						end
+					end
+
+					-- Then check workspace
+					for _, obj in pairs(workspace:GetDescendants()) do
+						if obj:GetAttribute("ID") == tileId and obj.Name ~= "BuyTilePart" then
+							local clone = obj:Clone()
+							clone.Parent = tycoon.Value
+							return clone
+						end
+					end
+				end
+			end
+			
+					
+
+					return nil
+					end
+
+					-- Spawn each tile with a delay to avoid overwhelming the system
+local function restoreTiles()
+	local successCount = 0
+
+	for i, tileId in ipairs(tileIds) do
+		task.wait(0.2) -- Small delay between spawns
+
+		local success, result = pcall(function()
+			return spawnTile(tileId)
+		end)
+
+		if success and result then
+			successCount = successCount + 1
+			log("Restored tile " .. tileId .. " for " .. player.Name)
+		else
+			log("Failed to restore tile " .. tileId .. " for " .. player.Name)
+		end
+
+		-- Update progress after every few tiles
+		if i % 5 == 0 then
+			tycoon:SetAttribute("EquipmentCount", successCount)
+			tycoon:SetAttribute("GymTier", math.floor(successCount / 5) + 1)
+		end
+	end
+
+	-- Final update to ensure consistency
+	tycoon:SetAttribute("EquipmentCount", successCount)
+	tycoon:SetAttribute("GymTier", math.floor(successCount / 5) + 1)
+
+	-- Update front desk display if available
+	if _G.updateFrontDeskDisplay then
+		_G.updateFrontDeskDisplay(player)
+	end
+
+	log("Restored " .. successCount .. " out of " .. #tileIds .. " tiles for " .. player.Name)
+
+	-- Fire restoration completed event
+	local eventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+	if eventBridge then
+		local event = eventBridge:FindFirstChild("ProgressRestored")
+		if event then
+			event:Fire(player, successCount)
+		end
+	end
+end
+
+-- Start the restoration process in a separate thread
+task.spawn(restoreTiles)
+else
+	log("No equipment data to restore for " .. player.Name)
+end
+
+-- Update front desk display
+if _G.updateFrontDeskDisplay then
+	task.delay(1, function()
+		_G.updateFrontDeskDisplay(player)
+	end)
+end
+
+return true
+end
+
+-- Create or get the progress restored event
+local function ensureEvents()
+	if not ReplicatedStorage:FindFirstChild("EventBridge") then
+		local eventBridge = Instance.new("Folder")
+		eventBridge.Name = "EventBridge"
+		eventBridge.Parent = ReplicatedStorage
+	end
+
+	local eventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+
+	if not eventBridge:FindFirstChild("ProgressRestored") then
+		local event = Instance.new("BindableEvent")
+		event.Name = "ProgressRestored"
+		event.Parent = eventBridge
+	end
+end
+
+
+	-- Restore all existing players
+local function restoreAllPlayers()
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function()
+			restorePlayerProgress(player)
+		end)
+	end
+end
+
+
+	-- Set up player connections
+Players.PlayerAdded:Connect(function(player)
+	-- Wait a moment to allow other systems to initialize
+	task.wait(5)
+	restorePlayerProgress(player)
+end
+)
+
+	-- Set up event bridge
+ensureEvents()
+
+-- Create command
+local function commandRestorePlayer(speaker, targetName)
+	local target
+
+	if targetName and targetName ~= "" then
+		target = Players:FindFirstChild(targetName)
+		if not target then
+			log("Player not found: " .. targetName)
+			return
+		end
+	else
+		target = Players:FindFirstChild(speaker)
+	end
+	
+
+		if target then
+	restorePlayerProgress(target)
+else
+	log("No target player specified or found")
+end
+end
+
+
+-- Register chat command if possible
+local ChatService = require(game:GetService("ServerScriptService"):FindFirstChild("ChatServiceRunner") and 
+	game:GetService("ServerScriptService").ChatServiceRunner.ChatService or 
+	game:GetService("Chat"):WaitForChild("ChatService", 5))
+
+if ChatService then
+	ChatService:RegisterProcessCommandsFunction("ProgressRestorationCommands", function(speakerName, message, channel)
+		local speaker = Players:FindFirstChild(speakerName)
+		if not speaker or not speaker:GetAttribute("Admin") then return false end
+
+		if message:sub(1, 14) == "/restoreprogress " then
+			commandRestorePlayer(speakerName, message:sub(15))
+			return true
+		elseif message:sub(1, 13) == "/restoreprogress" then
+			commandRestorePlayer(speakerName, nil)
+			return true
+		end
+
+		return false
+	end)
+
+	log("Registered chat command: /restoreprogress")
+end
+
+
+	-- Make functions globally available
+local ProgressRestorationCoordinator = {
+	restorePlayerProgress = restorePlayerProgress,
+	restoreAllPlayers = restoreAllPlayers
+}
+
+_G.ProgressRestoration = ProgressRestorationCoordinator
+
+log("Progress Restoration Coordinator initialized")
+
+-- Restore all existing players
+restoreAllPlayers()
+
+return ProgressRestorationCoordinator]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX8521BD8F7EFF4F7D995BB41EA1B8E9C2">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">BuyTileSequenceFixer</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{A65EFFBC-A3C2-4AD1-BEAD-E93F1F8F0C83}</string>
+				<ProtectedString name="Source"><![CDATA[-- BuyTileSequenceFixer.lua
+-- This script ensures only the correct next BuyTile appears and fixes Front Desk GUI position
+-- Place in ServerScriptService
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local DEBUG = true
+
+local function log(...)
+	if DEBUG then
+		print("[BuyTileSequencer]", ...)
+	end
+end
+
+-- Try to find the BuyTile system
+local BuyTileSystem
+pcall(function()
+	BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
+end)
+
+-- Try to find any data manager
+local DataManager
+pcall(function()
+	DataManager = require(ServerScriptService:FindFirstChild("GymTycoonDataManager"))
+end)
+
+-- Function to determine a player's highest purchased tile ID
+local function getHighestTileId(player)
+	if not player then return 0 end
+
+	-- Get the tycoon reference
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return 0 end
+
+	-- Scan for all equipment with IDs in the tycoon
+	local highestId = 0
+	for _, item in pairs(tycoon.Value:GetDescendants()) do
+		local id = item:GetAttribute("ID")
+		if id and tonumber(id) and tonumber(id) > highestId then
+			highestId = tonumber(id)
+		end
+	end
+
+	-- Also check player data if available
+	if DataManager and DataManager.getPlayerData then
+		local playerData = DataManager.getPlayerData(player)
+		if playerData and playerData.equipmentPurchased then
+			for tileId, _ in pairs(playerData.equipmentPurchased) do
+				local numericId = tonumber(tileId) or tonumber(string.match(tileId, "%d+"))
+				if numericId and numericId > highestId then
+					highestId = numericId
+				end
+			end
+		end
+	end
+
+	return highestId
+end
+
+-- Find all Buy Tiles in workspace
+local function findAllBuyTiles()
+	local buyTiles = {}
+
+	-- Search workspace
+	for _, obj in pairs(Workspace:GetDescendants()) do
+		if (obj.Name:match("BuyTile") or obj.Name:match("Buy Tile")) and obj:GetAttribute("ID") then
+			local id = obj:GetAttribute("ID")
+			if id and tonumber(id) then
+				buyTiles[tonumber(id)] = obj
+			end
+		end
+	end
+
+	return buyTiles
+end
+
+-- Fix tile visibility based on player progress
+local function fixTileVisibility(player)
+	if not player then return end
+
+	log("Fixing tile visibility for " .. player.Name)
+
+	-- Get highest tile ID purchased
+	local highestId = getHighestTileId(player)
+	log("Highest purchased tile ID: " .. highestId)
+
+	-- Get the tycoon reference
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		log("No valid tycoon found for " .. player.Name)
+		return
+	end
+
+	-- Find all buy tiles in the tycoon
+	local tycoonBuyTiles = {}
+	for _, obj in pairs(tycoon.Value:GetDescendants()) do
+		if (obj.Name:match("BuyTile") or obj.Name:match("Buy Tile")) and obj:GetAttribute("ID") then
+			local id = obj:GetAttribute("ID")
+			if id and tonumber(id) then
+				tycoonBuyTiles[tonumber(id)] = obj
+			end
+		end
+	end
+
+	-- Hide/show the correct tiles
+	for id, tile in pairs(tycoonBuyTiles) do
+		if id <= highestId then
+			-- This tile should be hidden as it's already purchased
+			tile.Parent = nil
+		elseif id == highestId + 1 then
+			-- This is the next tile to purchase, make sure it's visible
+			tile.Parent = tycoon.Value
+			log("Made BuyTile " .. id .. " visible for " .. player.Name)
+		else
+			-- This tile is for future purchases, hide it
+			tile.Parent = nil
+		end
+	end
+
+	-- If no next tile was found in the tycoon, try to spawn it
+	if not tycoonBuyTiles[highestId + 1] then
+		log("Next BuyTile " .. (highestId + 1) .. " not found, attempting to spawn")
+
+		-- Try different spawn methods
+		if BuyTileSystem and BuyTileSystem.spawnBuyTile then
+			local newTile = BuyTileSystem.spawnBuyTile(highestId + 1)
+			if newTile then
+				log("Successfully spawned BuyTile " .. (highestId + 1))
+			end
+		elseif _G.spawnBuyTile then
+			local newTile = _G.spawnBuyTile(highestId + 1)
+			if newTile then
+				log("Successfully spawned BuyTile " .. (highestId + 1) .. " using global function")
+			end
+		else
+			log("Could not find a function to spawn the next BuyTile")
+		end
+	end
+
+	-- Fix front desk GUI - make sure it's on the front desk, not the buy tile
+	local frontDesk = tycoon.Value:FindFirstChild("Membership Desk") or tycoon.Value:FindFirstChild("Front Desk")
+	local firstBuyTile = tycoonBuyTiles[1]
+
+	if frontDesk and firstBuyTile then
+		-- Check if the front desk GUI is incorrectly on the buy tile
+		local buyTileMembershipDisplay = firstBuyTile:FindFirstChild("MembershipDisplay")
+		if buyTileMembershipDisplay then
+			-- Move it to the front desk
+			buyTileMembershipDisplay.Parent = frontDesk
+			log("Moved MembershipDisplay from BuyTile to Front Desk")
+		end
+
+		-- Check for the Label GUI as well
+		local buyTileLabel = firstBuyTile:FindFirstChild("Label")
+		if buyTileLabel then
+			pcall(function()
+				buyTileLabel:Destroy()
+			end)
+			log("Removed incorrect Label GUI from BuyTile")
+		end
+
+		-- Make sure front desk has membership display
+		if not frontDesk:FindFirstChild("MembershipDisplay") then
+			if _G.updateFrontDeskDisplay then
+				_G.updateFrontDeskDisplay(player)
+				log("Created front desk display using global function")
+			end
+		end
+	end
+end
+
+-- Fix Buy Tile sequencing for a player
+local function fixBuyTileSequence(player)
+	if not player then return end
+
+	log("Fixing Buy Tile sequence for " .. player.Name)
+
+	-- Get the tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return end
+
+	-- Get all buy tiles
+	local allBuyTiles = findAllBuyTiles()
+
+	-- Get the player's highest purchased ID
+	local highestId = getHighestTileId(player)
+
+	-- If this is a new player (no purchases), make sure first buy tile is visible
+	if highestId == 0 then
+		-- Check if tile 1 already exists in tycoon
+		local existingTile1 = false
+		for _, obj in pairs(tycoon.Value:GetDescendants()) do
+			if (obj.Name:match("BuyTile") or obj.Name:match("Buy Tile")) and obj:GetAttribute("ID") == 1 then
+				existingTile1 = true
+				break
+			end
+		end
+
+		-- If not, try to spawn tile 1
+		if not existingTile1 then
+			log("First-time player, ensuring BuyTile 1 is available")
+
+			if BuyTileSystem and BuyTileSystem.spawnBuyTile then
+				local newTile = BuyTileSystem.spawnBuyTile(1)
+				if newTile then
+					log("Successfully spawned initial BuyTile 1")
+				end
+			elseif _G.spawnBuyTile then
+				local newTile = _G.spawnBuyTile(1)
+				if newTile then
+					log("Successfully spawned initial BuyTile 1 using global function")
+				end
+			else
+				-- Find a template to clone
+				for id, tile in pairs(allBuyTiles) do
+					if id == 1 then
+						local clone = tile:Clone()
+						clone.Parent = tycoon.Value
+						log("Cloned initial BuyTile 1 from template")
+						break
+					end
+				end
+			end
+		end
+	else
+		-- Existing player, make sure the next buy tile is available
+		local nextId = highestId + 1
+
+		-- Check if next tile already exists in tycoon
+		local existingNextTile = false
+		for _, obj in pairs(tycoon.Value:GetDescendants()) do
+			if (obj.Name:match("BuyTile") or obj.Name:match("Buy Tile")) and obj:GetAttribute("ID") == nextId then
+				existingNextTile = true
+				break
+			end
+		end
+
+		-- If not, try to spawn next tile
+		if not existingNextTile then
+			log("Ensuring next BuyTile " .. nextId .. " is available")
+
+			if BuyTileSystem and BuyTileSystem.spawnBuyTile then
+				local newTile = BuyTileSystem.spawnBuyTile(nextId)
+				if newTile then
+					log("Successfully spawned next BuyTile " .. nextId)
+				end
+			elseif _G.spawnBuyTile then
+				local newTile = _G.spawnBuyTile(nextId)
+				if newTile then
+					log("Successfully spawned next BuyTile " .. nextId .. " using global function")
+				end
+			else
+				-- Find a template to clone
+				for id, tile in pairs(allBuyTiles) do
+					if id == nextId then
+						local clone = tile:Clone()
+						clone.Parent = tycoon.Value
+						log("Cloned next BuyTile " .. nextId .. " from template")
+						break
+					end
+				end
+			end
+		end
+	end
+
+	-- Now make sure only the correct tile is visible
+	fixTileVisibility(player)
+end
+
+-- Make sure the Buy Tile system exposes a function to spawn buy tiles
+local function exposeBuyTileSpawnFunction()
+	-- Check if the system and function exist
+	if not BuyTileSystem or not BuyTileSystem.spawnBuyTile then
+		log("BuyTileSystem.spawnBuyTile function not found")
+		return
+	end
+
+	-- Make global reference
+	_G.spawnBuyTile = BuyTileSystem.spawnBuyTile
+	log("Exposed BuyTileSystem.spawnBuyTile as global function")
+end
+
+-- Fix all existing player tile sequences
+local function fixAllPlayers()
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function()
+			fixBuyTileSequence(player)
+		end)
+	end
+end
+
+-- Set up event for player joining
+Players.PlayerAdded:Connect(function(player)
+	-- Wait for tycoon to be fully set up
+	task.wait(5)
+	fixBuyTileSequence(player)
+end)
+
+-- Expose BuyTile spawn function
+exposeBuyTileSpawnFunction()
+
+-- Fix all existing players
+fixAllPlayers()
+
+log("BuyTile sequence fixer initialized")
+
+return {
+	fixBuyTileSequence = fixBuyTileSequence,
+	fixAllPlayers = fixAllPlayers
+}]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX79D592AD05654AAB9615135C5640FFB9">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">LabelGUIRemover</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{5B6A5436-A660-4671-A4DF-66AF7349ACD7}</string>
+				<ProtectedString name="Source"><![CDATA[-- LabelGUIRemover.lua
+-- This script has one purpose: constantly check for and remove Label GUIs
+-- Place in ServerScriptService
+
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local INTERVAL_SECONDS = 1 -- How often to check for Label GUIs
+
+local function removeLabelGUIs()
+	-- Find all Label BillboardGuis in workspace
+	local count = 0
+
+	-- Check entire workspace for Label GUIs
+	for _, object in pairs(Workspace:GetDescendants()) do
+		if object.Name == "Label" and object:IsA("BillboardGui") then
+			object:Destroy()
+			count = count + 1
+		end
+	end
+
+	if count > 0 then
+		print("[LabelRemover] Removed " .. count .. " Label GUIs")
+	end
+end
+
+-- Disable any scripts that create Label GUIs
+local function disableLabelCreators()
+	local scriptCount = 0
+
+	-- Find any scripts with "BuyTile" in their name
+	for _, script in pairs(game:GetDescendants()) do
+		if script:IsA("Script") and script.Name:match("BuyTile") then
+			-- Check if this script contains code related to Label creation
+			local success, sourceContains = pcall(function()
+				local source = script.Source
+				return source:match("Label") ~= nil and source:match("BillboardGui") ~= nil
+			end)
+
+			if success and sourceContains then
+				-- Backup the script before disabling
+				local backup = script:Clone()
+				backup.Name = script.Name .. "_Backup"
+				backup.Parent = script.Parent
+				backup.Disabled = true
+
+				-- Disable the script
+				script.Disabled = true
+				scriptCount = scriptCount + 1
+				print("[LabelRemover] Disabled script: " .. script:GetFullName())
+			end
+		end
+	end
+
+	if scriptCount > 0 then
+		print("[LabelRemover] Disabled " .. scriptCount .. " scripts that create Label GUIs")
+	end
+end
+
+-- Hot patch the BuyTile.spawnBuyTile function if possible
+local function patchBuyTileSystem()
+	local ServerScriptService = game:GetService("ServerScriptService")
+
+	-- Try to get BuyTile system
+	local buyTileScript
+	for _, script in pairs(ServerScriptService:GetDescendants()) do
+		if script.Name == "BuyTile" then
+			buyTileScript = script
+			break
+		end
+	end
+
+	if not buyTileScript then
+		print("[LabelRemover] BuyTile script not found, cannot patch")
+		return
+	end
+
+	-- Create a hook to intercept Label GUI creation
+	local oldInstanceNew = Instance.new
+	Instance.new = function(className, parent)
+		local instance = oldInstanceNew(className, parent)
+
+		-- If creating a BillboardGui named Label, immediately destroy it
+		if className == "BillboardGui" and instance.Name == "Label" then
+			instance:Destroy()
+			print("[LabelRemover] Prevented Label GUI creation")
+			return oldInstanceNew("Folder") -- Return a dummy object
+		end
+
+		return instance
+	end
+
+	print("[LabelRemover] Patched Instance.new to prevent Label GUI creation")
+end
+
+-- Try to find and fix the specific BuyTile code
+local function fixBuyTileCode()
+	local ServerScriptService = game:GetService("ServerScriptService")
+
+	-- Try to get BuyTile system
+	local buyTileScript
+	for _, script in pairs(ServerScriptService:GetDescendants()) do
+		if script.Name == "BuyTile" then
+			buyTileScript = script
+			break
+		end
+	end
+
+	if not buyTileScript then
+		print("[LabelRemover] BuyTile script not found, cannot fix code")
+		return
+	end
+
+	-- Create a new helper function in _G to be used instead
+	_G.createBillboardGui = function(name, maxDistance, adornee, size)
+		-- Only create the billboard GUI if it's not a "Label"
+		if name ~= "Label" then
+			local gui = Instance.new("BillboardGui")
+			gui.Name = name
+			gui.MaxDistance = maxDistance or 100
+			gui.Adornee = adornee
+			gui.Size = size or UDim2.new(10, 0, 10, 0)
+			return gui
+		else
+			-- Return a dummy folder instead
+			return Instance.new("Folder")
+		end
+	end
+
+	print("[LabelRemover] Added safe billboard GUI creator function to _G")
+end
+
+-- Set up a heartbeat connection to constantly remove Label GUIs
+RunService.Heartbeat:Connect(function()
+	removeLabelGUIs()
+end)
+
+-- Call immediate functions
+disableLabelCreators()
+patchBuyTileSystem()
+fixBuyTileCode()
+
+print("[LabelRemover] Label GUI remover initialized and running")]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBX1605EAA5C3294283930ABBAB9BE33CBE">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">TycoonInitializationFix</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{5900697E-62B0-400A-B724-281669BB0DF4}</string>
+				<ProtectedString name="Source"><![CDATA[-- TycoonInitializationFix.lua
+-- This script ensures proper tycoon initialization with the correct objects spawned in the right order
+-- Place in ServerScriptService
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local DEBUG = true
+
+local function log(...)
+	if DEBUG then
+		print("[TycoonInitFix]", ...)
+	end
+end
+
+-- Try to find the data manager
+local DataManager
+pcall(function()
+	DataManager = require(ServerScriptService:FindFirstChild("GymTycoonDataManager"))
+end)
+
+-- Try to find the BuyTile system
+local BuyTileSystem
+pcall(function()
+	BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
+end)
+
+-- Find the front desk template in ServerStorage or in workspace
+local function findFrontDeskTemplate()
+	local ServerStorage = game:GetService("ServerStorage")
+
+	-- Look in ServerStorage first
+	if ServerStorage then
+		local gymParts = ServerStorage:FindFirstChild("GymParts")
+		if gymParts then
+			-- Search for Membership Desk or Front Desk
+			for _, obj in pairs(gymParts:GetDescendants()) do
+				if obj.Name == "Membership Desk" or obj.Name == "Front Desk" then
+					return obj
+				end
+			end
+		end
+	end
+
+	-- Look in workspace as fallback
+	for _, obj in pairs(Workspace:GetDescendants()) do
+		if (obj.Name == "Membership Desk" or obj.Name == "Front Desk") and 
+			not obj:IsDescendantOf(Workspace:FindFirstChild("Tycoons")) then
+			return obj
+		end
+	end
+
+	return nil
+end
+
+-- Create a proper membership display GUI
+local function createMembershipDisplay(player, frontDesk)
+	if not player or not frontDesk then return nil end
+
+	-- Remove any existing displays
+	for _, child in pairs(frontDesk:GetChildren()) do
+		if child.Name == "MembershipDisplay" or child.Name == "Label" then
+			child:Destroy()
+		end
+	end
+
+	-- Create new display
+	local membershipDisplay = Instance.new("BillboardGui")
+	membershipDisplay.Name = "MembershipDisplay"
+	membershipDisplay.Size = UDim2.new(8, 0, 4, 0)
+	membershipDisplay.StudsOffset = Vector3.new(0, 4, 0)
+	membershipDisplay.AlwaysOnTop = true
+
+	local frame = Instance.new("Frame")
+	frame.Name = "MainFrame"
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	frame.BackgroundTransparency = 0.5
+	frame.BorderSizePixel = 0
+	frame.Parent = membershipDisplay
+
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.Size = UDim2.new(1, 0, 0.3, 0)
+	title.Text = player.Name .. "'s Gym"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.Font = Enum.Font.GothamBold
+	title.TextScaled = true
+	title.BackgroundTransparency = 1
+	title.Parent = frame
+
+	local stats = Instance.new("TextLabel")
+	stats.Name = "MemberStats"
+	stats.Size = UDim2.new(1, 0, 0.4, 0)
+	stats.Position = UDim2.new(0, 0, 0.3, 0)
+	stats.Text = "Members: 0\nVIP Members: 0"
+	stats.TextColor3 = Color3.fromRGB(255, 255, 255)
+	stats.Font = Enum.Font.Gotham
+	stats.TextScaled = true
+	stats.BackgroundTransparency = 1
+	stats.Parent = frame
+
+	local dues = Instance.new("TextLabel")
+	dues.Name = "DuesLabel"
+	dues.Size = UDim2.new(1, 0, 0.3, 0)
+	dues.Position = UDim2.new(0, 0, 0.7, 0)
+	dues.Text = "Accrued Dues: $0"
+	dues.TextColor3 = Color3.fromRGB(85, 255, 127)
+	dues.Font = Enum.Font.Gotham
+	dues.TextScaled = true
+	dues.BackgroundTransparency = 1
+	dues.Parent = frame
+
+	-- Create proximity prompt
+	local proximityPrompt = Instance.new("ProximityPrompt")
+	proximityPrompt.Name = "CollectDuesPrompt"
+	proximityPrompt.ActionText = "Collect Dues"
+	proximityPrompt.ObjectText = "Front Desk"
+	proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E
+	proximityPrompt.HoldDuration = 0.5
+	proximityPrompt.MaxActivationDistance = 10
+	proximityPrompt.Parent = frontDesk
+
+	-- Connect prompt
+	proximityPrompt.Triggered:Connect(function(playerWhoTriggered)
+		if playerWhoTriggered ~= player then return end
+
+		local tycoon = player:FindFirstChild("Tycoon")
+		if not tycoon then return end
+
+		local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+
+		if accruedDues <= 0 then
+			-- No dues to collect
+			return
+		end
+
+		-- Reset dues
+		tycoon:SetAttribute("AccruedDues", 0)
+
+		-- Add to player's cash
+		local leaderstats = player:FindFirstChild("leaderstats")
+		if not leaderstats then return end
+
+		local cashValue = leaderstats:FindFirstChild("Cash")
+		if not cashValue then return end
+
+		cashValue.Value = cashValue.Value + accruedDues
+
+		-- Update the display
+		dues.Text = "Accrued Dues: $0"
+
+		-- Fire event
+		local eventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+		if eventBridge then
+			local duesCollectedEvent = eventBridge:FindFirstChild("DuesCollected")
+			if duesCollectedEvent then
+				duesCollectedEvent:Fire(player, accruedDues)
+			end
+		end
+
+		log(player.Name .. " collected $" .. accruedDues .. " in dues")
+	end)
+
+	membershipDisplay.Parent = frontDesk
+	return membershipDisplay
+end
+
+-- Ensure front desk is placed correctly
+local function ensureFrontDesk(player)
+	if not player then return nil end
+
+	-- Get the tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then
+		log("No valid tycoon found for " .. player.Name)
+		return nil
+	end
+
+	-- Check if front desk already exists
+	local existingFrontDesk = tycoon.Value:FindFirstChild("Membership Desk") or tycoon.Value:FindFirstChild("Front Desk")
+	if existingFrontDesk then
+		log("Front desk already exists for " .. player.Name .. ", ensuring it has proper display")
+		createMembershipDisplay(player, existingFrontDesk)
+		return existingFrontDesk
+	end
+
+	-- Need to create front desk
+	log("Creating front desk for " .. player.Name)
+
+	-- Find a template
+	local frontDeskTemplate = findFrontDeskTemplate()
+	if not frontDeskTemplate then
+		log("Could not find front desk template")
+		return nil
+	end
+
+	-- Clone the template
+	local frontDesk = frontDeskTemplate:Clone()
+	frontDesk.Name = "Membership Desk"
+
+	-- Set position - typically this would be at the entrance of the tycoon
+	-- This is a placeholder position, adjust as needed for your game
+	local tycoonCenter = tycoon.Value:GetPivot().Position
+	frontDesk:PivotTo(CFrame.new(tycoonCenter.X, tycoonCenter.Y, tycoonCenter.Z - 15))
+
+	frontDesk.Parent = tycoon.Value
+
+	-- Create display
+	createMembershipDisplay(player, frontDesk)
+
+	log("Created front desk for " .. player.Name)
+	return frontDesk
+end
+
+-- Remove any incorrect Label GUIs
+local function removeIncorrectLabels(player)
+	if not player then return end
+
+	-- Get the tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return end
+
+	-- Find all Label GUIs
+	for _, obj in pairs(tycoon.Value:GetDescendants()) do
+		if obj.Name == "Label" and obj:IsA("BillboardGui") then
+			pcall(function()
+				obj:Destroy()
+			end)
+			log("Removed incorrect Label GUI from " .. player.Name .. "'s tycoon")
+		end
+	end
+
+	-- Find misplaced MembershipDisplays (on BuyTiles)
+	for _, obj in pairs(tycoon.Value:GetDescendants()) do
+		if obj.Name == "MembershipDisplay" and obj.Parent and 
+			(obj.Parent.Name:match("BuyTile") or obj.Parent.Name:match("Buy Tile")) then
+			-- Try to move it to front desk
+			local frontDesk = tycoon.Value:FindFirstChild("Membership Desk") or tycoon.Value:FindFirstChild("Front Desk")
+			if frontDesk then
+				obj.Parent = frontDesk
+				log("Moved MembershipDisplay from BuyTile to Front Desk")
+			else
+				pcall(function()
+					obj:Destroy()
+				end)
+				log("Removed misplaced MembershipDisplay")
+			end
+		end
+	end
+end
+
+-- Show only the next buy tile in sequence
+local function showNextBuyTile(player)
+	if not player then return end
+
+	-- Get the tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return end
+
+	-- Get player data to find highest purchased tile
+	local highestTileId = 0
+
+	if DataManager and DataManager.getPlayerData then
+		local playerData = DataManager.getPlayerData(player)
+		if playerData and playerData.equipmentPurchased then
+			for tileId, _ in pairs(playerData.equipmentPurchased) do
+				local numericId = tonumber(tileId) or tonumber(string.match(tileId, "%d+"))
+				if numericId and numericId > highestTileId then
+					highestTileId = numericId
+				end
+			end
+		end
+	else
+		-- Fallback to checking tycoon for equipment
+		for _, obj in pairs(tycoon.Value:GetDescendants()) do
+			local id = obj:GetAttribute("ID")
+			if id and tonumber(id) and tonumber(id) > highestTileId and id ~= 1 then 
+				-- Skip ID 1 which is usually front desk
+				highestTileId = tonumber(id)
+			end
+		end
+	end
+
+	log("Highest purchased tile ID for " .. player.Name .. ": " .. highestTileId)
+
+	-- Find all buy tiles in the tycoon
+	local buyTiles = {}
+	for _, obj in pairs(tycoon.Value:GetDescendants()) do
+		if (obj.Name:match("BuyTile") or obj.Name:match("Buy Tile")) and obj:GetAttribute("ID") then
+			local id = obj:GetAttribute("ID")
+			if id and tonumber(id) then
+				buyTiles[tonumber(id)] = obj
+			end
+		end
+	end
+
+	-- Remove any buy tiles that aren't the next in sequence
+	local nextTileId = highestTileId + 1
+	for id, tile in pairs(buyTiles) do
+		if id ~= nextTileId then
+			pcall(function()
+				tile:Destroy()
+			end)
+			log("Removed BuyTile " .. id .. " (not next in sequence)")
+		else
+			log("Keeping BuyTile " .. id .. " (next in sequence)")
+		end
+	end
+
+	-- If we don't have the next buy tile, try to spawn it
+	if not buyTiles[nextTileId] then
+		log("Next BuyTile " .. nextTileId .. " not found, attempting to spawn")
+
+		-- Try different spawn methods
+		if BuyTileSystem and BuyTileSystem.spawnBuyTile then
+			local newTile = BuyTileSystem.spawnBuyTile(nextTileId)
+			if newTile then
+				log("Successfully spawned BuyTile " .. nextTileId)
+			end
+		elseif _G.spawnBuyTile then
+			local newTile = _G.spawnBuyTile(nextTileId)
+			if newTile then
+				log("Successfully spawned BuyTile " .. nextTileId .. " using global function")
+			end
+		end
+	end
+end
+
+
+	-- Initialize a player's tycoon with correct objects
+local function initializeTycoon(player)
+	if not player then return end
+
+	log("Initializing tycoon for " .. player.Name)
+
+	-- First ensure the front desk exists
+	local frontDesk = ensureFrontDesk(player)
+
+	-- Remove incorrect labels
+	removeIncorrectLabels(player)
+
+	-- Show only the next buy tile
+	showNextBuyTile(player)
+
+	log("Tycoon initialization complete for " .. player.Name)
+end
+
+	
+
+	-- Run initialization for all existing players
+local function initializeAllPlayers()
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function()
+			initializeTycoon(player)
+		end)
+	end
+end
+
+
+	-- Set up player added event
+Players.PlayerAdded:Connect(function(player)
+	-- Wait for tycoon to be created
+	task.wait(5)
+	initializeTycoon(player)
+end
+)
+
+	-- Initialize all existing players
+initializeAllPlayers()
+
+log("Tycoon initialization fix running")
+
+return {
+	initializeTycoon = initializeTycoon,
+	initializeAllPlayers = initializeAllPlayers
+}]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+		<Item class="Script" referent="RBXD5EA1CA2DE4C4856B566F7C713FECA3E">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<string name="Name">EmergencyTycoonFix</string>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{DCE98333-C985-4564-8A6F-3B51184B0402}</string>
+				<ProtectedString name="Source"><![CDATA[-- EmergencyTycoonFix.lua
+-- This is a direct fix for the BuyTile and Label GUI issues
+-- Place in ServerScriptService and run
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+
+local DEBUG = true
+
+local function log(...)
+	if DEBUG then
+		print("[EmergencyFix]", ...)
+	end
+end
+
+-- First: Fix the Label GUI
+local function removeAllLabelGuis()
+	-- Remove all Label GUIs from the entire workspace
+	for _, model in pairs(Workspace:GetDescendants()) do
+		if model.Name == "Label" and model:IsA("BillboardGui") then
+			pcall(function()
+				model:Destroy()
+				log("Removed Label GUI from workspace")
+			end)
+		end
+	end
+end
+
+-- Find front desk template in ServerStorage
+local function findFrontDeskTemplate()
+	if ServerStorage then
+		local gymParts = ServerStorage:FindFirstChild("GymParts")
+		if gymParts then
+			for _, obj in pairs(gymParts:GetDescendants()) do
+				if obj.Name == "Membership Desk" or obj.Name == "Front Desk" then
+					return obj
+				end
+			end
+		end
+	end
+
+	-- Look in workspace as fallback
+	for _, obj in pairs(Workspace:GetDescendants()) do
+		if (obj.Name == "Membership Desk" or obj.Name == "Front Desk") and 
+			not obj:IsDescendantOf(Workspace:FindFirstChild("Tycoons")) then
+			return obj
+		end
+	end
+
+	return nil
+end
+
+-- Create a proper membership display
+local function createMembershipDisplay(player, frontDesk)
+	if not player or not frontDesk then return nil end
+
+	-- Remove any existing displays
+	for _, child in pairs(frontDesk:GetChildren()) do
+		if child:IsA("BillboardGui") then
+			child:Destroy()
+		end
+	end
+
+	-- Create new display
+	local membershipDisplay = Instance.new("BillboardGui")
+	membershipDisplay.Name = "MembershipDisplay"
+	membershipDisplay.Size = UDim2.new(8, 0, 4, 0)
+	membershipDisplay.StudsOffset = Vector3.new(0, 4, 0)
+	membershipDisplay.AlwaysOnTop = true
+
+	local frame = Instance.new("Frame")
+	frame.Name = "MainFrame"
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	frame.BackgroundTransparency = 0.5
+	frame.BorderSizePixel = 0
+	frame.Parent = membershipDisplay
+
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.Size = UDim2.new(1, 0, 0.3, 0)
+	title.Text = player.Name .. "'s Gym"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.Font = Enum.Font.GothamBold
+	title.TextScaled = true
+	title.BackgroundTransparency = 1
+	title.Parent = frame
+
+	local stats = Instance.new("TextLabel")
+	stats.Name = "MemberStats"
+	stats.Size = UDim2.new(1, 0, 0.4, 0)
+	stats.Position = UDim2.new(0, 0, 0.3, 0)
+
+	-- Get member counts
+	local tycoon = player:FindFirstChild("Tycoon")
+	local memberCount = 0
+	local vipCount = 0
+
+	if tycoon then
+		memberCount = tycoon:GetAttribute("MemberCount") or 0
+		vipCount = tycoon:GetAttribute("VIPCount") or 0
+	end
+
+	stats.Text = "Members: " .. memberCount .. "\nVIP Members: " .. vipCount
+	stats.TextColor3 = Color3.fromRGB(255, 255, 255)
+	stats.Font = Enum.Font.Gotham
+	stats.TextScaled = true
+	stats.BackgroundTransparency = 1
+	stats.Parent = frame
+
+	local dues = Instance.new("TextLabel")
+	dues.Name = "DuesLabel"
+	dues.Size = UDim2.new(1, 0, 0.3, 0)
+	dues.Position = UDim2.new(0, 0, 0.7, 0)
+
+	-- Get accrued dues
+	local accruedDues = 0
+	if tycoon then
+		accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+	end
+
+	dues.Text = "Accrued Dues: $" .. accruedDues
+	dues.TextColor3 = Color3.fromRGB(85, 255, 127)
+	dues.Font = Enum.Font.Gotham
+	dues.TextScaled = true
+	dues.BackgroundTransparency = 1
+	dues.Parent = frame
+
+	-- Create proximity prompt
+	local proximityPrompt = Instance.new("ProximityPrompt")
+	proximityPrompt.Name = "CollectDuesPrompt"
+	proximityPrompt.ActionText = "Collect Dues"
+	proximityPrompt.ObjectText = "Front Desk"
+	proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E
+	proximityPrompt.HoldDuration = 0.5
+	proximityPrompt.MaxActivationDistance = 10
+	proximityPrompt.Parent = frontDesk
+
+	-- Connect prompt
+	proximityPrompt.Triggered:Connect(function(playerWhoTriggered)
+		if playerWhoTriggered ~= player then return end
+
+		local tycoon = player:FindFirstChild("Tycoon")
+		if not tycoon then return end
+
+		local accruedDues = tycoon:GetAttribute("AccruedDues") or 0
+
+		if accruedDues <= 0 then
+			-- No dues to collect
+			return
+		end
+
+		-- Reset dues
+		tycoon:SetAttribute("AccruedDues", 0)
+
+		-- Add to player's cash
+		local leaderstats = player:FindFirstChild("leaderstats")
+		if not leaderstats then return end
+
+		local cashValue = leaderstats:FindFirstChild("Cash")
+		if not cashValue then return end
+
+		cashValue.Value = cashValue.Value + accruedDues
+
+		-- Update the display
+		dues.Text = "Accrued Dues: $0"
+
+		-- Fire event
+		local eventBridge = ReplicatedStorage:FindFirstChild("EventBridge")
+		if eventBridge then
+			local duesCollectedEvent = eventBridge:FindFirstChild("DuesCollected")
+			if duesCollectedEvent then
+				duesCollectedEvent:Fire(player, accruedDues)
+			end
+		end
+	end)
+
+	membershipDisplay.Parent = frontDesk
+	return membershipDisplay
+end
+
+-- Create front desk function
+local function ensureFrontDesk(player)
+	if not player then return end
+
+	-- Get tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return end
+
+	-- Check if front desk exists
+	local frontDesk = tycoon.Value:FindFirstChild("Membership Desk") or tycoon.Value:FindFirstChild("Front Desk")
+
+	if frontDesk then
+		-- Front desk exists, ensure it has proper display
+		createMembershipDisplay(player, frontDesk)
+		log("Updated front desk display for " .. player.Name)
+	else
+		-- Need to create front desk
+		log("Front desk not found for " .. player.Name .. ", creating one")
+
+		local template = findFrontDeskTemplate()
+		if not template then
+			log("No front desk template found")
+			return
+		end
+
+		frontDesk = template:Clone()
+		frontDesk.Name = "Membership Desk"
+
+		-- Position it at the entrance (adjust as needed)
+		local tycoonPosition = tycoon.Value:GetPivot().Position
+		frontDesk:PivotTo(CFrame.new(tycoonPosition.X, tycoonPosition.Y, tycoonPosition.Z - 15))
+
+		frontDesk.Parent = tycoon.Value
+
+		-- Create display
+		createMembershipDisplay(player, frontDesk)
+		log("Created front desk for " .. player.Name)
+	end
+end
+
+
+	-- Fix buy tiles - ensure only next one is visible
+local function findAllBuyTilesInTycoon(tycoon)
+	local buyTiles = {}
+
+	if not tycoon or not tycoon.Value then return buyTiles end
+
+	for _, obj in pairs(tycoon.Value:GetDescendants()) do
+		if obj.Name:match("BuyTile") and obj:GetAttribute("ID") then
+			local id = obj:GetAttribute("ID")
+			if id and tonumber(id) then
+				buyTiles[tonumber(id)] = obj
+			end
+		end
+	end
+
+	return buyTiles
+end
+
+
+	-- Find templates for buy tiles
+local function findBuyTileTemplate(tileId)
+	-- Look in ServerStorage
+	if ServerStorage then
+		local gymParts = ServerStorage:FindFirstChild("GymParts")
+		if gymParts then
+			for _, obj in pairs(gymParts:GetDescendants()) do
+				if obj.Name:match("BuyTile") and obj:GetAttribute("ID") == tileId then
+					return obj
+				end
+			end
+		end
+	end
+
+	-- Look in workspace
+	for _, obj in pairs(Workspace:GetDescendants()) do
+		if obj.Name:match("BuyTile") and obj:GetAttribute("ID") == tileId and 
+			not obj:IsDescendantOf(Workspace:FindFirstChild("Tycoons")) then
+			return obj
+		end
+	end
+
+	return nil
+end
+
+
+	-- Function to get the highest purchased tile ID
+local function getHighestTileId(player)
+	if not player then return 0 end
+
+	-- Get tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return 0 end
+
+	-- Check existing equipment
+	local highestId = 0
+	for _, part in pairs(tycoon.Value:GetDescendants()) do
+		local id = part:GetAttribute("ID")
+		if id and tonumber(id) and id ~= 1 and tonumber(id) > highestId then
+			-- Skip ID 1 which is usually front desk
+			highestId = tonumber(id)
+		end
+	end
+
+	return highestId
+end
+
+
+	-- Fix buy tile sequencing
+local function fixBuyTileSequence(player)
+	if not player then return end
+
+	-- Get tycoon
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return end
+
+	-- Find all buy tiles in tycoon
+	local buyTiles = findAllBuyTilesInTycoon(tycoon)
+
+	-- Get highest purchased tile ID
+	local highestId = getHighestTileId(player)
+	log("Highest purchased tile ID for " .. player.Name .. ": " .. highestId)
+
+	-- The next buy tile should be highestId + 1
+	local nextTileId = highestId + 1
+
+	-- Remove all buy tiles except the next one
+	for id, tile in pairs(buyTiles) do
+		if id ~= nextTileId then
+			pcall(function()
+				tile:Destroy()
+			end)
+			log("Removed incorrect BuyTile " .. id .. " from " .. player.Name .. "'s tycoon")
+		end
+	end
+
+	-- If next buy tile doesn't exist, create it
+	if not buyTiles[nextTileId] then
+		local template = findBuyTileTemplate(nextTileId)
+		if template then
+			local newTile = template:Clone()
+
+			-- Position it appropriately (adjust as needed)
+			local tycoonPosition = tycoon.Value:GetPivot().Position
+			newTile:PivotTo(CFrame.new(tycoonPosition.X + 5, tycoonPosition.Y, tycoonPosition.Z))
+
+			newTile.Parent = tycoon.Value
+			log("Created BuyTile " .. nextTileId .. " for " .. player.Name)
+		else
+			log("Could not find template for BuyTile " .. nextTileId)
+		end
+	else
+		log("BuyTile " .. nextTileId .. " already exists for " .. player.Name)
+	end
+end
+
+
+	-- Fix function for a player
+local function fixPlayer(player)
+	if not player then return end
+
+	log("Applying emergency fix for " .. player.Name)
+
+	-- Fix front desk
+	ensureFrontDesk(player)
+
+	-- Fix buy tile sequence
+	fixBuyTileSequence(player)
+end
+
+
+	-- Fix all players
+local function fixAllPlayers()
+	-- First remove all Label GUIs
+	removeAllLabelGuis()
+
+	-- Fix each player
+	for _, player in ipairs(Players:GetPlayers()) do
+		fixPlayer(player)
+	end
+end
+
+
+	-- Connect player added event
+Players.PlayerAdded:Connect(function(player)
+	-- Wait for tycoon to be created
+	task.wait(5)
+	fixPlayer(player)
+end)
+
+-- Run the fix for all existing players
+fixAllPlayers()
+
+log("Emergency fix applied")
+
+return {
+	fixPlayer = fixPlayer,
+	fixAllPlayers = fixAllPlayers
+}]]></ProtectedString>
+				<int64 name="SourceAssetId">-1</int64>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+	</Item>
+</roblox>

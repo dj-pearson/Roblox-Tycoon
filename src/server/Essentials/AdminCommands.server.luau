@@ -6,7 +6,7 @@ local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Load the sanction system
-local SanctionSystem = require(ServerScriptService:FindFirstChild("PlayerSanctionSystem"))
+local SanctionSystem = require(game:GetService("ServerScriptService").Core.Utils.ErrorHandler)
 
 -- List of admin user IDs (replace with your actual admin IDs)
 local ADMIN_IDS = {
