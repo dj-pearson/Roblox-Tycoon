@@ -78,8 +78,9 @@ local CONFIG = {
     recordPerformanceStats = true, -- Record performance stats for later analysis
     maxStatsHistory = 100,         -- Maximum number of performance stats to keep
     
-    -- Memory store integration
-    useMemoryStoreForTemp = true,  -- Use MemoryStore for temporary data
+    -- Temporary data storage (replaces MemoryStore integration)
+    tempDataEnabled = true,         -- Enable temporary data storage
+    tempDataCleanupInterval = 60,   -- How often to clean up expired temp data (seconds)
 }
 
 -- Module table
@@ -101,6 +102,7 @@ local PerformanceManager = {
     _heavyTaskRunning = false,     -- Whether a heavy task is currently running
     _serverFramerateHistory = {},  -- Track server framerate over time
     _memoryUsageHistory = {},      -- Track memory usage over time
+    _tempDataStorage = {},         -- Temporary data storage (in-memory table)
     _systemMonitoring = {},        -- Track performance of individual systems
 }
 
@@ -571,7 +573,13 @@ end
 
 -- Get performance metrics for a specific system
 function PerformanceManager:getSystemPerformance(systemName)
-    return self._systemMonitoring[systemName] or {
+    if not self._systemMonitoring[systemName] then
+        self._systemMonitoring[systemName] = {
+            totalOperations = 0,
+            totalExecutionTime = 0,
+            maxExecutionTime = 0,
+            operationTimes = {}
+        }
         totalOperations = 0,
         totalExecutionTime = 0,
         maxExecutionTime = 0,
@@ -629,6 +637,13 @@ function PerformanceManager:increaseDetailLevel()
     return true
 end
 
+--[[ Memory-based Detail Level Adjustment ]]--
+function PerformanceManager:adjustDetailLevelByMemory()
+    local stats = self:getPerformanceStats()
+    stats.memoryUsageMB > CONFIG.maxMemoryUsageMB and self:decreaseDetailLevel() or (stats.memoryUsageMB < CONFIG.maxMemoryUsageMB * 0.8 and self:increaseDetailLevel())
+    return true
+end
+
 --[[ Player Density Management ]]--
 
 -- Check player density in an area
@@ -677,65 +692,41 @@ function PerformanceManager:getPlayerDensityOptimizations(position, radius)
     return optimizations, playerCount
 end
 
---[[ Memory Store Integration ]]--
+--[[ Temporary Data Management ]]--
 
 -- Helper function to generate temporary data key
 local function generateTempDataKey(category, id)
-    return category .. "_" .. tostring(id)
+    return string.format("%s_%s", category, tostring(id))
 end
 
 -- Store temporary data with optional expiration
 function PerformanceManager:setTempData(category, id, data, expirationSeconds)
-    if not CONFIG.useMemoryStoreForTemp then
-        -- Fallback to regular storage
-        if not self._tempDataStorage then
-            self._tempDataStorage = {}
-        end
-        
-        local key = generateTempDataKey(category, id)
-        self._tempDataStorage[key] = {
-            data = data,
-            expires = expirationSeconds and (os.time() + expirationSeconds) or nil
-        }
-        return true
-    end
-    
-    -- Use MemoryStore when possible
-    -- Implementation depends on how you want to structure your MemoryStore usage
-    -- This is a placeholder for actual MemoryStore implementation
-    
+    if not CONFIG.tempDataEnabled then return false end
+
+    local key = generateTempDataKey(category, id)
+    self._tempDataStorage[key] = {
+        data = data,
+        expires = expirationSeconds and (os.time() + expirationSeconds) or nil,
+    }
     return true
 end
 
 -- Get temporary data
 function PerformanceManager:getTempData(category, id)
-    if not CONFIG.useMemoryStoreForTemp then
-        -- Fallback to regular storage
-        if not self._tempDataStorage then
-            return nil
-        end
-        
-        local key = generateTempDataKey(category, id)
-        local entry = self._tempDataStorage[key]
-        
-        if not entry then
-            return nil
-        end
-        
-        -- Check if expired
-        if entry.expires and os.time() > entry.expires then
-            self._tempDataStorage[key] = nil
-            return nil
-        end
-        
-        return entry.data
+    if not CONFIG.tempDataEnabled then return nil end
+
+    local key = generateTempDataKey(category, id)
+    local entry = self._tempDataStorage[key]
+
+    if not entry then return nil end
+
+    -- Check if expired
+    if entry.expires and os.time() > entry.expires then
+        self._tempDataStorage[key] = nil
+        return nil
     end
-    
-    -- Use MemoryStore when possible
-    -- Implementation depends on how you want to structure your MemoryStore usage
-    -- This is a placeholder for actual MemoryStore implementation
-    
-    return nil
+
+    return entry.data
 end
 
 -- Clean expired temporary data
@@ -801,6 +792,13 @@ function PerformanceManager:initialize()
         self:_processScheduledTasks()
     end)
     
+    -- Set up memory-based detail level adjustment
+    self._memoryAdjust = RunService.Heartbeat:Connect(function()
+        if CONFIG.autoAdjustDetailLevel then
+            self:adjustDetailLevelByMemory()
+        end
+    end)
+    
     -- Set up temp data cleaning
     task.spawn(function()
         while true do
@@ -825,6 +823,12 @@ function PerformanceManager:shutdown()
     if self._taskDistribution then
         self._taskDistribution:Disconnect()
         self._taskDistribution = nil
+    end
+
+    -- Disconnect memory adjustment
+    if self._memoryAdjust then
+        self._memoryAdjust:Disconnect()
+        self._memoryAdjust = nil
     end
     
     debugPrint("PerformanceManager shut down")

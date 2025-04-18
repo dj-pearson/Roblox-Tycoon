@@ -131,7 +131,7 @@ Player Retention: Regularly introduce new events and features.
    - Handles initialization failures and retries
 
 ## Client-Side Architecture Improvements
-
+##Client Registry
 1. **ClientRegistry**
    - Client-side counterpart to CoreRegistry
    - Manages client-side systems and their dependencies
@@ -272,6 +272,7 @@ Player Retention: Regularly introduce new events and features.
 - ✅ Add memory store for Temporary Data
 - ✅ Ensure proper configuration management
 - ✅ Ensure State Management - scripts should handle state in a consistent way
+- ✅ Ensure leaderstats creation is managed by the leaderstats system.
 - ✅ ensure there is a system for event based communication
 - ⬜ Implement analytics tracking for player behavior
 - ✅ Enhance RebirthSystem with unlockable content progression
