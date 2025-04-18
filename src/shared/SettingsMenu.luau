@@ -29,95 +29,125 @@ local DEFAULT_SETTINGS = {
             },
             notifications = {
                 type = "toggle",
-                title = "Show Notifications",
-                description = "Show popup notifications for important events",
+                title = "Notifications",
+                description = "Show in-game notifications",
                 default = true
             },
-            cameraSensitivity = {
-                type = "slider",
-                title = "Camera Sensitivity",
-                description = "Adjust camera movement speed",
-                min = 1,
-                max = 10,
-                default = 5
+            confirmPurchases = {
+                type = "toggle",
+                title = "Confirm Purchases",
+                description = "Ask for confirmation before making purchases",
+                default = true
+            },
+            tutorialHints = {
+                type = "toggle",
+                title = "Tutorial Hints",
+                description = "Show tutorial hints during gameplay",
+                default = true
             }
         }
     },
     audio = {
         title = "Audio",
-        icon = "rbxassetid://6026568801", -- Sound icon
+        icon = UIStyle.icons.audio,
         options = {
+            masterVolume = {
+                type = "slider",
+                title = "Master Volume",
+                description = "Control the overall game volume",
+                min = 0,
+                max = 100,
+                default = 80
+            },
             musicVolume = {
                 type = "slider",
                 title = "Music Volume",
-                description = "Adjust music volume",
+                description = "Control the game music volume",
                 min = 0,
                 max = 100,
-                default = 50
+                default = 60
             },
             sfxVolume = {
                 type = "slider",
                 title = "SFX Volume",
-                description = "Adjust sound effects volume",
+                description = "Control the sound effects volume",
                 min = 0,
                 max = 100,
-                default = 75
+                default = 90
             },
-            muteAll = {
+            muteMusic = {
                 type = "toggle",
-                title = "Mute All Sounds",
-                description = "Turn off all game sounds",
+                title = "Mute Music",
+                description = "Turn off all music",
                 default = false
             }
         }
     },
-    interface = {
-        title = "Interface",
-        icon = "rbxassetid://6031082527", -- Layout icon
+    visual = {
+        title = "Visual",
+        icon = UIStyle.icons.visual,
         options = {
-            uiScale = {
+            quality = {
+                type = "dropdown",
+                title = "Graphics Quality",
+                description = "Choose your preferred graphics quality",
+                options = {"Low", "Medium", "High", "Auto"},
+                default = "High"
+            },
+            showFPS = {
+                type = "toggle",
+                title = "Show FPS",
+                description = "Display frames per second counter",
+                default = false
+            },
+            gymMemberVisibility = {
+                type = "dropdown",
+                title = "Gym Member Visibility",
+                description = "Control how many members are visible at once",
+                options = {"Minimal", "Balanced", "Maximum"},
+                default = "Balanced"
+            },
+            particleEffects = {
+                type = "toggle",
+                title = "Particle Effects",
+                description = "Show special effects during workouts and achievements",
+                default = true
+            }
+        }
+    },
+    gym = {
+        title = "Gym Settings",
+        icon = UIStyle.icons.gym,
+        options = {
+            memberAI = {
+                type = "dropdown",
+                title = "Member AI Behavior",
+                description = "How gym members behave in your facility",
+                options = {"Realistic", "Performance", "Balanced"},
+                default = "Balanced"
+            },
+            staffBehavior = {
+                type = "dropdown",
+                title = "Staff Behavior",
+                description = "How staff members interact with the gym",
+                options = {"Proactive", "Reactive", "Balanced"},
+                default = "Balanced"
+            },
+            cleanlinessImpact = {
                 type = "slider",
-                title = "UI Scale",
-                description = "Adjust the size of UI elements",
-                min = 80,
-                max = 120,
-                default = 100
+                title = "Cleanliness Impact",
+                description = "How much cleanliness affects member satisfaction",
+                min = 1,
+                max = 10,
+                default = 5
             },
-            showTutorialTips = {
-                type = "toggle",
-                title = "Show Tutorial Tips",
-                description = "Display helpful tips for new features",
-                default = true
-            },
-            useUIHub = {
-                type = "toggle",
-                title = "Use UI Hub",
-                description = "Use the centralized UI Hub for navigation",
-                default = true
-            }
-        }
-    },
-    accessibility = {
-        title = "Accessibility",
-        icon = "rbxassetid://6022668885", -- Accessibility icon
-        options = {
-            highContrast = {
-                type = "toggle",
-                title = "High Contrast Mode",
-                description = "Increase contrast for better visibility",
-                default = false
-            },
-            largeText = {
-                type = "toggle",
-                title = "Large Text",
-                description = "Use larger text throughout the game",
-                default = false
-            },
-            reducedMotion = {
-                type = "toggle",
-                title = "Reduced Motion",
-                description = "Reduce or disable animations",
-                default = false
+            temperatureEffect = {
+                type = "slider",
+                title = "Temperature Effect",
+                description = "How much temperature affects member comfort",
+                min = 1,
+                max = 10,
+                default = 5
             }
         }
     }
