@@ -829,7 +829,7 @@ function SettingsMenu:resetToDefaults()
             end
         end
     end
-}
+end
 
 -- Get all settings
 function SettingsMenu:getSettings()
