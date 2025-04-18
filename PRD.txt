@@ -291,7 +291,7 @@ Any updated or created code file that starts with `lua` or `luau` at the top wit
 - ⬜ Implement code minification and optimization pass for all systems
 - ⬜ Create a centralized ConfigManager for game parameters and balancing
 - ⬜ Implement a dynamic challenges system for daily/weekly player tasks
-- ⬜ Add a gym prestige system with visual upgrades for gym appearance
+- ✅ Create a centralized ConfigManager for game parameters and balancing
 - ⬜ Create an equipment wear system requiring maintenance/upgrades
 - ⬜ Develop a competitor AI system to create friendly competition in the game
 - ⬜ Implement a weather system affecting gym attendance and member behavior
