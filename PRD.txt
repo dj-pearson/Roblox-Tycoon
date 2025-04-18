@@ -335,7 +335,7 @@ Focus on verifying and potentially removing these systems first:
 - ⬜ Marketing System for attracting members
 - ⬜ Progression-based Unlock System
 - ⬜ Enhanced Staff Management System
-- ⬜ Reputation System with multiple factors
+- ✅ Reputation System with multiple factors
 - ⬜ Additional Mini-games beyond basketball
 - ⬜ Enhanced Membership Tier System
 - ⬜ Gym Events System for revenue boosts
@@ -1358,6 +1358,29 @@ System Integration:
 Connect to NPCSystem to track equipment usage
 Integrate with RevenueSystem for maintenance costs
 Connect to MemberSatisfactionSystem for quality impact
+
+3. Gym Reputation System
+Core Implementation:
+
+Create ReputationSystem.server.luau in the Core directory
+Register with CoreRegistry and connect via EventBridge
+Track reputation metrics with DataManager
+
+Key Components:
+- ReputationCalculator: Computes overall reputation score
+- FactorManager: Handles individual reputation factors
+- BenefitController: Manages effects of reputation on other systems
+- HistoryTracker: Monitors reputation changes over time
+Client Implementation:
+
+Create ReputationClient.client.luau for UI interactions
+Implement ReputationUI.luau module with a visual reputation meter
+
+System Integration:
+
+Connect to MemberSatisfactionSystem for satisfaction impact
+Integrate with NPCSystem for member behavior modifications
+Link with RevenueSystem for reputation-based pricing bonuses
 
 3. Gym Reputation System
 Core Implementation:
