@@ -155,6 +155,36 @@ Any updated or created code file that starts with `lua` or `luau` at the top wit
    - Provides consistent notification styling and behavior
    - Includes sound and animation effects
 
+## Social Features
+1. **Gym Alliances/Federations**
+   - **Description:** Players can form or join alliances (groups) of gyms to work together towards shared goals.
+   - **Key Points:**
+     - **Alliance-Wide Bonuses:** Unlocks special bonuses for all members.
+     - **Shared Resources:** Alliances can pool resources.
+     - **Alliance Events:** Unique events for alliance members.
+     - **Alliance Leaderboards:** Ranks alliances based on success.
+
+2. **Gym Challenges**
+   - **Description:** Players can issue challenges to other gyms for competitions.
+   - **Key Points:**
+     - **Rewards:** Winners get bragging rights and rewards.
+     - **Engagement:** Creates rivalries and encourages improvement.
+     - **Spectator Mode:** Players can watch challenges in real-time.
+
+3. **Gym Guest Passes**
+   - **Description:** Players can send guest passes to other players for temporary gym visits.
+   - **Key Points:**
+     - **Incentives for Inviting:** Rewards for inviting guests.
+     - **Discoverability:** Helps players discover other gyms.
+     - **Unique Challenges:** Challenges related to guest invitations.
+
+4. **Shared Staff Training**
+   - **Description:** Players can collaborate to train each other's staff.
+   - **Key Points:**
+     - **Cooperative Progression:** Helps players progress faster.
+     - **Relationship Building:** Encourages interaction and help.
+     - **Shared Staff:** Option to share staff between gyms.
+
 5. **SpecializationClient**
    - Migrated to new architecture pattern
    - Implemented UI interaction for specialization selection
@@ -177,6 +207,19 @@ Any updated or created code file that starts with `lua` or `luau` at the top wit
 1. **SeasonalEventsUI**
    - Created dedicated UI for seasonal events
    - Implemented interactive elements for joining/leaving events
+
+5. **Community Goals**
+   - **Description:** Global goals for players to work together on.
+   - **Key Points:**
+     - **Cooperation:** Players need to cooperate.
+     - **New content:** Can trigger new game content.
+
+6. **Trading**
+   - **Description:** Players can trade resources, upgrades, or staff.
+   - **Key Points:**
+     - **Progression:** Helps players progress faster.
+     - **Interaction:** Requires negotiation and interaction between players.
+
    - Added visual indicators for active events and requirements
    - Used animation and responsive design principles
 
@@ -769,7 +812,7 @@ Use DataManager for decoration persistence
 - ⬜ Create RebirthStats tracking for leaderboards
 - ✅ Implement RebirthPerks system for special abilities
 - ⬜ Balance rebirth economy for long-term progression
-- ⬜ Add tutorial system for new gameplay mechanics
+- ✅ Add tutorial system for new gameplay mechanics
 - ⬜ Implement social features for player interaction
 - ⬜ Consolidate duplicate scripts (GymMilestonesSystem with MilestoneSystem)
 - ⬜ Implement code minification and optimization pass for all systems
