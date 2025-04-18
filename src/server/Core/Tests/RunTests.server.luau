@@ -15,6 +15,7 @@ TestingFramework.configure({
 -- Import all test suites
 local DataManagerTests = require(script.Parent.DataManagerTests)
 local EventBridgeTests = require(script.Parent.EventBridgeTests)
+local IntegrationTests = require(script.Parent.IntegrationTests)
 
 -- Track results
 local results = {
@@ -33,45 +34,46 @@ local function runAllTests()
     local startTime = tick()
     local testSuites = {
         DataManagerTests,
-        EventBridgeTests
+        EventBridgeTests,
+        IntegrationTests
         -- Add more test suites here as they are created
     }
     
     for _, suite in ipairs(testSuites) do
-        local suiteResult = {
+        local suiteResults = suite:runAll()
+        
+        -- Update overall results
+        results.total = results.total + suiteResults.total
+        results.passed = results.passed + suiteResults.passed
+        results.failed = results.failed + suiteResults.failed
+        
+        -- Store suite results
+        table.insert(results.suites, {
             name = suite.name,
-            passed = true
-        }
-        
-        local suiteSuccess = suite:runAll()
-        if not suiteSuccess then
-            suiteResult.passed = false
-            results.failed = results.failed + 1
-        else
-            results.passed = results.passed + 1
-        end
-        
-        results.total = results.total + 1
-        table.insert(results.suites, suiteResult)
+            passed = suiteResults.passed,
+            failed = suiteResults.failed,
+            total = suiteResults.total
+        })
     end
     
-    local endTime = tick()
-    local duration = endTime - startTime
-    
-    -- Print summary
-    print("\n==================================================")
-    print("TEST SUMMARY")
+    -- Calculate time taken
+    local elapsed = tick() - startTime
+    print("\n\n==================================================")
+    print("TEST RESULTS")
     print("==================================================")
-    print(string.format("Duration: %.2f seconds", duration))
-    print(string.format("Test Suites: %d total, %d passed, %d failed", results.total, results.passed, results.failed))
+    print("Total tests: " .. results.total)
+    print("Passed: " .. results.passed)
+    print("Failed: " .. results.failed)
+    print("Time taken: " .. string.format("%.2f", elapsed) .. "s")
+    print("==================================================\n")
     
-    -- Print failed suites if any
-    if results.failed > 0 then
-        print("\nFailed Suites:")
-        for _, suite in ipairs(results.suites) do
-            if not suite.passed then
-                print("  - " .. suite.name)
-            end
+    -- Print individual suite results
+    print("Suite results:")
+    for _, suite in ipairs(results.suites) do
+        if suite.failed > 0 then
+            print("  - " .. suite.name .. ": " .. suite.passed .. "/" .. suite.total .. " passed (FAILED)")
+        else
+            print("  - " .. suite.name .. ": " .. suite.passed .. "/" .. suite.total .. " passed")
         end
     end
     
@@ -87,13 +89,15 @@ local RunTests = {
             return DataManagerTests:runAll()
         elseif suiteName == "EventBridge" then
             return EventBridgeTests:runAll()
+        elseif suiteName == "Integration" then
+            return IntegrationTests:runAll()
         else
             warn("Unknown test suite: " .. suiteName)
             return false
         end
     end,
     getAvailableSuites = function()
-        return {"DataManager", "EventBridge"}
+        return {"DataManager", "EventBridge", "Integration"}
     end
 }
 

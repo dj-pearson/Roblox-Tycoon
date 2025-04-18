@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 -- Import the ClientRegistry
 local ClientRegistry = require(script.Parent.ClientRegistry)
 local ClientEventBridge = ClientRegistry.getSystem("ClientEventBridge")
+local UIHub -- Will be set after initialization
 
 -- Configuration
 local CONFIG = {
@@ -33,7 +34,11 @@ local CONFIG = {
         width = 200,
         minHeight = 300,
         maxHeight = 500,
-    }
+    },
+    
+    -- UI Hub integration
+    useUIHub = true, -- Enable/disable the UI Hub
+    hideLegacyButtons = true, -- Hide legacy buttons when using UI Hub
 }
 
 -- Create the UIManager system
@@ -65,6 +70,25 @@ function UIManager:initialize()
     
     -- Create and set up control panel
     self:setupControlPanel()
+    
+    -- Initialize UI Hub if enabled
+    if CONFIG.useUIHub then
+        task.delay(1, function() -- Slight delay to ensure UIHub is registered
+            UIHub = ClientRegistry.getSystem("UIHub")
+            if UIHub then
+                UIHub.initialize()
+                
+                -- Hide legacy buttons if configured
+                if CONFIG.hideLegacyButtons then
+                    UIHub.hideLegacyButtons()
+                end
+                
+                log("UI Hub initialized")
+            else
+                log("UI Hub system not found")
+            end
+        end)
+    end
     
     log("UIManager initialized")
     return true
@@ -581,6 +605,11 @@ function UIManager:openUI(uiName, data)
     -- Try to find UI module in ReplicatedStorage
     local uiModulesFolder = ReplicatedStorage:FindFirstChild(CONFIG.uiModulesFolder)
     if not uiModulesFolder then
+        -- Check in shared folder
+        uiModulesFolder = ReplicatedStorage:FindFirstChild("shared")
+    end
+    
+    if not uiModulesFolder then
         log("UI modules folder not found")
         return
     end
@@ -718,6 +747,14 @@ local PublicAPI = {
     
     getConfig = function()
         return CONFIG
+    end,
+    
+    -- New methods for UI Hub integration
+    toggleUIHub = function()
+        if UIHub then
+            return UIHub.toggle()
+        end
+        return false
     end
 }
 
