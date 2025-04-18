@@ -1,852 +1,853 @@
 -- MilestonesMenu.luau
--- UI Module for displaying player milestones and achievements
--- Place in ReplicatedStorage/UIModules
+-- UI module for tracking gameplay progression goals
+-- Part of UI refinements initiative (April 2025)
 
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
--- Import client systems
-local ClientRegistry = require(LocalPlayer.PlayerScripts.Core.ClientRegistry)
-local UIManager = ClientRegistry.getSystem("UIManager")
-local ClientEventBridge = ClientRegistry.getSystem("ClientEventBridge")
-local NotificationSystem = ClientRegistry.getSystem("NotificationSystem")
+local Player = Players.LocalPlayer
+local UIComponent = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("UIComponent"))
+local UIStyle = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("UIStyle"))
 
--- Configuration
-local CONFIG = {
-    debugEnabled = true,
-    milestoneTypes = {
-        revenue = {
-            name = "Revenue Milestones",
-            color = Color3.fromRGB(50, 200, 100), -- Green
-            icon = "rbxassetid://6035078892" -- Money icon
-        },
-        equipment = {
-            name = "Equipment Milestones",
-            color = Color3.fromRGB(50, 120, 200), -- Blue
-            icon = "rbxassetid://6035047391" -- Dumbbell icon
-        },
-        members = {
-            name = "Membership Milestones",
-            color = Color3.fromRGB(200, 120, 50), -- Orange
-            icon = "rbxassetid://6026657478" -- Person icon
-        },
-        time = {
-            name = "Time Milestones",
-            color = Color3.fromRGB(150, 50, 200), -- Purple
-            icon = "rbxassetid://6031225816" -- Clock icon
-        },
-        special = {
-            name = "Special Achievements",
-            color = Color3.fromRGB(200, 180, 30), -- Gold
-            icon = "rbxassetid://6031090999" -- Star icon
+-- MilestonesMenu module
+local MilestonesMenu = {}
+MilestonesMenu.__index = MilestonesMenu
+setmetatable(MilestonesMenu, UIComponent)
+
+-- Example milestone categories and data
+-- In a real implementation, this would come from server data
+local MILESTONE_CATEGORIES = {
+    gym = {
+        title = "Gym Milestones",
+        icon = "rbxassetid://7059249296", -- Building icon
+        description = "Complete these milestones by expanding and upgrading your gym",
+        milestones = {
+            {
+                id = "gym_size_1",
+                title = "Starting Small",
+                description = "Expand your gym to 5 tiles",
+                reward = "$1,000",
+                progress = 3,
+                total = 5,
+                completed = false
+            },
+            {
+                id = "gym_size_2",
+                title = "Growing Business",
+                description = "Expand your gym to 15 tiles",
+                reward = "$5,000",
+                progress = 5,
+                total = 15,
+                completed = false
+            },
+            {
+                id = "gym_equipment_1",
+                title = "Basic Equipment",
+                description = "Purchase 5 pieces of equipment",
+                reward = "20% Equipment Efficiency",
+                progress = 3,
+                total = 5,
+                completed = false
+            },
+            {
+                id = "gym_rating_1",
+                title = "Quality Establishment",
+                description = "Reach a 3-star gym rating",
+                reward = "10% More Members",
+                progress = 2,
+                total = 3,
+                completed = false
+            },
+            {
+                id = "gym_staff_1",
+                title = "Hiring Spree",
+                description = "Hire 3 staff members",
+                reward = "Staff Efficiency +10%",
+                progress = 1,
+                total = 3,
+                completed = false
+            }
         }
     },
-    defaultCategory = "all"
+    membership = {
+        title = "Membership Milestones",
+        icon = "rbxassetid://7072724538", -- Person icon
+        description = "Acquire and satisfy gym members to reach these milestones",
+        milestones = {
+            {
+                id = "members_count_1",
+                title = "First Members",
+                description = "Attract 10 gym members",
+                reward = "$2,000",
+                progress = 7,
+                total = 10,
+                completed = false
+            },
+            {
+                id = "members_count_2",
+                title = "Popular Gym",
+                description = "Attract 50 gym members",
+                reward = "$10,000",
+                progress = 7,
+                total = 50,
+                completed = false
+            },
+            {
+                id = "members_satisfaction_1",
+                title = "Quality Service",
+                description = "Reach 80% average member satisfaction",
+                reward = "Member Retention +15%",
+                progress = 65,
+                total = 80,
+                completed = false
+            },
+            {
+                id = "members_vip_1",
+                title = "VIP Treatment",
+                description = "Attract 5 VIP members",
+                reward = "Revenue Per Member +20%",
+                progress = 1,
+                total = 5,
+                completed = false
+            }
+        }
+    },
+    revenue = {
+        title = "Revenue Milestones",
+        icon = "rbxassetid://7072725323", -- Money icon
+        description = "Earn revenue and increase your gym's profitability",
+        milestones = {
+            {
+                id = "revenue_total_1",
+                title = "First Profits",
+                description = "Earn a total of $10,000",
+                reward = "Cash Flow +5%",
+                progress = 7500,
+                total = 10000,
+                completed = false
+            },
+            {
+                id = "revenue_total_2",
+                title = "Successful Business",
+                description = "Earn a total of $100,000",
+                reward = "$15,000 Bonus",
+                progress = 7500,
+                total = 100000,
+                completed = false
+            },
+            {
+                id = "revenue_day_1",
+                title = "Busy Day",
+                description = "Earn $5,000 in a single day",
+                reward = "Member Join Rate +10%",
+                progress = 2300,
+                total = 5000,
+                completed = false
+            }
+        }
+    },
+    special = {
+        title = "Special Milestones",
+        icon = "rbxassetid://7072716268", -- Star icon
+        description = "Complete unique goals to unlock special rewards",
+        milestones = {
+            {
+                id = "special_compete_1",
+                title = "First Competition",
+                description = "Host your first gym competition",
+                reward = "Competition Prize Pool +20%",
+                progress = 0,
+                total = 1,
+                completed = false
+            },
+            {
+                id = "special_celebrity_1",
+                title = "Celebrity Trainer",
+                description = "Hire your first celebrity trainer",
+                reward = "Member Gain Rate +25%",
+                progress = 0,
+                total = 1,
+                completed = false
+            },
+            {
+                id = "special_perfect_1",
+                title = "Perfect Service",
+                description = "Achieve 100% satisfaction for a full day",
+                reward = "Premium Decoration Pack",
+                progress = 0,
+                total = 1,
+                completed = false
+            },
+            {
+                id = "special_rebirth_1",
+                title = "Fresh Start",
+                description = "Complete your first rebirth",
+                reward = "2x Rebirth Points",
+                progress = 0,
+                total = 1,
+                completed = false
+            }
+        }
+    }
 }
 
--- Debug function
-local function log(...)
-    if CONFIG.debugEnabled then
-        print("[MilestonesMenu]", ...)
+-- Create a new MilestonesMenu instance
+function MilestonesMenu.new(customConfig)
+    local config = {
+        size = UDim2.new(0, 700, 0, 500),
+        title = "Milestones",
+        backgroundColor = UIStyle.colors.background,
+        headerColor = UIStyle.colors.headerBackground
+    }
+    
+    -- Merge with custom config if provided
+    if customConfig then
+        for key, value in pairs(customConfig) do
+            config[key] = value
+        end
     end
+    
+    -- Create base UIComponent
+    local self = UIComponent.new(config)
+    setmetatable(self, MilestonesMenu)
+    
+    -- Internal state
+    self.currentCategory = "gym" -- Default selected category
+    self.uiElements = {}
+    self.milestoneData = MILESTONE_CATEGORIES
+    
+    return self
 end
 
--- Module table
-local MilestonesMenu = {}
-
--- Cached data
-local allMilestones = {}
-local unlockedMilestones = {}
-local selectedCategory = CONFIG.defaultCategory
-
--- Helper function to create a milestone card
-local function createMilestoneCard(milestone)
-    -- Create card frame
-    local card = Instance.new("Frame")
-    card.Name = "MilestoneCard_" .. milestone.id
-    card.Size = UDim2.new(1, -20, 0, 100)
-    card.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    card.BackgroundTransparency = 0.1
-    card.BorderSizePixel = 0
+-- Build the UI structure
+function MilestonesMenu:build()
+    -- Main container styling
+    self.container.BackgroundColor3 = UIStyle.colors.background
+    self.container.BorderSizePixel = 0
     
-    -- Apply rounded corners
+    -- Create corner rounding
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = card
+    corner.CornerRadius = UIStyle.layout.cornerRadiusMedium
+    corner.Parent = self.container
     
-    -- Get milestone type color and icon
-    local typeInfo = CONFIG.milestoneTypes[milestone.type] or CONFIG.milestoneTypes.special
-    local color = typeInfo.color
-    local icon = typeInfo.icon
+    -- Create header
+    self:createHeader()
     
-    -- Add color accent at left
-    local colorBar = Instance.new("Frame")
-    colorBar.Name = "ColorBar"
-    colorBar.Size = UDim2.new(0, 6, 1, 0)
-    colorBar.Position = UDim2.new(0, 0, 0, 0)
-    colorBar.BackgroundColor3 = color
-    colorBar.BorderSizePixel = 0
-    colorBar.Parent = card
+    -- Create two-panel layout: category selector and milestone content
+    self:createCategorySidebar()
+    self:createMilestonePanel()
     
-    -- Round corners of color bar
-    local barCorner = Instance.new("UICorner")
-    barCorner.CornerRadius = UDim.new(0, 8)
-    barCorner.Parent = colorBar
-    
-    -- Fix right corners
-    local rightFix = Instance.new("Frame")
-    rightFix.Name = "RightFix"
-    rightFix.Size = UDim2.new(0.5, 0, 1, 0)
-    rightFix.Position = UDim2.new(0.5, 0, 0, 0)
-    rightFix.BackgroundColor3 = colorBar.BackgroundColor3
-    rightFix.BorderSizePixel = 0
-    rightFix.ZIndex = colorBar.ZIndex - 1
-    rightFix.Parent = colorBar
-    
-    -- Add milestone icon
-    local iconImage = Instance.new("ImageLabel")
-    iconImage.Name = "Icon"
-    iconImage.Size = UDim2.new(0, 40, 0, 40)
-    iconImage.Position = UDim2.new(0, 20, 0, 10)
-    iconImage.BackgroundTransparency = 1
-    iconImage.Image = icon
-    iconImage.Parent = card
-    
-    -- Add milestone title
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, -80, 0, 24)
-    title.Position = UDim2.new(0, 70, 0, 10)
-    title.BackgroundTransparency = 1
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextSize = 18
-    title.Font = Enum.Font.GothamBold
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.TextWrapped = true
-    title.Text = milestone.name
-    title.Parent = card
-    
-    -- Add milestone description
-    local description = Instance.new("TextLabel")
-    description.Name = "Description"
-    description.Size = UDim2.new(1, -80, 0, 36)
-    description.Position = UDim2.new(0, 70, 0, 34)
-    description.BackgroundTransparency = 1
-    description.TextColor3 = Color3.fromRGB(200, 200, 200)
-    description.TextSize = 14
-    description.Font = Enum.Font.Gotham
-    description.TextXAlignment = Enum.TextXAlignment.Left
-    description.TextWrapped = true
-    description.Text = milestone.description
-    description.Parent = card
-    
-    -- Add progress section
-    local progressFrame = Instance.new("Frame")
-    progressFrame.Name = "ProgressFrame"
-    progressFrame.Size = UDim2.new(1, -20, 0, 20)
-    progressFrame.Position = UDim2.new(0, 10, 0, 75)
-    progressFrame.BackgroundTransparency = 1
-    progressFrame.Parent = card
-    
-    -- Add progress bar background
-    local progressBg = Instance.new("Frame")
-    progressBg.Name = "ProgressBg"
-    progressBg.Size = UDim2.new(0.8, 0, 0, 10)
-    progressBg.Position = UDim2.new(0, 0, 0.5, -5)
-    progressBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    progressBg.BorderSizePixel = 0
-    progressBg.Parent = progressFrame
-    
-    -- Round corners of progress bar bg
-    local progressBgCorner = Instance.new("UICorner")
-    progressBgCorner.CornerRadius = UDim.new(0, 4)
-    progressBgCorner.Parent = progressBg
-    
-    -- Calculate progress percentage
-    local progress = 0
-    if milestone.progress and milestone.target and milestone.target > 0 then
-        progress = math.min(1, milestone.progress / milestone.target)
-    elseif milestone.unlocked then
-        progress = 1
-    end
-    
-    -- Add progress bar fill
-    local progressFill = Instance.new("Frame")
-    progressFill.Name = "ProgressFill"
-    progressFill.Size = UDim2.new(progress, 0, 1, 0)
-    progressFill.BackgroundColor3 = color
-    progressFill.BorderSizePixel = 0
-    progressFill.Parent = progressBg
-    
-    -- Round corners of progress fill
-    local progressFillCorner = Instance.new("UICorner")
-    progressFillCorner.CornerRadius = UDim.new(0, 4)
-    progressFillCorner.Parent = progressFill
-    
-    -- Add progress text
-    local progressText = Instance.new("TextLabel")
-    progressText.Name = "ProgressText"
-    progressText.Size = UDim2.new(0.2, -10, 1, 0)
-    progressText.Position = UDim2.new(0.8, 10, 0, 0)
-    progressText.BackgroundTransparency = 1
-    progressText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    progressText.TextSize = 14
-    progressText.Font = Enum.Font.GothamSemibold
-    progressText.TextXAlignment = Enum.TextXAlignment.Right
-    
-    -- Format progress text
-    if milestone.unlocked then
-        progressText.Text = "Completed!"
-    elseif milestone.progress and milestone.target then
-        progressText.Text = milestone.progress .. "/" .. milestone.target
-    else
-        progressText.Text = "0%"
-    end
-    
-    progressText.Parent = progressFrame
-    
-    -- Add reward section if milestone has rewards
-    if milestone.rewards and #milestone.rewards > 0 then
-        -- Add reward label
-        local rewardLabel = Instance.new("TextLabel")
-        rewardLabel.Name = "RewardLabel"
-        rewardLabel.Size = UDim2.new(0, 60, 0, 16)
-        rewardLabel.Position = UDim2.new(1, -140, 0, 10)
-        rewardLabel.BackgroundTransparency = 1
-        rewardLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
-        rewardLabel.TextSize = 12
-        rewardLabel.Font = Enum.Font.GothamBold
-        rewardLabel.TextXAlignment = Enum.TextXAlignment.Right
-        rewardLabel.Text = "REWARD:"
-        rewardLabel.Parent = card
-        
-        -- Add reward value
-        local rewardValue = Instance.new("TextLabel")
-        rewardValue.Name = "RewardValue"
-        rewardValue.Size = UDim2.new(0, 70, 0, 20)
-        rewardValue.Position = UDim2.new(1, -75, 0, 8)
-        rewardValue.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        rewardValue.BackgroundTransparency = 0.5
-        rewardValue.TextColor3 = Color3.fromRGB(255, 220, 100)
-        rewardValue.TextSize = 14
-        rewardValue.Font = Enum.Font.GothamBold
-        rewardValue.TextXAlignment = Enum.TextXAlignment.Center
-        
-        -- Format rewards text
-        local rewardText = ""
-        for i, reward in ipairs(milestone.rewards) do
-            if reward.type == "money" then
-                rewardText = "$" .. reward.amount
-            elseif reward.type == "item" then
-                rewardText = reward.name
-            else
-                rewardText = reward.name or "Special"
-            end
-            break -- Just show first reward for now
-        end
-        
-        rewardValue.Text = rewardText
-        rewardValue.Parent = card
-        
-        -- Round corners of reward value
-        local rewardCorner = Instance.new("UICorner")
-        rewardCorner.CornerRadius = UDim.new(0, 4)
-        rewardCorner.Parent = rewardValue
-    end
-    
-    -- Add highlight if unlocked
-    if milestone.unlocked then
-        local checkmark = Instance.new("ImageLabel")
-        checkmark.Name = "Checkmark"
-        checkmark.Size = UDim2.new(0, 24, 0, 24)
-        checkmark.Position = UDim2.new(1, -30, 0, 10)
-        checkmark.BackgroundTransparency = 1
-        checkmark.Image = "rbxassetid://6031094678" -- Checkmark icon
-        checkmark.ImageColor3 = Color3.fromRGB(50, 200, 50) -- Green checkmark
-        checkmark.Parent = card
-    end
-    
-    return card
+    -- Load initial category
+    self:showCategory(self.currentCategory)
 end
 
--- Create the milestones menu UI
-function MilestonesMenu.create(data)
-    log("Creating milestones menu")
+-- Create header for the menu
+function MilestonesMenu:createHeader()
+    -- Create header container
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 60)
+    header.Position = UDim2.new(0, 0, 0, 0)
+    header.BackgroundColor3 = UIStyle.colors.primaryDark
+    header.BorderSizePixel = 0
+    header.Parent = self.container
     
-    -- Store milestones data if provided
-    if data then
-        if data.milestones then
-            allMilestones = data.milestones
-        end
-        
-        if data.unlocked then
-            unlockedMilestones = data.unlocked
-        end
-    end
+    -- Header corner rounding
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UIStyle.layout.cornerRadiusMedium
+    headerCorner.Parent = header
     
-    -- Update unlocked status in allMilestones
-    for id, milestone in pairs(allMilestones) do
-        milestone.unlocked = unlockedMilestones[id] == true
-    end
-    
-    -- Create the ScreenGui
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "MilestonesMenu"
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.ResetOnSpawn = false
-    
-    -- Create the main frame
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 800, 0, 600)
-    mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    mainFrame.BackgroundTransparency = 0.1
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Parent = screenGui
-    
-    -- Add rounded corners
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = mainFrame
-    
-    -- Create title bar
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 50)
-    titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    titleBar.BackgroundTransparency = 0.1
-    titleBar.BorderSizePixel = 0
-    titleBar.Parent = mainFrame
-    
-    -- Add rounded corners to title bar
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 10)
-    titleCorner.Parent = titleBar
-    
-    -- Fix bottom corners of title bar
-    local bottomFix = Instance.new("Frame")
-    bottomFix.Name = "BottomFix"
-    bottomFix.Size = UDim2.new(1, 0, 0.5, 0)
-    bottomFix.Position = UDim2.new(0, 0, 0.5, 0)
-    bottomFix.BackgroundColor3 = titleBar.BackgroundColor3
-    bottomFix.BackgroundTransparency = titleBar.BackgroundTransparency
-    bottomFix.BorderSizePixel = 0
-    bottomFix.Parent = titleBar
+    -- Only round the top corners
+    local headerCornerFix = Instance.new("Frame")
+    headerCornerFix.Name = "CornerFix"
+    headerCornerFix.Size = UDim2.new(1, 0, 0.5, 0)
+    headerCornerFix.Position = UDim2.new(0, 0, 0.5, 0)
+    headerCornerFix.BackgroundColor3 = UIStyle.colors.primaryDark
+    headerCornerFix.BorderSizePixel = 0
+    headerCornerFix.Parent = header
     
     -- Title text
     local titleText = Instance.new("TextLabel")
-    titleText.Name = "Title"
+    titleText.Name = "TitleText"
     titleText.Size = UDim2.new(1, -100, 1, 0)
     titleText.Position = UDim2.new(0, 20, 0, 0)
     titleText.BackgroundTransparency = 1
-    titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleText.TextSize = 24
-    titleText.Font = Enum.Font.GothamBold
+    titleText.Font = UIStyle.fonts.titleMedium.Font
+    titleText.TextSize = UIStyle.fonts.titleMedium.Size
+    titleText.TextColor3 = UIStyle.colors.textPrimary
     titleText.TextXAlignment = Enum.TextXAlignment.Left
-    titleText.Text = "Gym Milestones & Achievements"
-    titleText.Parent = titleBar
+    titleText.Text = "Gym Milestones"
+    titleText.Parent = header
     
     -- Close button
     local closeButton = Instance.new("TextButton")
     closeButton.Name = "CloseButton"
-    closeButton.Size = UDim2.new(0, 36, 0, 36)
-    closeButton.Position = UDim2.new(1, -18, 0.5, 0)
-    closeButton.AnchorPoint = Vector2.new(1, 0.5)
-    closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeButton.TextSize = 18
-    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Size = UDim2.new(0, 40, 0, 40)
+    closeButton.Position = UDim2.new(1, -50, 0, 10)
+    closeButton.BackgroundColor3 = UIStyle.colors.error
+    closeButton.TextColor3 = UIStyle.colors.textPrimary
     closeButton.Text = "X"
+    closeButton.Font = UIStyle.fonts.button.Font
+    closeButton.TextSize = UIStyle.fonts.button.Size
     closeButton.BorderSizePixel = 0
-    closeButton.Parent = titleBar
+    closeButton.Parent = header
     
-    -- Add rounded corners to close button
+    -- Close button corner rounding
     local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0.5, 0)
+    closeCorner.CornerRadius = UDim.new(0, 8)
     closeCorner.Parent = closeButton
-    
-    -- Category filter buttons
-    local categoryBar = Instance.new("Frame")
-    categoryBar.Name = "CategoryBar"
-    categoryBar.Size = UDim2.new(1, -40, 0, 40)
-    categoryBar.Position = UDim2.new(0, 20, 0, 60)
-    categoryBar.BackgroundTransparency = 1
-    categoryBar.Parent = mainFrame
-    
-    -- Make a list of categories
-    local categories = {
-        {id = "all", name = "All Milestones"}
-    }
-    
-    -- Add each milestone type as a category
-    for typeId, typeInfo in pairs(CONFIG.milestoneTypes) do
-        table.insert(categories, {
-            id = typeId,
-            name = typeInfo.name,
-            color = typeInfo.color
-        })
-    end
-    
-    -- Create category buttons
-    local buttonWidth = 1 / (#categories + 0.5) -- Add some padding
-    
-    for i, category in ipairs(categories) do
-        -- Create button
-        local button = Instance.new("TextButton")
-        button.Name = category.id .. "Button"
-        button.Size = UDim2.new(buttonWidth, -10, 1, -10)
-        button.Position = UDim2.new(buttonWidth * (i-1), 5, 0, 5)
-        
-        -- Selected state
-        if category.id == selectedCategory then
-            button.BackgroundColor3 = category.color or Color3.fromRGB(80, 80, 180)
-        else
-            button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        end
-        
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 16
-        button.Font = Enum.Font.GothamMedium
-        button.Text = category.name
-        button.BorderSizePixel = 0
-        
-        -- Add rounded corners
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 6)
-        buttonCorner.Parent = button
-        
-        -- Connect button
-        button.MouseButton1Click:Connect(function()
-            MilestonesMenu:filterByCategory(category.id)
-        end)
-        
-        button.Parent = categoryBar
-        
-        -- Store category color for later
-        button:SetAttribute("CategoryColor", category.color)
-    end
-    
-    -- Show completion stats
-    local statsFrame = Instance.new("Frame")
-    statsFrame.Name = "StatsFrame"
-    statsFrame.Size = UDim2.new(1, -40, 0, 40)
-    statsFrame.Position = UDim2.new(0, 20, 0, 110)
-    statsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    statsFrame.BackgroundTransparency = 0.5
-    statsFrame.BorderSizePixel = 0
-    statsFrame.Parent = mainFrame
-    
-    -- Add rounded corners
-    local statsCorner = Instance.new("UICorner")
-    statsCorner.CornerRadius = UDim.new(0, 8)
-    statsCorner.Parent = statsFrame
-    
-    -- Calculate completion stats
-    local totalMilestones = 0
-    local completedMilestones = 0
-    
-    for _, milestone in pairs(allMilestones) do
-        totalMilestones = totalMilestones + 1
-        if milestone.unlocked then
-            completedMilestones = completedMilestones + 1
-        end
-    end
-    
-    -- Stats label
-    local statsLabel = Instance.new("TextLabel")
-    statsLabel.Name = "StatsLabel"
-    statsLabel.Size = UDim2.new(0.4, 0, 1, 0)
-    statsLabel.Position = UDim2.new(0, 15, 0, 0)
-    statsLabel.BackgroundTransparency = 1
-    statsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    statsLabel.TextSize = 16
-    statsLabel.Font = Enum.Font.GothamMedium
-    statsLabel.TextXAlignment = Enum.TextXAlignment.Left
-    statsLabel.Text = "Milestone Progress:"
-    statsLabel.Parent = statsFrame
-    
-    -- Stats progress bar background
-    local statsBarBg = Instance.new("Frame")
-    statsBarBg.Name = "StatsBarBg"
-    statsBarBg.Size = UDim2.new(0.4, 0, 0.4, 0)
-    statsBarBg.Position = UDim2.new(0.4, 15, 0.5, 0)
-    statsBarBg.AnchorPoint = Vector2.new(0, 0.5)
-    statsBarBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    statsBarBg.BorderSizePixel = 0
-    statsBarBg.Parent = statsFrame
-    
-    -- Add rounded corners
-    local statsBarBgCorner = Instance.new("UICorner")
-    statsBarBgCorner.CornerRadius = UDim.new(0, 4)
-    statsBarBgCorner.Parent = statsBarBg
-    
-    -- Stats progress bar fill
-    local completionRatio = totalMilestones > 0 and (completedMilestones / totalMilestones) or 0
-    
-    local statsBarFill = Instance.new("Frame")
-    statsBarFill.Name = "StatsBarFill"
-    statsBarFill.Size = UDim2.new(completionRatio, 0, 1, 0)
-    statsBarFill.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-    statsBarFill.BorderSizePixel = 0
-    statsBarFill.Parent = statsBarBg
-    
-    -- Add rounded corners
-    local statsBarFillCorner = Instance.new("UICorner")
-    statsBarFillCorner.CornerRadius = UDim.new(0, 4)
-    statsBarFillCorner.Parent = statsBarFill
-    
-    -- Stats text
-    local statsText = Instance.new("TextLabel")
-    statsText.Name = "StatsText"
-    statsText.Size = UDim2.new(0.2, -30, 1, 0)
-    statsText.Position = UDim2.new(0.8, 15, 0, 0)
-    statsText.BackgroundTransparency = 1
-    statsText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    statsText.TextSize = 16
-    statsText.Font = Enum.Font.GothamBold
-    statsText.TextXAlignment = Enum.TextXAlignment.Right
-    statsText.Text = completedMilestones .. "/" .. totalMilestones
-    statsText.Parent = statsFrame
-    
-    -- Create content frame for milestone cards
-    local contentFrame = Instance.new("ScrollingFrame")
-    contentFrame.Name = "Content"
-    contentFrame.Size = UDim2.new(1, -40, 1, -160)
-    contentFrame.Position = UDim2.new(0, 20, 0, 160)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.BorderSizePixel = 0
-    contentFrame.ScrollBarThickness = 6
-    contentFrame.ScrollingDirection = Enum.ScrollingDirection.Y
-    contentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Will be set automatically
-    contentFrame.Parent = mainFrame
-    
-    -- Layout for cards
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 10)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = contentFrame
-    
-    -- Status text for no milestones
-    local statusText = Instance.new("TextLabel")
-    statusText.Name = "StatusText"
-    statusText.Size = UDim2.new(1, -40, 0, 30)
-    statusText.Position = UDim2.new(0.5, 0, 0.5, 0)
-    statusText.AnchorPoint = Vector2.new(0.5, 0.5)
-    statusText.BackgroundTransparency = 1
-    statusText.TextColor3 = Color3.fromRGB(200, 200, 200)
-    statusText.TextSize = 18
-    statusText.Font = Enum.Font.GothamMedium
-    statusText.Text = "Loading milestones..."
-    statusText.Visible = totalMilestones == 0
-    statusText.Parent = contentFrame
-    
-    -- Populate with milestone cards
-    MilestonesMenu:populateMilestones(allMilestones)
     
     -- Connect close button
     closeButton.MouseButton1Click:Connect(function()
-        UIManager.closeUI("MilestonesMenu")
+        self:hide()
     end)
     
-    -- Make the UI draggable
-    UIManager.makeFrameDraggable(mainFrame, titleBar)
+    -- Store references
+    self.uiElements.header = header
+    self.uiElements.title = titleText
+    self.uiElements.closeButton = closeButton
     
-    return screenGui
+    -- Create content area under header
+    local contentArea = Instance.new("Frame")
+    contentArea.Name = "ContentArea"
+    contentArea.Size = UDim2.new(1, 0, 1, -60) -- Minus header height
+    contentArea.Position = UDim2.new(0, 0, 0, 60)
+    contentArea.BackgroundTransparency = 1
+    contentArea.Parent = self.container
+    
+    self.uiElements.contentArea = contentArea
 end
 
--- Populate the UI with milestone cards
-function MilestonesMenu:populateMilestones(milestones)
-    if not milestones or not next(milestones) then
-        log("No milestones to populate")
-        return
+-- Create category sidebar
+function MilestonesMenu:createCategorySidebar()
+    local contentArea = self.uiElements.contentArea
+    
+    -- Create sidebar container
+    local sidebar = Instance.new("Frame")
+    sidebar.Name = "CategorySidebar"
+    sidebar.Size = UDim2.new(0, 200, 1, 0)
+    sidebar.Position = UDim2.new(0, 0, 0, 0)
+    sidebar.BackgroundColor3 = UIStyle.colors.backgroundDark
+    sidebar.BackgroundTransparency = 0.2
+    sidebar.BorderSizePixel = 0
+    sidebar.Parent = contentArea
+    
+    -- Add padding and layout
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, 10)
+    padding.PaddingBottom = UDim.new(0, 10)
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.PaddingRight = UDim.new(0, 10)
+    padding.Parent = sidebar
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 10)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.Parent = sidebar
+    
+    -- Create category buttons
+    local categoryButtons = {}
+    local index = 0
+    
+    for categoryId, categoryData in pairs(self.milestoneData) do
+        local button = self:createCategoryButton(categoryId, categoryData, index)
+        button.Parent = sidebar
+        categoryButtons[categoryId] = button
+        index = index + 1
     end
     
-    -- Convert milestones table to array for sorting
-    local milestoneArray = {}
-    for id, milestone in pairs(milestones) do
-        milestone.id = id -- Store ID in the milestone object
-        table.insert(milestoneArray, milestone)
-    end
+    -- Store references
+    self.uiElements.sidebar = sidebar
+    self.uiElements.categoryButtons = categoryButtons
+end
+
+-- Create a category button
+function MilestonesMenu:createCategoryButton(categoryId, categoryData, index)
+    local isSelected = categoryId == self.currentCategory
     
-    -- Sort milestones: completed at the bottom, then by progress percentage
-    table.sort(milestoneArray, function(a, b)
-        -- If one is unlocked and the other isn't, unlocked goes after
-        if a.unlocked ~= b.unlocked then
-            return not a.unlocked
+    -- Create button container
+    local button = Instance.new("TextButton")
+    button.Name = categoryId .. "Button"
+    button.Size = UDim2.new(1, 0, 0, 50)
+    button.BackgroundColor3 = isSelected and UIStyle.colors.primary or UIStyle.colors.buttonDefault
+    button.BackgroundTransparency = 0.1
+    button.Text = ""
+    button.LayoutOrder = index
+    button.BorderSizePixel = 0
+    
+    -- Add corner radius
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+    
+    -- Add icon
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "Icon"
+    icon.Size = UDim2.new(0, 24, 0, 24)
+    icon.Position = UDim2.new(0, 10, 0.5, 0)
+    icon.AnchorPoint = Vector2.new(0, 0.5)
+    icon.BackgroundTransparency = 1
+    icon.Image = categoryData.icon
+    icon.ImageColor3 = UIStyle.colors.textPrimary
+    icon.Parent = button
+    
+    -- Add label
+    local label = Instance.new("TextLabel")
+    label.Name = "Label"
+    label.Size = UDim2.new(1, -50, 0.6, 0)
+    label.Position = UDim2.new(0, 40, 0, 10)
+    label.BackgroundTransparency = 1
+    label.Font = UIStyle.fonts.bodyLarge.Font
+    label.TextSize = UIStyle.fonts.bodyLarge.Size
+    label.TextColor3 = UIStyle.colors.textPrimary
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = categoryData.title
+    label.Parent = button
+    
+    -- Add progress counter
+    local progressCount = self:getCompletedMilestoneCount(categoryId)
+    local totalCount = #categoryData.milestones
+    
+    local progressLabel = Instance.new("TextLabel")
+    progressLabel.Name = "Progress"
+    progressLabel.Size = UDim2.new(1, -50, 0.4, 0)
+    progressLabel.Position = UDim2.new(0, 40, 0.6, 0)
+    progressLabel.BackgroundTransparency = 1
+    progressLabel.Font = UIStyle.fonts.caption.Font
+    progressLabel.TextSize = UIStyle.fonts.caption.Size
+    progressLabel.TextColor3 = UIStyle.colors.textSecondary
+    progressLabel.TextXAlignment = Enum.TextXAlignment.Left
+    progressLabel.Text = progressCount .. " / " .. totalCount .. " completed"
+    progressLabel.Parent = button
+    
+    -- Connect button
+    button.MouseEnter:Connect(function()
+        if categoryId ~= self.currentCategory then
+            TweenService:Create(
+                button,
+                UIStyle.animations.fast,
+                {BackgroundColor3 = UIStyle.colors.buttonHover}
+            ):Play()
         end
-        
-        -- If both have progress, sort by progress percentage
-        if a.progress and a.target and b.progress and b.target then
-            local aProgress = a.progress / a.target
-            local bProgress = b.progress / b.target
-            return aProgress > bProgress
-        end
-        
-        -- Default sort by type then name
-        if a.type == b.type then
-            return a.name < b.name
-        end
-        
-        return a.type < b.type
     end)
     
-    -- Get the content frame
-    local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MilestonesMenu")
-    if not mainUI then return end
-    
-    local contentFrame = mainUI.MainFrame.Content
-    if not contentFrame then return end
-    
-    -- Clear existing status text
-    local statusText = contentFrame:FindFirstChild("StatusText")
-    if statusText then
-        statusText.Visible = false
-    end
-    
-    -- Clear existing cards
-    for _, child in pairs(contentFrame:GetChildren()) do
-        if child:IsA("Frame") and child.Name:find("MilestoneCard_") then
-            child:Destroy()
+    button.MouseLeave:Connect(function()
+        if categoryId ~= self.currentCategory then
+            TweenService:Create(
+                button,
+                UIStyle.animations.fast,
+                {BackgroundColor3 = UIStyle.colors.buttonDefault}
+            ):Play()
         end
-    end
+    end)
     
-    -- Create cards for each milestone
-    for i, milestone in ipairs(milestoneArray) do
-        -- Skip if filtering by category and this isn't the right category
-        if selectedCategory ~= "all" and milestone.type ~= selectedCategory then
-            continue
-        end
-        
-        local card = createMilestoneCard(milestone)
-        card.LayoutOrder = i -- Order by array index
-        card.Parent = contentFrame
-    end
+    button.MouseButton1Click:Connect(function()
+        self:showCategory(categoryId)
+    end)
+    
+    return button
 end
 
--- Filter milestones by category
-function MilestonesMenu:filterByCategory(category)
+-- Create the milestone content panel
+function MilestonesMenu:createMilestonePanel()
+    local contentArea = self.uiElements.contentArea
+    
+    -- Create panel container
+    local panel = Instance.new("ScrollingFrame")
+    panel.Name = "MilestonesPanel"
+    panel.Size = UDim2.new(1, -220, 1, -20)
+    panel.Position = UDim2.new(0, 210, 0, 10)
+    panel.BackgroundTransparency = 1
+    panel.ScrollBarThickness = 6
+    panel.ScrollingDirection = Enum.ScrollingDirection.Y
+    panel.CanvasSize = UDim2.new(0, 0, 0, 0) -- Will be updated dynamically
+    panel.Parent = contentArea
+    
+    -- Add padding
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, 10)
+    padding.PaddingBottom = UDim.new(0, 10)
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.PaddingRight = UDim.new(0, 10)
+    padding.Parent = panel
+    
+    -- Add layout
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 15)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = panel
+    
+    -- Store reference
+    self.uiElements.milestonesPanel = panel
+end
+
+-- Show milestones for a specific category
+function MilestonesMenu:showCategory(categoryId)
+    if not self.milestoneData[categoryId] then return end
+    
     -- Update selected category
-    selectedCategory = category
+    local oldCategory = self.currentCategory
+    self.currentCategory = categoryId
     
-    local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MilestonesMenu")
-    if not mainUI then return end
+    -- Update button visuals
+    if self.uiElements.categoryButtons then
+        -- Deselect old category button
+        if oldCategory and self.uiElements.categoryButtons[oldCategory] then
+            TweenService:Create(
+                self.uiElements.categoryButtons[oldCategory],
+                UIStyle.animations.fast,
+                {BackgroundColor3 = UIStyle.colors.buttonDefault}
+            ):Play()
+        end
+        
+        -- Select new category button
+        if self.uiElements.categoryButtons[categoryId] then
+            TweenService:Create(
+                self.uiElements.categoryButtons[categoryId],
+                UIStyle.animations.fast,
+                {BackgroundColor3 = UIStyle.colors.primary}
+            ):Play()
+        end
+    end
     
-    -- Update category buttons
-    local categoryBar = mainUI.MainFrame.CategoryBar
-    for _, button in ipairs(categoryBar:GetChildren()) do
-        if button:IsA("TextButton") then
-            if button.Name == category .. "Button" then
-                -- Get category color or use default
-                local categoryColor = button:GetAttribute("CategoryColor")
-                button.BackgroundColor3 = categoryColor or Color3.fromRGB(80, 80, 180)
-            else
-                button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    -- Update header title
+    if self.uiElements.title then
+        self.uiElements.title.Text = self.milestoneData[categoryId].title
+    end
+    
+    -- Clear current milestones
+    local panel = self.uiElements.milestonesPanel
+    if panel then
+        for _, child in pairs(panel:GetChildren()) do
+            if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
+                child:Destroy()
             end
         end
+    else
+        return -- Panel not created yet
     end
     
-    -- Re-populate with filtered milestones
-    self:populateMilestones(allMilestones)
+    -- Create category header and description
+    self:createCategoryHeader(categoryId, panel)
     
-    -- Update status text
-    local contentFrame = mainUI.MainFrame.Content
-    if not contentFrame then return end
-    
-    local visibleCount = 0
-    for _, child in pairs(contentFrame:GetChildren()) do
-        if child:IsA("Frame") and child.Name:find("MilestoneCard_") then
-            visibleCount = visibleCount + 1
-        end
+    -- Create milestone cards
+    local categoryData = self.milestoneData[categoryId]
+    for i, milestone in ipairs(categoryData.milestones) do
+        local card = self:createMilestoneCard(milestone, i)
+        card.Parent = panel
     end
     
-    local statusText = contentFrame:FindFirstChild("StatusText")
-    if statusText then
-        if visibleCount == 0 then
-            if category == "all" then
-                statusText.Text = "No milestones available"
-            else
-                statusText.Text = "No " .. category .. " milestones available"
-            end
-            statusText.Visible = true
-        else
-            statusText.Visible = false
-        end
-    end
+    -- Update canvas size
+    self:updateCanvasSize()
 end
 
--- Update a specific milestone's progress
-function MilestonesMenu:updateMilestoneProgress(id, progress, target, unlocked)
-    if not id or not allMilestones[id] then return end
+-- Create category header and description
+function MilestonesMenu:createCategoryHeader(categoryId, parent)
+    local categoryData = self.milestoneData[categoryId]
     
-    -- Update data
-    allMilestones[id].progress = progress
-    if target then allMilestones[id].target = target end
-    if unlocked ~= nil then 
-        allMilestones[id].unlocked = unlocked
-        unlockedMilestones[id] = unlocked
+    -- Category description container
+    local descContainer = Instance.new("Frame")
+    descContainer.Name = "CategoryDescription"
+    descContainer.Size = UDim2.new(1, 0, 0, 80)
+    descContainer.BackgroundColor3 = UIStyle.colors.primaryDark
+    descContainer.BackgroundTransparency = 0.7
+    descContainer.BorderSizePixel = 0
+    descContainer.LayoutOrder = 0
+    descContainer.Parent = parent
+    
+    -- Container corner rounding
+    local containerCorner = Instance.new("UICorner")
+    containerCorner.CornerRadius = UIStyle.layout.cornerRadiusMedium
+    containerCorner.Parent = descContainer
+    
+    -- Category icon
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "CategoryIcon"
+    icon.Size = UDim2.new(0, 50, 0, 50)
+    icon.Position = UDim2.new(0, 15, 0.5, 0)
+    icon.AnchorPoint = Vector2.new(0, 0.5)
+    icon.BackgroundTransparency = 1
+    icon.Image = categoryData.icon
+    icon.ImageColor3 = UIStyle.colors.textPrimary
+    icon.Parent = descContainer
+    
+    -- Category description
+    local description = Instance.new("TextLabel")
+    description.Name = "Description"
+    description.Size = UDim2.new(1, -80, 1, -20)
+    description.Position = UDim2.new(0, 75, 0, 10)
+    description.BackgroundTransparency = 1
+    description.Font = UIStyle.fonts.body.Font
+    description.TextSize = UIStyle.fonts.body.Size
+    description.TextColor3 = UIStyle.colors.textPrimary
+    description.TextXAlignment = Enum.TextXAlignment.Left
+    description.TextYAlignment = Enum.TextYAlignment.Top
+    description.Text = categoryData.description
+    description.TextWrapped = true
+    description.Parent = descContainer
+    
+    -- Progress overview
+    local progressCount = self:getCompletedMilestoneCount(categoryId)
+    local totalCount = #categoryData.milestones
+    local progressPercentage = math.floor((progressCount / totalCount) * 100)
+    
+    local progress = Instance.new("TextLabel")
+    progress.Name = "Progress"
+    progress.Size = UDim2.new(0, 100, 0, 20)
+    progress.Position = UDim2.new(1, -110, 1, -25)
+    progress.BackgroundTransparency = 1
+    progress.Font = UIStyle.fonts.numeric.Font
+    progress.TextSize = UIStyle.fonts.numeric.Size
+    progress.TextColor3 = UIStyle.colors.textPrimary
+    progress.Text = progressCount .. "/" .. totalCount .. " (" .. progressPercentage .. "%)"
+    progress.Parent = descContainer
+    
+    return descContainer
+end
+
+-- Create a milestone card
+function MilestonesMenu:createMilestoneCard(milestone, index)
+    local isCompleted = milestone.completed or milestone.progress >= milestone.total
+    
+    -- Card container
+    local card = Instance.new("Frame")
+    card.Name = "Milestone_" .. milestone.id
+    card.Size = UDim2.new(1, 0, 0, 100)
+    card.BackgroundColor3 = isCompleted and UIStyle.colors.success:Lerp(UIStyle.colors.background, 0.7) or UIStyle.colors.backgroundLight
+    card.BackgroundTransparency = 0.1
+    card.BorderSizePixel = 0
+    card.LayoutOrder = index
+    
+    -- Card corner rounding
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = UIStyle.layout.cornerRadiusSmall
+    cardCorner.Parent = card
+    
+    -- Milestone title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -220, 0, 30)
+    title.Position = UDim2.new(0, 15, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = UIStyle.fonts.subheader.Font
+    title.TextSize = UIStyle.fonts.subheader.Size
+    title.TextColor3 = UIStyle.colors.textPrimary
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = milestone.title
+    title.Parent = card
+    
+    -- Milestone description
+    local description = Instance.new("TextLabel")
+    description.Name = "Description"
+    description.Size = UDim2.new(1, -220, 0, 30)
+    description.Position = UDim2.new(0, 15, 0, 40)
+    description.BackgroundTransparency = 1
+    description.Font = UIStyle.fonts.body.Font
+    description.TextSize = UIStyle.fonts.body.Size
+    description.TextColor3 = UIStyle.colors.textSecondary
+    description.TextXAlignment = Enum.TextXAlignment.Left
+    description.Text = milestone.description
+    description.TextWrapped = true
+    description.Parent = card
+    
+    -- Reward container
+    local rewardContainer = Instance.new("Frame")
+    rewardContainer.Name = "RewardContainer"
+    rewardContainer.Size = UDim2.new(0, 120, 0, 50)
+    rewardContainer.Position = UDim2.new(1, -200, 0, 25)
+    rewardContainer.BackgroundColor3 = UIStyle.colors.buttonDefault
+    rewardContainer.BackgroundTransparency = 0.5
+    rewardContainer.BorderSizePixel = 0
+    rewardContainer.Parent = card
+    
+    -- Reward container corner rounding
+    local rewardCorner = Instance.new("UICorner")
+    rewardCorner.CornerRadius = UIStyle.layout.cornerRadiusSmall
+    rewardCorner.Parent = rewardContainer
+    
+    -- Reward label
+    local rewardLabel = Instance.new("TextLabel")
+    rewardLabel.Name = "RewardLabel"
+    rewardLabel.Size = UDim2.new(1, -10, 0, 20)
+    rewardLabel.Position = UDim2.new(0, 5, 0, 5)
+    rewardLabel.BackgroundTransparency = 1
+    rewardLabel.Font = UIStyle.fonts.caption.Font
+    rewardLabel.TextSize = UIStyle.fonts.caption.Size
+    rewardLabel.TextColor3 = UIStyle.colors.textSecondary
+    rewardLabel.TextXAlignment = Enum.TextXAlignment.Center
+    rewardLabel.Text = "Reward:"
+    rewardLabel.Parent = rewardContainer
+    
+    -- Reward value
+    local rewardValue = Instance.new("TextLabel")
+    rewardValue.Name = "RewardValue"
+    rewardValue.Size = UDim2.new(1, -10, 0, 20)
+    rewardValue.Position = UDim2.new(0, 5, 0, 25)
+    rewardValue.BackgroundTransparency = 1
+    rewardValue.Font = UIStyle.fonts.bodyMedium.Font
+    rewardValue.TextSize = UIStyle.fonts.bodyMedium.Size
+    rewardValue.TextColor3 = UIStyle.colors.warning
+    rewardValue.TextXAlignment = Enum.TextXAlignment.Center
+    rewardValue.Text = milestone.reward
+    rewardValue.Parent = rewardContainer
+    
+    -- Progress container
+    local progressContainer = Instance.new("Frame")
+    progressContainer.Name = "ProgressContainer"
+    progressContainer.Size = UDim2.new(1, -240, 0, 14)
+    progressContainer.Position = UDim2.new(0, 15, 0, 75)
+    progressContainer.BackgroundColor3 = UIStyle.colors.buttonDefault
+    progressContainer.BorderSizePixel = 0
+    progressContainer.Parent = card
+    
+    -- Progress container corner rounding
+    local progressCorner = Instance.new("UICorner")
+    progressCorner.CornerRadius = UDim.new(0.5, 0)
+    progressCorner.Parent = progressContainer
+    
+    -- Progress fill
+    local progressPercentage = math.clamp(milestone.progress / milestone.total, 0, 1)
+    local progressFill = Instance.new("Frame")
+    progressFill.Name = "ProgressFill"
+    progressFill.Size = UDim2.new(progressPercentage, 0, 1, 0)
+    progressFill.BackgroundColor3 = isCompleted and UIStyle.colors.success or UIStyle.colors.primary
+    progressFill.BorderSizePixel = 0
+    progressFill.Parent = progressContainer
+    
+    -- Progress fill corner rounding
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(0.5, 0)
+    fillCorner.Parent = progressFill
+    
+    -- Progress text
+    local progressText = Instance.new("TextLabel")
+    progressText.Name = "ProgressText"
+    progressText.Size = UDim2.new(0, 100, 0, 20)
+    progressText.Position = UDim2.new(1, -110, 0, 72)
+    progressText.BackgroundTransparency = 1
+    progressText.Font = UIStyle.fonts.numeric.Font
+    progressText.TextSize = UIStyle.fonts.numeric.Size
+    progressText.TextColor3 = UIStyle.colors.textPrimary
+    progressText.Text = milestone.progress .. " / " .. milestone.total
+    progressText.Parent = card
+    
+    -- Status indicator
+    local statusIcon = Instance.new("ImageLabel")
+    statusIcon.Name = "StatusIcon"
+    statusIcon.Size = UDim2.new(0, 24, 0, 24)
+    statusIcon.Position = UDim2.new(1, -35, 0, 15)
+    statusIcon.BackgroundTransparency = 1
+    statusIcon.Image = isCompleted and "rbxassetid://7072706620" or "rbxassetid://7072719338" -- Checkmark or incomplete icon
+    statusIcon.ImageColor3 = isCompleted and UIStyle.colors.success or UIStyle.colors.textSecondary
+    statusIcon.Parent = card
+    
+    return card
+end
+
+-- Get completed milestone count for a category
+function MilestonesMenu:getCompletedMilestoneCount(categoryId)
+    local count = 0
+    local categoryData = self.milestoneData[categoryId]
+    
+    if categoryData and categoryData.milestones then
+        for _, milestone in ipairs(categoryData.milestones) do
+            if milestone.completed or milestone.progress >= milestone.total then
+                count = count + 1
+            end
+        end
     end
     
-    -- Update UI if open
-    local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MilestonesMenu")
-    if not mainUI then return end
+    return count
+end
+
+-- Update milestone data
+function MilestonesMenu:updateMilestoneData(data)
+    if not data then return end
     
-    local contentFrame = mainUI.MainFrame.Content
-    if not contentFrame then return end
-    
-    -- Find the milestone card
-    local card = contentFrame:FindFirstChild("MilestoneCard_" .. id)
-    if not card then 
-        -- Refresh all cards if we can't find this specific one
-        -- (it might be filtered out by category)
-        self:populateMilestones(allMilestones)
-        return 
-    end
-    
-    -- Update progress bar
-    local progressFrame = card:FindFirstChild("ProgressFrame")
-    if progressFrame then
-        local progressBg = progressFrame:FindFirstChild("ProgressBg")
-        if progressBg then
-            local progressFill = progressBg:FindFirstChild("ProgressFill")
-            if progressFill then
-                -- Calculate new progress
-                local progressRatio = 0
-                if target and target > 0 then
-                    progressRatio = math.min(1, progress / target)
-                elseif unlocked then
-                    progressRatio = 1
+    -- Update milestone data with new values
+    for categoryId, categoryData in pairs(data) do
+        if self.milestoneData[categoryId] then
+            if categoryData.milestones then
+                for _, milestone in ipairs(categoryData.milestones) do
+                    -- Find matching milestone in current data
+                    for _, existingMilestone in ipairs(self.milestoneData[categoryId].milestones) do
+                        if existingMilestone.id == milestone.id then
+                            -- Update milestone data
+                            existingMilestone.progress = milestone.progress
+                            existingMilestone.completed = milestone.completed or milestone.progress >= milestone.total
+                            break
+                        end
+                    end
                 end
-                
-                -- Animate progress bar
-                TweenService:Create(
-                    progressFill,
-                    TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {Size = UDim2.new(progressRatio, 0, 1, 0)}
-                ):Play()
-            end
-        end
-        
-        -- Update progress text
-        local progressText = progressFrame:FindFirstChild("ProgressText")
-        if progressText then
-            if unlocked then
-                progressText.Text = "Completed!"
-            elseif progress and target then
-                progressText.Text = progress .. "/" .. target
             end
         end
     end
     
-    -- Add checkmark if newly unlocked
-    if unlocked and not card:FindFirstChild("Checkmark") then
-        local checkmark = Instance.new("ImageLabel")
-        checkmark.Name = "Checkmark"
-        checkmark.Size = UDim2.new(0, 24, 0, 24)
-        checkmark.Position = UDim2.new(1, -30, 0, 10)
-        checkmark.BackgroundTransparency = 1
-        checkmark.Image = "rbxassetid://6031094678" -- Checkmark icon
-        checkmark.ImageColor3 = Color3.fromRGB(50, 200, 50) -- Green checkmark
-        checkmark.Parent = card
-        
-        -- Animate the checkmark appearing
-        checkmark.ImageTransparency = 1
-        TweenService:Create(
-            checkmark,
-            TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {ImageTransparency = 0}
-        ):Play()
-    end
-    
-    -- Update stats frame
-    local statsFrame = mainUI.MainFrame:FindFirstChild("StatsFrame")
-    if statsFrame then
-        -- Recalculate stats
-        local totalMilestones = 0
-        local completedMilestones = 0
-        
-        for _, milestone in pairs(allMilestones) do
-            totalMilestones = totalMilestones + 1
-            if milestone.unlocked then
-                completedMilestones = completedMilestones + 1
-            end
-        end
-        
-        -- Update stats text
-        local statsText = statsFrame:FindFirstChild("StatsText")
-        if statsText then
-            statsText.Text = completedMilestones .. "/" .. totalMilestones
-        end
-        
-        -- Update progress bar
-        local statsBarBg = statsFrame:FindFirstChild("StatsBarBg")
-        if statsBarBg then
-            local statsBarFill = statsBarBg:FindFirstChild("StatsBarFill")
-            if statsBarFill then
-                local completionRatio = totalMilestones > 0 and (completedMilestones / totalMilestones) or 0
-                
-                TweenService:Create(
-                    statsBarFill,
-                    TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {Size = UDim2.new(completionRatio, 0, 1, 0)}
-                ):Play()
-            end
-        end
+    -- Refresh UI if visible
+    if self.visible then
+        self:showCategory(self.currentCategory)
     end
 end
 
--- Handle when the UI opens
+-- Update canvas size based on content
+function MilestonesMenu:updateCanvasSize()
+    local panel = self.uiElements.milestonesPanel
+    if not panel then return end
+    
+    local totalHeight = 0
+    local layout = panel:FindFirstChildOfClass("UIListLayout")
+    
+    if layout then
+        totalHeight = layout.AbsoluteContentSize.Y + 20 -- Add padding
+    end
+    
+    panel.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+end
+
+-- Module interface
+function MilestonesMenu.create(data)
+    local instance = MilestonesMenu.new(data)
+    instance:build()
+    
+    -- Set the milestone data if provided
+    if data and data.milestoneData then
+        instance:updateMilestoneData(data.milestoneData)
+    end
+    
+    return instance.container
+end
+
 function MilestonesMenu.open(ui, data)
-    log("Opening milestones menu")
+    if not ui or not ui:IsA("Instance") then return end
     
-    -- Request fresh data if not provided
-    if not data or not data.milestones then
-        ClientEventBridge.fireServerEvent("GetPlayerMilestones")
+    local self = ui._UIInstance
+    if not self then
+        -- Create a new instance if needed
+        self = MilestonesMenu.new()
+        self:build()
+        ui._UIInstance = self
     end
     
-    -- Connect to server events if not already connected
-    if not MilestonesMenu.eventConnected then
-        -- Handle receiving milestone data
-        ClientEventBridge.connectEvent("MilestoneDataReceived", function(milestonesData, unlockedData)
-            allMilestones = milestonesData or {}
-            unlockedMilestones = unlockedData or {}
-            
-            -- Update UI if open
-            MilestonesMenu:populateMilestones(allMilestones)
-        end)
-        
-        -- Handle milestone progress updates
-        ClientEventBridge.connectEvent("MilestoneProgressUpdated", function(id, progress, target, unlocked)
-            MilestonesMenu:updateMilestoneProgress(id, progress, target, unlocked)
-        end)
-        
-        -- Handle milestone unlocked
-        ClientEventBridge.connectEvent("MilestoneUnlocked", function(id, milestoneData)
-            if milestoneData then
-                allMilestones[id] = milestoneData
-            end
-            MilestonesMenu:updateMilestoneProgress(id, milestoneData and milestoneData.target or 100, milestoneData and milestoneData.target or 100, true)
-        end)
-        
-        MilestonesMenu.eventConnected = true
+    -- Update data if provided
+    if data and data.milestoneData then
+        self:updateMilestoneData(data.milestoneData)
     end
     
-    return true
+    -- Show the menu
+    self:show()
+    
+    return ui
 end
 
--- Handle when the UI closes
 function MilestonesMenu.close(ui)
-    log("Closing milestones menu")
+    if not ui or not ui:IsA("Instance") then return end
     
-    -- Destroy the UI
-    if ui and ui.Parent then
-        ui:Destroy()
+    local self = ui._UIInstance
+    if self then
+        self:hide()
     end
-    
-    return true
 end
 
 return MilestonesMenu
