@@ -1,2 +1,2 @@
-lua
+--lua
 -- Empty file
