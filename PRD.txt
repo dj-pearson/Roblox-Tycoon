@@ -133,6 +133,10 @@ Player Retention: Regularly introduce new events and features.
 ## Client-Side Architecture Improvements
 ##Client Registry
 1. **ClientRegistry**
+
+## Code Guidelines
+Any updated or created code file that starts with `lua` or `luau` at the top without being a comment will result in an error. Those lines must be deleted from the code.
+
    - Client-side counterpart to CoreRegistry
    - Manages client-side systems and their dependencies
 
@@ -412,6 +416,13 @@ Player Retention: Regularly introduce new events and features.
 - ⬜ Implement Gym Layout Optimization
   - Traffic flow analysis
   - Equipment placement optimization
+
+## Progress Tracking
+
+### Completed Tasks
+- Verified DataManager and CoreRegistry.
+- Created a way to register events and functions on the client and server.
+
   - Atmosphere controls (lighting, music, temperature)
   - Social zones vs. focused training zones
   - Layout templates for different gym styles
@@ -1128,6 +1139,22 @@ Test.RunTest("MarketingSystem", function(framework)
     framework:Assert(function()
         return RevenueSystem:GetBalance() < initialBalance
     end, "Campaign should reduce available balance")
+end)
+
+## UI Progress Tracking (May 4, 2024)
+
+### UI Component Creation
+- Created UIHub
+- Created RebirthSystem
+- Created FeatureManager
+- Created MainTab
+- Created FeaturesTab
+- Created PerksTab
+- Created AchievementsTab
+- Created ProgressBar
+- Created MultiplierDisplay
+- Created NextUnlockPreview
+- Created StatisticsDisplay
 end)
 Prioritized Implementation Order
 

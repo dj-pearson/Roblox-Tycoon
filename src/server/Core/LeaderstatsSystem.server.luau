@@ -1,4 +1,3 @@
-luau
 -- LeaderstatsSystem.server.luau
 -- Manages the leaderstats for players
 
