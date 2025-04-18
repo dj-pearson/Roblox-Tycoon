@@ -236,12 +236,6 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
             DataManager.recordEquipmentPurchase(player, tileId)
         end
         
-        -- Notify GymTycoonConnector
-        local GymTycoonConnector = CoreRegistry.getSystem("GymTycoonConnector")
-        if GymTycoonConnector and GymTycoonConnector.onTilePurchased then
-            GymTycoonConnector:onTilePurchased(player, tileId)
-        end
-        
         -- Fire event
         if EventBridge then
             EventBridge:fireEvent("TilePurchased", player, tileId, price)
