@@ -1,4 +1,3 @@
-lua
 --[[
     This script stores the RemoteEvents for the Alliance System.
 ]]

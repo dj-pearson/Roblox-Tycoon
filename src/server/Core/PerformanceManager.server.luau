@@ -430,7 +430,7 @@ function PerformanceManager:startPerformanceMonitoring()
     end)
     
     -- Monitor memory usage
-    self._monitoringLoops.memory = task.spawn(function()
+    self._monitoringLoops.memory = task.spawn(function(self)
         while CONFIG.monitoringEnabled do
             task.wait(CONFIG.monitorInterval)
             
@@ -454,19 +454,16 @@ function PerformanceManager:startPerformanceMonitoring()
                 -- Suggest garbage collection
                 if os.clock() - self._lastGC > CONFIG.gcCollectInterval then
                     self._lastGC = os.clock()
-                    local _ = collectgarbage("collect")
-                    debugPrint("Suggested garbage collection due to high memory usage")
                 end
                 
-                -- If still too high after garbage collection, decrease detail level
-                task.wait(1) -- Wait for GC to complete
-                stats = self:getPerformanceStats()
-                
-                if stats.memoryUsageMB > CONFIG.maxMemoryUsageMB and CONFIG.autoAdjustDetailLevel then
-                    self:decreaseDetailLevel()
+                if CONFIG.autoAdjustDetailLevel then
+                    self:adjustDetailLevelByMemory()
                 end
             end
-        end
+
+            -- Adjust detail level based on memory
+            self:adjustDetailLevelByMemory()
+        end        
     end)
     
     return true
@@ -637,7 +634,13 @@ end
 --[[ Memory-based Detail Level Adjustment ]]--
 function PerformanceManager:adjustDetailLevelByMemory()
     local stats = self:getPerformanceStats()
-    stats.memoryUsageMB > CONFIG.maxMemoryUsageMB and self:decreaseDetailLevel() or (stats.memoryUsageMB < CONFIG.maxMemoryUsageMB * 0.8 and self:increaseDetailLevel())
+
+    if stats.memoryUsageMB > CONFIG.maxMemoryUsageMB then
+        self:decreaseDetailLevel() -- Decrease detail level if memory usage is too high
+    elseif stats.memoryUsageMB < CONFIG.maxMemoryUsageMB * 0.8 then
+        self:increaseDetailLevel() -- Increase detail level if memory usage is low enough
+    end
+
     return true
 end
 
