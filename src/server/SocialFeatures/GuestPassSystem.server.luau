@@ -18,7 +18,7 @@ function GuestPassSystem:SendGuestPass(hostPlayer, guestPlayer)
 	end
 	
 	-- Check if the guest player is online
-	if not Players:FindFirstChild(guestPlayer.Name) then
+	if not game.Players:FindFirstChild(guestPlayer.Name) then
 		warn("Guest player is not online.")
 		return false
 	end
