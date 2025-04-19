@@ -102,9 +102,7 @@ local function findEquipmentInTycoon(tycoon)
     
     -- Check tycoon parts for equipment
     for _, child in ipairs(tycoon:GetDescendants()) do
-        if child:IsA("Model") and child:GetAttribute("IsEquipment") then
-            table.insert(equipment, child)
-        elseif child:IsA("BasePart") and child:GetAttribute("IsEquipment") then
+        if child:IsA("Model") and child:GetAttribute("IsEquipment") or child:IsA("BasePart") and child:GetAttribute("IsEquipment") then
             table.insert(equipment, child)
         end
     end

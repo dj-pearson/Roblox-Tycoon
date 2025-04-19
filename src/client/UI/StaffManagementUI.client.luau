@@ -1,6 +1,6 @@
 -- src/client/UI/StaffManagementUI.client.luau
 
-local ClientRegistry = require(game:GetService("Players").LocalPlayer.PlayerScripts.Core.ClientRegistry))
+local ClientRegistry = require(game:GetService("Players").LocalPlayer.PlayerScripts.Core.ClientRegistry)
 local UIHub = ClientRegistry.getSystem("UIHub")
 local ClientEventBridge = ClientRegistry.getSystem("ClientEventBridge")
 
