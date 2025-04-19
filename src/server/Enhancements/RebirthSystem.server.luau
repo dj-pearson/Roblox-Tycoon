@@ -575,9 +575,8 @@ function RebirthSystem:checkAchievements(player)
         -- Skip if already awarded
         if rebirthData.achievements[achievement.id] then continue end
         
-        local awarded = false
+        local awarded = false -- Initialize awarded to false
         
-        -- Check different requirement types
         if achievement.requirementType == "rebirthCount" and rebirthData.rebirthCount >= achievement.requirement then
             awarded = true
         elseif achievement.requirementType == "rebirthSpeed" and 
