@@ -12,6 +12,7 @@ Subsystems:
 NPCSystem: Manages NPC behavior, movement, and income generation.
 GymRevenueSystem: Calculates and manages gym revenue, including membership dues and special events.
 MilestoneSystem: Tracks player achievements and rewards them for reaching milestones.
+BuyTileSystem: Manages the display and purchasing logic of BuyTiles.
 SpecializationSystem: Allows players to specialize their gyms (e.g., cardio-focused, luxury-focused) for unique benefits.
 SeasonalSpecializationSystem: Introduces seasonal events with special rewards and challenges.
 MemberSatisfactionSystem: Handles member satisfaction metrics affecting revenue and retention.
@@ -21,6 +22,7 @@ Enhancements:
 DynamicEconomyBalancer: Adjusts pricing and income scaling dynamically based on game progression.
 StaffManagementSystem: Allows players to hire staff to improve gym efficiency and member satisfaction.
 UI/UX:
+
 
 Interactive GUIs for leaderboards, notifications, and player feedback.
 Systems like FrontDeskPrompt, CompetitionUI, and SatisfactionDisplay enhance player interaction.
@@ -99,7 +101,10 @@ Player Retention: Regularly introduce new events and features.
    - Implemented intelligent equipment placement
 
 7. **SpecializationSystem**
-   - Migrated GymSpecializationSystem to new architecture pattern
+  - Migrated GymSpecializationSystem to new architecture pattern
+  - Implemented proper integration with CoreRegistry and EventBridge
+  - Added better data persistence through DataManager
+  - Maintained all specialization types and benefits with improved structure
    - Implemented proper integration with CoreRegistry and EventBridge
    - Added better data persistence through DataManager
    - Maintained all specialization types and benefits with improved structure
@@ -218,7 +223,23 @@ Any updated or created code file that starts with `lua` or `luau` at the top wit
    - **Description:** Players can trade resources, upgrades, or staff.
    - **Key Points:**
      - **Progression:** Helps players progress faster.
-     - **Interaction:** Requires negotiation and interaction between players.
+     - **Interaction:** Requires negotiation and interaction between players. 
+
+Gym Events System
+    Description: A new system for recurring boosts that include member boosts, revenue boosts, satisfaction boosts, and experience boosts by 50%.
+    Key Points:
+        - Boost Types: Offers boosts for different metrics, including members, revenue, satisfaction, and experience
+            - Member Boost: New members are added at a 50% faster rate.
+            - Revenue Boost: All revenue is increased by 50%.
+            - Combined Boost: Both member and revenue gain are boosted.
+            - Satisfaction Boost: More satisfaction gain.
+            - Experience Boost: Higher amounts of exp gain.
+        - Scheduling: Can be set to run on a regular schedule or occur randomly.
+        - Event Duration: Events can last for a few hours, full days, or full weekends, providing flexibility.
+        - Notification: When an event is live, a clear message is displayed to all online players, such as "Membership Mania is LIVE! Enjoy 50% more members all weekend!".
+        - Timer: An in-game timer displays how much time is left in the event, keeping players informed.
+
+
 
    - Added visual indicators for active events and requirements
    - Used animation and responsive design principles
@@ -807,6 +828,16 @@ Use DataManager for decoration persistence
 - ✅ Ensure leaderstats creation is managed by the leaderstats system.
 - ✅ ensure there is a system for event based communication
 - ⬜ Implement analytics tracking for player behavior
+- ✅ New Features
+  - **Builder Boost:** Allows players to automatically purchase the next 10 BuyTiles.
+  - **Double Member Boost:** Doubles member revenue for 10 minutes.
+    - These boosts are managed within the `src/server/Enhancements/BuilderBoost.server.luau` script.
+  - **BuyTileSystem:** A new system (`src/server/Core/BuyTileSystem.server.luau`) that handles the display and purchasing logic of BuyTiles.
+    - This system is responsible for:
+      - Determining the next BuyTile to display based on player's `lastPurchasedTileId`.
+      - Handling the purchase of tiles, updating the player's `purchasedTiles` in the DataStore, and incrementing `lastPurchasedTileId`.
+      - Displaying the correct tile to the player, ensuring that only one unowned tile is visible at a time.
+  - **DataStore Updates:** The following player data is saved and loaded from the DataStore using the `GymTycoonDataManager`:
 - ✅ Enhance RebirthSystem with unlockable content progression
 - ✅ Add visual effects for rebirth transformation
 - ⬜ Create RebirthStats tracking for leaderboards
@@ -817,6 +848,8 @@ Use DataManager for decoration persistence
 - ⬜ Consolidate duplicate scripts (GymMilestonesSystem with MilestoneSystem)
 - ⬜ Implement code minification and optimization pass for all systems
 - ⬜ Create a centralized ConfigManager for game parameters and balancing
+-     - `lastPurchasedTileId`: The ID of the last tile purchased by the player.
+-     - `purchasedTiles`: A list of tile IDs that the player has already purchased.
 - ⬜ Implement a dynamic challenges system for daily/weekly player tasks
 - ✅ Create a centralized ConfigManager for game parameters and balancing
 - ⬜ Create an equipment wear system requiring maintenance/upgrades
@@ -1366,7 +1399,31 @@ Economy metrics (revenue sources, spending patterns)
 Feature usage (which equipment/features are most used)
 Progression metrics (time to reach milestones)
 
+Double Member Boost:
+        - Description: A new developer product (asset ID: 3269228815) that, when purchased, doubles the revenue generated by active members for a duration of 10 minutes.
+        - Functionality:  It has a GUI element that will allow the player to purchase the product. The server script will find the DoubleMember model to trigger the boost.
 
+    Builder Boost:
+        - Description: A new developer product (asset ID: 3269235187) that, when purchased, automatically purchases the next 10 BuyTiles in the tycoon.
+        - Functionality: It has a GUI element that will allow the player to purchase the product. A server script tracks the last purchased tile and handles the purchasing of the next tiles.
+
+    BuyTile System:
+        - Purpose: Manages the display and purchasing logic of individual BuyTiles.
+        - Logic:
+            - On Player Load: The `init` function loads player data (lastPurchasedTileId and purchasedTiles) from the DataStore. Calls `displayBuyTile` to show the correct tile based on the loaded data.
+            - Purchasing: The `buyTile` function is called when a player attempts to purchase a tile. Checks if the tile is already purchased. If so, does nothing. If not purchased: Purchases the tile. Adds the tile ID to the `purchasedTiles` list. Increments `lastPurchasedTileId`. Saves player data. Calls `displayBuyTile` to update the display.
+            - Displaying: The `displayBuyTile` function gets `lastPurchasedTileId` and `purchasedTiles` from the DataStore. Checks if the tile with `lastPurchasedTileId + 1` is owned. If it is, increments the tile ID until an unpurchased tile is found or all tiles have been purchased. If all tiles are purchased, hides all tile GUIs. Otherwise, sets the appropriate BuyTile GUI to visible. Updates the BuyTile GUI elements.
+        - Data:
+            - lastPurchasedTileId: Stores the ID of the last tile purchased by the player.
+            - purchasedTiles: A list of all tile IDs purchased by the player.
+        - Interaction with Builder Boost: The Builder Boost calls the buyTile method inside of the BuyTileSystem to make the purchases.
+
+    New Files:
+        - src/server/Enhancements/DoubleMemberBoost.server.luau: Handles the logic for the Double Member Boost.
+        - src/StarterGui/DoubleMemberPurchaseGui.client.luau: Contains the GUI elements for purchasing the Double Member Boost.
+        - src/server/Enhancements/BuilderBoost.server.luau: Handles the logic for the Builder Boost, including buying the next 10 tiles.
+        - src/StarterGui/BuilderBoostPurchaseGui.client.luau: Contains the GUI elements for purchasing the Builder Boost.
+        - src/server/Core/BuyTileSystem.server.luau: Manages all BuyTile logic (displaying, purchasing, data persistence) (not yet created, but needed).
 
 Key Components:
 - DataCollector: Captures raw events from other systems
