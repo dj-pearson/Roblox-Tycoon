@@ -5,26 +5,28 @@ local MainTab = {}
 
 -- Dependencies
 local ClientRegistry = require(script.Parent.ClientRegistry)
-local ClientEvents = ClientRegistry.getSystem("ClientEvents")
+local ClientEvents = ClientRegistry.getSystem("ClientEventBridge")
 local ClientFunctions = ClientRegistry.getSystem("ClientFunctions")
 local UIHub = ClientRegistry.getSystem("UIHub")
+local StaffManagementUI = ClientRegistry.getSystem("StaffManagementUI")
 
 -- UI Elements (will be initialized in initialize function)
 local mainFrame -- Main frame for the tab
 local progressBar -- Progress bar towards next rebirth
 local currentMultiplierLabel -- Label displaying current multiplier
 local nextUnlockLabel -- Label displaying the next unlock
+local staffManagementButton -- Button to open Staff Management UI
 
 -- Initialize the module
 function MainTab:initialize()
-	print("[MainTab] Initializing...")
+	print("[MainTab] Initializing...")	
 	-- Check if dependencies are initialized
 	if not ClientEvents then
 		error("[MainTab] ClientEvents not found!")
 	end
 	if not ClientFunctions then
 		error("[MainTab] ClientFunctions not found!")
-	end
+		end
 	if not UIHub then
 		error("[MainTab] UIHub not found!")
 	end
@@ -73,7 +75,39 @@ function MainTab:initialize()
 	nextUnlockLabel.TextScaled = true
 	nextUnlockLabel.Parent = mainFrame
 
+    -- Staff Management Button
+    staffManagementButton = Instance.new("TextButton")
+    staffManagementButton.Name = "StaffManagementButton"
+    staffManagementButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+    staffManagementButton.Position = UDim2.new(0.05, 0, 0.8, 0)
+    staffManagementButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+    staffManagementButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    staffManagementButton.Text = "Manage Staff"
+    staffManagementButton.TextScaled = true
+    staffManagementButton.Parent = mainFrame
+
+    staffManagementButton.MouseButton1Click:Connect(function()
+        if StaffManagementUI and StaffManagementUI.open then
+            StaffManagementUI:open()
+        else
+            warn("[MainTab] StaffManagementUI not initialized or open function not found.")
+        end
+    end)
+
 	print("[MainTab] Initialized")
+
+    -- TEMP: Attach the staff management frame for testing purposes
+    if StaffManagementUI then
+       local staffManagementFrame = ClientRegistry.getSystem("UIHub"):getUIComponent("StaffManagementUI")
+        if staffManagementFrame then
+            staffManagementFrame.Parent = mainFrame
+        else
+            warn("[MainTab] StaffManagementUI frame not found.")
+        end
+    else
+        warn("[MainTab] StaffManagementUI not initialized.")
+    end
+
 end
 
 -- Register the UI component in the UIHub

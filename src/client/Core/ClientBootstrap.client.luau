@@ -22,15 +22,16 @@ local ClientRegistry = require(CoreFolder:FindFirstChild("ClientRegistry"))
 local systemsToInitialize = {
     "ClientEventBridge",   -- Communication system (must be first)
     "ClientPerformanceManager", -- Performance optimization system (initialize early)
-    "UIManager",           -- UI system 
+    "UIManager",           -- UI system
     "NotificationSystem",  -- Notifications
     "RevenueClient",       -- Revenue and membership display system
     "CompetitionClient",   -- Competition UI and management
     "SpecializationClient", -- Specialization UI
-    "TycoonClient",    
+    "TycoonClient",
     "SaunaTemperatureClient",   -- Tycoon management client
     "AchievementClient",   -- Achievement system client
-    "RebirthClient"       -- Rebirth system client
+    "RebirthClient",       -- Rebirth system client
+    "StaffManagementUI" -- Staff management UI
     -- Additional client-side systems can be added here
 }
 
@@ -50,7 +51,7 @@ end
 -- Handle character added
 local function onCharacterAdded(character)
     log("Character added")
-    
+
     -- Notify systems that might need to know about the character
     local ClientEventBridge = ClientRegistry.getSystem("ClientEventBridge")
     if ClientEventBridge then
@@ -61,15 +62,15 @@ end
 -- Tasks to run after all systems are initialized
 local function postInitialization()
     log("Running post-initialization tasks...")
-    
+
     -- Connect character-related events
     LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
-    
+
     -- Handle if character already exists
     if LocalPlayer.Character then
         onCharacterAdded(LocalPlayer.Character)
     end
-    
+
     log("Post-initialization complete")
     log("Client bootstrap complete!")
 end
@@ -77,40 +78,40 @@ end
 -- Main initialization function
 local function initializeSystems()
     log("Beginning client-side system initialization...")
-    
+
     if CONFIG.startupDelay > 0 then
         task.wait(CONFIG.startupDelay)
     end
-    
+
     -- Track successful initializations
     local initializedCount = 0
     local failedSystems = {}
-    
+
     for _, systemName in ipairs(systemsToInitialize) do
         local success, retryCount = false, 0
-        
+
         -- Attempt to initialize with retries
         while not success and retryCount < CONFIG.initRetryCount do
             log("Initializing " .. systemName .. (retryCount > 0 and " (retry " .. retryCount .. ")" or ""))
-            
+
             local system = ClientRegistry.getSystem(systemName)
-            
+
             if not system then
                 warn("System not found: " .. systemName)
                 break
             end
-            
+
             -- Check if the system has already been initialized
             if ClientRegistry.isSystemInitialized(systemName) then
                 log(systemName .. " was already initialized")
                 success = true
                 break
             end
-            
+
             -- Attempt initialization with timeout protection
             local initializationComplete = false
             local initSuccess = false
-            
+
             -- Create a separate thread for initialization
             task.spawn(function()
                 local result = pcall(function()
@@ -121,14 +122,14 @@ local function initializeSystems()
                         initSuccess = true -- No initialize function means success by default
                     end
                 end)
-                
+
                 if not result then
                     initSuccess = false
                 end
-                
+
                 initializationComplete = true
             end)
-            
+
             -- Wait for initialization with timeout
             local startTime = os.clock()
             while not initializationComplete do
@@ -138,7 +139,7 @@ local function initializeSystems()
                 end
                 task.wait(0.1)
             end
-            
+
             -- Check result
             if initSuccess then
                 success = true
@@ -151,20 +152,20 @@ local function initializeSystems()
                 task.wait(1) -- Wait before retry
             end
         end
-        
+
         -- Track failed systems
         if not success then
             table.insert(failedSystems, systemName)
         end
     end
-    
+
     -- Final report
     log("Client-side systems initialization complete: " .. initializedCount .. " of " .. #systemsToInitialize .. " systems initialized")
-    
+
     if #failedSystems > 0 then
         warn("Failed to initialize " .. #failedSystems .. " systems: " .. table.concat(failedSystems, ", "))
     end
-    
+
     -- Begin post-initialization tasks
     postInitialization()
 end
