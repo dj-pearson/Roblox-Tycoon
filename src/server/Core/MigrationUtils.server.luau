@@ -369,7 +369,8 @@ function MigrationUtils:CheckForConflicts()
             newModule = "GymAutomation (now uses modules)",
             severity = "Medium"
         }
-    }
+    end
+    
     
     -- Check for data conflicts
     local legacyData = self:FindLegacyBuyTileData()

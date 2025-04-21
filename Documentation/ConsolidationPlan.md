@@ -9,17 +9,9 @@ This document outlines the plan to consolidate all gym automation scripts into a
 - `FloorAttributeSetup.server.luau` - Floor detection and room structure
 - `GymAutomation.server.luau` - Main automation controller
 
-### Core Scripts
-- `AnalyzeGymStructure.server.luau` - Analysis of gym layout
-- `BoundingBoxGenerator.server.luau` - Hitbox generation for interactable tiles
-- `BuyTileSystem.server.luau` - Core system for tile purchases
-- `EquipmentBoundingBox.luau` - Equipment-specific hitboxes
-- `EquipmentSetup.server.luau` - Equipment configuration and setup
-- `EquipmentUpgradeSystem.luau` / `EquipmentUpgradeSystem.server.luau` - Equipment upgrade logic
-- `FloorAttributeSetup.server.luau` (Core version) - Floor attribute assignment
-- `GymStructureIntegration.server.luau` - Integration with gym structure systems
-
 ## New Modular System
+### Core Module Responsibilities
+- Consolidate all scripts related to the automation of model attributes and buy tile placement into one seamless script.  The current setup has several scripts with some having overlapping functionality.  The scripts should be efficient, reliable, and effective for tile placement.
 
 ### New Modules
 1. `BuyTileProgressionManager.server.luau` - Manages progression and prerequisites
@@ -53,8 +45,6 @@ This document outlines the plan to consolidate all gym automation scripts into a
 - [ ] Add deprecation notices to old scripts
 - [ ] Redirect old script usage to new modules
 - [ ] Document new system for developer reference
-
-## Core Module Responsibilities
 
 ### BoundingBoxManager
 - Generate hitboxes for buyable tiles

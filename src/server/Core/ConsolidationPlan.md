@@ -99,7 +99,26 @@ Create a new integrated module:
 2. ✅ Create `BoundingBoxManager` to replace bounding box scripts
 3. ✅ Create `EquipmentManager` to consolidate equipment scripts
 4. ✅ Update `GymAutomation.server.luau` to use all new modules
-5. ⏳ Run migration utilities to transition data
+
+## Core Module Responsibilities
+
+- **Manage Equipment**: Handle the setup, attributes, and upgrades of all gym equipment, consolidating the functionality previously found in `EquipmentSetup.server.luau` and `EquipmentUpgradeSystem.server.luau`.
+- **Handle Bounding Boxes**: Generate and manage bounding boxes for equipment and other interactive elements, consolidating functionality from `BoundingBoxGenerator.server.luau` and `EquipmentBoundingBox.luau`.
+- **Manage Buy Tile Placement**: Automate the placement of buy tiles and ensure the placement is efficient, reliable, and effective. Consolidate scripts related to model attribute automation and buy tile placement.
+- **Manage Floor Attributes**: Detect and manage floor attributes, consolidating floor/room detection logic from `FloorAttributeSetup.server.luau`.
+- **Progression Management**: Handle progression logic, including build order generation and managing prerequisites and dependencies.
+- **Data Generation**: Generate tile data, calculate prices, and handle income boost logic.
+- **Migration Utilities**: Provide utilities for transitioning from legacy systems to the consolidated system.
+- **Core Automation**: Provide core functions for automating gym setup, generating hitboxes, and setting up attributes on models.
+
+## Implementation Order
+
+
+## Migration Steps
+
+1. ⏳ Run migration utilities to transition data
+
+
 6. ⏳ Update any GUI or command bar references
 7. ⏳ Archive legacy scripts after thorough testing
 
