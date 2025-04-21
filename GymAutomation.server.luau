@@ -171,6 +171,46 @@ if not TaggingSystem then
     end
 end
 
+-- Try to load NPCAnimationSystem module (NEW)
+local NPCAnimationSystem = nil
+
+if CoreRegistry then
+    NPCAnimationSystem = CoreRegistry:GetSystem("NPCAnimationSystem")
+end
+
+if not NPCAnimationSystem then
+    local npcAnimationSystemPath = ServerScriptService:FindFirstChild("Core") 
+                                  and ServerScriptService.Core:FindFirstChild("NPCAnimationSystem")
+    
+    if not npcAnimationSystemPath then
+        local secondPath = script.Parent:FindFirstChild("Core") 
+                           and script.Parent.Core:FindFirstChild("NPCAnimationSystem")
+                           
+        if secondPath then
+            npcAnimationSystemPath = secondPath
+        end
+    end
+    
+    -- Try to require the module
+    if npcAnimationSystemPath and npcAnimationSystemPath:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(npcAnimationSystemPath)
+        end)
+        
+        if success then
+            NPCAnimationSystem = result
+            print("NPCAnimationSystem module loaded directly")
+        else
+            print("Failed to load NPCAnimationSystem module: " .. tostring(result))
+        end
+    end
+    
+    -- Register if found but not registered
+    if NPCAnimationSystem and CoreRegistry then
+        CoreRegistry.registerSystem("NPCAnimationSystem", NPCAnimationSystem)
+    end
+end
+
 -- Configuration for gym structure
 local GYM_CONFIG = {
     FLOOR_HEIGHT = 10,
@@ -1066,6 +1106,72 @@ if game:GetService("RunService"):IsStudio() then
         end
     end
     
+    -- NEW GLOBAL FUNCTION: Apply animations to NPCs in a tycoon
+    _G.ApplyNPCAnimations = function(tycoonName, options)
+        options = options or {}
+        
+        local tycoon
+        
+        if tycoonName then
+            tycoon = Workspace:FindFirstChild(tycoonName)
+            if not tycoon then
+                print("Error: Tycoon '" .. tycoonName .. "' not found")
+                return
+            end
+        else
+            -- Find first gym tycoon
+            local gymParts = GymAutomation:FindGymParts()
+            if #gymParts > 0 then
+                tycoon = gymParts[1]
+            else
+                print("Error: No gym tycoons found")
+                return
+            end
+        end
+        
+        -- Use NPCAnimationSystem if available
+        if NPCAnimationSystem then
+            print("Applying animations to NPCs in " .. tycoon.Name)
+            
+            -- Find all NPCs in the tycoon
+            local npcs = {}
+            for _, desc in ipairs(tycoon:GetDescendants()) do
+                if desc:IsA("Model") and desc:FindFirstChildOfClass("Humanoid") and 
+                   (string.match(desc.Name, "NPC") or desc:GetAttribute("IsNPC")) then
+                    table.insert(npcs, desc)
+                end
+            end
+            
+            print("Found " .. #npcs .. " NPCs in tycoon")
+            
+            -- Apply animations to each NPC
+            local animatedCount = 0
+            for _, npc in ipairs(npcs) do
+                -- Get NPC data from NPCSystem if available
+                local npcData = nil
+                if NPCSystem and NPCSystem._activeNPCs then
+                    npcData = NPCSystem._activeNPCs[npc]
+                end
+                
+                -- If we have data, apply appropriate animation
+                if npcData then
+                    NPCAnimationSystem:playAppropriateAnimation(npc, npcData)
+                    animatedCount = animatedCount + 1
+                else
+                    -- Default to idle animation if no data available
+                    NPCAnimationSystem:playAnimation(npc, "IDLE")
+                    animatedCount = animatedCount + 1
+                end
+            end
+            
+            print("Applied animations to " .. animatedCount .. " NPCs")
+            return animatedCount
+        else
+            print("NPCAnimationSystem not available. NPC animations skipped.")
+            return 0
+        end
+    end
+    
     print("✓ Registered global function: _G.AutomateGym(tycoonName)")
     print("✓ Registered global function: _G.AutomateAllGyms()")
     print("✓ Registered global function: _G.GenerateBuildOrder()")
@@ -1078,6 +1184,7 @@ if game:GetService("RunService"):IsStudio() then
     print("✓ Registered global function: _G.DetectUpgradePaths(tycoonName, options)")
     print("✓ Registered global function: _G.ApplyCollectionTags(tycoonName, options)")
     print("✓ Registered global function: _G.GenerateEquipmentConfig(tycoonName, options)")
+    print("✓ Registered global function: _G.ApplyNPCAnimations(tycoonName, options)")
 end
 
 -- Return the GymAutomation module

@@ -13,6 +13,7 @@ This document provides a comprehensive guide to all available global commands (`
 7. [Debugging and Information Commands](#debugging-and-information-commands)
 8. [Model Validation Commands](#model-validation-commands)
 9. [Configuration Generation Commands](#configuration-generation-commands)
+10. [Developer Utility Commands](#developer-utility-commands)
 
 ## Floor and Room Structure Commands
 
@@ -487,6 +488,161 @@ _G.ApplyCollectionTags("GymParts", {
 **Returns:** Table with statistics on tags applied.
 
 **Implementation details:** Uses the TaggingSystem module to apply CollectionService tags based on model attributes. The system automatically creates tags for categories (e.g., CardioEquipment, StrengthEquipment), floors (Floor_1, Floor_2), and special properties (GeneratesRevenue, AffectsSatisfaction). These tags can be used at runtime to efficiently query for specific types of objects without expensive hierarchy searches.
+
+## Developer Utility Commands
+
+Advanced utility functions for development workflows, analysis, and troubleshooting.
+
+### `_G.BatchProcessModels(tycoonName, processingFunction, options)`
+
+Applies a custom processing function to all models in a tycoon.
+
+**Parameters:**
+- `tycoonName` (string, optional): Name of the tycoon to process. If not provided, uses the first tycoon found.
+- `processingFunction` (function): Function to apply to each model. Receives `(model, options)` as parameters.
+- `options` (table, optional): Options to pass to the processing function.
+
+**Example:**
+```lua
+_G.BatchProcessModels("GymParts", function(model, options)
+    -- Apply custom logic to each model
+    if model:GetAttribute("Category") == "CARDIO" then
+        model:SetAttribute("MaintenanceCost", model:GetAttribute("Price") * 0.05)
+        return true -- Return value is collected in results table
+    end
+    return false
+end)
+```
+
+**Returns:** Table of results indexed by model name.
+
+### `_G.GenerateModelStats(tycoonName, options)`
+
+Generates detailed statistics about models in a tycoon including part counts, memory usage, and other performance metrics.
+
+**Parameters:**
+- `tycoonName` (string, optional): Name of the tycoon to analyze.
+- `options` (table, optional):
+  - `detailed` (boolean): Whether to include detailed per-model stats
+  - `categoryBreakdown` (boolean): Whether to break down stats by category
+  - `export` (string): Export format - "print", "table", or "file"
+
+**Example:**
+```lua
+_G.GenerateModelStats("GymParts", {
+    detailed = true,
+    categoryBreakdown = true,
+    export = "print"
+})
+```
+
+**Returns:** Table of statistics and prints a formatted report.
+
+### `_G.CompareConfigWithModels(configModule, tycoonName, options)`
+
+Compares an existing configuration module against the actual models in the workspace, detecting inconsistencies.
+
+**Parameters:**
+- `configModule` (string or ModuleScript): Name of config module or the module itself.
+- `tycoonName` (string, optional): Name of the tycoon to compare with.
+- `options` (table, optional):
+  - `strict` (boolean): Whether to enforce strict matching (default: false)
+  - `autoFix` (boolean): Whether to automatically fix minor issues (default: false)
+
+**Example:**
+```lua
+_G.CompareConfigWithModels("EquipmentConfig", "GymParts", {
+    strict = false,
+    autoFix = true
+})
+```
+
+**Returns:** Table of inconsistencies found including missing models, extra models, and attribute mismatches.
+
+### `_G.ExportCollectionServiceTags(outputFormat, containerName)`
+
+Exports a list of all CollectionService tags used in the game, with usage statistics.
+
+**Parameters:**
+- `outputFormat` (string, optional): Format to output the tags
+  - "table" (default), "print", "module", or "json"
+- `containerName` (string, optional): Name of container to export tags from
+  - If not provided, exports all tags in the workspace
+
+**Example:**
+```lua
+_G.ExportCollectionServiceTags("module", "GymParts")
+```
+
+**Returns:** Table of tags or path to output file/module.
+
+### `_G.SetupTargetHardware(profile, customSettings)`
+
+Sets up performance test parameters based on target hardware profiles for development and testing.
+
+**Parameters:**
+- `profile` (string): Target hardware profile
+  - "low", "medium", "high", or "custom"
+- `customSettings` (table, optional): Custom settings to apply when using "custom" profile
+
+**Example:**
+```lua
+_G.SetupTargetHardware("low")
+
+-- Or with custom settings:
+_G.SetupTargetHardware("custom", {
+    maxParts = 3000,
+    maxTriangles = 150000,
+    renderDistance = 750,
+    maxLights = 6
+})
+```
+
+**Returns:** Table of applied settings.
+
+### `_G.GenerateUIConfig(uiContainer, options)`
+
+Extracts properties from UI elements to create a configuration module for runtime use.
+
+**Parameters:**
+- `uiContainer` (Instance or string): UI container to analyze
+  - If not provided, will look in StarterGui
+- `options` (table, optional):
+  - `output` (string): Output format - "module" (default) or "table"
+  - `moduleName` (string): Name for the generated module
+
+**Example:**
+```lua
+_G.GenerateUIConfig("MainUI", {
+    output = "module",
+    moduleName = "MainUIConfig"
+})
+```
+
+**Returns:** UI configuration data or module.
+
+### `_G.InitializeDevelopmentEnvironment(options)`
+
+Sets up all required systems and tools for development. Particularly useful when onboarding new team members to the project.
+
+**Parameters:**
+- `options` (table, optional):
+  - `cleanStart` (boolean): Whether to clean existing settings first
+  - `setupPlugins` (boolean): Whether to install recommended plugins
+  - `loadTestData` (boolean): Whether to load test data
+
+**Example:**
+```lua
+_G.InitializeDevelopmentEnvironment({
+    cleanStart = true,
+    setupPlugins = true,
+    loadTestData = true
+})
+```
+
+**Returns:** Status of initialization with success/failure information.
+
+**Implementation details:** This command creates a consistent development environment by initializing core systems, setting up debug configurations, and configuring recommended plugins. It also runs initial validation on models if a tycoon is present in the workspace.
 
 ## Recommended Workflow
 
