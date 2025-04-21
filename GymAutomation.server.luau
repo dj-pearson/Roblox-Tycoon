@@ -13,9 +13,10 @@
     - ModelValidator - Model validation and linting (NEW)
     - UpgradePathDetector - Automatic upgrade path detection (NEW)
     - TaggingSystem - Enhanced CollectionService tagging (NEW)
+    - NPCAnimationSystem - Robust NPC animation management (NEW)
     
     Author: Created April 2025
-    Updated: April 21, 2025 (Added complete automation enhancements)
+    Updated: April 21, 2025 (Added complete automation enhancements and NPC animation system)
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")

@@ -669,3 +669,8 @@ Alternatively, use the all-in-one automation: `_G.AutomateGym()` or `_G.Automate
 - Most commands will work with either a specific tycoon name provided or will default to looking for "GymParts" or "Tycoon" in the workspace.
 - All functions are designed to work in Studio mode only.
 - When customizing room types, refer to the allowed room types defined in the `CONFIG.ROOM_TYPES` table in the FloorAttributeSetup module.
+
+
+New NPC:
+_G.ApplyNPCAnimations() - Animate NPCs
+
