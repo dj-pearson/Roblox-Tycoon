@@ -4,3 +4,13 @@
 # Roblox Studio lock files
 /*.rbxlx.lock
 /*.rbxl.lock
+fresh-clone
+/*.rbxlx
+/*.rbxl
+src/ServerStorage/GymParts.rbxmx
+src/ServerStorage/GymPartsStructure.rbxmx
+src/ServerStorage/GymPartsStructure.xml
+fresh-clone
+/*.rbxmx
+/*.xml
+/*.rbxmx.lock
