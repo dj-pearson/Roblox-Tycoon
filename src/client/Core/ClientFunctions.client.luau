@@ -1,4 +1,4 @@
--- ClientFunctions.client.luau
+-- ClientFunctions.client.luau  -
 -- Module to handle client-side functions callable from the server
 
 local ClientFunctions = {}
