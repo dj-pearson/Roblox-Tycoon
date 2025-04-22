@@ -26,6 +26,8 @@ local systemsToInitialize = {
     "PerformanceManager", -- Added PerformanceManager early in the initialization process
     "ConfigManager", -- Added ConfigManager 
     "NPCSystem",
+    "NPCSystemPerformance", -- Added NPCSystemPerformance after NPCSystem
+    "NPCAnimationSystem", -- Added NPCAnimationSystem after NPCSystemPerformance
     "TycoonSystem",
     "BuyTileSystem",
     "SpecializationSystem",

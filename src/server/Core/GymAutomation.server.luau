@@ -10,9 +10,13 @@
     - TileDataGenerator - Attribute and data generation
     - BoundingBoxManager - Equipment placement visualization (consolidated)
     - EquipmentManager - Equipment setup and upgrades (consolidated)
+    - ModelValidator - Model validation and linting (NEW)
+    - UpgradePathDetector - Automatic upgrade path detection (NEW)
+    - TaggingSystem - Enhanced CollectionService tagging (NEW)
+    - NPCAnimationSystem - Robust NPC animation management (NEW)
     
     Author: Created April 2025
-    Updated: April 21, 2025 (Integrated with consolidated modular systems)
+    Updated: April 21, 2025 (Added complete automation enhancements and NPC animation system)
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -39,6 +43,174 @@ local TileDataGenerator = CoreRegistry and CoreRegistry:GetSystem("TileDataGener
 local BoundingBoxManager = CoreRegistry and CoreRegistry:GetSystem("BoundingBoxManager")
 local EquipmentManager = CoreRegistry and CoreRegistry:GetSystem("EquipmentManager")
 local BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
+
+-- Try to load ModelValidator module (NEW)
+local ModelValidator = nil
+
+-- First try to get it from CoreRegistry if it's already registered
+if CoreRegistry then
+    ModelValidator = CoreRegistry:GetSystem("ModelValidator")
+end
+
+-- If not found in registry, try to load it directly
+if not ModelValidator then
+    local modelValidatorPath = ServerScriptService:FindFirstChild("Core") 
+                               and ServerScriptService.Core:FindFirstChild("ModelValidation") 
+                               and ServerScriptService.Core.ModelValidation:FindFirstChild("ModelValidator")
+                               
+    if not modelValidatorPath then
+        local secondPath = script.Parent:FindFirstChild("Core") 
+                           and script.Parent.Core:FindFirstChild("ModelValidation")
+                           and script.Parent.Core.ModelValidation:FindFirstChild("ModelValidator")
+                           
+        if secondPath then
+            modelValidatorPath = secondPath
+        end
+    end
+    
+    -- If we found the module, try to require it
+    if modelValidatorPath and modelValidatorPath:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(modelValidatorPath)
+        end)
+        
+        if success then
+            ModelValidator = result
+            print("ModelValidator module loaded directly")
+        else
+            print("Failed to load ModelValidator module: " .. tostring(result))
+        end
+    end
+    
+    -- If we found it but it's not registered yet, register it
+    if ModelValidator and CoreRegistry then
+        CoreRegistry.registerSystem("ModelValidator", ModelValidator)
+    end
+end
+
+-- Try to load UpgradePathDetector module (NEW)
+local UpgradePathDetector = nil
+
+if CoreRegistry then
+    UpgradePathDetector = CoreRegistry:GetSystem("UpgradePathDetector")
+end
+
+if not UpgradePathDetector then
+    local upgradePathDetectorPath = ServerScriptService:FindFirstChild("Core") 
+                                     and ServerScriptService.Core:FindFirstChild("ModelValidation") 
+                                     and ServerScriptService.Core.ModelValidation:FindFirstChild("UpgradePathDetector")
+    
+    if not upgradePathDetectorPath then
+        local secondPath = script.Parent:FindFirstChild("Core") 
+                           and script.Parent.Core:FindFirstChild("ModelValidation")
+                           and script.Parent.Core.ModelValidation:FindFirstChild("UpgradePathDetector")
+                           
+        if secondPath then
+            upgradePathDetectorPath = secondPath
+        end
+    end
+    
+    -- Try to require the module
+    if upgradePathDetectorPath and upgradePathDetectorPath:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(upgradePathDetectorPath)
+        end)
+        
+        if success then
+            UpgradePathDetector = result
+            print("UpgradePathDetector module loaded directly")
+        else
+            print("Failed to load UpgradePathDetector module: " .. tostring(result))
+        end
+    end
+    
+    -- Register if found but not registered
+    if UpgradePathDetector and CoreRegistry then
+        CoreRegistry.registerSystem("UpgradePathDetector", UpgradePathDetector)
+    end
+end
+
+-- Try to load TaggingSystem module (NEW)
+local TaggingSystem = nil
+
+if CoreRegistry then
+    TaggingSystem = CoreRegistry:GetSystem("TaggingSystem")
+end
+
+if not TaggingSystem then
+    local taggingSystemPath = ServerScriptService:FindFirstChild("Core") 
+                               and ServerScriptService.Core:FindFirstChild("ModelValidation") 
+                               and ServerScriptService.Core.ModelValidation:FindFirstChild("TaggingSystem")
+    
+    if not taggingSystemPath then
+        local secondPath = script.Parent:FindFirstChild("Core") 
+                           and script.Parent.Core:FindFirstChild("ModelValidation")
+                           and script.Parent.Core.ModelValidation:FindFirstChild("TaggingSystem")
+                           
+        if secondPath then
+            taggingSystemPath = secondPath
+        end
+    end
+    
+    -- Try to require the module
+    if taggingSystemPath and taggingSystemPath:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(taggingSystemPath)
+        end)
+        
+        if success then
+            TaggingSystem = result
+            print("TaggingSystem module loaded directly")
+        else
+            print("Failed to load TaggingSystem module: " .. tostring(result))
+        end
+    end
+    
+    -- Register if found but not registered
+    if TaggingSystem and CoreRegistry then
+        CoreRegistry.registerSystem("TaggingSystem", TaggingSystem)
+    end
+end
+
+-- Try to load NPCAnimationSystem module (NEW)
+local NPCAnimationSystem = nil
+
+if CoreRegistry then
+    NPCAnimationSystem = CoreRegistry:GetSystem("NPCAnimationSystem")
+end
+
+if not NPCAnimationSystem then
+    local npcAnimationSystemPath = ServerScriptService:FindFirstChild("Core") 
+                                  and ServerScriptService.Core:FindFirstChild("NPCAnimationSystem")
+    
+    if not npcAnimationSystemPath then
+        local secondPath = script.Parent:FindFirstChild("Core") 
+                           and script.Parent.Core:FindFirstChild("NPCAnimationSystem")
+                           
+        if secondPath then
+            npcAnimationSystemPath = secondPath
+        end
+    end
+    
+    -- Try to require the module
+    if npcAnimationSystemPath and npcAnimationSystemPath:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(npcAnimationSystemPath)
+        end)
+        
+        if success then
+            NPCAnimationSystem = result
+            print("NPCAnimationSystem module loaded directly")
+        else
+            print("Failed to load NPCAnimationSystem module: " .. tostring(result))
+        end
+    end
+    
+    -- Register if found but not registered
+    if NPCAnimationSystem and CoreRegistry then
+        CoreRegistry.registerSystem("NPCAnimationSystem", NPCAnimationSystem)
+    end
+end
 
 -- Configuration for gym structure
 local GYM_CONFIG = {
@@ -391,6 +563,110 @@ function GymAutomation:GenerateBuildOrder()
     end
 end
 
+-- Function to validate models in a tycoon
+function GymAutomation:ValidateModels(tycoon)
+    if not tycoon then
+        print("Error: No tycoon provided for validation")
+        return nil
+    end
+    
+    if not ModelValidator then
+        print("Error: ModelValidator not available. Model validation skipped.")
+        return {
+            valid = false,
+            error = "ModelValidator module not available"
+        }
+    end
+    
+    print("Validating models in " .. tycoon.Name .. "...")
+    
+    -- Run the validation
+    local results = ModelValidator:ValidateAllModels(tycoon)
+    
+    -- Print a summary of the validation results
+    ModelValidator:PrintIssues(results)
+    
+    -- Tag models by category for easier runtime access
+    local tagCounts = ModelValidator:TagModelsByCategory(tycoon)
+    
+    -- Print tag counts
+    print("\nApplied CollectionService tags:")
+    for tag, count in pairs(tagCounts) do
+        print("- " .. tag .. ": " .. count .. " models")
+    end
+    
+    return results
+end
+
+-- NEW FUNCTION: Detect and establish upgrade paths between related equipment
+function GymAutomation:DetectUpgradePaths(tycoon, options)
+    if not tycoon then
+        print("Error: No tycoon provided for upgrade path detection")
+        return nil
+    end
+    
+    if not UpgradePathDetector then
+        print("Error: UpgradePathDetector not available. Upgrade path detection skipped.")
+        return {
+            error = "UpgradePathDetector module not available"
+        }
+    end
+    
+    print("Detecting upgrade paths in " .. tycoon.Name .. "...")
+    
+    -- Set default options
+    options = options or {}
+    options.applyAttributes = options.applyAttributes or false
+    options.applyTags = options.applyTags or false
+    options.debug = options.debug == nil and true or options.debug
+    
+    -- Run the detection
+    local results = UpgradePathDetector:VisualizeUpgradePaths(tycoon, options)
+    
+    -- Generate module script if requested
+    if options.generateModule then
+        local moduleScript = UpgradePathDetector:GenerateUpgradePathsModule(tycoon, {
+            applyAttributes = options.applyAttributes,
+            applyTags = options.applyTags,
+            moduleName = options.moduleName or "UpgradePathsData"
+        })
+        
+        print("Generated upgrade paths module: " .. moduleScript.Name)
+    end
+    
+    return results
+end
+
+-- NEW FUNCTION: Apply CollectionService tags based on model attributes
+function GymAutomation:ApplyCollectionTags(tycoon, options)
+    if not tycoon then
+        print("Error: No tycoon provided for tag application")
+        return nil
+    end
+    
+    if not TaggingSystem then
+        print("Error: TaggingSystem not available. Tag application skipped.")
+        return {
+            error = "TaggingSystem module not available"
+        }
+    end
+    
+    print("Applying CollectionService tags to " .. tycoon.Name .. "...")
+    
+    -- Set default options
+    options = options or {}
+    
+    -- Run tag application
+    local results = TaggingSystem:ApplyAllTags(tycoon, options)
+    
+    -- Print summary if debug is enabled
+    if options.debug == nil or options.debug == true then
+        TaggingSystem:PrintTagSummary(tycoon)
+    end
+    
+    return results
+end
+
 -- Function to automate gym setup for a specific tycoon
 function GymAutomation:AutomateGym(tycoon)
     if not tycoon then
@@ -409,7 +685,7 @@ function GymAutomation:AutomateGym(tycoon)
     -- Step 3: Generate tile data
     local tileData = self:GenerateTileData()
     
-    -- Step 4: Set up equipment (NEW STEP using consolidated EquipmentManager)
+    -- Step 4: Set up equipment (using consolidated EquipmentManager)
     local equipmentCount = self:SetupEquipment(tycoon)
     
     -- Step 5: Create hitboxes (using consolidated BoundingBoxManager)
@@ -418,15 +694,64 @@ function GymAutomation:AutomateGym(tycoon)
     -- Step 6: Generate build order
     self:GenerateBuildOrder()
     
+    -- Step 7: Validate models
+    local validationResults = nil
+    if ModelValidator then
+        validationResults = self:ValidateModels(tycoon)
+    end
+    
+    -- Step 8: Detect upgrade paths (NEW STEP)
+    local upgradeResults = nil
+    if UpgradePathDetector then
+        upgradeResults = self:DetectUpgradePaths(tycoon, {
+            applyAttributes = true,
+            applyTags = true,
+            debug = false
+        })
+    end
+    
+    -- Step 9: Apply CollectionService tags (NEW STEP)
+    local tagResults = nil
+    if TaggingSystem then
+        tagResults = self:ApplyCollectionTags(tycoon, {
+            debug = false
+        })
+    end
+    
     print("Gym automation complete for " .. tycoon.Name)
     print("- Floor count: " .. floorCount)
     print("- Equipment count: " .. equipmentCount)
     print("- Hitbox count: " .. hitboxCount)
     
+    -- Print validation summary if available
+    if validationResults then
+        print("- Model validation: " .. 
+              (validationResults.modelsWithIssues == 0 and "✓ All models passed!" or 
+              "✖ " .. validationResults.modelsWithIssues .. " models have issues"))
+    end
+    
+    -- Print upgrade paths summary if available
+    if upgradeResults and upgradeResults.stats then
+        print("- Upgrade paths: " .. 
+              (upgradeResults.stats.totalPaths == 0 and "No upgrade paths found" or 
+              "✓ " .. upgradeResults.stats.totalPaths .. " upgrade paths in " .. 
+              upgradeResults.stats.groupsFound .. " equipment groups"))
+    end
+    
+    -- Print tag summary if available
+    if tagResults then
+        print("- Collection tags: " .. 
+              (tagResults.applied == 0 and "No tags applied" or 
+              "✓ " .. tagResults.applied .. " tags applied to models"))
+    end
+    
     return {
         floorCount = floorCount,
         equipmentCount = equipmentCount,
-        hitboxCount = hitboxCount
+        hitboxCount = hitboxCount,
+        validationResults = validationResults,
+        upgradeResults = upgradeResults,
+        tagResults = tagResults
     }
 end
 
@@ -639,6 +964,215 @@ if game:GetService("RunService"):IsStudio() then
         print("- Total hitboxes: " .. hitboxCount)
     end
     
+    -- NEW GLOBAL FUNCTION: Validate models in a tycoon
+    _G.ValidateGymModels = function(tycoonName)
+        local tycoon
+        
+        if tycoonName then
+            tycoon = Workspace:FindFirstChild(tycoonName)
+            if not tycoon then
+                print("Error: Tycoon '" .. tycoonName .. "' not found")
+                return
+            end
+        else
+            -- Find first gym tycoon
+            local gymParts = GymAutomation:FindGymParts()
+            if #gymParts > 0 then
+                tycoon = gymParts[1]
+            else
+                print("Error: No gym tycoons found")
+                return
+            end
+        end
+        
+        return GymAutomation:ValidateModels(tycoon)
+    end
+    
+    -- NEW GLOBAL FUNCTION: Generate a report of validation issues
+    _G.GenerateModelReport = function(tycoonName)
+        local results = _G.ValidateGymModels(tycoonName)
+        
+        if results then
+            -- Create a report as a string
+            local report = ModelValidator:GenerateReport(results)
+            
+            -- Print the report to the output
+            print(report)
+            
+            -- Return the report
+            return report
+        end
+    end
+    
+    -- NEW GLOBAL FUNCTION: Detect upgrade paths
+    _G.DetectUpgradePaths = function(tycoonName, options)
+        options = options or {}
+        
+        local tycoon
+        
+        if tycoonName then
+            tycoon = Workspace:FindFirstChild(tycoonName)
+            if not tycoon then
+                print("Error: Tycoon '" .. tycoonName .. "' not found")
+                return
+            end
+        else
+            -- Find first gym tycoon
+            local gymParts = GymAutomation:FindGymParts()
+            if #gymParts > 0 then
+                tycoon = gymParts[1]
+            else
+                print("Error: No gym tycoons found")
+                return
+            end
+        end
+        
+        return GymAutomation:DetectUpgradePaths(tycoon, options)
+    end
+    
+    -- NEW GLOBAL FUNCTION: Apply CollectionService tags
+    _G.ApplyCollectionTags = function(tycoonName, options)
+        options = options or {}
+        
+        local tycoon
+        
+        if tycoonName then
+            tycoon = Workspace:FindFirstChild(tycoonName)
+            if not tycoon then
+                print("Error: Tycoon '" .. tycoonName .. "' not found")
+                return
+            end
+        else
+            -- Find first gym tycoon
+            local gymParts = GymAutomation:FindGymParts()
+            if #gymParts > 0 then
+                tycoon = gymParts[1]
+            else
+                print("Error: No gym tycoons found")
+                return
+            end
+        end
+        
+        return GymAutomation:ApplyCollectionTags(tycoon, options)
+    end
+    
+    -- NEW GLOBAL FUNCTION: Generate equipment configuration
+    _G.GenerateEquipmentConfig = function(tycoonName, options)
+        local tycoon
+        
+        if tycoonName then
+            tycoon = Workspace:FindFirstChild(tycoonName)
+            if not tycoon then
+                print("Error: Tycoon '" .. tycoonName .. "' not found")
+                return
+            end
+        else
+            -- Find first gym tycoon
+            local gymParts = GymAutomation:FindGymParts()
+            if #gymParts > 0 then
+                tycoon = gymParts[1]
+            else
+                print("Error: No gym tycoons found")
+                return
+            end
+        end
+        
+        -- Use ConfigGenerator if available
+        if CoreRegistry and CoreRegistry:GetSystem("ConfigGenerator") then
+            local ConfigGenerator = CoreRegistry:GetSystem("ConfigGenerator")
+            
+            options = options or {}
+            
+            -- Generate the equipment configuration
+            local config = ConfigGenerator:GenerateEquipmentConfig(tycoon, options)
+            
+            -- Process the output based on options
+            if options.output == "module" then
+                local moduleName = options.moduleName or "EquipmentConfig"
+                local moduleScript = ConfigGenerator:CreateConfigModule(config, moduleName)
+                
+                print("Generated equipment configuration module: " .. moduleScript.Name)
+                return moduleScript
+            elseif options.output == "json" then
+                local jsonString = ConfigGenerator:ExportAsJson(config)
+                return jsonString
+            else
+                -- Default to table output
+                print("Generated equipment configuration table with " .. #config .. " entries")
+                return config
+            end
+        else
+            print("ConfigGenerator module not available. Equipment config generation skipped.")
+            return nil
+        end
+    end
+    
+    -- NEW GLOBAL FUNCTION: Apply animations to NPCs in a tycoon
+    _G.ApplyNPCAnimations = function(tycoonName, options)
+        options = options or {}
+        
+        local tycoon
+        
+        if tycoonName then
+            tycoon = Workspace:FindFirstChild(tycoonName)
+            if not tycoon then
+                print("Error: Tycoon '" .. tycoonName .. "' not found")
+                return
+            end
+        else
+            -- Find first gym tycoon
+            local gymParts = GymAutomation:FindGymParts()
+            if #gymParts > 0 then
+                tycoon = gymParts[1]
+            else
+                print("Error: No gym tycoons found")
+                return
+            end
+        end
+        
+        -- Use NPCAnimationSystem if available
+        if NPCAnimationSystem then
+            print("Applying animations to NPCs in " .. tycoon.Name)
+            
+            -- Find all NPCs in the tycoon
+            local npcs = {}
+            for _, desc in ipairs(tycoon:GetDescendants()) do
+                if desc:IsA("Model") and desc:FindFirstChildOfClass("Humanoid") and 
+                   (string.match(desc.Name, "NPC") or desc:GetAttribute("IsNPC")) then
+                    table.insert(npcs, desc)
+                end
+            end
+            
+            print("Found " .. #npcs .. " NPCs in tycoon")
+            
+            -- Apply animations to each NPC
+            local animatedCount = 0
+            for _, npc in ipairs(npcs) do
+                -- Get NPC data from NPCSystem if available
+                local npcData = nil
+                if NPCSystem and NPCSystem._activeNPCs then
+                    npcData = NPCSystem._activeNPCs[npc]
+                end
+                
+                -- If we have data, apply appropriate animation
+                if npcData then
+                    NPCAnimationSystem:playAppropriateAnimation(npc, npcData)
+                    animatedCount = animatedCount + 1
+                else
+                    -- Default to idle animation if no data available
+                    NPCAnimationSystem:playAnimation(npc, "IDLE")
+                    animatedCount = animatedCount + 1
+                end
+            end
+            
+            print("Applied animations to " .. animatedCount .. " NPCs")
+            return animatedCount
+        else
+            print("NPCAnimationSystem not available. NPC animations skipped.")
+            return 0
+        end
+    end
+    
     print("✓ Registered global function: _G.AutomateGym(tycoonName)")
     print("✓ Registered global function: _G.AutomateAllGyms()")
     print("✓ Registered global function: _G.GenerateBuildOrder()")
@@ -646,6 +1180,12 @@ if game:GetService("RunService"):IsStudio() then
     print("✓ Registered global function: _G.ShowHitboxes()")
     print("✓ Registered global function: _G.HideHitboxes()")
     print("✓ Registered global function: _G.ProcessEquipment()")
+    print("✓ Registered global function: _G.ValidateGymModels(tycoonName)")
+    print("✓ Registered global function: _G.GenerateModelReport(tycoonName)")
+    print("✓ Registered global function: _G.DetectUpgradePaths(tycoonName, options)")
+    print("✓ Registered global function: _G.ApplyCollectionTags(tycoonName, options)")
+    print("✓ Registered global function: _G.GenerateEquipmentConfig(tycoonName, options)")
+    print("✓ Registered global function: _G.ApplyNPCAnimations(tycoonName, options)")
 end
 
 -- Return the GymAutomation module

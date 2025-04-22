@@ -14,3 +14,7 @@ fresh-clone
 /*.rbxmx
 /*.xml
 /*.rbxmx.lock
+
+# Roblox Tycoon folder
+Roblox-Tycoon/
+githubfunctions.txt
