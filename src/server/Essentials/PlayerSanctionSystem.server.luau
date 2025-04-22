@@ -61,8 +61,27 @@ function SanctionSystem.initialize()
 	return true
 end
 
+-- Get player sanction count
+function SanctionSystem:getPlayerSanctionCount(player)
+	local userId = player.UserId
+	local success, sanctionData = pcall(function()
+		return SanctionSystem.sanctionsStore:GetAsync(userId)
+	end)
+	
+	if success and sanctionData then
+		return sanctionData.count or 0
+	else
+		return 0
+	end
+end
+
 -- Log sanction event
 function SanctionSystem.logSanction(player, sanctionLevel, reason, adminName)
+	local userId = player.UserId
+	local success, sanctionData = pcall(function()
+		return SanctionSystem.sanctionsStore:GetAsync(userId)
+	end)
+	local currentCount = (success and sanctionData and sanctionData.count) or 0
 	if not CONFIG.enableLogging or not SanctionSystem.logStore then return end
 
 	local userId = player.UserId
@@ -75,11 +94,34 @@ function SanctionSystem.logSanction(player, sanctionLevel, reason, adminName)
 		reason = reason or "No reason provided",
 		timestamp = os.time(),
 		adminName = adminName or "System"
-	}
-
-	pcall(function()
-		SanctionSystem.logStore:SetAsync(logKey, logData)
+	}	
+	
+	local success, result = pcall(function()
+		SanctionSystem.sanctionsStore:UpdateAsync(userId, function(oldValue)
+			local newValue = oldValue or {count = 0, lastReason = ""}
+			newValue.count = newValue.count + 1
+			newValue.lastReason = reason or "No reason provided"
+			return newValue
+		end)
 	end)
+	
+	if not success then
+		warn("Error updating sanction data for user " .. userId .. ": " .. (result or "Unknown error"))
+	end
+	if CONFIG.enableLogging then
+		pcall(function()
+			SanctionSystem.logStore:SetAsync(logKey, logData)
+		end)
+	end
+end
+
+-- Get the last sanction reason for a player
+function SanctionSystem:getLastSanctionReason(player)
+	local userId = player.UserId
+	local success, sanctionData = pcall(function()
+		return SanctionSystem.sanctionsStore:GetAsync(userId)
+	end)
+	return (success and sanctionData and sanctionData.lastReason) or ""
 end
 
 -- Apply sanction to player

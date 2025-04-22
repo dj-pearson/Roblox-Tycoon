@@ -15,6 +15,21 @@
     Author: Created May 2025
 ]]
 
+-- Base prices for tiles by floor
+local BASE_PRICE_BY_FLOOR = {
+    [1] = 100,
+    [2] = 200,
+    [3] = 300,
+    ["default"] = 100
+}
+
+-- Price multipliers based on category
+local PRICE_MULTIPLIERS = {
+    STRUCTURE = 1.0,
+    EQUIPMENT = 1.5,
+    DECORATION = 0.8,
+    ["default"] = 1.0
+}
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -162,64 +177,29 @@ local function ExtractModelAttributes(model)
         end
     end
         
+    return attributes
+end
+
+-- TileDataGenerator singleton
+local TileDataGenerator = {
+    Debug = false,
+    CalculateModelSize = CalculateModelSize
+}
+
+-- Size-based attributes
+function TileDataGenerator:CalculatePrice(attributes)
+    if not attributes then return 100 end
+    
+    local model = attributes.Model
     -- Size-based attributes
-    if model:IsA("Model") then
-        local size = self:CalculateModelSize(model)
+    if model and model:IsA("Model") then
+        local size = CalculateModelSize(model)
         if size then
             attributes.ModelSize = size
             attributes.ClearanceRequired = math.ceil(math.max(size.X, size.Z) / 2)
         end
     end
         
-    return attributes
-end
-
--- Calculate the approximate size of a model
-function TileDataGenerator:CalculateModelSize(model)
-    if not model then return nil end
-    
-    local minBound = Vector3.new(math.huge, math.huge, math.huge)
-    local maxBound = Vector3.new(-math.huge, -math.huge, -math.huge)
-    local hasParts = false
-    
-    -- Check all parts for bounds
-    for _, part in pairs(model:GetDescendants()) do
-        if part:IsA("BasePart") then
-            hasParts = true
-            local size = part.Size
-            local pos = part.Position
-            
-            minBound = Vector3.new(
-                math.min(minBound.X, pos.X - size.X/2),
-                math.min(minBound.Y, pos.Y - size.Y/2),
-                math.min(minBound.Z, pos.Z - size.Z/2)
-            )
-            
-            maxBound = Vector3.new(
-                math.max(maxBound.X, pos.X + size.X/2),
-                math.max(maxBound.Y, pos.Y + size.Y/2),
-                math.max(maxBound.Z, pos.Z + size.Z/2)
-            )
-        end
-    end
-    
-    if not hasParts then
-        return nil
-    end
-    
-    -- Calculate dimensions
-    return maxBound - minBound
-end
-
--- Calculate price based on model complexity and category
-function TileDataGenerator:CalculatePrice(attributes)
-    if not attributes then return 100 end
-    
-    -- Use existing price if specified
-    if attributes.Price and attributes.Price > 0 then
-        return attributes.Price
-    end
-    
     -- Base price depends on floor
     local floor = attributes.Floor or 1
     local basePrice = BASE_PRICE_BY_FLOOR[floor] or 100
@@ -240,7 +220,30 @@ function TileDataGenerator:CalculatePrice(attributes)
     end
     
     -- Round to nearest 10
-    return math.floor(price / 10) * 10
+	return math.floor(price / 10) * 10
+end
+
+-- Calculate the approximate size of a model
+local function CalculateModelSize(model)
+	if not model then return nil end
+	
+	local minBound = Vector3.new(math.huge, math.huge, math.huge)
+	local maxBound = Vector3.new(-math.huge, -math.huge, -math.huge)
+	local hasParts = false
+	
+	-- Check all parts for bounds
+	for _, part in pairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			hasParts = true
+			local size = part.Size
+			local pos = part.Position
+			
+			minBound = Vector3.new(math.min(minBound.X, pos.X - size.X/2), math.min(minBound.Y, pos.Y - size.Y/2), math.min(minBound.Z, pos.Z - size.Z/2))
+			maxBound = Vector3.new(math.max(maxBound.X, pos.X + size.X/2), math.max(maxBound.Y, pos.Y + size.Y/2), math.max(maxBound.Z, pos.Z + size.Z/2))
+		end
+	end
+	
+	return hasParts and (maxBound - minBound) or nil
 end
 
 -- Calculate income boost based on price and category
@@ -320,7 +323,7 @@ function TileDataGenerator:ProcessModelsInFolder(folderInfo)
 end
 
 function TileDataGenerator:Test()
-	-- Find a player (you might need to adjust this depending on how players are managed)
+    -- Find a player (you might need to adjust this depending on how players are managed)
 	local player = Players:GetPlayers()[1]
 
 	if player then
@@ -593,7 +596,7 @@ function TileDataGenerator:Initialize()
         self:Log("Registered with CoreRegistry")
     end
 
-	-- Test the command
+    -- Test the command
 	self:Test()
     
     self:Log("Initialization complete")
