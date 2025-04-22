@@ -15,12 +15,18 @@
     Author: Created May 2025
 ]]
 
+local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
+local Core = require(script.Parent)
+local KeywordDetection = Core.KeywordDetection
+local AttributeSetup = Core.AttributeSetup
+local GymPartsFinder = Core.GymPartsFinder
+GymPartsFinder.Initialize()
 -- Find CoreRegistry
 local CoreRegistry = nil
 local systemFolder = ServerScriptService:FindFirstChild("Systems") or ServerScriptService
@@ -36,36 +42,6 @@ end
 local BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
 local FloorAttributeSetup = CoreRegistry and CoreRegistry:GetSystem("FloorAttributeSetup")
 local BuyTileProgressionManager = CoreRegistry and CoreRegistry:GetSystem("BuyTileProgressionManager")
-
--- Category based on names and attributes
-local CATEGORY_KEYWORDS = {
-    STRUCTURE = {"wall", "floor", "ceiling", "door", "window", "stairs", "foundation", "pillar", "beam", "support", "column"},
-    CARDIO = {"treadmill", "bike", "bicycle", "elliptical", "rowing", "cardio", "run", "jog", "aerobic"},
-    STRENGTH = {"bench", "press", "rack", "dumbbell", "barbell", "weight", "strength", "power", "lift"},
-    AMENITIES = {"water", "fountain", "locker", "towel", "shower", "amenity", "vending", "counter", "desk"},
-    SPECIALTY = {"sauna", "pool", "spa", "basketball", "court", "specialty", "yoga", "pilates", "stretch"},
-    STAFF = {"desk", "reception", "office", "trainer", "staff", "employee", "manager", "admin"}
-}
-
--- Price multipliers by category
-local PRICE_MULTIPLIERS = {
-    STRUCTURE = 1.0,
-    CARDIO = 1.5,
-    STRENGTH = 1.75,
-    AMENITIES = 1.25,
-    SPECIALTY = 2.0,
-    STAFF = 1.0
-}
-
--- Price base by floor
-local BASE_PRICE_BY_FLOOR = {
-    [1] = 100,  -- 1st Floor
-    [2] = 250,  -- 2nd Floor
-    [3] = 500,  -- 3rd Floor
-    [4] = 750,  -- 4th Floor
-    [5] = 1000, -- Roof
-    [6] = 1500  -- Outside
-}
 
 -- TileDataGenerator singleton
 local TileDataGenerator = {
@@ -112,7 +88,7 @@ function TileDataGenerator:FindModelFolders()
 end
 
 -- Extract attributes from a model
-function TileDataGenerator:ExtractModelAttributes(model)
+local function ExtractModelAttributes(model)
     if not model then return {} end
     
     local attributes = {}
@@ -135,7 +111,17 @@ function TileDataGenerator:ExtractModelAttributes(model)
         copyAttributes(model.PrimaryPart)
     end
     
-    -- If no TileType found, generate one from name
+    -- Handle equipment type if present
+    if attributes.equipmentType then
+        local equipmentInfo = AttributeSetup.GetEquipmentInfo(attributes.equipmentType)
+        if equipmentInfo then
+            attributes.Category = equipmentInfo.Category
+            attributes.Price = equipmentInfo.Price
+            attributes.IncomeBoost = equipmentInfo.IncomeBoost
+        end
+    end
+    
+        -- If no TileType found, generate one from name
     if not attributes.TileType then
         local tileType = model.Name:gsub("%s+", ""):gsub("[^%w]", "")
         if tileType:match("^%d") then
@@ -175,12 +161,7 @@ function TileDataGenerator:ExtractModelAttributes(model)
             attributes.Floor = 1
         end
     end
-    
-    -- Detect category if not specified
-    if not attributes.Category then
-        attributes.Category = self:DetectCategory(model)
-    end
-    
+        
     -- Size-based attributes
     if model:IsA("Model") then
         local size = self:CalculateModelSize(model)
@@ -189,7 +170,7 @@ function TileDataGenerator:ExtractModelAttributes(model)
             attributes.ClearanceRequired = math.ceil(math.max(size.X, size.Z) / 2)
         end
     end
-    
+        
     return attributes
 end
 
@@ -228,44 +209,6 @@ function TileDataGenerator:CalculateModelSize(model)
     
     -- Calculate dimensions
     return maxBound - minBound
-end
-
--- Detect category based on model name and other attributes
-function TileDataGenerator:DetectCategory(model)
-    if not model then return "STRUCTURE" end
-    
-    -- Check if model already has a Category attribute
-    local existingCategory = model:GetAttribute("Category")
-    if existingCategory then
-        return existingCategory
-    end
-    
-    local modelName = model.Name:lower()
-    
-    -- Check for matches in category keywords
-    for category, keywords in pairs(CATEGORY_KEYWORDS) do
-        for _, keyword in ipairs(keywords) do
-            if modelName:find(keyword) then
-                return category
-            end
-        end
-    end
-    
-    -- Check parent folder for context
-    local parent = model.Parent
-    if parent then
-        local parentName = parent.Name:lower()
-        for category, keywords in pairs(CATEGORY_KEYWORDS) do
-            for _, keyword in ipairs(keywords) do
-                if parentName:find(keyword) then
-                    return category
-                end
-            end
-        end
-    end
-    
-    -- Default to STRUCTURE for unclassified models
-    return "STRUCTURE"
 end
 
 -- Calculate price based on model complexity and category
@@ -340,7 +283,8 @@ function TileDataGenerator:ProcessModelsInFolder(folderInfo)
     -- Process each child that's a Model
     for _, child in pairs(folder:GetChildren()) do
         if child:IsA("Model") then
-            local attributes = self:ExtractModelAttributes(child)
+            local parts = GymPartsFinder:GetParts()
+            local attributes = ExtractModelAttributes(parts[child.Name] or child)
             
             -- Skip if no valid TileType
             if not attributes.TileType then
@@ -351,6 +295,10 @@ function TileDataGenerator:ProcessModelsInFolder(folderInfo)
             -- Fill in missing attributes
             if not attributes.Price then
                 attributes.Price = self:CalculatePrice(attributes)
+            end
+            
+            if not attributes.Category then
+                attributes.Category = KeywordDetection.DetectCategory(parts[child.Name] or child)
             end
             
             if not attributes.IncomeBoost then
@@ -369,6 +317,15 @@ function TileDataGenerator:ProcessModelsInFolder(folderInfo)
     end
     
     return models
+end
+
+function TileDataGenerator:Test()
+	-- Find a player (you might need to adjust this depending on how players are managed)
+	local player = Players:GetPlayers()[1]
+
+	if player then
+		CoreRegistry:GetSystem("CommandService"):ExecuteCommand("generateTileData", player)
+	end
 end
 
 -- Update BuyTileSystem with generated data
@@ -635,6 +592,9 @@ function TileDataGenerator:Initialize()
         CoreRegistry:RegisterSystem("TileDataGenerator", self)
         self:Log("Registered with CoreRegistry")
     end
+
+	-- Test the command
+	self:Test()
     
     self:Log("Initialization complete")
     return self

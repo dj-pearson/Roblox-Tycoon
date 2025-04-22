@@ -130,7 +130,7 @@ function BuyTileProgressionManager:GenerateBuildOrder()
 end
 
 -- Generate prerequisites for a tile based on structure
-function BuyTileProgressionManager:GeneratePrerequisites(tileType, sortedTiles)
+function BuyTileProgressionManager:GeneratePrerequisites(tileType, tilesInfo)
     if not BuyTileSystem or not BuyTileSystem.tileData then return end
     
     local tileData = BuyTileSystem.tileData[tileType]
@@ -140,13 +140,13 @@ function BuyTileProgressionManager:GeneratePrerequisites(tileType, sortedTiles)
     local prerequisites = tileData.prerequisites or {}
     
     -- Find structure dependencies
-    local structureType = self:DetermineStructureType(tileData)
+    local currentStructureType = self:DetermineStructureType(tileData)
     local floor = tileData.floor or 1
     
     -- If this is not a wall and not on the first floor, require previous floor
-    if floor > 1 and structureType ~= "Walls" and structureType ~= "Stairs" then
+    if floor > 1 and currentStructureType ~= "Walls" and currentStructureType ~= "Stairs" then
         -- Find the stairs/elevator from previous floor
-        for _, tileInfo in ipairs(sortedTiles) do
+        for _, tileInfo in ipairs(tilesInfo) do
             if tileInfo.floor == floor - 1 and tileInfo.structureType == "Stairs" then
                 -- Add stair prerequisite if not already in the list
                 local found = false
@@ -166,9 +166,29 @@ function BuyTileProgressionManager:GeneratePrerequisites(tileType, sortedTiles)
         end
     end
     
+    -- If this is equipment/amenity and floor > 1, require a "Floor" tile on this floor
+    if floor > 1 and (currentStructureType == "Equipment" or currentStructureType == "Amenity") then
+        local floorTileFound = false
+        for _, tileInfo in ipairs(tilesInfo) do
+            if tileInfo.floor == floor and tileInfo.structureType == "Floor" then
+                local found = false
+                for _, prereq in ipairs(prerequisites) do
+                    if prereq == tileInfo.tileType then
+                        found = true
+                        break
+                    end
+                end
+                if not found and #prerequisites < 3 then -- Limit to 3 prerequisites
+                    table.insert(prerequisites, tileInfo.tileType)
+                    floorTileFound = true
+                    break
+                end
+            end
+        end
+    end
     -- If this is equipment/amenity, require walls on this floor
-    if structureType == "Equipment" or structureType == "Amenity" then
-        -- Find walls on this floor
+    if currentStructureType == "Equipment" or currentStructureType == "Amenity" then
+        -- Find Walls tiles on this floor
         for _, tileInfo in ipairs(sortedTiles) do
             if tileInfo.floor == floor and tileInfo.structureType == "Walls" then
                 -- Add wall prerequisite if not already in list

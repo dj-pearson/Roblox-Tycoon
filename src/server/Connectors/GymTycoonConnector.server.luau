@@ -313,6 +313,41 @@ function GymTycoonConnector:updateFrontDesk(player)
 	end
 end
 
+-- Function to get the front desk for a player
+function GymTycoonConnector:getFrontDesk(player)
+	if not player then return nil end
+
+	local tycoon = player:FindFirstChild("Tycoon")
+	if not tycoon or not tycoon.Value then return nil end
+
+	-- Find the front desk
+	for _, child in ipairs(tycoon.Value:GetChildren()) do
+		if child.Name == "Front Desk" and child:IsA("Model") then
+			return child
+		end
+	end
+	return nil
+end
+
+-- Function to get all players front desks
+function GymTycoonConnector:getAllPlayersFrontDesks()
+	local frontDesks = {}
+	for _, player in ipairs(Players:GetPlayers()) do
+		local frontDesk = self:getFrontDesk(player)
+		if frontDesk then
+			frontDesks[player.Name] = frontDesk
+		end
+	end
+
+	-- Log how many front desks were found
+	local count = 0
+	for _ in pairs(frontDesks) do
+		count = count + 1
+	end
+	log("Found " .. count .. " front desks")
+	return frontDesks
+end
+
 -- Public API for GymTycoonConnector
 return {
 	initialize = function()
@@ -333,5 +368,13 @@ return {
 
 	getLegacySystems = function()
 		return GymTycoonConnector.legacySystemsFound
-	end
+	end,
+
+	getFrontDesk = function(player)
+		return GymTycoonConnector:getFrontDesk(player)
+	end,
+
+	getAllPlayersFrontDesks = function()
+		return GymTycoonConnector:getAllPlayersFrontDesks()
+	end,
 }
