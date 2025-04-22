@@ -261,6 +261,15 @@ local function processAdminCommand(player, message)
 			message.Parent = player
 			game:GetService("Debris"):AddItem(message, 3)
 		end
+	elseif command == "createNPC" then
+        -- Create NPC
+        local createNPC = function(player, args)
+            local npcSystem = require(ServerScriptService.src.server.Core.NPCSystem)
+            npcSystem:createNewNPC()
+			local message = Instance.new("Message")
+			message.Text = "NPC Created"
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 3)        end
 	end
 end
 

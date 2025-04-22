@@ -48,6 +48,251 @@ local CONFIG = {
     
     -- VIP
     vipUnlockLevel = 3,         -- Gym level needed to start getting VIP members
+  floorNames = {
+	
+	activityTypes = {
+        {
+            name = "Cardio",
+            area = "1st Floor - Cardio",
+            minDuration = 60, -- seconds
+            maxDuration = 180, -- seconds
+            equipment = {"Treadmill", "Elliptical", "StationaryBike"} -- Examples
+        },
+        {
+            name = "Strength Training",
+            area = "1st Floor - Strength",
+            minDuration = 90,
+            maxDuration = 240,
+            equipment = {"WeightMachine", "FreeWeights"} -- Examples
+        },
+        {
+            name = "Group Fitness",
+            area = "2nd Floor - Group Fitness",
+            minDuration = 120,
+            maxDuration = 300
+        },
+        {
+            name = "Spin",
+            area = "2nd Floor - Spin Room",
+            minDuration = 120,
+            maxDuration = 240,
+            equipment = {"SpinBike"}
+        },
+        {
+            name = "Basketball",
+            area = "2nd Floor - Basketball Court",
+            minDuration = 180,
+            maxDuration = 360,
+            equipment = {"BasketballHoop"}
+        },
+        {
+            name = "Golf",
+            area = "2nd Floor - Golf Simulators",
+            minDuration = 120,
+            maxDuration = 300,
+            equipment = {"GolfSimulator"}
+        },
+        {
+            name = "HIIT",
+            area = "2nd Floor - HIIT Room",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Yoga",
+            area = "3rd Floor - Yoga Studio",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Pilates",
+            area = "3rd Floor - Pilates Studio",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Personal Training",
+            area = "3rd Floor - Personal Training",
+            minDuration = 180,
+            maxDuration = 300
+        },
+        {
+            name = "Relaxation",
+            area = "3rd Floor - Relaxation Area",
+            minDuration = 180,
+            maxDuration = 360
+        },
+        {
+            name = "Sauna/Steam",
+            area = "3rd Floor - Sauna/Steam Area",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Pool",
+            area = "4th Floor - Swimming Pool",
+            minDuration = 180,
+            maxDuration = 360
+        },
+        {
+            name = "Climbing",
+            area = "4th Floor - Climbing Wall",
+            minDuration = 120,
+            maxDuration = 240,
+            equipment = {"ClimbingWall"}
+        },
+        {
+            name = "Boxing/MMA",
+            area = "4th Floor - Boxing/MMA Area",
+            minDuration = 120,
+            maxDuration = 240,
+            equipment = {"PunchingBag"}
+        },
+        {
+            name = "Restaurant",
+            area = "4th Floor - Restaurant",
+            minDuration = 180,
+            maxDuration = 360
+        },
+        {
+            name = "Roof Pool",
+            area = "Roof - Pool",
+            minDuration = 180,
+            maxDuration = 360
+        },
+        {
+            name = "Roof Track",
+            area = "Roof - Track",
+            minDuration = 180,
+            maxDuration = 360
+        },
+        {
+            name = "Roof Yoga",
+            area = "Roof - Yoga Area",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Roof Basketball",
+            area = "Roof - Basketball Courts",
+            minDuration = 180,
+            maxDuration = 360,
+            equipment = {"BasketballHoop"}
+        },
+        {
+            name = "Skate Park",
+            area = "Outside - Skate Park",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Soccer",
+            area = "Outside - Soccer Field",
+            minDuration = 180,
+            maxDuration = 360
+        },
+        {
+            name = "Tennis",
+            area = "Outside - Tennis Courts",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Pickleball",
+            area = "Outside - Pickleball Courts",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Outside Climbing",
+            area = "Outside - Climbing Wall",
+            minDuration = 120,
+            maxDuration = 240,
+            equipment = {"ClimbingWall"}
+        },
+        {
+            name = "Outside Pool",
+            area = "Outside - Pool",
+            minDuration = 180,
+            maxDuration = 360
+        },
+        {
+            name = "Playground",
+            area = "Outside - Playground",
+            minDuration = 120,
+            maxDuration = 240
+        },
+        {
+            name = "Locker Room",
+            area = "1st Floor - Locker Room",
+            minDuration = 60,
+            maxDuration = 180
+        },
+        {
+            name = "Kids Gym",
+            area = "1st Floor - Kids Gym",
+            minDuration = 120,
+            maxDuration = 240
+        }
+  },
+      "1st Floor - Cardio",
+      "1st Floor - Strength",
+      "1st Floor - Locker Room",
+      "1st Floor - Kids Gym",
+      "2nd Floor - Group Fitness",
+      "2nd Floor - Spin Room",
+      "2nd Floor - Basketball Court",
+      "2nd Floor - Golf Simulators",
+      "2nd Floor - HIIT Room",
+      "3rd Floor - Yoga Studio",
+      "3rd Floor - Pilates Studio",
+      "3rd Floor - Personal Training",
+      "3rd Floor - Relaxation Area",
+      "3rd Floor - Sauna/Steam Area",
+      "4th Floor - Swimming Pool",
+      "4th Floor - Climbing Wall",
+      "4th Floor - Boxing/MMA Area",
+      "4th Floor - Restaurant",
+      "Roof - Pool",
+      "Roof - Track",
+      "Roof - Yoga Area",
+      "Roof - Basketball Courts",
+      "Outside - Skate Park",
+      "Outside - Soccer Field",
+      "Outside - Tennis Courts",
+      "Outside - Pickleball Courts",
+    },
+    npcPreferences = {
+        "Cardio",
+        "Strength Training",
+        "Group Fitness",
+        "Spin",
+        "Basketball",
+        "Golf",
+        "HIIT",
+        "Yoga",
+        "Pilates",
+        "Personal Training",
+        "Relaxation",
+        "Sauna/Steam",
+        "Pool",
+        "Climbing",
+        "Boxing/MMA",
+        "Restaurant",
+        "Roof Pool",
+        "Roof Track",
+        "Roof Yoga",
+        "Roof Basketball",
+        "Skate Park",
+        "Soccer",
+        "Tennis",
+        "Pickleball",
+        "Outside Climbing",
+        "Outside Pool",
+        "Playground",
+        "Locker Room",
+        "Kids Gym"
+    },
     
     -- Debug
     debug = false
@@ -74,6 +319,44 @@ local NPCSystem = {
     _models = {},           -- Cached NPC models
     _nextUpdateGroup = 0    -- For staggered updates
 }
+
+-- Setup collision groups
+function NPCSystem:setupCollisionGroups()
+    -- Check if collision group exists
+    local collisionGroupName = "NPCs"
+    local physicsService = game:GetService("PhysicsService")
+    
+    if not physicsService:CollisionGroupExists(collisionGroupName) then
+        physicsService:CreateCollisionGroup(collisionGroupName)
+        debugPrint("Created collision group:", collisionGroupName)
+    end
+    
+    -- Disable collisions between NPCs
+    physicsService:CollisionGroupSetCollidable(collisionGroupName, collisionGroupName, false)
+    
+    -- Disable collision between NPCs and Players
+    local playersGroupName = "Players"
+    if not physicsService:CollisionGroupExists(playersGroupName) then
+        physicsService:CreateCollisionGroup(playersGroupName)
+        debugPrint("Created collision group:", playersGroupName)
+        for _, player in ipairs(Players:GetPlayers()) do
+          if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            physicsService:SetPartCollisionGroup(player.Character:FindFirstChild("HumanoidRootPart"), playersGroupName)
+          end
+        end
+        Players.PlayerAdded:Connect(function(player)
+          player.CharacterAdded:Connect(function(character)
+            if character:FindFirstChild("HumanoidRootPart") then
+              physicsService:SetPartCollisionGroup(character:FindFirstChild("HumanoidRootPart"), playersGroupName)
+            end
+          end)
+        end)
+    end
+    physicsService:CollisionGroupSetCollidable(collisionGroupName, playersGroupName, false)
+end
+
+
+
 
 -- Debug function
 local function debugPrint(...)
@@ -258,12 +541,21 @@ function NPCSystem:createNPC(tycoonId)
     local npc = baseModel:Clone()
     npc:SetAttribute("TycoonId", tycoonId)
     npc:SetAttribute("MemberType", "Regular")
+    self:assignRandomName(npc)
     npc:SetAttribute("WalkSpeed", CONFIG.movementSpeed)
+    self:assignRandomAppearance(npc)
+    self:assignChatter(npc)
     
     -- Add a unique identifier
     npc.Name = "NPC_" .. tycoonId .. "_" .. tostring(math.random(100000, 999999))
     
     -- Store humanoid reference
+    local humanoidRootPart = npc:FindFirstChild("HumanoidRootPart")
+    if humanoidRootPart then
+        local physicsService = game:GetService("PhysicsService")
+        physicsService:SetPartCollisionGroup(humanoidRootPart, "NPCs")
+    end
+
     local humanoid = npc:FindFirstChild("Humanoid")
     if humanoid then
         humanoid.WalkSpeed = CONFIG.movementSpeed
@@ -272,6 +564,50 @@ function NPCSystem:createNPC(tycoonId)
     
     return npc
 end
+
+function NPCSystem:assignRandomName(npc)
+  local firstNames = {
+    "James", "Robert", "John", "Michael", "David",
+    "William", "Richard", "Joseph", "Thomas", "Charles",
+    "Christopher", "Daniel", "Matthew", "Anthony", "Donald"
+  }
+  local lastNames = {
+    "Smith", "Johnson", "Williams", "Brown", "Jones",
+    "Miller", "Davis", "Garcia", "Rodriguez", "Wilson",
+    "Martinez", "Anderson", "Taylor", "Thomas", "Hernandez"
+  }
+
+  local firstName = firstNames[math.random(#firstNames)]
+  local lastName = lastNames[math.random(#lastNames)]
+  local fullName = firstName .. " " .. lastName
+
+  npc.Name = fullName
+
+  return fullName
+end
+
+function NPCSystem:assignAppearance(npc)
+    local availableModels = game.ReplicatedStorage:FindFirstChild("CharacterModels"):GetChildren()
+    local selectedModel = availableModels[math.random(#availableModels)]
+
+    -- Remove current children
+    for _, child in ipairs(npc:GetChildren()) do
+        if child:IsA("BasePart") or child:IsA("Accessory") or child:IsA("Humanoid") or child:IsA("Script") or child:IsA("LocalScript") or child:IsA("Animation") then
+            child:Destroy()
+        end
+    end
+
+    -- Clone and parent new model
+    local newModel = selectedModel:Clone()
+    newModel.Parent = npc
+    npc:SetAttribute("ModelName", selectedModel.Name)
+end
+
+function NPCSystem:assignChatter(npc)
+  local chatter = {"Gonna hit the treadmill!", "Time to pump some iron!", "Just another day at the gym.", "Feeling strong today!", "Gotta get those gains!"}
+  npc:SetAttribute("Chatter", chatter[math.random(#chatter)])
+end
+
 
 -- Preload NPC models for better performance
 function NPCSystem:preloadNPCModels()
@@ -314,13 +650,19 @@ function NPCSystem:customizeNPC(npc, memberType)
         npc:SetAttribute("RevenueMultiplier", typeConfig.multiplier)
         npc:SetAttribute("SatisfactionMultiplier", typeConfig.satisfaction)
         
-        -- Visual customization based on type
-        if memberType == "VIP" then
-            -- Add visual indicators for VIPs
-            for _, part in ipairs(npc:GetDescendants()) do
-                if part:IsA("BasePart") and part.Name == "VIPBadge" then
-                    part.Transparency = 0
-                end
+		-- Visual customization based on type
+		if memberType == "VIP" then
+			-- Find the VIP badge in ServerStorage
+			local vipBadge = ServerStorage:FindFirstChild("NPC_Character"):FindFirstChild("VIPBadge")
+			if vipBadge then
+				-- Clone the badge and parent it to the NPC
+				local badgeClone = vipBadge:Clone()
+				badgeClone.Parent = npc
+
+				-- Remove transparency if it exists
+				if badgeClone:IsA("BasePart") then
+					badgeClone.Transparency = 0
+				end
             end
         end
     end
@@ -361,6 +703,11 @@ function NPCSystem:spawnNPC(tycoon, forcedType)
     
     local canSpawnVIP = gymLevel >= CONFIG.vipUnlockLevel
     
+    -- If VIP is not unlocked, force only regular members
+    if not canSpawnVIP then
+        CONFIG.memberTypes = {{name = "Regular", chance = 1, model = "Regular_Member", multiplier = 1, satisfaction = 1}}
+    end
+
     -- Forced type or random selection
     if forcedType then
         memberType = forcedType
@@ -453,44 +800,115 @@ function NPCSystem:findNextDestination(npc)
     local tycoon = TycoonSystem:getTycoonById(tycoonId)
     if not tycoon then return end
     
-    -- Get all available equipment in the tycoon
-    local equipment = findEquipmentInTycoon(tycoon)
-    
-    -- Random choice: use equipment or wander
-    local willUseEquipment = math.random() < CONFIG.useEquipmentChance and #equipment > 0
-    
-    if willUseEquipment then
-        -- Pick a random piece of equipment
-        local targetEquipment = equipment[math.random(1, #equipment)]
-        local equipmentPos
-        
-        -- Get interaction point
-        if targetEquipment:FindFirstChild("InteractionPoint") then
-            equipmentPos = targetEquipment.InteractionPoint.Position
-        else
-            equipmentPos = targetEquipment:GetPivot().Position
-        end
-        
-        npcData.destination = equipmentPos
-        npcData.equipment = targetEquipment
-        npcData.state = "MovingToEquipment"
-        
-        -- Try to pathfind there
-        self:navigateNPCToDestination(npc, equipmentPos)
-        
-    else
-        -- Just wander to a random spot in the tycoon
-        local base = tycoon:FindFirstChild("Base") or tycoon:FindFirstChild("Floor")
-        if base then
-            local wanderPos = getRandomPositionInPart(base)
-            npcData.destination = wanderPos
-            npcData.equipment = nil
-            npcData.state = "Wandering"
-            
-            -- Navigate there
-            self:navigateNPCToDestination(npc, wanderPos)
+    -- Select an activity based on preferences
+    local selectedActivity = CONFIG.npcPreferences[math.random(#CONFIG.npcPreferences)]
+    local activityConfig = nil
+    for _, config in ipairs(CONFIG.activityTypes) do
+        if config.name == selectedActivity then
+            activityConfig = config
+            break
         end
     end
+    
+    if not activityConfig then
+        warn("NPCSystem: No config found for activity:", selectedActivity)
+        return
+    end
+    
+    -- Determine the floor of the selected activity
+    local targetFloor = activityConfig.area
+    
+    -- Check if we need to change floors
+    local needsFloorChange = false
+    if npcData.currentFloor and npcData.currentFloor ~= targetFloor then
+        needsFloorChange = true
+    else
+        -- If the npc doesn't have a current floor, give it one
+        if not npcData.currentFloor then
+          npcData.currentFloor = CONFIG.floorNames[math.random(#CONFIG.floorNames)]
+        end
+    end
+
+    -- Check if there is equipment for the activity and get a random one if there is one
+    local targetEquipment = nil
+    if activityConfig.equipment and #activityConfig.equipment > 0 then
+      local possibleEquipments = {}
+      for _, equip in ipairs(activityConfig.equipment) do
+        -- Check if there are instances of the equipment name in the tycoon
+        for _, child in ipairs(tycoon:GetDescendants()) do
+            if child:IsA("Model") and child:GetAttribute("IsEquipment") and child.Name == equip or child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child.Name == equip then
+              table.insert(possibleEquipments, child)
+            end
+        end
+      end
+      -- Select a random equipment from the ones that exist in the tycoon
+      if #possibleEquipments > 0 then
+        targetEquipment = possibleEquipments[math.random(1, #possibleEquipments)]
+      end
+    end
+
+    -- Set destination based on need for floor change
+    if needsFloorChange then
+        -- Find the nearest stairs or elevator
+        local stairs = workspace:FindFirstChild("Stairs")
+        local elevator = workspace:FindFirstChild("Elevator")
+        
+        -- Choose the nearest one
+        if stairs and elevator then
+            local distToStairs = (npc:GetPivot().Position - stairs:GetPivot().Position).Magnitude
+            local distToElevator = (npc:GetPivot().Position - elevator:GetPivot().Position).Magnitude
+            if distToStairs < distToElevator then
+                npcData.destination = stairs:GetPivot().Position
+                npcData.floorChangeType = "Stairs"
+            else
+                npcData.destination = elevator:GetPivot().Position
+                npcData.floorChangeType = "Elevator"
+            end
+        elseif stairs then
+            npcData.destination = stairs:GetPivot().Position
+            npcData.floorChangeType = "Stairs"
+        elseif elevator then
+            npcData.destination = elevator:GetPivot().Position
+            npcData.floorChangeType = "Elevator"
+        else
+            warn("NPCSystem: No stairs or elevators found in workspace!")
+            return
+        end
+
+        npcData.state = "MovingToFloorChange"
+
+    else
+        -- Get a list of valid destinations
+        local validDestinations = {}
+        if targetEquipment then
+          -- Check if equipment has a interaction point
+          if targetEquipment:FindFirstChild("InteractionPoint") then
+            table.insert(validDestinations, targetEquipment.InteractionPoint.Position)
+          else
+            table.insert(validDestinations, targetEquipment:GetPivot().Position)
+          end
+        else
+          -- Get a random area based on the activity location
+          local base = tycoon:FindFirstChild(targetFloor)
+          if base then
+              table.insert(validDestinations, getRandomPositionInPart(base))
+          end
+        end
+
+        if #validDestinations > 0 then
+          npcData.destination = validDestinations[math.random(1, #validDestinations)]
+          npcData.equipment = targetEquipment
+          npcData.state = "MovingToActivity"
+        else
+          warn("NPCSystem: No valid destinations found for activity:", selectedActivity)
+          return
+        end
+
+    end
+
+
+    -- Try to pathfind there
+    self:navigateNPCToDestination(npc, npcData.destination)
 end
 
 -- Make an NPC leave the tycoon
@@ -520,86 +938,51 @@ end
 
 -- Navigate an NPC to a destination
 function NPCSystem:navigateNPCToDestination(npc, destination)
-    if not npc or not npc.Parent then return end
-    
-    local humanoid = npc:FindFirstChild("Humanoid") 
-    if not humanoid then return end
-    
-    local npcData = self._activeNPCs[npc]
-    if not npcData then return end
-    
-    -- Get current position
-    local rootPart = npc:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return end
-    
-    -- Use pathfinding service for navigation
-    local path = game:GetService("PathfindingService"):CreatePath({
-        AgentRadius = 2,
-        AgentHeight = 5,
-        AgentCanJump = true
-    })
-    
-    -- Try to compute the path
-    local success, errorMessage = pcall(function()
-        path:ComputeAsync(rootPart.Position, destination)
-    end)
-    
-    if success and path.Status == Enum.PathStatus.Success then
-        -- Get path waypoints
-        local waypoints = path:GetWaypoints()
-        
-        -- Move to each waypoint
-        for i, waypoint in ipairs(waypoints) do
-            if not npc or not npc.Parent or not humanoid or humanoid.Health <= 0 then
-                break
-            end
-            
-            humanoid:MoveTo(waypoint.Position)
-            
-            -- Wait until reaching waypoint or timeout
-            local startTime = tick()
-            local timeout = 5 -- 5 seconds timeout
-            
-            while npc and npc.Parent and humanoid and humanoid.Health > 0 and 
-                  rootPart and (rootPart.Position - waypoint.Position).Magnitude > 1 do
-                
-                -- Check if we've timed out
-                if tick() - startTime > timeout then
-                    break
-                end
-                
-                task.wait(0.1)
-            end
-        end
-        
-        -- Reset pathfinding retries
-        npcData.pathfindRetries = 0
-        
-    else
-        -- Increment retry counter
-        npcData.pathfindRetries = (npcData.pathfindRetries or 0) + 1
-        
-        -- If we've retried too many times, move on
-        if npcData.pathfindRetries >= CONFIG.maxPathfindingRetries then
-            -- Fallback: try to directly move to destination
-            humanoid:MoveTo(destination)
-            task.delay(5, function()
-                -- After timeout, find a new destination
-                if npc and npc.Parent and self._activeNPCs[npc] then
-                    self:findNextDestination(npc)
-                end
-            end)
-        else
-            -- Try again with a delay
-            task.delay(1, function()
-                if npc and npc.Parent and self._activeNPCs[npc] then
-                    self:navigateNPCToDestination(npc, destination)
-                end
-            end)
-        end
-        
-        debugPrint("Pathfinding failed for NPC in tycoon", npcData.tycoonId, "retry:", npcData.pathfindRetries)
-    end
+  if not npc or not npc.Parent then return end
+
+  local humanoid = npc:FindFirstChild("Humanoid")
+  if not humanoid then return end
+
+  local npcData = self._activeNPCs[npc]
+  if not npcData then return end
+
+  -- Get current position
+  local rootPart = npc:FindFirstChild("HumanoidRootPart")
+  if not rootPart then return end
+
+  -- Use pathfinding service for navigation
+  local path = game:GetService("PathfindingService"):CreatePath({
+      AgentRadius = 2,
+      AgentHeight = 5,
+      AgentCanJump = true
+  })
+
+  -- Try to compute the path
+  local success, errorMessage = pcall(function()
+      path:ComputeAsync(rootPart.Position, destination)
+  end)
+
+  if success and path.Status == Enum.PathStatus.Success then
+      -- Get path waypoints
+      local waypoints = path:GetWaypoints()
+
+      -- Move to each waypoint smoothly
+      for i, waypoint in ipairs(waypoints) do
+          if not npc or not npc.Parent or not humanoid or humanoid.Health <= 0 then
+              break
+          end
+
+          local targetPosition = waypoint.Position
+          humanoid.WalkSpeed = CONFIG.movementSpeed
+          humanoid:MoveTo(targetPosition)
+          humanoid.MoveToFinished:Wait()
+      end
+
+      -- Reset pathfinding retries
+      npcData.pathfindRetries = 0
+  else
+      debugPrint("Pathfinding failed for NPC in tycoon", npcData.tycoonId, "retry:", npcData.pathfindRetries)
+  end
 end
 
 -- Update all NPCs
@@ -650,6 +1033,13 @@ function NPCSystem:updateSingleNPC(npc, data)
         self:returnToPool(npc)
         return
     end
+
+    if npc then
+      local physicsService = game:GetService("PhysicsService")
+      local humanoidRootPart = npc:FindFirstChild("HumanoidRootPart")
+      pcall(physicsService.SetPartCollisionGroup, physicsService, humanoidRootPart, "NPCs")
+    end
+
     
     -- Check distance to destination if we have one
     if data.destination then
@@ -660,7 +1050,16 @@ function NPCSystem:updateSingleNPC(npc, data)
             -- If we've reached our destination
             if distance < CONFIG.destinationRadius then
                 -- Handle what to do based on current state
-                if data.state == "MovingToEquipment" then
+                if data.state == "MovingToActivity" then
+                    -- Start using the equipment
+                    local activityConfig = nil
+                    for _, config in ipairs(CONFIG.activityTypes) do
+                      if config.name == data.activity then
+                          activityConfig = config
+                          break
+                      end
+                    end
+
                     -- Start using the equipment
                     data.state = "UsingEquipment"
                     data.stateStartTime = tick()
@@ -671,101 +1070,226 @@ function NPCSystem:updateSingleNPC(npc, data)
                     if humanoid and humanoid.Health > 0 then
                         -- Stop moving
                         humanoid.WalkSpeed = 0
-                        
-                        -- Face the equipment
-                        if data.equipment then
-                            local equipPos = data.equipment:GetPivot().Position
-                            local npcPos = npc:GetPivot().Position
-                            local direction = (equipPos - npcPos).Unit
-                            local lookCFrame = CFrame.lookAt(npcPos, npcPos + direction)
-                            npc:PivotTo(CFrame.new(npcPos) * CFrame.Angles(0, lookCFrame.Y, 0))
-                        end
-                        
-                        -- Play appropriate animation based on equipment
-                        local equipmentType = data.equipment and data.equipment:GetAttribute("EquipmentType") or "Generic"
-                        -- Animation handling would go here
+
+                      -- Face the equipment
+                      if data.equipment then
+                          local equipPos = data.equipment:GetPivot().Position
+                          local npcPos = npc:GetPivot().Position
+                          local direction = (equipPos - npcPos).Unit
+                          local lookCFrame = CFrame.lookAt(npcPos, npcPos + direction)
+                          npc:PivotTo(CFrame.new(npcPos) * CFrame.Angles(0, lookCFrame.Y, 0))
+                      end
+
+                      -- Play appropriate animation based on equipment
+                      local equipmentType = data.equipment and data.equipment:GetAttribute("EquipmentType") or "Generic"
+                      -- Animation handling would go here
                     end
+                elseif data.state == "MovingToFloorChange" then
+                    -- We've reached the stairs or elevator, change floors
+                    local targetFloor = data.activity.area
+                    local targetArea
+                    local destination = data.destination
+                    if data.floorChangeType == "Stairs" then
+                      targetArea = CONFIG.floorNames[math.random(#CONFIG.floorNames)]
+                      local stairs = workspace:FindFirstChild("Stairs")
+                      destination = stairs.UpAttachment.WorldPosition
+                    else
+                      targetArea = CONFIG.floorNames[math.random(#CONFIG.floorNames)]
+                      local elevator = workspace:FindFirstChild("Elevator")
+                      destination = elevator.UpAttachment.WorldPosition
+                    end
+                    npcData.currentFloor = targetArea
+                    debugPrint("NPC changed to floor:", targetArea)
+
+                    self:findNextDestination(npc)
                     
-                    -- Generate revenue while using equipment
-                    local owner = TycoonSystem:getTycoonOwner(tycoon)
-                    if owner and RevenueSystem and data.equipment then
-                        -- Calculate revenue based on equipment and member type
-                        local baseRevenue = data.equipment:GetAttribute("Revenue") or 1
-                        local memberMultiplier = npc:GetAttribute("RevenueMultiplier") or 1
-                        
-                        -- Track accumulated revenue for this session
-                        data.revenue = data.revenue + (baseRevenue * memberMultiplier)
-                        
-                        -- Update satisfaction based on equipment quality
-                        if MemberSatisfactionSystem then
-                            local equipmentQuality = data.equipment:GetAttribute("Quality") or 1
-                            local satisfactionChange = equipmentQuality - 1 -- -1 to +4 typically
+                elseif data.state == "MovingToFloorChange" then
+                    -- We've reached the stairs or elevator, change floors
+                    local targetFloor = data.activity.area
+                    local targetArea
+                    if data.floorChangeType == "Stairs" then
+                      targetArea = CONFIG.floorNames[math.random(#CONFIG.floorNames)]
+                    else
+                      targetArea = CONFIG.floorNames[math.random(#CONFIG.floorNames)]
+                    end
+                    npcData.currentFloor = targetArea
+                    debugPrint("NPC changed to floor:", targetArea)
+                    
+
+                    -- Get the direction of the stairs or elevator (up or down)
+                    local upDirection
+                    local animationToPlay = nil
+                    local rootPart = npc:FindFirstChild("HumanoidRootPart")
+                    
+                    if data.floorChangeType == "Stairs" then
+                      local stairs = workspace:FindFirstChild("Stairs")
+                      upDirection = (stairs.UpAttachment.WorldPosition - stairs.DownAttachment.WorldPosition).Unit
+                      
+                      -- Find animation to play
+                      if upDirection.Y > 0 then
+                        -- Going up
+                        animationToPlay = "StairsUp"
+                      else
+                        -- Going down
+                        animationToPlay = "StairsDown"
+                      end
+                      
+                    elseif data.floorChangeType == "Elevator" then
+                      local elevator = workspace:FindFirstChild("Elevator")
+                      upDirection = (elevator.UpAttachment.WorldPosition - elevator.DownAttachment.WorldPosition).Unit
+                      
+                      -- Find animation to play
+                      if upDirection.Y > 0 then
+                        -- Going up
+                        animationToPlay = "ElevatorUp"
+                      else
+                        -- Going down
+                        animationToPlay = "ElevatorDown"
+                      end
+                      -- Play animation before teleporting to give the time to complete the animation
+                      -- Play animation if available
+                      local humanoid = npc:FindFirstChild("Humanoid")
+                      if humanoid and humanoid.Health > 0 then
+                          -- Stop moving
+                          humanoid.WalkSpeed = 0
                             
-                            -- Apply satisfaction change
-                            MemberSatisfactionSystem:updateMemberSatisfaction(tycoonId, satisfactionChange, npc)
+                          -- Play specific animation based on equipment type
+                          local animator = humanoid and humanoid:FindFirstChild("Animator")
+                          local animationFolder = npc:FindFirstChild("Animations")
+                          if animationFolder and animator then
+                          if animation then
+                            local animationTrack = animator:LoadAnimation(animation)
+                            animationTrack:Play()
+                            -- Wait until the animation ends
+                            task.wait(animationTrack.Length)
+                          end
                         end
+                      end
+                    end
+                    -- Calculate how much we need to move up or down
+                    local floorHeight = 10 -- Height of one floor
+                    local moveDistance = floorHeight
+                    -- Check if we are moving up or down
+                    if upDirection.Y < 0 then
+                        -- We are moving down
+                        moveDistance = -moveDistance
                     end
                     
-                elseif data.state == "Leaving" then
-                    -- Generate revenue before leaving
-                    local owner = TycoonSystem:getTycoonOwner(tycoon)
-                    if owner and RevenueSystem and data.revenue > 0 then
-                        -- Add accumulated revenue to player
-                        RevenueSystem:addRevenue(owner, data.revenue, "member_visit")
-                        
-                        -- Fire event
-                        EventBridge:fireEvent("MemberGeneratedRevenue", {
-                            tycoonId = tycoonId,
-                            memberType = data.memberType,
-                            amount = data.revenue
-                        })
-                    end
-                    
-                    -- Remove NPC
-                    self:returnToPool(npc)
-                    
+                    -- Apply the vertical movement directly
+                    local newPosition = rootPart.Position + Vector3.new(0, moveDistance, 0)
+                    rootPart.CFrame = CFrame.new(newPosition)
+                    self:findNextDestination(npc)
+
                 elseif data.state == "UsingEquipment" then
-                    -- Check if we've been using the equipment long enough
+                  -- Check if we've been using the equipment long enough
+                  local elapsed = tick() - data.stateStartTime
+                  if elapsed >= data.stateDuration then
+                      -- Done using equipment, find a new destination
+                      self:findNextDestination(npc)
+                  else
+                      -- Play animation if available
+                      local humanoid = npc:FindFirstChild("Humanoid")
+                      if humanoid and humanoid.Health > 0 then
+                          -- Stop moving
+                          humanoid.WalkSpeed = 0
+                          
+                          -- Play specific animation based on equipment type
+                          local animator = humanoid and humanoid:FindFirstChild("Animator")
+                          if animator then
+                            local animationFolder = npc:FindFirstChild("Animations")
+                            if animationFolder then
+                                local animationToPlay = nil
+                                if data.equipment and data.equipment.Name == "Treadmill" then
+                                    animationToPlay = "TreadmillRun"
+                                elseif data.equipment and data.equipment.Name == "PunchingBag" then
+                                    animationToPlay = "PunchingBagHit"
+                                elseif data.equipment and data.equipment.Name == "BasketballHoop" then
+                                    animationToPlay = "BasketballShoot"
+                                end
+                                
+                                if animationToPlay then
+                                    local animation = animationFolder:FindFirstChild(animationToPlay)
+                                    if animation then
+                                        local animationTrack = animator:LoadAnimation(animation)
+                                        animationTrack:Play()
+                                    end
+                                end
+                            end
+                        end
+                      end
+                      
+                      -- Update revenue while using equipment
+                      self:generateRevenue(npc, tycoon, data)
+                      
+                      -- Update satisfaction while using equipment
+                      self:updateSatisfaction(npc, tycoon, data)
+                  end
+
+                elseif data.state == "DoingActivity" then
+                    -- We've reached our destination, just waiting
+                    -- Check if we've been waiting long enough
                     local elapsed = tick() - data.stateStartTime
                     if elapsed >= data.stateDuration then
-                        -- Done using equipment, find a new destination
-                        local humanoid = npc:FindFirstChild("Humanoid")
-                        if humanoid then 
-                            humanoid.WalkSpeed = CONFIG.movementSpeed
-                        end
-                        
-                        -- Decide what to do next
-                        local leaveChance = 1 - (data.satisfaction / 100)
-                        if math.random() < leaveChance or 
-                           math.random() < 0.1 then -- 10% base chance to leave
-                            -- Leave the gym
-                            self:makeNPCLeave(npc)
-                        else
-                            -- Find something else to do
-                            self:findNextDestination(npc)
-                        end
-                    end
+                        -- Done waiting, find a new destination
+
+
+                elseif data.state == "DoingActivity" then
+                  -- We are doing something that doesn't require equipment (like swimming, etc.)
+                  -- Check if we've been doing the activity long enough
+                  local elapsed = tick() - data.stateStartTime
+                  if elapsed >= data.stateDuration then
+                      -- Done with the activity, find a new destination
+                      self:findNextDestination(npc)
+
+                  end
+
+                elseif data.state == "Leaving" then
+                  -- Generate revenue before leaving
+                  local owner = TycoonSystem:getTycoonOwner(tycoon)
+                  if owner and RevenueSystem and data.revenue > 0 then
+                      -- Add accumulated revenue to player
+                      RevenueSystem:addRevenue(owner, data.revenue, "member_visit")
+                      
+                      -- Fire event
+                      EventBridge:fireEvent("MemberGeneratedRevenue", {
+                          tycoonId = tycoonId,
+                          memberType = data.memberType,
+                          amount = data.revenue
+                      })
+                  end
+                  
+                  -- Remove NPC
+                  self:returnToPool(npc)
+                  
+                                          
+
+
+
+
+
                     
                 elseif data.state == "Wandering" then
-                    -- We've reached our wandering destination, find a new one
-                    data.stateStartTime = tick()
-                    data.stateDuration = math.random(2, 5) -- Stand for a few seconds
-                    data.state = "Standing"
-                    
-                elseif data.state == "Standing" then
-                    -- Check if we've been standing long enough
-                    local elapsed = tick() - data.stateStartTime
-                    if elapsed >= data.stateDuration then
-                        -- Done standing, find a new destination
-                        self:findNextDestination(npc)
-                    end
+                  -- We've reached our wandering destination, find a new one
+                  data.stateStartTime = tick()
+                  data.stateDuration = math.random(2, 5) -- Stand for a few seconds
+                  data.state = "Standing"
+                  
+              elseif data.state == "Standing" then
+                  -- Check if we've been standing long enough
+                  local elapsed = tick() - data.stateStartTime
+                  if elapsed >= data.stateDuration then
+                      -- Done standing, find a new destination
+                      self:findNextDestination(npc)
+                  end
                 end
             end
         end
     end
+
     
     -- Apply culling - hide NPCs when player is far away
-    local shouldCull = not isPlayerNearTycoon(tycoon, CONFIG.cullingDistance)
+--     local shouldCull = not isPlayerNearTycoon(tycoon, CONFIG.cullingDistance)
+    local shouldCull = false
     
     local humanoid = npc:FindFirstChild("Humanoid")
     if humanoid then
@@ -784,6 +1308,52 @@ function NPCSystem:updateSingleNPC(npc, data)
     end
 end
 
+
+-- Generate revenue while using equipment
+function NPCSystem:generateRevenue(npc, tycoon, data)
+  local owner = TycoonSystem:getTycoonOwner(tycoon)
+  if owner and RevenueSystem then
+    local revenueToAdd = 0
+    local activityConfig = nil
+    for _, config in ipairs(CONFIG.activityTypes) do
+      if config.name == data.activity then
+          activityConfig = config
+          break
+      end
+    end
+    
+    if data.equipment then
+      -- Calculate revenue based on equipment and member type
+      revenueToAdd = data.equipment:GetAttribute("Revenue") or 1
+    else
+      -- Calculate revenue based on base activity (e.g., free weights, general area)
+      revenueToAdd = activityConfig.baseRevenue or 1
+    end
+    
+    local memberMultiplier = npc:GetAttribute("RevenueMultiplier") or 1
+    data.revenue = data.revenue + (revenueToAdd * memberMultiplier)
+  end
+end
+
+-- Update satisfaction based on equipment quality
+function NPCSystem:updateSatisfaction(npc, tycoon, data)
+  if MemberSatisfactionSystem then
+      local tycoonId = tycoon:GetAttribute("TycoonId")
+      local satisfactionChange = 0
+
+      if data.equipment then
+        -- If using equipment, satisfaction changes based on its quality
+        local equipmentQuality = data.equipment:GetAttribute("Quality") or 1
+        satisfactionChange = equipmentQuality - 1 -- -1 to +4 typically
+      else
+        -- If doing a general activity (no equipment), satisfaction doesn't change for now
+        satisfactionChange = 0
+      end
+      
+      -- Apply satisfaction change
+      MemberSatisfactionSystem:updateMemberSatisfaction(tycoonId, satisfactionChange, npc)
+  end
+end
 --[[ Tycoon Management ]]--
 
 -- Start spawning NPCs for a tycoon
@@ -1018,6 +1588,22 @@ function NPCSystem:init()
     end
     
     return true
+end
+
+-- Handle special event start
+function NPCSystem:handleSpecialEventStarted(data)
+    debugPrint("Special event started:", data)
+    -- Logic for handling special events (e.g., increased spawn rate) will go here
+end
+
+-- Handle gym level up
+function NPCSystem:handleGymLevelUp(data)
+    debugPrint("Gym level up event:", data)
+    if data and data.level >= CONFIG.vipUnlockLevel then
+        debugPrint("VIP members are now unlocked!")
+        -- You can also directly modify CONFIG.memberTypes here if needed
+    end
+    -- Logic for handling gym level ups (e.g., unlock VIP members) will go here
 end
 
 -- Start the system
