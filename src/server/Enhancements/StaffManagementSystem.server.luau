@@ -6,6 +6,20 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+-- XP needed per level
+local XP_PER_LEVEL = {
+	100,    -- Level 1 -> 2
+	250,    -- Level 2 -> 3
+	500,    -- Level 3 -> 4
+	1000,   -- Level 4 -> 5
+	2000,   -- Level 5 -> 6
+	3000,   -- Level 6 -> 7
+	4000,   -- Level 7 -> 8
+	5000,   -- Level 8 -> 9
+	6000,   -- Level 9 -> 10
+	7000    -- Level 10 (Max)
+}
+
 -- Configuration
 local CONFIG = {
 	-- Staff positions
@@ -513,6 +527,9 @@ function StaffSystem:createStaffMember(player, positionId)
 		xp = 0, -- Start with 0 XP
 		skillMultiplier = CONFIG.skillLevels[1].multiplier, -- Initial multiplier
 		specialization = nil, -- No specialization initially
+		-- 	-- Add other skills as needed
+		-- }
+		-- staffMember.skillXP = 0,
 		hireTime = os.time(), -- Track when hired
 		lastXpGain = os.time(), -- For passive XP
 		inTraining = false -- Training status
@@ -621,6 +638,9 @@ function StaffSystem:addStaffXP(player, positionId, staffId, xpAmount)
 	
 	-- Add XP
 	staffMember.xp = staffMember.xp + xpAmount
+	-- Call the new GiveStaffXP function to handle level up logic
+	StaffSystem:GiveStaffXP(staffMember, "Efficiency", 10)
+
 	staffMember.lastXpGain = os.time()
 	
 	-- Check for level up
@@ -674,6 +694,98 @@ function StaffSystem:addStaffXP(player, positionId, staffId, xpAmount)
 	self:saveStaffData(player)
 	
 	return true
+end
+
+-- Give XP to a staff member
+function StaffSystem:GiveStaffXP(staffData, skillName, amount)
+	-- Validate parameters
+	if not staffData or not skillName or not amount then
+		warn("Invalid parameters for GiveStaffXP")
+		return false
+	end
+	
+	-- Validate skill name
+	local validSkills = {
+		"Efficiency", "Satisfaction", "Retention", "Revenue", "SpecializationBonus",
+		"VIPConversion", "EquipmentLifespan", "EquipmentQuality", "Training"
+	}
+	if not table.find(validSkills, skillName) then
+		warn("Invalid skill name: " .. skillName)
+		return false
+	end
+	
+	-- Add XP to the specified skill
+	local xpAttributeName = skillName .. "XP"
+	staffData[xpAttributeName] = (staffData[xpAttributeName] or 0) + amount
+	
+	-- Handle leveling up
+	local levelAttributeName = skillName .. "Level"
+	local currentLevel = staffData[levelAttributeName] or 0
+	
+	while currentLevel < 10 do
+		local xpNeeded = XP_PER_LEVEL[currentLevel + 1]
+		
+		if not xpNeeded or staffData[xpAttributeName] < xpNeeded then
+			-- Not enough XP to level up
+			break
+		end
+		
+		-- Level up!
+		currentLevel = currentLevel + 1
+		staffData[levelAttributeName] = currentLevel
+		staffData[xpAttributeName] = staffData[xpAttributeName] - xpNeeded
+		
+		debugPrint(staffData.name .. " leveled up " .. skillName .. " to level " .. currentLevel)
+	end
+	
+	return true
+end
+
+-- Initialize staff member data
+local function initializeStaffMemberData(staffMember)
+	local skills = {
+		"Efficiency", "Satisfaction", "Retention", "Revenue", "SpecializationBonus",
+		"VIPConversion", "EquipmentLifespan", "EquipmentQuality", "Training"
+	}
+	
+	for _, skillName in ipairs(skills) do
+		local levelAttributeName = skillName .. "Level"
+		local xpAttributeName = skillName .. "XP"
+		
+		if staffMember[levelAttributeName] == nil then
+			staffMember[levelAttributeName] = 0
+		end
+		if staffMember[xpAttributeName] == nil then
+			staffMember[xpAttributeName] = 0
+		end
+	end
+end
+
+-- Create a new staff member when hired
+function StaffSystem:createStaffMember(player, positionId)
+	local staffMember = StaffSystem.super.createStaffMember(self, player, positionId)
+	
+	if staffMember then
+		initializeStaffMemberData(staffMember)
+	end
+	
+	return staffMember
+end
+
+-- Load staff data
+function StaffSystem:loadStaffData(player)
+	local success = StaffSystem.super.loadStaffData(self, player)
+	
+	-- Ensure all staff members have skills initialized
+	if success and self.staffData[player.UserId] then
+		for _, positionData in pairs(self.staffData[player.UserId]) do
+			for _, staffMember in ipairs(positionData.staffMembers) do
+				initializeStaffMemberData(staffMember)
+			end
+		end
+	end
+	
+	return success
 end
 
 -- Save staff data to DataManager or player attributes
