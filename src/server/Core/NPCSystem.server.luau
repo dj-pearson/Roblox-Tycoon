@@ -546,6 +546,15 @@ function NPCSystem:createNPC(tycoonId)
     self:assignRandomAppearance(npc)
     self:assignChatter(npc)
     
+    -- Assign specialization to NPC
+    local CoreRegistry = require(script.Parent.CoreRegistry)
+    local SpecializationNPC = CoreRegistry:getSystem("SpecializationNPC")
+    if SpecializationNPC then
+      SpecializationNPC.assignSpecialization(npc)
+    end
+    if SpecializationNPC then
+      SpecializationNPC.changeStats(npc)
+    end
     -- Add a unique identifier
     npc.Name = "NPC_" .. tycoonId .. "_" .. tostring(math.random(100000, 999999))
     
@@ -800,11 +809,24 @@ function NPCSystem:findNextDestination(npc)
     local tycoon = TycoonSystem:getTycoonById(tycoonId)
     if not tycoon then return end
     
+    -- Get the NPC's specialization
+    local specialization = npc:GetAttribute("Specialization")
+    local equipmentTags = {}
+    
+    -- If the NPC has a specialization, get equipment tags
+    local CoreRegistry = require(script.Parent.CoreRegistry)
+    local SpecializationSystem = CoreRegistry:getSystem("SpecializationSystem")
+    if SpecializationSystem and specialization then
+        local specializationsData = SpecializationSystem:getSpecializations()
+        if specializationsData[specialization] then
+            equipmentTags = specializationsData[specialization].equipmentTags
+        end
+    end
+    
     -- Select an activity based on preferences
     local selectedActivity = CONFIG.npcPreferences[math.random(#CONFIG.npcPreferences)]
-    local activityConfig = nil
-    for _, config in ipairs(CONFIG.activityTypes) do
-        if config.name == selectedActivity then
+    local function findActivityConfig(activityName)
+            for _, config in ipairs(CONFIG.activityTypes) do
             activityConfig = config
             break
         end
@@ -814,6 +836,7 @@ function NPCSystem:findNextDestination(npc)
         warn("NPCSystem: No config found for activity:", selectedActivity)
         return
     end
+    local activityConfig = findActivityConfig(selectedActivity)
     
     -- Determine the floor of the selected activity
     local targetFloor = activityConfig.area
@@ -829,7 +852,11 @@ function NPCSystem:findNextDestination(npc)
         end
     end
 
-    -- Check if there is equipment for the activity and get a random one if there is one
+    -- Check if there is equipment for the activity, prioritizing specialization equipment
+    local targetEquipment = nil
+    local possibleEquipments = {}
+    local hasSpecializationEquipment = false
+    
     local targetEquipment = nil
     if activityConfig.equipment and #activityConfig.equipment > 0 then
       local possibleEquipments = {}
@@ -842,8 +869,50 @@ function NPCSystem:findNextDestination(npc)
         end
       end
       -- Select a random equipment from the ones that exist in the tycoon
+
+    -- If the NPC has a specialization with equipment tags, prioritize them
+    if #equipmentTags > 0 then
+        for _, tag in ipairs(equipmentTags) do
+            for _, child in ipairs(tycoon:GetDescendants()) do
+                if (child:IsA("Model") and child:GetAttribute("IsEquipment") and child:HasTag(tag)) or (child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child:HasTag(tag)) then
+                    -- Equipment from specialization found
+                    hasSpecializationEquipment = true
+                    -- Add to the list of possible equipments
+                    table.insert(possibleEquipments, child)
+                end
+            end
+        end
+        
+        -- If equipment from specialization tags were found, use those equipment
+        if #possibleEquipments > 0 then
+          targetEquipment = possibleEquipments[math.random(1, #possibleEquipments)]
+        end
+    end
+
+    -- If equipment of that specialization was found, make that a requirement, instead of an option
+    if hasSpecializationEquipment then
+      if not targetEquipment then
+        -- If the specialization does not have any valid equipment for the chosen activity, then select a random activity
+        local validActivityFound = false
+        for _, config in ipairs(CONFIG.activityTypes) do
+            if config.equipment then
+                local activityHasEquipment = false
+                for _, equip in ipairs(config.equipment) do
+                  for _, child in ipairs(tycoon:GetDescendants()) do
+                      if child:IsA("Model") and child:GetAttribute("IsEquipment") and child.Name == equip or child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child.Name == equip then
+                        activityHasEquipment = true
+                        validActivityFound = true
+                        activityConfig = config
+                        break
+                      end
+                  end
+                  if activityHasEquipment then break end
+                end
+            end
+        end
+      end
       if #possibleEquipments > 0 then
-        targetEquipment = possibleEquipments[math.random(1, #possibleEquipments)]
+          targetEquipment = possibleEquipments[math.random(1, #possibleEquipments)]
       end
     end
 

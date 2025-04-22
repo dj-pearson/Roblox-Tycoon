@@ -128,6 +128,18 @@ function SpecializationSystem:getAvailableSpecializations(player)
     return available
 end
 
+-- Get available specializations ids
+function SpecializationSystem:getSpecializationsList()
+    local available = {}
+
+    -- Get specialization ids
+    for id, specialization in pairs(self.specializations) do
+        table.insert(available, id)
+    end
+
+    return available
+end
+
 -- Get current specialization(s) for a player
 function SpecializationSystem:getPlayerSpecializations(player)
     if not player then return nil end
