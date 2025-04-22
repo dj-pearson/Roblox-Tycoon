@@ -35,51 +35,67 @@ local SpecializationSystem = {
             description = "Focus on strength training and muscle growth",
             level_requirement = 3,
             benefits = {
-                membership_boost = 1.2,  -- 20% more members
-                vip_chance = 0.15,       -- Increased VIP chance (15% vs standard 10%)
+                membership_boost = 1.3,  -- 30% more members (increased from 20%)
+                vip_chance = 0.12,       -- Increased VIP chance (12%, decreased from 15%)
+                strength_bonus = 0.1,   -- 10% strength bonus for NPCs using weights (new benefit)
                 equipment_discounts = {  -- Discounts on related equipment
                     weights = 0.2,       -- 20% off weight equipment
                     machines = 0.1       -- 10% off machines
                 }
             },
-            equipment_tags = {"weights", "bench", "rack"}
+            equipment_tags = {"weights", "bench", "rack", "machine", "IsEquipment", "equipment"} -- Added "machine", "IsEquipment" and "equipment" tag
+			-- machine: This tag is added because the NPC_Movement script can identify machines but there was no tag for it.
+			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
+			-- equipment: This tag will target any model that has the name "equipment", allowing more flexibility.
+			
+
         },
         cardio = {
             name = "Cardio Fitness",
             description = "Focus on cardiovascular health and endurance",
             level_requirement = 3,
             benefits = {
-                dues_boost = 1.15,       -- Members pay 15% more
-                membership_retention = 1.25, -- 25% better member retention
+                dues_boost = 1.1,        -- Members pay 10% more (decreased from 15%)
+                membership_retention = 1.3, -- 30% better member retention (increased from 25%)
+                endurance_bonus = 0.1,  -- 10% endurance bonus for NPCs using cardio equipment (new benefit)
                 equipment_discounts = {
                     treadmill = 0.2,     -- 20% off treadmills
                     cardio = 0.15        -- 15% off cardio equipment
                 }
-            },
-            equipment_tags = {"treadmill", "bike", "cardio"}
+            }, 
+            equipment_tags = {"treadmill", "bike", "cardio", "IsEquipment", "equipment"} -- Added "IsEquipment" and "equipment" tag
+			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
+			-- equipment: This tag will target any model that has the name "equipment", allowing more flexibility.
         },
         luxury = {
             name = "Luxury Wellness",
             description = "Premium experience with spa and wellness features",
             level_requirement = 5,
             benefits = {
-                vip_multiplier = 2.0,    -- VIPs pay double the standard boost
-                vip_chance = 0.2,        -- 20% chance for VIPs
-                membership_boost = 0.9,  -- 10% fewer total members
-                dues_boost = 1.3         -- 30% higher membership fees
+                vip_multiplier = 2.0,   -- VIPs pay double the standard boost
+                vip_chance = 0.15,       -- 15% chance for VIPs (decreased from 20%)
+                membership_boost = 0.95, -- 5% fewer total members (increased from 10% fewer)
+                dues_boost = 1.4,        -- 40% higher membership fees (increased from 30%)
+                energy_bonus = 0.1      -- 10% energy bonus for NPCs using spa equipment (new benefit)
             },
-            equipment_tags = {"spa", "sauna", "luxury"}
+            equipment_tags = {"spa", "sauna", "luxury", "IsEquipment", "equipment"} -- Added "IsEquipment" and "equipment" tag
+			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
+			-- equipment: This tag will target any model that has the name "equipment", allowing more flexibility.
+			
         },
         crossfit = {
             name = "CrossFit Training",
             description = "High-intensity functional training approach",
             level_requirement = 4,
             benefits = {
-                membership_boost = 1.1,  -- 10% more members
-                dues_boost = 1.1,        -- 10% higher dues
-                competition_boost = 1.3  -- 30% better competition results
+                membership_boost = 1.2,  -- 20% more members (increased from 10%)
+                dues_boost = 1.05,       -- 5% higher dues (decreased from 10%)
+                competition_bonus = 1.4  -- 40% better competition results (renamed and increased from 30%)
             },
-            equipment_tags = {"functional", "crossfit", "box"}
+            equipment_tags = {"functional", "crossfit", "box", "IsEquipment", "equipment"} -- Added "IsEquipment" and "equipment" tag
+			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
+			-- equipment: This tag will target any model that has the name "equipment", allowing more flexibility.
+			
         }
     }
 }
@@ -218,6 +234,9 @@ function SpecializationSystem:applySpecializationBenefits(player)
     tycoon:SetAttribute("SpecVIPChance", 0.1) -- Default 10%
     tycoon:SetAttribute("SpecVIPMultiplier", 1.0)
     tycoon:SetAttribute("SpecCompetitionBoost", 1.0)
+    tycoon:SetAttribute("SpecStrengthBonus", 0.0)
+    tycoon:SetAttribute("SpecEnduranceBonus", 0.0)
+    tycoon:SetAttribute("SpecEnergyBonus", 0.0)
 
     -- Apply primary specialization benefits
     if specs.primary then
@@ -243,8 +262,23 @@ function SpecializationSystem:applySpecializationBenefits(player)
                 tycoon:SetAttribute("SpecVIPMultiplier", primary.benefits.vip_multiplier)
             end
 
-            -- Competition boost
+            -- Competition bonus
             if primary.benefits.competition_boost then
+                tycoon:SetAttribute("SpecCompetitionBoost", primary.benefits.competition_bonus)
+            end
+            
+            -- Strength bonus
+            if primary.benefits.strength_bonus then
+                tycoon:SetAttribute("SpecStrengthBonus", primary.benefits.strength_bonus)
+            end
+            
+            -- Endurance bonus
+            if primary.benefits.endurance_bonus then
+                tycoon:SetAttribute("SpecEnduranceBonus", primary.benefits.endurance_bonus)
+            end
+            
+            -- Energy bonus
+            if primary.benefits.energy_bonus then
                 tycoon:SetAttribute("SpecCompetitionBoost", primary.benefits.competition_boost)
             end
         end
@@ -282,9 +316,23 @@ function SpecializationSystem:applySpecializationBenefits(player)
                 tycoon:SetAttribute("SpecVIPMultiplier", currentMultiplier + secondaryEffect)
             end
 
-            -- Competition boost (half effect)
+            -- Competition bonus (half effect)
             if secondary.benefits.competition_boost then
                 local currentBoost = tycoon:GetAttribute("SpecCompetitionBoost")
+                local secondaryEffect = (secondary.benefits.competition_boost - 1.0) * 0.5
+                tycoon:SetAttribute("SpecCompetitionBoost", currentBoost + secondaryEffect)
+            end
+            
+             -- Strength bonus (half effect)
+            if secondary.benefits.strength_bonus then
+                local currentBoost = tycoon:GetAttribute("SpecStrengthBonus")
+                local secondaryEffect = secondary.benefits.strength_bonus * 0.5
+                tycoon:SetAttribute("SpecStrengthBonus", currentBoost + secondaryEffect)
+            end
+            
+            -- Other bonus (half effect)
+            if secondary.benefits.other_bonus then
+                local currentBoost = tycoon:GetAttribute("SpecOtherBonus")
                 local secondaryEffect = (secondary.benefits.competition_boost - 1.0) * 0.5
                 tycoon:SetAttribute("SpecCompetitionBoost", currentBoost + secondaryEffect)
             end
@@ -294,337 +342,4 @@ function SpecializationSystem:applySpecializationBenefits(player)
     -- Update revenue system if available
     local GymRevenueSystem = CoreRegistry.getSystem("GymRevenueSystem")
     if GymRevenueSystem then
-        GymRevenueSystem.updatePlayerConfig(player)
-    end
-    
-    -- Notify other systems about specialization changes
-    EventBridge.fireEvent("PlayerSpecializationChanged", player, specs)
-end
-
--- Create specialization decor based on player's specialization
-function SpecializationSystem:createSpecializationDecor(player)
-    if not player then return end
-
-    local tycoon = player:FindFirstChild("Tycoon")
-    if not tycoon or not tycoon.Value then return end
-
-    local specs = self:getPlayerSpecializations(player)
-    if not specs.primary then return end -- Only create decor for primary specialization
-
-    local specialization = self.specializations[specs.primary]
-    if not specialization then return end
-
-    -- Check if decor already exists
-    local existingDecor = tycoon.Value:FindFirstChild("SpecializationDecor")
-    if existingDecor then
-        existingDecor:Destroy()
-    end
-
-    -- Create decor model
-    local decor = Instance.new("Model")
-    decor.Name = "SpecializationDecor"
-
-    -- Create different decor based on specialization
-    if specs.primary == "bodybuilding" then
-        -- Create bodybuilding decor (posters, trophy case)
-        local poster = Instance.new("Part")
-        poster.Name = "BodybuildingPoster"
-        poster.Size = Vector3.new(4, 3, 0.1)
-        poster.Anchored = true
-        poster.CanCollide = false
-
-        -- Find a wall to place it on
-        local position
-        for _, part in pairs(tycoon.Value:GetDescendants()) do
-            if part:IsA("BasePart") and part.Size.Y > 5 and part.Size.X > 4 then
-                position = part.Position + part.CFrame.LookVector * (part.Size.Z/2 + 0.1)
-                break
-            end
-        end
-
-        if position then
-            poster.Position = position + Vector3.new(0, 1, 0)
-
-            -- Add surface GUI with image
-            local surfaceGui = Instance.new("SurfaceGui")
-            surfaceGui.Face = Enum.NormalId.Front
-            surfaceGui.Parent = poster
-
-            local posterImage = Instance.new("ImageLabel")
-            posterImage.Size = UDim2.new(1, 0, 1, 0)
-            posterImage.BackgroundTransparency = 1
-            posterImage.Image = "rbxassetid://2637579692" -- Example bodybuilding image
-            posterImage.Parent = surfaceGui
-
-            poster.Parent = decor
-        end
-
-    elseif specs.primary == "cardio" then
-        -- Create cardio decor (running track markers)
-        for i = 1, 5 do
-            local marker = Instance.new("Part")
-            marker.Name = "TrackMarker"..i
-            marker.Size = Vector3.new(0.5, 0.1, 0.5)
-            marker.BrickColor = BrickColor.new("Bright red")
-            marker.Material = Enum.Material.Neon
-            marker.Anchored = true
-            marker.CanCollide = false
-
-            -- Find floor to place markers on
-            local floor
-            for _, part in pairs(tycoon.Value:GetDescendants()) do
-                if part:IsA("BasePart") and part.Size.X > 10 and part.Size.Z > 10 and 
-                    math.abs(part.CFrame.UpVector.Y) > 0.9 then
-                    floor = part
-                    break
-                end
-            end
-
-            if floor then
-                local angle = (i / 5) * math.pi * 2
-                local radius = 5
-                local offsetX = math.cos(angle) * radius
-                local offsetZ = math.sin(angle) * radius
-
-                marker.Position = floor.Position + Vector3.new(offsetX, floor.Size.Y/2 + 0.1, offsetZ)
-                marker.Parent = decor
-            end
-        end
-
-    elseif specs.primary == "luxury" then
-        -- Create luxury decor (fancy reception desk, plant)
-        local plant = Instance.new("Part")
-        plant.Name = "LuxuryPlant"
-        plant.Size = Vector3.new(1, 2, 1)
-        plant.BrickColor = BrickColor.new("Forest green")
-        plant.Material = Enum.Material.Grass
-        plant.Anchored = true
-
-        local pot = Instance.new("Part")
-        pot.Name = "PlantPot"
-        pot.Size = Vector3.new(1.2, 0.5, 1.2)
-        pot.BrickColor = BrickColor.new("Pearl")
-        pot.Material = Enum.Material.Marble
-        pot.Anchored = true
-
-        -- Find spot near entrance
-        local entrance
-        for _, part in pairs(tycoon.Value:GetDescendants()) do
-            if part:IsA("BasePart") and (part.Name:lower():find("entrance") or part.Name:lower():find("door")) then
-                entrance = part
-                break
-            end
-        end
-
-        if entrance then
-            pot.Position = entrance.Position + Vector3.new(2, 0, 2)
-            plant.Position = pot.Position + Vector3.new(0, 1.25, 0)
-
-            pot.Parent = decor
-            plant.Parent = decor
-        end
-
-    elseif specs.primary == "crossfit" then
-        -- Create crossfit decor (rope, chalk bucket)
-        local chalk = Instance.new("Part")
-        chalk.Name = "ChalkBucket"
-        chalk.Size = Vector3.new(0.8, 0.5, 0.8)
-        chalk.BrickColor = BrickColor.new("Institutional white")
-        chalk.Material = Enum.Material.SmoothPlastic
-        chalk.Anchored = true
-
-        -- Find a spot in the center
-        local center
-        for _, part in pairs(tycoon.Value:GetDescendants()) do
-            if part.Name == "Platform" or (part:IsA("BasePart") and part.Size.X > 10 and part.Size.Z > 10) then
-                center = part
-                break
-            end
-        end
-
-        if center then
-            chalk.Position = center.Position + Vector3.new(0, center.Size.Y/2 + 0.25, 0)
-            chalk.Parent = decor
-        end
-    end
-
-    -- Parent decor to tycoon
-    decor.Parent = tycoon.Value
-    
-    -- Tag specialization decor
-    CollectionService:AddTag(decor, "SpecializationDecor")
-    CollectionService:AddTag(decor, "SpecializationType_" .. specs.primary)
-
-    return decor
-end
-
--- Apply discounts to equipment purchases
-function SpecializationSystem:applyEquipmentDiscount(player, equipmentId, basePrice)
-    if not player or not equipmentId then return basePrice end
-
-    local specs = self:getPlayerSpecializations(player)
-    local discount = 0
-
-    -- Get equipment type from id or attributes
-    local equipmentType = "unknown"
-
-    -- Extract equipment type from ID or name
-    if equipmentId:lower():find("treadmill") then
-        equipmentType = "treadmill"
-    elseif equipmentId:lower():find("bench") or equipmentId:lower():find("weight") then
-        equipmentType = "weights"
-    elseif equipmentId:lower():find("machine") then
-        equipmentType = "machines"
-    elseif equipmentId:lower():find("bike") then
-        equipmentType = "cardio"
-    elseif equipmentId:lower():find("spa") or equipmentId:lower():find("sauna") then
-        equipmentType = "spa"
-    elseif equipmentId:lower():find("crossfit") or equipmentId:lower():find("functional") then
-        equipmentType = "functional"
-    end
-
-    -- Check primary specialization for discounts
-    if specs.primary then
-        local primary = self.specializations[specs.primary]
-        if primary and primary.benefits.equipment_discounts then
-            local discounts = primary.benefits.equipment_discounts
-
-            if discounts[equipmentType] then
-                discount = discounts[equipmentType]
-            end
-        end
-    end
-
-    -- Check secondary specialization for discounts (half effect)
-    if specs.secondary then
-        local secondary = self.specializations[specs.secondary]
-        if secondary and secondary.benefits.equipment_discounts then
-            local discounts = secondary.benefits.equipment_discounts
-
-            if discounts[equipmentType] then
-                -- Add half of the secondary discount
-                discount = discount + (discounts[equipmentType] * 0.5)
-            end
-        end
-    end
-
-    -- Apply discount (capped at 50%)
-    discount = math.min(discount, 0.5)
-    local discountedPrice = math.floor(basePrice * (1 - discount))
-
-    return discountedPrice
-end
-
--- Setup server events
-function SpecializationSystem:setupServerEvents()
-    -- Set specialization event
-    EventBridge.registerClientToServerEvent("SetSpecialization", function(player, specializationId, isSecondary)
-        local success, message = self:setSpecialization(player, specializationId, isSecondary)
-        
-        -- Send response to client
-        EventBridge.fireClientEvent("SpecializationResponse", player, {
-            success = success,
-            message = message
-        })
-        
-        return success
-    end)
-    
-    -- Get specializations request
-    EventBridge.registerClientToServerEvent("RequestSpecializations", function(player)
-        local playerSpecs = self:getPlayerSpecializations(player)
-        local availableSpecs = self:getAvailableSpecializations(player)
-        
-        -- Send data to client
-        EventBridge.fireClientEvent("SpecializationsData", player, {
-            current = playerSpecs,
-            available = availableSpecs,
-            allSpecs = self.specializations
-        })
-        
-        return true
-    end)
-    
-    -- Open specialization UI
-    EventBridge.registerClientToServerEvent("OpenSpecializationMenu", function(player)
-        -- Just a trigger to open UI - actual UI is handled client-side
-        EventBridge.fireClientEvent("ShowSpecializationUI", player)
-        return true
-    end)
-    
-    -- Handle equipment purchase discounts
-    EventBridge.registerEvent("EquipmentPriceRequest", function(player, equipmentId, basePrice)
-        local discountedPrice = self:applyEquipmentDiscount(player, equipmentId, basePrice)
-        return discountedPrice
-    end)
-end
-
--- Initialize the system
-function SpecializationSystem:initialize()
-    log("Initializing SpecializationSystem...")
-    
-    -- Set up server events
-    self:setupServerEvents()
-    
-    -- Handle existing players
-    for _, player in pairs(Players:GetPlayers()) do
-        self:applySpecializationBenefits(player)
-    end
-    
-    -- Handle new players
-    Players.PlayerAdded:Connect(function(player)
-        -- Wait for character to load
-        player.CharacterAdded:Wait()
-        task.wait(3)
-        
-        -- Apply specialization benefits
-        self:applySpecializationBenefits(player)
-        
-        -- Create decor if they have a specialization
-        self:createSpecializationDecor(player)
-    end)
-    
-    self.initialized = true
-    log("SpecializationSystem initialized")
-    
-    return true
-end
-
--- Public API
-local PublicAPI = {
-    initialize = function()
-        return SpecializationSystem:initialize()
-    end,
-    
-    getSpecializations = function()
-        return SpecializationSystem.specializations
-    end,
-    
-    getPlayerSpecializations = function(player)
-        return SpecializationSystem:getPlayerSpecializations(player)
-    end,
-    
-    getAvailableSpecializations = function(player)
-        return SpecializationSystem:getAvailableSpecializations(player)
-    end,
-    
-    setSpecialization = function(player, specializationId, isSecondary)
-        return SpecializationSystem:setSpecialization(player, specializationId, isSecondary)
-    end,
-    
-    applySpecializationBenefits = function(player)
-        return SpecializationSystem:applySpecializationBenefits(player)
-    end,
-    
-    applyEquipmentDiscount = function(player, equipmentId, basePrice)
-        return SpecializationSystem:applyEquipmentDiscount(player, equipmentId, basePrice)
-    end,
-    
-    createSpecializationDecor = function(player)
-        return SpecializationSystem:createSpecializationDecor(player)
-    end
-}
-
--- Register with CoreRegistry
-return CoreRegistry.registerSystem("SpecializationSystem", PublicAPI, {"EventBridge", "DataManager"})
 

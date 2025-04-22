@@ -9,52 +9,91 @@ This document outlines the architectural organization of the Gym Tycoon game, fo
 The game uses a hierarchical folder structure to organize gym elements:
 
 ```
-GymParts/
-├── 1st Floor/
-│   ├── Rooms/
-│   │   ├── Entrance/
-│   │   ├── Main Workout Area/
-│   │   ├── Cardio Zone/
-│   │   └── Locker Room/
-│   ├── Walls/
-│   ├── Floor/
-│   └── Ceiling/
-├── 2nd Floor/
-│   ├── Rooms/
-│   │   ├── Strength Training/
-│   │   ├── Specialty Equipment/
-│   │   └── Staff Area/
-│   ├── Walls/
-│   ├── Floor/
-│   └── Ceiling/
-├── 3rd Floor/
-│   ├── Rooms/
-│   │   ├── Premium Services/
-│   │   └── VIP Area/
-│   ├── Walls/
-│   ├── Floor/
-│   └── Ceiling/
-├── 4th Floor/
-│   ├── Rooms/
-│   │   ├── Special Facilities/
-│   │   └── Amenities/
-│   ├── Walls/
-│   ├── Floor/
-│   └── Ceiling/
-├── Roof/
-│   ├── Outdoor Facilities/
-│   │   ├── Pool Area/
-│   │   └── Track Area/
-│   └── Structures/
-└── Outside/
-    ├── Parking/
-    ├── Entrance Features/
-    ├── Outdoor Equipment/
-    ├── Pool/
-    ├── Tennis Court/
-    ├── Pickleball Court/
-    └── Soccer Field/
-```
+# GymParts Directory
+
+## 1st Floor
+- Accessories
+- Cardio
+- Ceiling
+- Concession
+- Functional
+- Furniture
+- Juice Bar
+- Kids Gym
+- LockerRoom
+- Sport
+- Strength
+- Walls
+- 📄 Stairs - 1st
+
+## 2nd Floor
+- 2nd Floor Terrace
+- Aquarium
+- Basketball
+- Ceiling
+- Accessories
+- Furniture
+- Games
+- Golf Sim and Lounge
+- Group Fitness
+- HIIT
+- Spin
+- Walls
+- 📄 Stairs - 2nd_152
+
+## 3rd Floor
+- 3rd Floor Terrace
+- Ceiling
+- Accessories
+- Massage and Wellness
+- PT Studio
+- Pilates Studio
+- Walls
+- Yoga
+- Yoga - 2
+- 📄 Stairs - 3rd_154
+
+## 4th Floor
+- 4th Floor Terrace
+- Boxing
+- Ceiling
+- Rock Wall
+- Pool
+- Offices
+- Restaurant
+- Shower Mens
+- Shower Womens
+- Walls
+- 📄 Stairs - 4th_156
+
+## Elevator
+
+## Floor
+
+## Outside
+- Accessories
+- Parking Lot
+- Playground
+- Yoga
+- Soccer Field
+- Skate Park
+- Stage
+- Pickleball Court
+- Tennis Court
+- Rock Wall
+- Front
+- Pool
+- Sidewalk
+- Surround
+- Walls
+- 📄 Outside Floor
+- 📄 Sidewalk Front 30
+
+## Roof
+- Pool Area
+- Track Area
+- Walls
+
 
 ## 2. Attribute System
 

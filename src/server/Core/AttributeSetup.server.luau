@@ -1,2 +1,55 @@
-lua
---[[\n    AttributeSetup.server.luau\n    \n    Module script to set up attributes on equipment models.\n    \n    Created: May 2025\n]]\n\nlocal AttributeSetup = {}\n\n-- Equipment type definitions - add more as needed\nlocal EQUIPMENT_TYPES = {\n    -- Cardio Equipment\n    {typeName = \"Treadmill\", keywords = {\"treadmill\"}, category = \"Cardio\", basePrice = 2000, incomeBonus = 5},\n    {typeName = \"Elliptical\", keywords = {\"elliptical\"}, category = \"Cardio\", basePrice = 2500, incomeBonus = 6},\n    {typeName = \"StationaryBike\", keywords = {\"bike\", \"stationary\", \"cycle\"}, category = \"Cardio\", basePrice = 1800, incomeBonus = 4},\n    {typeName = \"StairClimber\", keywords = {\"stair\", \"climber\", \"stepper\"}, category = \"Cardio\", basePrice = 3000, incomeBonus = 7},\n    {typeName = \"RowingMachine\", keywords = {\"row\", \"rowing\"}, category = \"Cardio\", basePrice = 2800, incomeBonus = 6},\n    \n    -- Strength Equipment\n    {typeName = \"BenchPress\", keywords = {\"bench\", \"press\"}, category = \"Strength\", basePrice = 2200, incomeBonus = 7},\n    {typeName = \"SquatRack\", keywords = {\"squat\", \"rack\"}, category = \"Strength\", basePrice = 3500, incomeBonus = 9},\n    {typeName = \"DumbbellRack\", keywords = {\"dumbbell\", \"dumbell\"}, category = \"Strength\", basePrice = 1500, incomeBonus = 5},\n    {typeName = \"LegPress\", keywords = {\"leg\", \"press\"}, category = \"Strength\", basePrice = 2800, incomeBonus = 7},\n    {typeName = \"CableMachine\", keywords = {\"cable\", \"pulley\"}, category = \"Strength\", basePrice = 3200, incomeBonus = 8},\n    \n    -- Add more equipment types as needed\n}\n\n-- Determine equipment type from name\nfunction AttributeSetup.DetermineEquipmentType(name)\n    local lowerName = string.lower(name)\n    \n    -- Check each equipment type\n    for _, equipType in ipairs(EQUIPMENT_TYPES) do\n        -- Check keywords\n        for _, keyword in ipairs(equipType.keywords) do\n            if string.find(lowerName, string.lower(keyword)) then\n                return equipType.typeName, equipType.category, equipType.basePrice, equipType.incomeBonus\n            end\n        end\n    end\n    \n    return nil, \"Misc\", 1000, 2 -- Default values if no match is found\nend\n\n-- Setup attributes for a model\nfunction AttributeSetup.SetupModelAttributes(model, equipmentData)\n    if not model then\n        warn(\"AttributeSetup: Invalid model provided\")\n        return\n    end\n    \n    local equipmentType, category, basePrice, incomeBonus\n    \n    if equipmentData then\n        equipmentType = equipmentData.equipmentType\n        category = equipmentData.category\n        basePrice = equipmentData.basePrice\n        incomeBonus = equipmentData.incomeBonus\n    else\n        equipmentType, category, basePrice, incomeBonus = AttributeSetup.DetermineEquipmentType(model.Name)\n    end\n    \n    -- Add attributes\n    model:SetAttribute(\"equipmentType\", equipmentType)\n    model:SetAttribute(\"category\", category)\n    model:SetAttribute(\"basePrice\", basePrice)\n    model:SetAttribute(\"incomeBonus\", incomeBonus)\n    model:SetAttribute(\"upgradeLevel\", 0) -- Start at level 0 (base level)\n    \n    -- Only set equipment ID if not already set\n    if not model:GetAttribute(\"EquipmentId\") then\n        model:SetAttribute(\"EquipmentId\", model.Name .. \"_\" .. tostring(math.random(1000, 9999)))\n    end\nend\n\n-- Find the GymParts folder\nfunction AttributeSetup.GymPartsFinder()\n    local gymParts = workspace:FindFirstChild(\"GymParts\")\n    if not gymParts then\n        warn(\"EquipmentAttributeSetup: Could not find GymParts folder in workspace!\")\n        \n        -- Try to find any folder that might be it\n        for _, child in ipairs(workspace:GetChildren()) do\n            if child:IsA(\"Folder\") or child:IsA(\"Model\") then\n                if string.find(string.lower(child.Name), \"gym\") or string.find(string.lower(child.Name), \"equipment\") then\n                    print(\"EquipmentAttributeSetup: Found potential gym equipment folder:\", child.Name)\n                    print(\"EquipmentAttributeSetup: Processing this folder instead...\")\n                    gymParts = child\n                    break\n                end\n            end\n        end\n        \n        -- If still not found, try other common names\n        if not gymParts then\n            local potentialNames = {\"Gym\", \"Equipment\", \"Fitness\", \"GymEquipment\", \"TycoonParts\"}\n            for _, name in ipairs(potentialNames) do\n                local potential = workspace:FindFirstChild(name)\n                if potential then\n                    print(\"EquipmentAttributeSetup: Found potential gym equipment folder:\", potential.Name)\n                    print(\"EquipmentAttributeSetup: Processing this folder instead...\")\n                    gymParts = potential\n                    break\n                end\n            end\n        end\n        \n        -- If still not found, exit\n        if not gymParts then\n            print(\"EquipmentAttributeSetup: No suitable folders found. Please rename your gym equipment folder to \'GymParts\'\")\n            return nil\n        end\n    end\n    return gymParts\nend\n\nreturn AttributeSetup\n
+--luau
+--[[
+    This script is responsible for setting up the attributes of interactive elements
+    in the game, such as equipment and seats.
+]]
+
+--[[
+    Adds the IsInteractive, InteractionType, and CurrentUsers attributes to a model.
+    @param model The model to which attributes will be added.
+]]
+local function SetupInteractiveAttributes(model)
+	-- Adds the IsInteractive attribute and sets it to true.
+	model:SetAttribute("IsInteractive", true)
+
+	-- Adds the InteractionType attribute and sets a default value of "Unknown".
+	model:SetAttribute("InteractionType", "Unknown")
+
+	-- Adds the CurrentUsers attribute and sets the initial count to 0.
+	model:SetAttribute("CurrentUsers", 0)
+end
+
+--[[
+    Iterates through all equipment models and sets their interactive attributes.
+]]
+local function SetupEquipmentAttributes()
+	-- Get all models with the EquipmentId attribute, to know they are equipment
+    for _, model in pairs(workspace:GetDescendants()) do
+		if model:GetAttribute("EquipmentId") then
+		    -- Call SetupInteractiveAttributes to set the basic interactive attributes.
+		    SetupInteractiveAttributes(model)
+            -- Set the specific InteractionType for equipment.
+			model:SetAttribute("InteractionType", "Equipment")
+        end
+    end
+end
+
+--[[
+    Iterates through all potential seat models and sets their interactive attributes.
+]]
+local function SetupSeatAttributes()
+	-- Iterate through all models.
+    for _, model in pairs(workspace:GetDescendants()) do
+		-- Check if the model's name contains "Seat".
+		if model.Name:lower():find("seat") then
+            -- Call SetupInteractiveAttributes to set the basic interactive attributes.
+			SetupInteractiveAttributes(model)
+            -- Set the specific InteractionType for seats.
+			model:SetAttribute("InteractionType", "Seat")
+        end
+	end
+end
+
+-- Call the SetupEquipmentAttributes and SetupSeatAttributes functions to initialize attributes.
+SetupEquipmentAttributes()
+SetupSeatAttributes()

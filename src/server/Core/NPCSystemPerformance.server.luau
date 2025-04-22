@@ -177,6 +177,34 @@ function NPCSystemPerformance:getNPCFromPool(npcType, tycoon)
     npc:SetAttribute("LastInteraction", workspace:GetServerTimeNow())
     
     debugPrint("Got NPC from pool:", npc.Name, "Type:", npcType)
+    
+    -- Assign a specialization preference
+    local preferences = {
+        {preference = "No Preference", weight = 0.3},
+        {preference = "bodybuilding", weight = 0.2},
+        {preference = "cardio", weight = 0.2},
+        {preference = "luxury", weight = 0.15},
+        {preference = "crossfit", weight = 0.15},
+    }
+
+    -- Calculate total weight
+    local totalWeight = 0
+    for _, pref in ipairs(preferences) do
+        totalWeight = totalWeight + pref.weight
+    end
+
+    -- Choose a random preference based on weights
+    local randomNum = math.random() * totalWeight
+    local chosenPreference
+    local cumulativeWeight = 0
+    for _, pref in ipairs(preferences) do
+        cumulativeWeight = cumulativeWeight + pref.weight
+        if randomNum <= cumulativeWeight then
+            chosenPreference = pref.preference
+            break
+        end
+    end
+    npc:SetAttribute("SpecializationPreference", chosenPreference) -- Assign the chosen preference
     return npc
 end
 
