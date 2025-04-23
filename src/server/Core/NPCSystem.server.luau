@@ -48,8 +48,7 @@ local CONFIG = {
     
     -- VIP
     vipUnlockLevel = 3,         -- Gym level needed to start getting VIP members
-  floorNames = {
-	
+    floorNames = {
         {
             name = "Locker Room",
             area = "1st Floor - Locker Room",
@@ -246,9 +245,10 @@ local CONFIG = {
               maxDuration = 360,
               equipment = {"Bench", "OutdoorLoungeChair", "PicnicTable"} -- Examples
           },
-  },
+    },
     activityPreferenceOrder = {},
     activityWeights = {},
+    floorNames = {
       "1st Floor - Cardio",
       "1st Floor - Strength",
       "1st Floor - Locker Room",
@@ -268,7 +268,7 @@ local CONFIG = {
       "4th Floor - Boxing/MMA Area",
       "4th Floor - Restaurant",
       "Roof - Pool",
-    "Roof - Track",
+      "Roof - Track",
       "Roof - Yoga Area",
       "Roof - Basketball Courts",
       "Outside - Skate Park",
@@ -346,13 +346,12 @@ function NPCSystem:setupCollisionGroups()
 
     -- Disable collisions between NPCs
     physicsService:CollisionGroupSetCollidable(collisionGroupName, collisionGroupName, false)
-
-end
+    
     -- Disable collision between NPCs and Players
     local playersGroupName = "playerCharacter"
     if not physicsService:CollisionGroupExists(playersGroupName) then
         physicsService:CreateCollisionGroup(playersGroupName)
-        for _, player in Players:GetPlayers() do
+        for _, player in ipairs(Players:GetPlayers()) do
           if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             physicsService:SetPartCollisionGroup(player.Character:FindFirstChild("HumanoidRootPart"), playersGroupName)
           end
@@ -360,14 +359,12 @@ end
         Players.PlayerAdded:Connect(function(player)
           player.CharacterAdded:Connect(function(character)
               physicsService:SetPartCollisionGroup(character:FindFirstChild("HumanoidRootPart"), playersGroupName)
-            end
+            end)
           end)
         end
-    end
+    
     physicsService:CollisionGroupSetCollidable(collisionGroupName, playersGroupName, false)
-
-
-
+end
 
 -- Debug function
 local function debugPrint(...)
@@ -817,8 +814,6 @@ function NPCSystem:findNextDestination(npc)
     local npcData = self._activeNPCs[npc]
     if not npcData then return end
     
-    
-    
     -- Get the tycoon
     local tycoonId = npcData.tycoonId
     local tycoon = TycoonSystem:getTycoonById(tycoonId)    
@@ -833,7 +828,6 @@ function NPCSystem:findNextDestination(npc)
     if SpecializationNPC and SpecializationNPC.getSpecialization(npc) then
         equipmentTags = SpecializationSystem:getSpecializationData()[SpecializationNPC.getSpecialization(npc)].equipmentTags
     end
-    end
     
     -- Select an activity based on preferences
     local selectedActivity = CONFIG.npcPreferences[math.random(#CONFIG.npcPreferences)]
@@ -844,40 +838,42 @@ function NPCSystem:findNextDestination(npc)
             end
         end
         warn("NPCSystem: No config found for activity:", selectedActivity)
-        return
+        return nil
     end
     
     local activityConfig = findActivityConfig(selectedActivity)
 
-        -- Determine the floor of the selected activity
-        local targetFloor = activityConfig.area
+    -- Determine the floor of the selected activity
+    local targetFloor = activityConfig and activityConfig.area
     local needsFloorChange = false
     if npcData.currentFloor and npcData.currentFloor ~= targetFloor then
         needsFloorChange = true
     end
     
     -- Check if the activity area has equipment
-        local targetEquipment = nil
-        local possibleEquipments = {}
-        local hasSpecializationEquipment = false
+    local targetEquipment = nil
+    local possibleEquipments = {}
+    local hasSpecializationEquipment = false
 
-        -- Check if the activity has equipment
-        if activityConfig.equipment and #activityConfig.equipment > 0 then
-          local possibleEquipments = {}
-          for _, equip in ipairs(activityConfig.equipment) do
-        -- Check if there are instances of the equipment name in the tycoon
-            if child:IsA("Model") and child:GetAttribute("IsEquipment") and child.Name == equip or child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child.Name == equip then
-              table.insert(possibleEquipments, child)
+    -- Check if the activity has equipment
+    if activityConfig and activityConfig.equipment and #activityConfig.equipment > 0 then
+        for _, equip in ipairs(activityConfig.equipment) do
+            -- Check if there are instances of the equipment name in the tycoon
+            for _, child in ipairs(tycoon:GetDescendants()) do
+                if (child:IsA("Model") and child:GetAttribute("IsEquipment") and child.Name == equip) or 
+                   (child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child.Name == equip) then
+                    table.insert(possibleEquipments, child)
+                end
             end
         end
-      end
-          
-          
-          -- If the NPC has a specialization with equipment tags, prioritize them
-          if #equipmentTags > 0 then
-              for _, tag in ipairs(equipmentTags) do
-              for _, child in ipairs(tycoon:GetDescendants()) do
-                if (child:IsA("Model") and child:GetAttribute("IsEquipment") and child:HasTag(tag)) or (child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child:HasTag(tag)) then
+    end
+    
+    -- If the NPC has a specialization with equipment tags, prioritize them
+    if #equipmentTags > 0 then
+        for _, tag in ipairs(equipmentTags) do
+            for _, child in ipairs(tycoon:GetDescendants()) do
+                if (child:IsA("Model") and child:GetAttribute("IsEquipment") and child:HasTag(tag)) or 
+                   (child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child:HasTag(tag)) then
                     -- Equipment from specialization found
                     hasSpecializationEquipment = true
                     -- Add to the list of possible equipments
@@ -885,43 +881,43 @@ function NPCSystem:findNextDestination(npc)
                 end
             end
         end
-        
-        -- If equipment from specialization tags were found, use those equipment
-        if #possibleEquipments > 0 then
-            targetEquipment = possibleEquipments[math.random(1, #possibleEquipments)]
-        end
+    end
+    
+    -- If equipment from specialization tags were found, use those equipment
+    if #possibleEquipments > 0 then
+        targetEquipment = possibleEquipments[math.random(1, #possibleEquipments)]
     end
     
     -- If equipment of that specialization was found, make that a requirement, instead of an option
-    if hasSpecializationEquipment then
-        if not targetEquipment then
-          -- If the specialization does not have any valid equipment for the chosen activity, then select a random activity
-          local validActivityFound = false
-          for _, config in ipairs(CONFIG.activityTypes) do
-              if config.equipment then
+    if hasSpecializationEquipment and not targetEquipment then
+        -- If the specialization does not have any valid equipment for the chosen activity, then select a random activity
+        local validActivityFound = false
+        for _, config in ipairs(CONFIG.activityTypes or {}) do
+            if config.equipment then
                 local activityHasEquipment = false
-                  for _, equip in ipairs(config.equipment) do
+                for _, equip in ipairs(config.equipment) do
                     for _, child in ipairs(tycoon:GetDescendants()) do
-                        if child:IsA("Model") and child:GetAttribute("IsEquipment") and child.Name == equip or child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child.Name == equip then
-                          activityHasEquipment = true
-                          validActivityFound = true
-                          activityConfig = config
-                          break
+                        if (child:IsA("Model") and child:GetAttribute("IsEquipment") and child.Name == equip) or 
+                           (child:IsA("BasePart") and child:GetAttribute("IsEquipment") and child.Name == equip) then
+                            activityHasEquipment = true
+                            validActivityFound = true
+                            activityConfig = config
+                            break
                         end
-                      end
+                    end
                     if activityHasEquipment then break end
-                  end
                 end
-          end
+            end
+            if validActivityFound then break end
         end
+        
+        -- Try again with the new activity
         if #possibleEquipments > 0 then
             targetEquipment = possibleEquipments[math.random(1, #possibleEquipments)]
         end
     end
     
-    
     -- Set destination based on need for floor change
-    
     if needsFloorChange then
         -- Find the nearest stairs or elevator
         local stairs = workspace:FindFirstChild("Stairs")
@@ -950,39 +946,37 @@ function NPCSystem:findNextDestination(npc)
         end
         
         npcData.state = "MovingToFloorChange"
-
     else
         -- Get a list of valid destinations
         local validDestinations = {}
         if targetEquipment then
-          -- Check if equipment has a interaction point
+            -- Check if equipment has an interaction point
             if targetEquipment:FindFirstChild("InteractionPoint") then
-            table.insert(validDestinations, targetEquipment.InteractionPoint.Position)
-          else
-            table.insert(validDestinations, targetEquipment:GetPivot().Position)
-          end
+                table.insert(validDestinations, targetEquipment.InteractionPoint.Position)
+            else
+                table.insert(validDestinations, targetEquipment:GetPivot().Position)
+            end
         else
-          -- Get a random area based on the activity location
-          local base = tycoon:FindFirstChild(targetFloor)
+            -- Get a random area based on the activity location
+            local base = tycoon:FindFirstChild(targetFloor)
             if base then
-              table.insert(validDestinations, getRandomPositionInPart(base))
-          end
+                table.insert(validDestinations, getRandomPositionInPart(base))
+            end
         end
 
         if #validDestinations > 0 then
-          npcData.destination = validDestinations[math.random(1, #validDestinations)]
-          npcData.equipment = targetEquipment
-          npcData.state = "MovingToActivity"
+            npcData.destination = validDestinations[math.random(1, #validDestinations)]
+            npcData.equipment = targetEquipment
+            npcData.state = "MovingToActivity"
         else
-          warn("NPCSystem: No valid destinations found for activity:", selectedActivity)
-          return
+            warn("NPCSystem: No valid destinations found for activity:", selectedActivity)
+            return
         end
-
-    end    -- Try to pathfind there
+    end
+    
+    -- Try to pathfind there
     self:navigateNPCToDestination(npc, npcData.destination)
 end
-
-
 
 -- Make an NPC leave the tycoon
 function NPCSystem:makeNPCLeave(npc)
@@ -1303,18 +1297,16 @@ function NPCSystem:updateSingleNPC(npc, data)
                     local elapsed = tick() - data.stateStartTime
                     if elapsed >= data.stateDuration then
                         -- Done waiting, find a new destination
-
-                      self:findNextDestination(npc, tycoon)
+                        self:findNextDestination(npc, tycoon)
+                    end
                 elseif data.state == "DoingActivity" then
-                  -- We are doing something that doesn't require equipment (like swimming, etc.)
-                  -- Check if we've been doing the activity long enough
-                  local elapsed = tick() - data.stateStartTime
-                  if elapsed >= data.stateDuration then
-                      -- Done with the activity, find a new destination
-                      self:findNextDestination(npc, tycoon)
-
-                  end
-
+                    -- We are doing something that doesn't require equipment (like swimming, etc.)
+                    -- Check if we've been doing the activity long enough
+                    local elapsed = tick() - data.stateStartTime
+                    if elapsed >= data.stateDuration then
+                        -- Done with the activity, find a new destination
+                        self:findNextDestination(npc, tycoon)
+                    end
                 elseif data.state == "Leaving" then
                   -- Generate revenue before leaving
                   local owner = TycoonSystem:getTycoonOwner(tycoon)
@@ -1378,48 +1370,49 @@ end
 
 
 -- Generate revenue while using equipment
-function NPCSystem:generateRevenue(npc, tycoon, data
+function NPCSystem:generateRevenue(npc, tycoon, data)
   local owner = TycoonSystem:getTycoonOwner(tycoon)
-    local activityConfig = nil
-    for _, config in ipairs(CONFIG.activityTypes) do
-        if config.name == data.activity then
-          activityConfig = config
-          break
+  local activityConfig = nil
+  for _, config in ipairs(CONFIG.activityTypes) do
+      if config.name == data.activity then
+        activityConfig = config
+        break
       end
-    end
-    
-    if data.equipment then
-      -- Calculate revenue based on equipment and member type
-      revenueToAdd = data.equipment:GetAttribute("Revenue") or 1
-    else
-      -- Calculate revenue based on base activity (e.g., free weights, general area)
-        revenueToAdd = activityConfig.baseRevenue or 1
-    end
-    
-      local memberMultiplier = npc:GetAttribute("RevenueMultiplier") or 1
-      data.revenue = data.revenue + (revenueToAdd * memberMultiplier)
-end
+  end
+  
+  local revenueToAdd = 1
+  if data.equipment then
+    -- Calculate revenue based on equipment and member type
+    revenueToAdd = data.equipment:GetAttribute("Revenue") or 1
+  else
+    -- Calculate revenue based on base activity (e.g., free weights, general area)
+    revenueToAdd = activityConfig and activityConfig.baseRevenue or 1
+  end
+  
+  local memberMultiplier = npc:GetAttribute("RevenueMultiplier") or 1
+  data.revenue = data.revenue + (revenueToAdd * memberMultiplier)
 end
 
 -- Update satisfaction based on equipment quality
-function NPCSystem:updateSatisfaction(npc, tycoon, data
+function NPCSystem:updateSatisfaction(npc, tycoon, data)
   if MemberSatisfactionSystem then
-      local tycoonId = tycoon:GetAttribute("TycoonId")
-      local satisfactionChange = 0
+    local tycoonId = tycoon:GetAttribute("TycoonId")
+    local satisfactionChange = 0
 
-      if data.equipment then
-        -- If using equipment, satisfaction changes based on its quality
-        local equipmentQuality = data.equipment:GetAttribute("Quality") or 1
-        satisfactionChange = equipmentQuality - 1 -- -1 to +4 typically
-      else
-        -- If doing a general activity (no equipment), satisfaction doesn't change for now
-        satisfactionChange = 0
-      end
-      
-      -- Apply satisfaction change
-      MemberSatisfactionSystem:updateMemberSatisfaction(tycoonId, satisfactionChange, npc)
+    if data.equipment then
+      -- If using equipment, satisfaction changes based on its quality
+      local equipmentQuality = data.equipment:GetAttribute("Quality") or 1
+      satisfactionChange = equipmentQuality - 1 -- -1 to +4 typically
+    else
+      -- If doing a general activity (no equipment), satisfaction doesn't change for now
+      satisfactionChange = 0
+    end
+    
+    -- Apply satisfaction change
+    MemberSatisfactionSystem:updateMemberSatisfaction(tycoonId, satisfactionChange, npc)
   end
 end
+
 --[[ Tycoon Management ]]--
 
 -- Start spawning NPCs for a tycoon

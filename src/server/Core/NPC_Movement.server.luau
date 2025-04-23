@@ -27,6 +27,33 @@ local function debug(...)
 	end
 end
 
+-- Function declarations
+local function wanderAroundPosition(npc, center, radius)
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	local rootPart = npc:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not rootPart then return false end
+
+	local wanderDuration = math.random(3, 7)  -- Wander for a bit
+	local startTime = os.clock()
+
+	while os.clock() - startTime < wanderDuration do
+		local randomAngle = math.random() * 2 * math.pi
+		local randomDistance = math.random() * radius
+
+		local wanderPosition = center + Vector3.new(
+			math.cos(randomAngle) * randomDistance,
+			0,
+			math.sin(randomAngle) * randomDistance
+		)
+
+		humanoid:MoveTo(wanderPosition)
+		humanoid.MoveToFinished:Wait()
+	end
+end
+
+local function followPath(npc, targetPosition) 
+    -- This will be defined below, but we need the declaration here
+end
 
 -- Cache equipment in tycoons for faster targeting
 local equipmentCache = {}
@@ -40,7 +67,6 @@ local function cacheEquipment(tycoon)
 	for _, descendant in pairs(tycoon:GetDescendants()) do
 		if descendant:IsA("BasePart") and descendant:GetAttribute("IsInteractive") then -- Check for BaseParts that are interactive
 			table.insert(equipment, descendant)
-			end
 		end
 	end
 
@@ -108,6 +134,7 @@ local function findTargetPositionForEquipment(tycoon)
 	if #equipment > 0 then
 		local targetEquipment = equipment[math.random(1, #equipment)] 
 		if targetEquipment then
+			local position = getPositionFromEquipment(tycoon, targetEquipment)
 			return position, "equipment"
 		end
 	end
@@ -208,11 +235,12 @@ local function moveNPCToTarget(npc, targetPosition)
 	end
 
 	-- Use pathfinding to navigate to the target
-	local success = _followPath(npc, targetPosition)
+	local success = followPath(npc, targetPosition)
 	if success then
 		debug(npc.Name .. " moving to new position: " .. tostring(targetPosition))
 	end
-
+    
+    return success
 end
 
 -- Function to check if an NPC should start moving
@@ -262,27 +290,6 @@ local function findGymBySpecialization(specialization)
 	end
 	return matchingGym
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -374,7 +381,7 @@ local function followPath(npc, targetPosition)
 				moveAlongWaypoints(waypointIndex + 1)  -- Recursively move to the next waypoint
 			else
 				-- Reached the final waypoint, now wander around it
-				_wanderAroundPosition(npc, targetPosition, CONFIG.wanderRadius)
+				wanderAroundPosition(npc, targetPosition, CONFIG.wanderRadius)
 				debug(npc.Name .. " reached destination and is now wandering.")
 			end
 		end
@@ -385,7 +392,7 @@ local function followPath(npc, targetPosition)
 end
 
 -- Function to make the NPC wander around a position
-local function _wanderAroundPosition(npc, center, radius)
+local function wanderAroundPosition(npc, center, radius)
 	local humanoid = npc:FindFirstChildOfClass("Humanoid")
 	local rootPart = npc:FindFirstChild("HumanoidRootPart")
 	if not humanoid or not rootPart then return false end
