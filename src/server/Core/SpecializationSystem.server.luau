@@ -10,6 +10,7 @@ local CollectionService = game:GetService("CollectionService")
 local CoreRegistry = require(script.Parent.CoreRegistry)
 local EventBridge = CoreRegistry.getSystem("EventBridge")
 local DataManager = CoreRegistry.getSystem("DataManager")
+local GymStructureIntegration = CoreRegistry.getSystem("GymStructureIntegration")
 
 -- Configuration
 local CONFIG = {
@@ -41,12 +42,10 @@ local SpecializationSystem = {
                 equipment_discounts = {  -- Discounts on related equipment
                     weights = 0.2,       -- 20% off weight equipment
                     machines = 0.1       -- 10% off machines
-                }
+                },
+                decor_placement = "WeightliftingArea"  -- Placement area for specialization decor
             },
-            equipment_tags = {"weights", "bench", "rack", "machine", "IsEquipment", "equipment"} -- Added "machine", "IsEquipment" and "equipment" tag
-			-- machine: This tag is added because the NPC_Movement script can identify machines but there was no tag for it.
-			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
-			-- equipment: This tag will target any model that has the name "equipment", allowing more flexibility.
+            equipment_tags = {"weights", "bench", "rack", "machine", "IsEquipment", "equipment"}
 			
 
         },
@@ -61,11 +60,10 @@ local SpecializationSystem = {
                 equipment_discounts = {
                     treadmill = 0.2,     -- 20% off treadmills
                     cardio = 0.15        -- 15% off cardio equipment
-                }
+                },
+                decor_placement = "CardioArea"  -- Placement area for specialization decor
             }, 
-            equipment_tags = {"treadmill", "bike", "cardio", "IsEquipment", "equipment"} -- Added "IsEquipment" and "equipment" tag
-			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
-			-- equipment: This tag will target any model that has the name "equipment", allowing more flexibility.
+            equipment_tags = {"treadmill", "bike", "cardio", "IsEquipment", "equipment"}
         },
         luxury = {
             name = "Luxury Wellness",
@@ -76,12 +74,10 @@ local SpecializationSystem = {
                 vip_chance = 0.15,       -- 15% chance for VIPs (decreased from 20%)
                 membership_boost = 0.95, -- 5% fewer total members (increased from 10% fewer)
                 dues_boost = 1.4,        -- 40% higher membership fees (increased from 30%)
-                energy_bonus = 0.1      -- 10% energy bonus for NPCs using spa equipment (new benefit)
+                energy_bonus = 0.1,      -- 10% energy bonus for NPCs using spa equipment (new benefit)
+                decor_placement = "LuxuryArea"  -- Placement area for specialization decor
             },
-            equipment_tags = {"spa", "sauna", "luxury", "IsEquipment", "equipment"} -- Added "IsEquipment" and "equipment" tag
-			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
-			-- equipment: This tag will target any model that has the name "equipment", allowing more flexibility.
-			
+            equipment_tags = {"spa", "sauna", "luxury", "IsEquipment", "equipment"}
         },
         crossfit = {
             name = "CrossFit Training",
@@ -89,8 +85,8 @@ local SpecializationSystem = {
             level_requirement = 4,
             benefits = {
                 membership_boost = 1.2,  -- 20% more members (increased from 10%)
-                dues_boost = 1.05,       -- 5% higher dues (decreased from 10%)
-                competition_bonus = 1.4  -- 40% better competition results (renamed and increased from 30%)
+                dues_boost = 1.05,      -- 5% higher dues (decreased from 10%),
+                decor_placement = "FunctionalTrainingArea"  -- Placement area for specialization decor
             },
             equipment_tags = {"functional", "crossfit", "box", "IsEquipment", "equipment"} -- Added "IsEquipment" and "equipment" tag
 			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
@@ -216,10 +212,7 @@ function SpecializationSystem:setSpecialization(player, specializationId, isSeco
 
     -- Apply specialization benefits
     self:applySpecializationBenefits(player)
-    
-    -- Create specialization decor
-    self:createSpecializationDecor(player)
-    
+
     -- Notify client
     EventBridge.fireClientEvent("SpecializationUpdated", player, current)
 
@@ -327,12 +320,117 @@ function SpecializationSystem:applySpecializationBenefits(player)
                 local secondaryEffect = (secondary.benefits.vip_multiplier - 1.0) * 0.5
                 tycoon:SetAttribute("SpecVIPMultiplier", currentMultiplier + secondaryEffect)
             end
+        end
+    end
 
-            -- Competition bonus (half effect)
-            if secondary.benefits.competition_boost then
-                local currentBoost = tycoon:GetAttribute("SpecCompetitionBoost")
-                local secondaryEffect = (secondary.benefits.competition_boost - 1.0) * 0.5
-                tycoon:SetAttribute("SpecCompetitionBoost", currentBoost + secondaryEffect)
+    -- Recreate specialization decor
+    self:recreateSpecializationDecor(player)
+
+    -- Update revenue system if available
+    local GymRevenueSystem = CoreRegistry.getSystem("GymRevenueSystem")
+    if GymRevenueSystem then
+        GymRevenueSystem:updateRevenue(player)
+    end
+end
+
+-- Remove all existing specialization decor from the tycoon
+function SpecializationSystem:removeAllSpecializationDecor(tycoon)
+    if not tycoon then return end
+
+    local existingDecor = tycoon:FindFirstChild("SpecializationDecor")
+    if existingDecor then
+        existingDecor:Destroy()
+    end
+end
+
+-- Create specialization decor within the tycoon
+function SpecializationSystem:createSpecializationDecor(tycoon, primarySpec, secondarySpec)
+    if not tycoon then return end
+
+    -- Helper function to place decor in a specific area
+    local function placeDecor(areaName, specialization)
+        if not specialization or not specialization.benefits.decor_placement then return end
+
+        -- Ensure GymStructureIntegration is available
+        if not GymStructureIntegration then
+            warn("[SpecializationSystem] GymStructureIntegration not available")
+            return
+        end
+
+        local decorPlacement = specialization.benefits.decor_placement
+
+        -- Ensure decor placement name exists in GymStructureIntegration
+        if not GymStructureIntegration.areas[decorPlacement] then
+            warn("[SpecializationSystem] Decor placement area '" .. decorPlacement .. "' not found in GymStructureIntegration")
+            return
+        end
+
+        -- Check if the area exists in the gym structure
+        local area = GymStructureIntegration.areas[decorPlacement]
+        if not area then
+            warn("[SpecializationSystem] Area '" .. decorPlacement .. "' not found in gym structure")
+            return
+        end
+
+        -- Get all parts within the area
+        local areaParts = area:GetDescendants()
+
+        -- Select a random part within the area for placement
+        if #areaParts > 0 then
+            local randomIndex = math.random(1, #areaParts)
+            local placementPart = areaParts[randomIndex]
+
+            -- Load decor model from ReplicatedStorage
+            local decorModel = ReplicatedStorage:FindFirstChild("SpecializationDecor_" .. specialization.name)
+            if decorModel then
+                local newDecor = decorModel:Clone()
+                newDecor.Parent = decorPlacement
+
+                -- Optional: Position the decor relative to the placement part
+                newDecor:SetPrimaryPartCFrame(placementPart.CFrame * CFrame.new(0, placementPart.Size.Y / 2 + newDecor.PrimaryPart.Size.Y / 2, 0))
+
+                log("Placed decor for", specialization.name, "in", placementPart.Name)
+            else
+                warn("[SpecializationSystem] Decor model not found for", specialization.name)
+            end
+        else
+            warn("[SpecializationSystem] No parts found in area", decorPlacement)
+        end
+    end
+
+    -- Create "SpecializationDecor" folder if it doesn't exist
+    local decorFolder = Instance.new("Folder")
+    decorFolder.Name = "SpecializationDecor"
+    decorFolder.Parent = tycoon
+
+    -- Place decor for primary specialization
+    if primarySpec then
+        local primary = self.specializations[primarySpec]
+        if primary then
+            placeDecor(decorFolder, primary)
+        end
+    end
+
+    -- Place decor for secondary specialization
+    if secondarySpec then
+        local secondary = self.specializations[secondarySpec]
+        if secondary then
+            placeDecor(decorFolder, secondary)
+        end
+    end
+end
+
+-- Recreate specialization decor for a player
+function SpecializationSystem:recreateSpecializationDecor(player)
+    if not player then return end
+
+    local specs = self:getPlayerSpecializations(player)
+    local tycoon = player:FindFirstChild("Tycoon")
+    if tycoon then
+        self:removeAllSpecializationDecor(tycoon)
+        self:createSpecializationDecor(tycoon, specs.primary, specs.secondary)
+    end
+end
             end
             
              -- Strength bonus (half effect)

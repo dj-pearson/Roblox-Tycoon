@@ -17,7 +17,7 @@ local CONFIG = {
     -- Room settings
     identifyRoomsByModel = true, -- If true, looks for models named "Sauna"
     saunaTag = "SaunaRoom",      -- Tag for sauna rooms
-    heaterTag = "SaunaHeater",   -- Tag for sauna heaters
+    heaterTag = "SaunaHeater", -- Tag for sauna heaters
     doorTag = "SaunaDoor",       -- Tag for sauna doors
     
     -- Temperature settings
@@ -45,13 +45,14 @@ local SaunaSystem = {
     
     -- Internal state
     _rooms = {},
-    _heaters = {},
-    _doors = {},
+    _heaters = {},  -- Stores all sauna heaters
+    _doors = {},    -- Stores all sauna doors
     _playerData = {},
     _updateLoop = nil
 }
 
 -- Debug function
+
 local function debugPrint(...)
     if CONFIG.debug then
         print("[SaunaSystem]", ...)
@@ -60,10 +61,10 @@ end
 
 --[[ Core Functions ]]--
 
--- Find all sauna heaters in the workspace
+-- Find all sauna heaters in the gym
 function SaunaSystem:_findSaunaHeaters()
     local heaters = {}
-    
+
     -- Find by tag
     for _, heater in pairs(CollectionService:GetTagged(CONFIG.heaterTag)) do
         table.insert(heaters, heater)
@@ -71,13 +72,13 @@ function SaunaSystem:_findSaunaHeaters()
     
     -- Find by name
     if #heaters == 0 then
-        for _, instance in pairs(Workspace:GetDescendants()) do
-            if instance.Name == "SaunaHeater" and (instance:IsA("BasePart") or instance:IsA("Model")) then
-                table.insert(heaters, instance)
+        local gymHeaters = Workspace:FindFirstChild("GymParts"):GetDescendants()
+        for _, heater in pairs(gymHeaters) do
+            if heater.Name == "SaunaHeater" and heater:IsA("BasePart") then
+                table.insert(heaters, heater)
             end
         end
     end
-    
     return heaters
 end
 
@@ -107,8 +108,8 @@ function SaunaSystem:_findSaunaRooms()
     local rooms = {}
     
     -- Find by tag
-    for _, roomModel in pairs(CollectionService:GetTagged(CONFIG.saunaTag)) do
-        -- Create room data structure
+    local gymRooms = Workspace:FindFirstChild("GymParts"):GetDescendants()
+    for _, roomModel in pairs(gymRooms) do
         local room = {
             name = roomModel.Name,
             model = roomModel,
@@ -122,7 +123,7 @@ function SaunaSystem:_findSaunaRooms()
                 max = Vector3.new(-math.huge, -math.huge, -math.huge)
             }
         }
-        
+
         -- Collect all physical parts of the room
         local parts = {}
         if roomModel:IsA("BasePart") then
@@ -134,7 +135,7 @@ function SaunaSystem:_findSaunaRooms()
                 end
             end
         end
-        
+
         room.parts = parts
         
         -- Calculate bounding box for the room
@@ -154,7 +155,6 @@ function SaunaSystem:_findSaunaRooms()
                 math.max(room.boundingBox.max.Z, partMax.Z)
             )
         end
-        
         table.insert(rooms, room)
     end
     
@@ -398,7 +398,7 @@ function SaunaSystem:_updateRoomTemperature(room, deltaTime)
                         EventBridge:fireEvent("SaunaEffectApplied", player, {
                             effectType = "HealthRestore",
                             amount = regenAmount
-                        })
+                            })
                     end
                 end
             end
@@ -465,7 +465,6 @@ end
 
 -- Start the temperature update system
 function SaunaSystem:_startTemperatureSystem()
-    local lastUpdateTime = tick()
     
     self._updateLoop = task.spawn(function()
         while true do
@@ -487,8 +486,7 @@ function SaunaSystem:_startTemperatureSystem()
                     -- Only log significant changes
                     if math.abs(temperatureChange) > 0.1 and EventBridge then
                         EventBridge:fireEvent("TemperatureUpdated", {
-                            roomName = room.name,
-                            temperature = room.temperature,
+                            roomName = room.name, temperature = room.temperature,
                             change = temperatureChange
                         })
                     end
@@ -527,10 +525,7 @@ function SaunaSystem:GetRoomInfo(roomName)
     -- Get info for a specific room if name is provided
     if roomName then
         for _, room in pairs(self._rooms) do
-            if room.name == roomName then
-                return room.temperature
-            end
-        end
+            if room.name == roomName then return room.temperature end
     end
     
     -- Otherwise return info for all rooms
@@ -607,12 +602,12 @@ end
 
 function SaunaSystem:initialize()
     debugPrint("Initializing SaunaSystem v" .. self._version)
-    
+
     -- Get dependencies
     CoreRegistry = self.CoreRegistry
     EventBridge = CoreRegistry:getSystem("EventBridge")
     DataManager = CoreRegistry:getSystem("DataManager")
-    
+
     -- Find sauna rooms, heaters, and doors
     self._heaters = self:_findSaunaHeaters()
     self._doors = self:_findSaunaDoors()
@@ -620,7 +615,7 @@ function SaunaSystem:initialize()
     
     debugPrint("Found " .. #self._rooms .. " sauna rooms")
     debugPrint("Found " .. #self._heaters .. " sauna heaters")
-    debugPrint("Found " .. #self._doors .. " sauna doors")
+    debugPrint("Found " .. #self._doors .. " sauna doors")    
     
     -- Initialize player data table
     self._playerData = {}
@@ -650,11 +645,10 @@ function SaunaSystem:initialize()
             EventBridge:fireEvent("HeaterToggleResponse", player, {
                 success = success,
                 newState = newState,
-                message = success and "Heater toggled" or "Heater not found"
+                message = success and "Heater toggled" or "Heater not found",
             })
         end)
-        
-        EventBridge:registerClientEvent("RequestSaunaInfo", function(player, roomName)
+            EventBridge:registerClientEvent("RequestSaunaInfo", function(player, roomName)
             local info = self:GetRoomInfo(roomName)
             EventBridge:fireEvent("SaunaInfoResponse", player, info)
         end)
@@ -671,47 +665,13 @@ function SaunaSystem:initialize()
         -- Clean up player data
         self._playerData[player] = nil
     end)
-    
-    -- Set up door open/close detection
-    for _, door in pairs(self._doors) do
-        -- Check if this is implemented as a MeshPart, Part or hinged door
-        -- This depends on your specific door implementation
-        task.spawn(function()
-            -- For demonstration, we'll just listen for attribute changes
-            local isSaunaDoor = false
-            
-            -- Check if this is a sauna door by verifying it's in one of our rooms
-            for _, room in pairs(self._rooms) do
-                for _, roomDoor in pairs(room.doors) do
-                    if roomDoor == door then
-                        isSaunaDoor = true
-                    end
-                end
-            end
-            
-            if isSaunaDoor then
-                -- Monitor for attribute changes that could indicate door state
-                door:GetAttributeChangedSignal("DoorOpen"):Connect(function()
-                    if door:GetAttribute("DoorOpen") then
-                        self:TriggerDoorSteam(door)
-                        
-                        if EventBridge then
-                            EventBridge:fireEvent("DoorOpened", door)
-                        end
-                    end
-                end)
-                
-                -- For doors without attributes, try other methods
-                -- This would depend on the specific door implementation
-            end
-        end)
-    end
-    
+
     -- Start the temperature update loop
     self:_startTemperatureSystem()
     
     debugPrint("SaunaSystem initialized successfully")
     return true
+
 end
 
 -- Public API table
@@ -723,11 +683,12 @@ local PublicAPI = {
     ToggleHeater = function(heaterName)
         return SaunaSystem:ToggleHeater(heaterName)
     end,
-    
+
     TriggerDoorSteam = function(door, intensity)
         return SaunaSystem:TriggerDoorSteam(door, intensity)
     end
 }
 
 -- Register with CoreRegistry
+
 return CoreRegistry.registerSystem("SaunaSystem", PublicAPI, {"EventBridge", "DataManager"})

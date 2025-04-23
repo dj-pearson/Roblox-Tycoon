@@ -8,7 +8,7 @@
     3. Configure automation options
     
     Usage: Run _G.AutomateGymTycoon() from the command bar
-    
+
     Author: Created April 20, 2025
 ]]
 
@@ -44,21 +44,21 @@ local AUTOMATION_CONFIG = {
 -- Run the full automation process
 local function AutomateGymTycoon(config)
     config = config or {}
-    
+
     -- Merge provided config with defaults
     for key, value in pairs(config) do
         AUTOMATION_CONFIG[key] = value
     end
-    
+
     print("===== GYM TYCOON AUTOMATION =====")
     print("Starting complete automation process...")
-    
+
     local startTime = os.clock()
     local stats = {
         modelAttributes = 0,
         hitboxes = 0,
         config = 0,
-        structure = 0,
+        structure = {},
     }
     
     -- Step 1: Analyze Gym Structure if available and enabled
@@ -67,9 +67,14 @@ local function AutomateGymTycoon(config)
         
         if typeof(GymStructureIntegration.SyncGymStructure) == "function" then
             local structureStats = GymStructureIntegration:SyncGymStructure(AUTOMATION_CONFIG.showDebug)
-            if structureStats then
-                stats.structure = structureStats.roomsFound or 0
-                print("Analyzed gym structure: Found " .. stats.structure .. " rooms")
+            if structureStats and next(structureStats) then
+                local roomCounts = {}
+                for roomType, count in pairs(structureStats) do
+                    table.insert(roomCounts, string.format("%s: %d", roomType, count))
+                end
+                stats.structure = structureStats
+                local roomsString = table.concat(roomCounts, ", ")
+                print("Analyzed gym structure: " .. roomsString)
             end
         else
             print("GymStructureIntegration found but SyncGymStructure method not available")
@@ -95,14 +100,14 @@ local function AutomateGymTycoon(config)
             print("Set up attributes for " .. setupCount .. " models")
         end
     end
-    
+
     -- Step 4: Generate hitboxes if enabled
     if AUTOMATION_CONFIG.generateHitboxes then
         print("\n== GENERATING HITBOXES ==")
-        
+
         -- Configure hitbox visibility based on debug setting
         BuyTileHitboxGenerator.SetHitboxConfig({
-            showDebugBoxes = AUTOMATION_CONFIG.showDebug
+            showDebugBoxes = AUTOMATION_CONFIG.showDebug,
         })
         
         local hitboxStats = BuyTileHitboxGenerator.GenerateAllHitboxes()
@@ -111,12 +116,12 @@ local function AutomateGymTycoon(config)
             print("Generated/updated " .. stats.hitboxes .. " hitboxes")
         end
     end
-    
+
     -- Report completion
     local elapsedTime = os.clock() - startTime
     print("\n===== AUTOMATION COMPLETE =====")
     print("Process completed in " .. string.format("%.2f", elapsedTime) .. " seconds")
-    print("• Structure: " .. stats.structure .. " rooms analyzed")
+    print("• Structure: " .. (#stats.structure > 0 and table.concat(stats.structure, ", ") or "No rooms") .. " analyzed")
     print("• Config: ~" .. math.floor(stats.config / 10) .. " tile definitions generated")
     print("• Attributes: " .. stats.modelAttributes .. " models set up")
     print("• Hitboxes: " .. stats.hitboxes .. " hitboxes created/updated")
@@ -153,7 +158,7 @@ local function SetAutomationConfig(config)
             warn("GymTycoonAutomation: Unknown config option: " .. key)
         end
     end
-    
+
     print("GymTycoonAutomation: Configuration updated")
     return AUTOMATION_CONFIG
 end

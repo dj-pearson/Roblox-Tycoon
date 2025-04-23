@@ -237,8 +237,7 @@ function ModelValidator:ValidateAllModels(container)
             local parentModel = child.Parent
             while parentModel ~= nil and parentModel ~= container do
                 if parentModel:IsA("Model") then
-                    -- This is a sub-model, skip it
-                    goto continue
+                   break
                 end
                 parentModel = parentModel.Parent
             end
@@ -260,8 +259,6 @@ function ModelValidator:ValidateAllModels(container)
                 results.issues[child.Name] = modelResult.issues
             end
         end
-        
-        ::continue::
     end
     
     return results

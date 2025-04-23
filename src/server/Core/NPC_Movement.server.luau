@@ -1,4 +1,3 @@
-lua
 -- Enhanced NPC Movement System
 -- This script manages NPC movement using PathfindingService for better navigation.
 
@@ -37,12 +36,10 @@ local function cacheEquipment(tycoon)
 	if equipmentCache[tycoon] then return equipmentCache[tycoon] end
 
 	local equipment = {}
-	-- Look for interactive models or base parts with the IsInteractive attribute
-	for _, descendant in ipairs(tycoon:GetDescendants()) do
-		for _, descendant in pairs(tycoon:GetDescendants()) do -- Iterate through the descendants of the tycoon
-			if descendant:IsA("BasePart") and descendant:GetAttribute("IsInteractive") then -- Check for BaseParts that are interactive
-
-				table.insert(equipment, descendant)
+	-- Iterate through the descendants of the tycoon
+	for _, descendant in pairs(tycoon:GetDescendants()) do
+		if descendant:IsA("BasePart") and descendant:GetAttribute("IsInteractive") then -- Check for BaseParts that are interactive
+			table.insert(equipment, descendant)
 			end
 		end
 	end
@@ -52,32 +49,20 @@ local function cacheEquipment(tycoon)
 	return equipment
 end
 
--- Function to find floors in a tycoon
+-- Function to find all floors in a tycoon
 local function findFloors(tycoon)
 	local floors = {}
+	local GymStructureIntegration = require(script.Parent.Parent.GymStructureIntegration)
+	local floorAreas = GymStructureIntegration.getAreasByType(tycoon, "Floor") -- Assuming "Floor" is the area type for walkable surfaces
 
-	for _, descendant in pairs(tycoon:GetDescendants()) do
-		if descendant:IsA("BasePart") and
-			descendant.Size.X >= 10 and descendant.Size.Z >= 10 and
-			math.abs(descendant.CFrame.UpVector.Y) > 0.9 and descendant.Size.Y < 2 and
-			(descendant.Name:lower():find("floor") or descendant.Name:lower():find("platform") or
-			 descendant.Name:lower():find("ground") or
-			 descendant.Name == "Platform") then
-
-			table.insert(floors, descendant)
-		end
-	end
-
-	-- If no named floors found, use any large horizontal surface
-	if #floors == 0 then
-		for _, descendant in pairs(tycoon:GetDescendants()) do
-			if descendant:IsA("BasePart") and
-				descendant.Size.X >= 8 and descendant.Size.Z >= 8 and
-				math.abs(descendant.CFrame.UpVector.Y) > 0.9 then
-
-				-- Stricter floor detection criteria
-				if descendant.Size.X >= 10 and descendant.Size.Z >= 10 and math.abs(descendant.CFrame.UpVector.Y) > 0.9 and descendant.Size.Y < 2 then
-					table.insert(floors, descendant)
+	if floorAreas then
+		for _, area in ipairs(floorAreas) do
+			local areaModel = tycoon:FindFirstChild(area)
+			if areaModel then
+				for _, descendant in pairs(areaModel:GetDescendants()) do
+					if descendant:IsA("BasePart") then
+						table.insert(floors, descendant)
+					end
 				end
 			end
 		end
@@ -108,7 +93,7 @@ local function getPositionFromModel(model)
 	return nil
 end
 
-local function getPositionFromEquipment(equipment)
+local function getPositionFromEquipment(tycoon, equipment)
 	local position = getPositionFromModel(equipment)
 	if position then
 		local offsetX = math.random(-3, 3)
@@ -121,9 +106,8 @@ end
 local function findTargetPositionForEquipment(tycoon)
 	local equipment = cacheEquipment(tycoon)
 	if #equipment > 0 then
-		local targetEquipment = equipment[math.random(1, #equipment)]
-		local position = getPositionFromEquipment(targetEquipment)
-		if position then
+		local targetEquipment = equipment[math.random(1, #equipment)] 
+		if targetEquipment then
 			return position, "equipment"
 		end
 	end
@@ -134,7 +118,7 @@ local function findTargetPositionOnFloor(tycoon)
 	local floors = findFloors(tycoon)
 	if #floors > 0 then
 		local floor = floors[math.random(1, #floors)]
-		local size = floor.Size
+		local size = floor.Size -- Use actual floor part size for accurate positioning
 		local marginX, marginZ = math.min(size.X * 0.4, 4), math.min(size.Z * 0.4, 4)
 		local offsetX, offsetZ = (math.random() - 0.5) * (size.X - marginX), (math.random() - 0.5) * (size.Z - marginZ)
 		local position = floor.CFrame * CFrame.new(offsetX, size.Y / 2 + 3, offsetZ)
@@ -176,7 +160,7 @@ local function findTargetPosition(npc)
 
 	local targetPosition, targetType
 	if math.random() < CONFIG.equipmentTargetChance then
-		targetPosition, targetType = findTargetPositionForEquipment(tycoon)
+		targetPosition, targetType = findTargetPositionForEquipment(tycoon) -- Send in tycoon
 	end
 
 	if not targetPosition then
@@ -209,8 +193,6 @@ local function moveNPCToTarget(npc, targetPosition)
 		return false
 	end
 
-
-
 	-- Calculate correct Y position with raycast
 	local raycastResult = workspace:Raycast(
 		targetPosition + Vector3.new(0, 10, 0),
@@ -226,7 +208,7 @@ local function moveNPCToTarget(npc, targetPosition)
 	end
 
 	-- Use pathfinding to navigate to the target
-	local success = followPath(npc, targetPosition)
+	local success = _followPath(npc, targetPosition)
 	if success then
 		debug(npc.Name .. " moving to new position: " .. tostring(targetPosition))
 	end
@@ -368,7 +350,7 @@ local function followPath(npc, targetPosition)
 
 	local path = findPath(npc, targetPosition)
 	if not path then
-		-- Fallback: If pathfinding fails, move directly to the target (might get stuck)
+		-- Fallback: If pathfinding fails, move directly to the target (might get stuck))\t
 		humanoid:MoveTo(targetPosition)
 		debug(npc.Name .. " moving directly to target (pathfinding failed). Target: " .. tostring(targetPosition))
 		return true
@@ -392,7 +374,7 @@ local function followPath(npc, targetPosition)
 				moveAlongWaypoints(waypointIndex + 1)  -- Recursively move to the next waypoint
 			else
 				-- Reached the final waypoint, now wander around it
-				wanderAroundPosition(npc, targetPosition, Configuration.wanderRadius)
+				_wanderAroundPosition(npc, targetPosition, CONFIG.wanderRadius)
 				debug(npc.Name .. " reached destination and is now wandering.")
 			end
 		end
@@ -403,10 +385,10 @@ local function followPath(npc, targetPosition)
 end
 
 -- Function to make the NPC wander around a position
-local function wanderAroundPosition(npc, center, radius)
+local function _wanderAroundPosition(npc, center, radius)
 	local humanoid = npc:FindFirstChildOfClass("Humanoid")
 	local rootPart = npc:FindFirstChild("HumanoidRootPart")
-	if not humanoid or not rootPart then return end
+	if not humanoid or not rootPart then return false end
 
 	local wanderDuration = math.random(3, 7)  -- Wander for a bit
 	local startTime = os.clock()

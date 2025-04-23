@@ -29,7 +29,7 @@ function GymStructureIntegration:Initialize()
     -- Get references to required systems
     self.buyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
     
-    -- Log warning if BuyTileSystem isn't found
+    -- Log a warning if BuyTileSystem isn't found
     if not self.buyTileSystem then
         warn("GymStructureIntegration: BuyTileSystem not found. Some features may not work properly.")
     end
@@ -73,119 +73,120 @@ function GymStructureIntegration:ProcessGymStructureData()
     self.gymStructure = structure
     
     -- Integrate floor prerequisites with BuyTileSystem
-    if self.buyTileSystem then
-        self:IntegratePrerequisites()
-        self:IntegrateRoomTypes()
-    end
+    if self.buyTileSystem then self:IntegrateDataWithBuyTileSystem() end
 end
 
--- Map the prerequisites from the structure to the BuyTileSystem
-function GymStructureIntegration:IntegratePrerequisites()
-    if not self.gymStructure or not self.gymStructure.prerequisites then return end
+-- Integrate gym structure data with BuyTileSystem
+function GymStructureIntegration:IntegrateDataWithBuyTileSystem()
+    if not self.gymStructure then return end
     
-    local prerequisites = self.gymStructure.prerequisites
-    local floorUnlocks = {}
+    local buyTileSystem = self.buyTileSystem
     
-    -- For each floor in the structure
-    for floorNum, prereq in pairs(prerequisites) do
-        -- Convert floor number to appropriate format (should be number)
-        local floorNumber = tonumber(floorNum)
-        if not floorNumber then continue end
-        
-        -- If this floor requires previous floors
-        if prereq.floors and #prereq.floors > 0 then
-            local prevFloor = prereq.floors[1] -- Usually just the previous floor
-            floorUnlocks[floorNumber] = prevFloor
+    -- Integrate floors and room unlocks
+    if self.gymStructure.floors then
+        for floorNumber, floorData in pairs(self.gymStructure.floors) do
+            floorNumber = tonumber(floorNumber)
+            if not floorNumber then continue end
             
-            -- Find the tile that unlocks this floor in the BuyTileSystem
-            local unlockItem = self.buyTileSystem.floorUnlockItems[floorNumber]
-            if unlockItem and self.buyTileSystem.tileData[unlockItem] then
-                print("Floor " .. floorNumber .. " is unlocked by " .. unlockItem)
-            else
-                print("Floor " .. floorNumber .. " has no unlock item defined in BuyTileSystem")
+            local floorName = floorData.name
+            local rooms = floorData.rooms
+            
+            print("Integrating floor " .. floorNumber .. " (" .. floorName .. ")")
+            
+            -- Integrate individual rooms on this floor
+            for roomName, roomData in pairs(rooms) do
+                self:IntegrateRoomData(floorNumber, roomName, roomData)
             end
-        end
-        
-        -- Check for required base structure
-        if prereq.baseStructure and #prereq.baseStructure > 0 then
-            print("Floor " .. floorNumber .. " requires base structure: " .. table.concat(prereq.baseStructure, ", "))
-            -- Could verify these are in the BuyTileSystem required items for this floor
-        end
-        
-        -- Check for room order
-        if prereq.roomOrder and #prereq.roomOrder > 0 then
-            print("Floor " .. floorNumber .. " suggested room order: " .. table.concat(prereq.roomOrder, " → "))
-            -- Could be used to automatically set buildOrder in BuyTileSystem
-        end
-    end
-    
-    -- Print room types for reference
-    print("Found " .. (self.gymStructure.roomTypes and #self.gymStructure.roomTypes or 0) .. " room types in structure")
-end
-
--- Integrate room types with BuyTileSystem
-function GymStructureIntegration:IntegrateRoomTypes()
-    if not self.gymStructure or not self.gymStructure.roomTypes then return end
-    
-    local roomTypes = self.gymStructure.roomTypes
-    local roomMap = {}
-    
-    -- Map room types to floors
-    for roomName, floors in pairs(roomTypes) do
-        for _, floorNum in ipairs(floors) do
-            if not roomMap[floorNum] then
-                roomMap[floorNum] = {}
-            end
-            table.insert(roomMap[floorNum], roomName)
-        end
-    end
-    
-    -- For each floor, look at its rooms
-    for floorNum, rooms in pairs(roomMap) do
-        print("Floor " .. floorNum .. " has " .. #rooms .. " room types")
-        
-        -- Check if each room has corresponding tiles in the BuyTileSystem
-        for _, roomName in ipairs(rooms) do
-            local tileType = self:FindTileTypeForRoom(roomName, floorNum)
-            if tileType then
-                print("  - Room '" .. roomName .. "' matches tile type '" .. tileType .. "'")
-            else
-                -- Room doesn't have a matching tile, could suggest adding one
-                print("  - Room '" .. roomName .. "' has no matching tile in BuyTileSystem")
+            
+            -- Example: Check and update floor unlock requirements in BuyTileSystem
+            if floorData.unlockRequirement then
+                local requiredFloor = floorData.unlockRequirement.floor
+                local unlockItem = buyTileSystem.floorUnlockItems[floorNumber]
+                
+                if unlockItem and buyTileSystem.tileData[unlockItem] then
+                    print("Floor " .. floorNumber .. " unlock requirement: Floor " .. requiredFloor .. " (Unlocked by " .. unlockItem .. ")")
+                    -- Update BuyTileSystem as needed (Example: Update a dictionary)
+                else
+                    warn("Unlock item for floor " .. floorNumber .. " not found or missing data in BuyTileSystem")
+                end
             end
         end
     end
 end
 
--- Find a tile type in BuyTileSystem that corresponds to a room name
-function GymStructureIntegration:FindTileTypeForRoom(roomName, floorNum)
+-- Integrate data for a specific room
+function GymStructureIntegration:IntegrateRoomData(floorNumber, roomName, roomData)
+    local buyTileSystem = self.buyTileSystem
+    
+    print("  Integrating room: " .. roomName .. " on floor " .. floorNumber)
+    
+    -- Example: Map room names to tile types or IDs in BuyTileSystem
+    local tileType = self:FindMatchingTileType(floorNumber, roomName)
+    if tileType then
+        print("    Room '" .. roomName .. "' matches tile type '" .. tileType .. "'")
+        -- Could update BuyTileSystem or other systems with this match
+    else
+        warn("    Room '" .. roomName .. "' on floor " .. floorNumber .. " has no matching tile in BuyTileSystem")
+        -- Could suggest adding a new tile type for this room
+    end
+    
+    -- Integrate zones within the room (if applicable)
+    if roomData.zones then
+        for zoneName, zoneData in pairs(roomData.zones) do
+            print("    Integrating zone: " .. zoneName .. " in room " .. roomName)
+            -- Process zone data and integrate as needed
+        end
+    end
+end
+
+-- Find a matching tile type in BuyTileSystem
+function GymStructureIntegration:FindMatchingTileType(floorNumber, roomName)
     if not self.buyTileSystem or not self.buyTileSystem.tileData then return nil end
     
-    -- Convert floor number to appropriate format
-    local floorNumber = tonumber(floorNum)
-    if not floorNumber then return nil end
-    
-    -- Normalize room name for comparison
+    local buyTileSystem = self.buyTileSystem
     local normalizedRoomName = roomName:lower():gsub("%s+", "")
     
-    -- Search through all tile types
-    for tileType, tileData in pairs(self.buyTileSystem.tileData) do
-        -- Check if the tile is on the target floor
+    for tileType, tileData in pairs(buyTileSystem.tileData) do
         if tileData.floor == floorNumber then
-            -- Check if the tile description contains the room name
             local description = tileData.description or ""
-            if description:lower():find(normalizedRoomName, 1, true) then
-                return tileType
-            end
-            
-            -- Check if the tile type contains the room name
-            if tileType:lower():find(normalizedRoomName, 1, true) then
+            if description:lower():find(normalizedRoomName, 1, true) or tileType:lower():find(normalizedRoomName, 1, true) then
                 return tileType
             end
         end
     end
     
-    return nil
+    return nil -- No matching tile type found
+end
+
+-- Get a list of all room names
+function GymStructureIntegration:GetRoomNames()
+    if not self.gymStructure or not self.gymStructure.floors then return {} end
+    
+    local roomNames = {}
+    
+    for _, floorData in pairs(self.gymStructure.floors) do
+        if floorData.rooms then
+            for roomName, _ in pairs(floorData.rooms) do
+                table.insert(roomNames, roomName)
+            end
+        end
+    end
+    
+    return roomNames
+end
+
+-- Get the name of a specific floor
+function GymStructureIntegration:GetFloorName(floorNumber)
+    if not self.gymStructure or not self.gymStructure.floors[floorNumber] then return nil end
+    
+    return self.gymStructure.floors[floorNumber].name
+end
+
+-- Get the structure data for a specific room
+function GymStructureIntegration:GetRoomData(floorNumber, roomName)
+    if not self.gymStructure or not self.gymStructure.floors[floorNumber] or not self.gymStructure.floors[floorNumber].rooms[roomName] then return nil end
+    
+    return self.gymStructure.floors[floorNumber].rooms[roomName]
 end
 
 -- Get a mapping of all rooms to floor numbers
@@ -194,33 +195,13 @@ function GymStructureIntegration:GetRoomFloorMapping()
     
     local mapping = {}
     
-    for roomName, floors in pairs(self.gymStructure.roomTypes) do
-        mapping[roomName] = floors
+    for floorNumber, floorData in pairs(self.gymStructure.floors) do
+        if floorData.rooms then
+            for roomName, _ in pairs(floorData.rooms) do
+                mapping[roomName] = mapping[roomName] or {}
+                table.insert(mapping[roomName], tonumber(floorNumber))
+            end
+        end
     end
-    
     return mapping
 end
-
--- Get the structure of a specific floor
-function GymStructureIntegration:GetFloorStructure(floorNumber)
-    if not self.gymStructure or not self.gymStructure.floors then return nil end
-    
-    return self.gymStructure.floors[floorNumber]
-end
-
--- Check if a specific room exists in the structure
-function GymStructureIntegration:HasRoom(roomName)
-    if not self.gymStructure or not self.gymStructure.roomTypes then return false end
-    
-    return self.gymStructure.roomTypes[roomName] ~= nil
-end
-
--- Get floors where a specific room exists
-function GymStructureIntegration:GetRoomFloors(roomName)
-    if not self.gymStructure or not self.gymStructure.roomTypes then return {} end
-    
-    return self.gymStructure.roomTypes[roomName] or {}
-end
-
--- Export integration for use in command scripts
-return GymStructureIntegration:Initialize()

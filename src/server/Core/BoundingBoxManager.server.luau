@@ -255,7 +255,7 @@ function BoundingBoxManager:GenerateHitboxes(tycoon, options)
         if exists and not options.recreateAll then
             continue
         end
-        
+
         -- Find where to place the hitbox
         local floor = data.floor or 1
         local position = FindSpotOnFloor(floor)
@@ -288,7 +288,7 @@ function BoundingBoxManager:GenerateHitboxes(tycoon, options)
             hitboxFolder,
             attributes
         )
-        
+
         stats.created = stats.created + 1
     end
     
@@ -314,33 +314,36 @@ function BoundingBoxManager:GenerateEquipmentHitboxes(equipment, options)
             skipped = 1
         }
     end
-    
+
     -- Calculate the bounding box for the equipment
     local bbox = self:CalculateBoundingBox(equipment)
-    
+
     -- Create attributes from the equipment model
     local attributes = {}
-    
+
     if autoSetAttributes then
         for name, value in pairs(equipment:GetAttributes()) do
             attributes[name] = value
         end
-        
+
         -- Add the equipment name if not already set
         if not attributes.EquipmentName then
             attributes.EquipmentName = equipment.Name
         end
     end
-    
+
     -- Create the hitbox
-    local hitbox = self:CreateHitbox(
-        "Hitbox",
-        bbox.CFrame,
-        bbox.Size,
-        hitboxParent,
-        attributes
-    )
-    
+    local hitboxName = "Hitbox"
+    -- Check if the equipment has a primary part with a specific name
+    if equipment.PrimaryPart and equipment.PrimaryPart.Name == "ClickDetectorPart" then
+        hitboxName = "InteractionHitbox" -- Different name for interaction
+    end
+    local hitbox = self:CreateHitbox(hitboxName, bbox.CFrame, bbox.Size, hitboxParent, attributes)
+
+    if showDebug then
+        print("BoundingBoxManager: Generated hitbox for equipment: " .. equipment:GetFullName() .. ", Type: " .. hitboxName)
+    end
+
     return {
         created = 1,
         hitbox = hitbox

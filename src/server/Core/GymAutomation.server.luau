@@ -21,7 +21,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local ServerStorage = game:GetService("ServerStorage")
 
 -- Locate CoreRegistry to get access to our modular systems
@@ -43,6 +43,8 @@ local TileDataGenerator = CoreRegistry and CoreRegistry:GetSystem("TileDataGener
 local BoundingBoxManager = CoreRegistry and CoreRegistry:GetSystem("BoundingBoxManager")
 local EquipmentManager = CoreRegistry and CoreRegistry:GetSystem("EquipmentManager")
 local BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
+local GymStructureIntegration = CoreRegistry and CoreRegistry:GetSystem("GymStructureIntegration")
+local NPCSystem = CoreRegistry and CoreRegistry:GetSystem("NPCSystem")
 
 -- Try to load ModelValidator module (NEW)
 local ModelValidator = nil
@@ -377,11 +379,17 @@ function GymAutomation:CreateHitboxes(tycoon, tileData)
         local count = 0
         
         -- Tile data should come from BuyTileSystem
-        if not tileData and BuyTileSystem then
-            tileData = BuyTileSystem.tileData
-        end
-        
-        -- If we still don't have tile data, we can't create hitboxes
+		if not tileData and BuyTileSystem then
+			tileData = BuyTileSystem.tileData
+		end
+
+		-- Check if GymStructureIntegration is available
+		if not GymStructureIntegration then
+			print("Error: GymStructureIntegration not available. Cannot position hitboxes accurately.")
+			return 0
+		end
+
+		-- If we still don't have tile data, we can't create hitboxes
         if not tileData then
             print("Error: No tile data available to create hitboxes")
             return 0
@@ -395,33 +403,33 @@ function GymAutomation:CreateHitboxes(tycoon, tileData)
             hitbox.CanCollide = true
             hitbox.Size = Vector3.new(4, 4, 4)
             hitbox.Transparency = 0.8
-            hitbox.BrickColor = BrickColor.Red()
-            
-            -- Set the hitbox position based on floor
-            local floor = data.floor or 1
-            local yPosition = (floor - 1) * GYM_CONFIG.FLOOR_HEIGHT + 2
-            
-            -- Find a suitable position on the floor
-            local suitable = false
-            for _, part in ipairs(tycoon:GetDescendants()) do
-                if part:IsA("BasePart") and part:GetAttribute("Floor") == floor then
-                    hitbox.Position = Vector3.new(part.Position.X, yPosition, part.Position.Z)
-                    suitable = true
-                    break
-                end
-            end
-            
-            if not suitable then
-                -- Default position if no suitable part found
-                hitbox.Position = Vector3.new(0, yPosition, 0)
-            end
-            
+			hitbox.BrickColor = BrickColor.Red()
+
             -- Set attributes
             hitbox:SetAttribute("TileType", tileType)
             hitbox:SetAttribute("Price", data.price)
             hitbox:SetAttribute("Description", data.description)
             hitbox:SetAttribute("IncomeBoost", data.incomeBoost)
-            
+
+			-- Get the position of the tile area from GymStructureIntegration
+			local tileArea = GymStructureIntegration:GetTileArea(tycoon, data.area)
+
+			if tileArea then
+				-- Position the hitbox at the center of the tile area
+				hitbox.Position = tileArea.CFrame.p
+				hitbox.Parent = hitboxFolder
+				count = count + 1
+			else
+				-- If tile area not found, try to position based on floor
+				local floor = data.floor or 1
+				local yPosition = (floor - 1) * GYM_CONFIG.FLOOR_HEIGHT + 2
+
+				-- Default position if no suitable part found
+				hitbox.Position = Vector3.new(0, yPosition, 0)
+				hitbox.Parent = hitboxFolder
+				count = count + 1
+			end
+
             hitbox.Parent = hitboxFolder
             count = count + 1
         end

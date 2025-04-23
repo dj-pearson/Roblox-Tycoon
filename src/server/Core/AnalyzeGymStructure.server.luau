@@ -194,12 +194,17 @@ local function generateRoomPrerequisites(gymParts)
     for _, floor in pairs(gymParts:GetChildren()) do
         local floorNum = getFloorNumber(floor.Name)
         if floorNum then
-            -- Initialize floor prerequisites
-            prerequisites[floorNum] = {}
-            
-            -- Previous floor is required for all floors except ground floor
-            if floorNum > 1 then
-                prerequisites[floorNum].floors = { floorNum - 1 }
+            local floorData = {
+                floorNum = floorNum,
+                requiredFloors = (floorNum > 1) and { floorNum - 1 } or {},
+                baseStructure = {"Walls", "Floor"},
+                roomOrder = {}
+            }
+    
+            -- Check for "Rooms" folder to maintain structure
+            local roomsFolder = floor:FindFirstChild("Rooms")
+            if roomsFolder then
+                floorData.roomsFolder = true
             end
             
             -- Each floor should have base structure completed first
@@ -207,13 +212,14 @@ local function generateRoomPrerequisites(gymParts)
             
             -- Room order
             local roomsFolder = floor:FindFirstChild("Rooms")
-            if roomsFolder then
-                local roomOrder = {}
-                for i, room in ipairs(roomsFolder:GetChildren()) do
-                    table.insert(roomOrder, room.Name)
+            if roomsFolder then -- If rooms are in a dedicated folder
+                for _, room in ipairs(roomsFolder:GetChildren()) do
+                    table.insert(floorData.roomOrder, room.Name)
                 end
-                prerequisites[floorNum].roomOrder = roomOrder
             end
+    
+            -- Assign the collected data to the floor
+            prerequisites[floorNum] = floorData
         end
     end
     
@@ -309,7 +315,13 @@ local function generateStructureSummary(structure)
         table.insert(lines, string.format("Floor %d: %s (%d child elements)", 
             floor.number, floor.name, floor.childCount))
         
-        -- Display structure elements
+            -- Check if rooms are in a dedicated folder or directly under the floor
+            if floor.hasRoomsFolder then
+                table.insert(lines, "  Rooms Folder: Present")
+            else
+                table.insert(lines, "  Rooms: Directly under the floor")
+            end
+            
         local structureElements = {}
         if floor.hasWalls then table.insert(structureElements, "Walls") end
         if floor.hasFloor then table.insert(structureElements, "Floor") end
@@ -350,21 +362,26 @@ local function generateStructureSummary(structure)
     table.insert(lines, "Prerequisites Structure")
     table.insert(lines, "---------------------")
     
-    for floorNum, prereq in pairs(structure.prerequisites) do
-        table.insert(lines, string.format("Floor %d:", floorNum))
-        
-        if prereq.floors then
-            table.insert(lines, "  Required Floors: " .. table.concat(prereq.floors, ", "))
-        end
-        
-        if prereq.baseStructure then
-            table.insert(lines, "  Base Structure: " .. table.concat(prereq.baseStructure, ", "))
-        end
-        
-        if prereq.roomOrder and #prereq.roomOrder > 0 then
-            table.insert(lines, "  Suggested Room Order: " .. table.concat(prereq.roomOrder, " → "))
-        end
+    -- Sort prerequisites by floor number
+    local sortedPrerequisites = {}
+    for floorNum, data in pairs(structure.prerequisites) do
+        table.insert(sortedPrerequisites, {number = floorNum, data = data})
     end
+    table.sort(sortedPrerequisites, function(a, b) return a.number < b.number end)
+    
+    -- Display prerequisites for each floor
+    for _, entry in ipairs(sortedPrerequisites) do
+        local floorNum = entry.number
+        local prereq = entry.data
+    
+        table.insert(lines, string.format("Floor %d:", floorNum))
+        if #prereq.requiredFloors > 0 then
+            table.insert(lines, "  Required Floors: " .. table.concat(prereq.requiredFloors, ", "))
+        end
+        table.insert(lines, "  Base Structure: " .. table.concat(prereq.baseStructure, ", "))
+        table.insert(lines, "  Room Order: " .. ((#prereq.roomOrder > 0) and table.concat(prereq.roomOrder, " → ") or "None"))
+    end
+    
     table.insert(lines, "")
     
     -- Full hierarchy

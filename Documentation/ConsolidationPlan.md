@@ -1,6 +1,6 @@
 # Automation Scripts Consolidation Plan
 
-## Overview
+## Overview of Automation Scripts
 This document outlines the plan to consolidate all gym automation scripts into a more modular and maintainable structure. The goal is to eliminate code duplication, improve maintainability, and create a more robust system.
 
 ## Scripts Being Consolidated
@@ -16,6 +16,9 @@ This document outlines the plan to consolidate all gym automation scripts into a
 ### New Modules
 1. `BuyTileProgressionManager.server.luau` - Manages progression and prerequisites
 2. `TileDataGenerator.server.luau` - Generates tile data from equipment models
+   - Apply attribute templates to tile data
+   - Organize tiles by category and type
+   - Calculate prices and income values
 3. `MigrationUtils.server.luau` - Utilities for migrating from old systems
 
 ### Consolidated Modules
@@ -31,6 +34,22 @@ This document outlines the plan to consolidate all gym automation scripts into a
 ### Phase 2: Update Main Automation Script (Completed)
 - ✅ Updated `GymAutomation.server.luau` to use new consolidated modules
 - ✅ Enhanced with fallback behavior if modules are not available
+
+### Phase 2.5: Update GymStructure and Layout (Pending)
+- [ ] Update GymStructure.md and related documentation
+- [ ] Create scripts to define rooms and areas within the gym
+- [ ] Implement scripts to handle different gym layouts
+  - [ ] Handle placement of equipment based on layouts
+  - [ ] Create functions to ensure equipment fits within designated areas
+  - [ ] Add scripts to check room integrity
+  - [ ] Implement systems to automatically detect room types and sizes
+- [ ] Integrate new layouts with buy tile placement
+  - [ ] Update scripts to validate tile placement
+  - [ ] Ensure tiles are placed correctly within designated rooms and areas
+- [ ] Update automation scripts to reflect layout changes
+  - [ ] Modify automation scripts to work with different layouts
+  - [ ] Test automation on various layouts
+  - [ ] Ensure automation scripts can adapt to new room definitions
 
 ### Phase 3: Data Migration (Pending)
 - [ ] Create migration functions in `MigrationUtils.server.luau` to help transition data
@@ -55,7 +74,6 @@ This document outlines the plan to consolidate all gym automation scripts into a
 ### EquipmentManager
 - Initialize equipment models
 - Apply equipment attributes
-- Manage upgrade paths
 - Handle equipment state changes
 
 ### BuyTileProgressionManager
@@ -64,11 +82,7 @@ This document outlines the plan to consolidate all gym automation scripts into a
 - Identify required tiles for progression
 - Control floor unlocking
 
-### TileDataGenerator
-- Generate tile data from models
-- Apply attribute templates
-- Organize tiles by category and type
-- Calculate prices and income values
+
 
 ## Global Studio Functions
 Studio-only global functions have been provided for testing:

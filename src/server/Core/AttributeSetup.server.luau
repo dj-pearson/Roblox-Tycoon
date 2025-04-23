@@ -4,6 +4,9 @@
     in the game, such as equipment and seats.
 ]]
 
+local GymStructure = require(script.Parent.GymStructureIntegration)
+local GymPartsFinder = require(script.Parent.GymPartsFinder)
+
 --[[
     Adds the IsInteractive, InteractionType, and CurrentUsers attributes to a model.
     @param model The model to which attributes will be added.
@@ -23,20 +26,23 @@ end
     Iterates through all equipment models and sets their interactive attributes.
 ]]
 local function SetupEquipmentAttributes()
-	-- Get all models with the EquipmentId attribute, to know they are equipment
-    for _, model in pairs(workspace:GetDescendants()) do
-		if model:GetAttribute("EquipmentId") then
-		    -- Call SetupInteractiveAttributes to set the basic interactive attributes.
-		    SetupInteractiveAttributes(model)
-            -- Set the specific InteractionType for equipment.
+	local equipmentAreas = {
+		GymStructure.Rooms.WeightRoom,
+		GymStructure.Rooms.CardioArea,
+		GymStructure.Rooms.FunctionalTraining,
+		GymStructure.Rooms.SpecializedTraining
+	}
+
+	for _, area in ipairs(equipmentAreas) do
+		local equipment = GymPartsFinder.GetInstancesInArea(area, "Equipment")
+		for _, model in ipairs(equipment) do
+			SetupInteractiveAttributes(model)
 			model:SetAttribute("InteractionType", "Equipment")
-        end
-    end
+		end
+	end
 end
 
---[[
-    Iterates through all potential seat models and sets their interactive attributes.
-]]
+
 local function SetupSeatAttributes()
 	-- Iterate through all models.
     for _, model in pairs(workspace:GetDescendants()) do

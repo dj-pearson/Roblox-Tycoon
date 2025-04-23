@@ -5,7 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Get the CoreRegistry and dependencies
+-- Get the CoreRegistry and dependencies, including the GymStructureIntegration
 local CoreRegistry = require(game:GetService("ServerScriptService").Core.CoreRegistry)
 local EventBridge = CoreRegistry.getSystem("EventBridge")
 local DataManager = CoreRegistry.getSystem("DataManager") 
@@ -46,32 +46,17 @@ local BuyTileSystem = {
 }
 
 -- Debug function
-local function log(...)
+local Log = function(...)
     if CONFIG.debugEnabled then
         print("[BuyTileSystem]", ...)
     end
 end
-
--- Initialize the module
-function BuyTileSystem:initialize()
-    log("Initializing BuyTileSystem...")
-    
-    -- Load equipment templates
-    self:loadEquipmentTemplates()
-    
-    -- Register remote events
-    self:setupRemoteEvents()
-    
-    log("BuyTileSystem initialized")
-    return true
-end
-
--- Load equipment templates from ReplicatedStorage
-function BuyTileSystem:loadEquipmentTemplates()
-    local templateFolder = ReplicatedStorage:FindFirstChild(CONFIG.equipmentFolder)
+-- Load equipment templates from ReplicatedStorage, now local and private
+local function loadEquipmentTemplates(self)
+        local templateFolder = ReplicatedStorage:FindFirstChild(CONFIG.equipmentFolder)
     
     if not templateFolder then
-        log("Equipment template folder not found")
+        Log("Equipment template folder not found")
         return false
     end
     
@@ -103,25 +88,68 @@ function BuyTileSystem:loadEquipmentTemplates()
         end
     end
     
-    log("Loaded " .. loadedCount .. " equipment templates")
+    Log("Loaded " .. loadedCount .. " equipment templates")
+    return true
+end 
+
+-- Check if player can afford a tile, now a private method
+local function canPlayerAfford(self, player, price)
+    if not player or not price then return false end
+    
+    -- Get player's cash
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then return false end
+    
+    local cashValue = leaderstats:FindFirstChild(CONFIG.cashAttributeName)
+    if not cashValue then return false end
+    
+    -- Check if player has enough cash
+    return cashValue.Value >= price
+end
+
+--Find spot in area, now a method
+local function findSpotInArea(self, gymStructureIntegration, tycoon, areaName)    
+    local area = gymStructureIntegration:getArea(tycoon, areaName)
+    if area then
+        local equipmentSpots = area:FindFirstChild("EquipmentSpots")
+        if equipmentSpots then
+            for _, spot in ipairs(equipmentSpots:GetChildren()) do
+                if spot:IsA("BasePart") and not spot:GetAttribute("Occupied") then
+                    spot:SetAttribute("Occupied", true)
+                    return spot.CFrame
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- Initialize the module
+-- Initialize the module
+function BuyTileSystem:initialize()
+    Log("Initializing BuyTileSystem...")
+    
+    -- Load equipment templates
+    self:loadEquipmentTemplates()
+    
+    -- Register remote events
+    self:setupRemoteEvents()
+    
+    log("BuyTileSystem initialized")
     return true
 end
 
--- Setup remote events
+-- Setup remote events 
 function BuyTileSystem:setupRemoteEvents()
     -- Get or create remote event for buy tile requests
     local buyTileEvent = EventBridge:getOrCreateRemoteEvent("BuyTile")
     
     -- Connect handler
-    EventBridge:connectRemoteEvent("BuyTile", function(player, tileId)
-        self:handleBuyTileRequest(player, tileId)
-    end)
+    EventBridge:connectRemoteEvent("BuyTile", function(player, tileId) self:handleBuyTileRequest(player, tileId) end) -- Corrected call
     
-    log("Remote events set up")
+    Log("Remote events set up")
 end
-
--- Calculate price for a tile
-function BuyTileSystem:calculateTilePrice(player, tileId)
+function BuyTileSystem:calculateTilePrice(player, tileId)    
     if not player or not tileId then return 0 end
     
     -- Get player's tycoon
@@ -148,22 +176,9 @@ function BuyTileSystem:calculateTilePrice(player, tileId)
     return finalPrice
 end
 
--- Check if player can afford a tile
-function BuyTileSystem:canPlayerAfford(player, price)
-    if not player or not price then return false end
     
-    -- Get player's cash
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if not leaderstats then return false end
-    
-    local cashValue = leaderstats:FindFirstChild(CONFIG.cashAttributeName)
-    if not cashValue then return false end
-    
-    -- Check if player has enough cash
-    return cashValue.Value >= price
-end
 
--- Deduct cash from player
+-- Deduct cash from player, now a method
 function BuyTileSystem:deductPlayerCash(player, amount)
     if not player or not amount then return false end
     
@@ -181,106 +196,145 @@ function BuyTileSystem:deductPlayerCash(player, amount)
     cashValue.Value = cashValue.Value - amount
     
     return true
-end
+end 
 
--- Handle a buy tile request
+-- Handle a buy tile request, now a method
 function BuyTileSystem:handleBuyTileRequest(player, tileId)
+
     if not player or not tileId then
-        log("Invalid buy tile request")
+        Log("Invalid buy tile request")
         return false
     end
     
-    log(player.Name .. " requested to buy tile: " .. tileId)
+    Log(player.Name .. " requested to buy tile: " .. tileId)
     
-    -- Check if tile template exists
     if not self.equipmentTemplates[tileId] then
-        log("Tile template not found: " .. tileId)
+        Log("Tile template not found: " .. tileId)
         return false
     end
-    
-    -- Get player's tycoon
-    local tycoon = player:FindFirstChild("Tycoon")
-    if not tycoon or not tycoon.Value then
-        log("Player has no tycoon")
+
+    local tycoon = TycoonSystem and TycoonSystem:GetPlayerTycoon(player)
+    if not tycoon then
+        Log("Player has no tycoon")
         return false
     end
-    
-    -- Check if player has reached the equipment limit
-    local equipmentCount = tycoon.Value:GetAttribute("EquipmentCount") or 0
+
+    local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
     if equipmentCount >= CONFIG.maxEquipmentPerTycoon then
-        log("Player has reached the equipment limit")
+        Log("Player has reached the equipment limit")
         return false
     end
-    
-    -- Calculate price
+
     local price = self:calculateTilePrice(player, tileId)
-    
-    -- Check if player can afford it
-    if not self:canPlayerAfford(player, price) then
-        log("Player cannot afford this tile")
+
+    if not canPlayerAfford(self,player, price) then
+        Log("Player cannot afford this tile")
         return false
     end
-    
-    -- Deduct cash
-    if not self:deductPlayerCash(player, price) then
-        log("Failed to deduct cash")
-        return false
-    end
-    
-    -- Place the equipment
     local success = self:placeEquipment(player, tileId)
-    
+
     if success then
-        -- Record purchase
+        if not self.deductPlayerCash(player, price) then
+            Log("Failed to deduct cash AFTER successful placement. This is unexpected and requires investigation.")
+        end
+
         if DataManager and DataManager.recordEquipmentPurchase then
             DataManager.recordEquipmentPurchase(player, tileId)
         end
-        
-        -- Fire event
-        if EventBridge then
+
+        if EventBridge and EventBridge.fireEvent then
             EventBridge:fireEvent("TilePurchased", player, tileId, price)
             EventBridge:fireClientEvent("TilePurchasedClient", player, tileId, price)
         end
-        
-        log(player.Name .. " successfully purchased tile: " .. tileId)
+
+        Log(player.Name .. " successfully purchased tile: " .. tileId)
         return true
     else
-        -- Refund cash if placement failed
-        local leaderstats = player:FindFirstChild("leaderstats")
-        if leaderstats then
-            local cashValue = leaderstats:FindFirstChild(CONFIG.cashAttributeName)
-            if cashValue then
-                cashValue.Value = cashValue.Value + price
-                log("Refunded " .. price .. " to " .. player.Name)
-            end
-        end
-        
-        log("Failed to place equipment for " .. player.Name)
+        Log("Failed to place equipment for " .. player.Name)
         return false
     end
-end
+end 
 
--- Find a suitable placement position in the tycoon
+ 
+
+-- Find a suitable placement position in the tycoon, now a method
 function BuyTileSystem:findPlacementPosition(tycoon, equipment)
-    if not tycoon or not equipment then return nil end
-    
-    -- Try to find a predefined equipment spot
-    local equipmentSpots = tycoon:FindFirstChild("EquipmentSpots")
-    if equipmentSpots then
-        -- Find an unoccupied spot
-        for _, spot in ipairs(equipmentSpots:GetChildren()) do
-            if spot:IsA("BasePart") and not spot:GetAttribute("Occupied") then
-                -- Mark as occupied
-                spot:SetAttribute("Occupied", true)
-                
-                -- Return spot position and orientation
-                return spot.CFrame
-            end
-        end
+-- Find a suitable placement position in the tycoon
+     if not tycoon or not equipment then
+        Log("Invalid tycoon or equipment")
+        return nil
     end
+
+    -- Order of priority for placement:
+    -- 1. EquipmentSpots within a specific area
+    -- 2. Specific equipment type areas (if applicable)
+    -- 3. General Gym Floor
+    -- 4. Fallback to tycoon origin (if everything else fails)
+    
+    local GymStructureIntegration = CoreRegistry.getSystem("GymStructureIntegration")
+     if not GymStructureIntegration then
+        Log("GymStructureIntegration system not found")
+        return nil
+    end
+     local placementCFrame = nil
+
+    
+    -- First, check if equipment requires a specific placement area
+    local equipmentType = equipment:GetAttribute("EquipmentType")
+    if equipmentType then
+        placementCFrame = findSpotInArea(self, GymStructureIntegration, tycoon, equipmentType)
+    end
+    
+    if not placementCFrame then   
+        placementCFrame = findSpotInArea(self, GymStructureIntegration, tycoon, "Gym Floor")
+    end    
+
     
     -- No spots available, find floor space
     local floorParts = {}
+    for _, part in ipairs(tycoon:GetDescendants()) do
+        if part:IsA("BasePart") and 
+           (part.Name:lower():find("floor") or
+            part.Name:lower():find("ground")) then
+            
+                table.insert(floorParts, part)
+            end
+        end
+        
+        if #floorParts > 0 then
+            -- Choose a random floor part
+            local floor = floorParts[math.random(1, #floorParts)]
+            
+            -- Get a random position on the floor
+            local size = floor.Size
+            local offsetX = (math.random() - 0.5) * (size.X * 0.8)
+            local offsetZ = (math.random() - 0.5) * (size.Z * 0.8)
+            
+            local position = floor.CFrame * CFrame.new(offsetX, size.Y/2 + 1, offsetZ)
+            
+            -- Random rotation around Y axis
+            local angle = math.random() * math.pi * 2
+            position = position * CFrame.Angles(0, angle, 0)
+            
+            placementCFrame = position
+        end
+    end
+    
+    -- Fallback to tycoon origin with some offset
+    if not placementCFrame then
+        local origin = tycoon:GetPivot()
+        local offsetX = (math.random() - 0.5) * 20
+        local offsetZ = (math.random() - 0.5) * 20
+        placementCFrame = origin * CFrame.new(offsetX, 3, offsetZ)
+    end
+    return placementCFrame or tycoon:GetPivot() * CFrame.new(0, 2, 0)
+end 
+
+-- Place equipment in tycoon, now a method
+function BuyTileSystem:placeEquipment(player, tileId)
+
+    local floorParts = {}
+
     for _, part in ipairs(tycoon:GetDescendants()) do
         if part:IsA("BasePart") and 
            (part.Name:lower():find("floor") or 
@@ -307,47 +361,41 @@ function BuyTileSystem:findPlacementPosition(tycoon, equipment)
         return position
     end
     
-    -- Fallback to tycoon origin with some offset
     local origin = tycoon:GetPivot()
-    local offsetX = (math.random() - 0.5) * 20
-    local offsetZ = (math.random() - 0.5) * 20
+        local offsetX = (math.random() - 0.5) * 20
+        local offsetZ = (math.random() - 0.5) * 20
     
     return origin * CFrame.new(offsetX, 3, offsetZ)
 end
-
 -- Place equipment in tycoon
-function BuyTileSystem:placeEquipment(player, tileId)
+
     if not player or not tileId then return false end
     
-    -- Get player's tycoon
+        -- Get player's tycoon
     local tycoonValue = player:FindFirstChild("Tycoon")
     if not tycoonValue or not tycoonValue.Value then
-        log("Player has no tycoon")
+        Log("Player has no tycoon")
         return false
     end
     
     local tycoon = tycoonValue.Value
     
     -- Get equipment template
-    local template = self.equipmentTemplates[tileId]
-    if not template then
-        log("Equipment template not found")
+    local template = self.equipmentTemplates[tileId] or nil
+     if not template then
+        Log("Equipment template not found")
         return false
-    end
+     end
     
     -- Clone equipment
     local equipment = template:Clone()
     
-    -- Set up equipment properties
     equipment.Name = tileId .. "_" .. os.time() .. "_" .. math.random(1000, 9999)
-    equipment:SetAttribute("EquipmentId", tileId)
-    equipment:SetAttribute("PurchaseTime", os.time())
-    equipment:SetAttribute("OwnerUserId", player.UserId)
-    
+
     -- Find placement position
     local placementCFrame = self:findPlacementPosition(tycoon, equipment)
     
-    if not placementCFrame then
+     if not placementCFrame then
         log("Could not find placement position")
         equipment:Destroy()
         return false
@@ -392,12 +440,13 @@ function BuyTileSystem:placeEquipment(player, tileId)
         end)
     end
     
-    log("Placed equipment " .. tileId .. " in " .. player.Name .. "'s tycoon")
+    Log("Placed equipment " .. tileId .. " in " .. player.Name .. "'s tycoon")
     return true
 end
 
+
 -- Create visual effect for equipment purchase
-function BuyTileSystem:createPurchaseEffect(equipment)
+function BuyTileSystem:createPurchaseEffect(self, equipment)
     if not equipment then return end
     
     -- Find a suitable part for the effect
@@ -439,8 +488,8 @@ function BuyTileSystem:createPurchaseEffect(equipment)
     end)
 end
 
--- Restore purchased equipment from data
-function BuyTileSystem:restoreEquipment(player, equipmentList)
+-- Restore purchased equipment from data --
+function BuyTileSystem:restoreEquipment(self, player, equipmentList)
     if not player or not equipmentList then return false end
     
     log("Restoring " .. #equipmentList .. " pieces of equipment for " .. player.Name)
@@ -477,16 +526,16 @@ local PublicAPI = {
     end,
     
     calculateTilePrice = function(player, tileId)
-        return BuyTileSystem:calculateTilePrice(player, tileId)
+        return self:calculateTilePrice(player, tileId)
     end,
     
     handleBuyTileRequest = function(player, tileId)
-        return BuyTileSystem:handleBuyTileRequest(player, tileId)
+        return self:handleBuyTileRequest(player, tileId)
     end,
     
     placeEquipment = function(player, tileId)
-        return BuyTileSystem:placeEquipment(player, tileId)
-    end,
+         return self:placeEquipment(player, tileId)
+    end, 
     
     restoreEquipment = function(player, equipmentList)
         return BuyTileSystem:restoreEquipment(player, equipmentList)
@@ -506,4 +555,4 @@ local PublicAPI = {
 }
 
 -- Register with CoreRegistry
-return CoreRegistry.registerSystem("BuyTileSystem", PublicAPI, {"EventBridge", "DataManager", "TycoonSystem"})
+return CoreRegistry.registerSystem("BuyTileSystem", PublicAPI, {"EventBridge", "DataManager", "TycoonSystem", "GymStructureIntegration"})

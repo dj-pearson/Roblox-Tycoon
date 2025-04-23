@@ -1,40 +1,55 @@
 -- lua
 --[[
-    GymPartsFinder.server.luau
+	GymPartsFinder.server.luau
 
-    Module script to find the GymParts folder in the workspace.
+	Module script to find specific parts within the GymParts structure in the workspace.
 
-    Created: May 2025
+	Updated: June 2025
 ]]--
 
 local GymPartsFinder = {}
 
--- Find all parts in the game and return them in a table indexed by name
-function GymPartsFinder:GetParts()
-    local parts = {}
-    local world = game:GetService("Workspace").World
-    if not world then
-        warn("World not found in Workspace")
-        return parts -- Return empty table if World is not found
-    end
+-- Retrieves a specific part by name from within the GymParts structure
+function GymPartsFinder:GetPartByName(partName)
+	local gymParts = self:GetGymPartsFolder()
+	if gymParts then
+		return gymParts:FindFirstChild(partName)
+	else
+		warn("GymParts folder not found in Workspace")
+		return nil
+	end
+end
 
-    local gymPartsFolder = world:FindFirstChild("GymParts")
-    if not gymPartsFolder then
-        gymPartsFolder = Instance.new("Folder")
-        gymPartsFolder.Name = "GymParts"
-        gymPartsFolder.Parent = world
-        warn("GymParts folder not found, created a new one in World.")
-    end
+-- Retrieves the main GymParts folder from the workspace, creating it if it doesn't exist
+function GymPartsFinder:GetGymPartsFolder()
+	local world = game:GetService("Workspace").World
+	if not world then
+		warn("World not found in Workspace")
+		return nil
+	end
 
-    for _, descendant in pairs(gymPartsFolder:GetDescendants()) do
-        if descendant:IsA("BasePart") then
-            parts[descendant.Name] = descendant
-        end
-    end
-    return parts
+	local gymPartsFolder = world:FindFirstChild("GymParts")
+	if not gymPartsFolder then
+		gymPartsFolder = Instance.new("Folder")
+		gymPartsFolder.Name = "GymParts"
+		gymPartsFolder.Parent = world
+		warn("GymParts folder not found, created a new one in World.")
+	end
+	return gymPartsFolder
+end
+
+-- Retrieves parts within a specific area (e.g., "WeightArea", "CardioArea") of the gym
+function GymPartsFinder:GetPartsInArea(areaName)
+	local gymParts = self:GetGymPartsFolder()
+	if not gymParts then return {} end
+
+	local areaFolder = gymParts:FindFirstChild(areaName)
+	if not areaFolder then return {} end
+
+	return areaFolder:GetChildren()
 end
 
 function GymPartsFinder:Initialize()
-    local _ = self:GetParts() -- Ensure GymParts folder exists
+	local _ = self:GetGymPartsFolder() -- Ensure GymParts folder exists
 end
 return GymPartsFinder

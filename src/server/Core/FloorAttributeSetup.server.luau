@@ -29,6 +29,7 @@ for _, folder in pairs(systemFolder:GetDescendants()) do
     end
 end
 
+local GymStructureIntegration = CoreRegistry:GetSystem("GymStructureIntegration")
 -- Configuration
 local CONFIG = {
     FLOOR_HEIGHT = 10,
@@ -39,18 +40,6 @@ local CONFIG = {
     EDGE_ATTR = "Edge",
     CORNER_ATTR = "Corner",
     ROOM_ATTR = "Room",
-    ROOM_TYPES = {
-        "Entrance",
-        "Reception",
-        "Cardio",
-        "Weights",
-        "Classroom",
-        "Locker",
-        "Office",
-        "Bathroom",
-        "Sauna",
-        "Nutrition"
-    }
 }
 
 -- FloorAttributeSetup singleton
@@ -226,21 +215,22 @@ end
 
 -- Function to identify rooms based on floor and wall parts
 function FloorAttributeSetup:IdentifyRooms(tycoon)
-    -- Get tycoon data if already processed
-    if self.TycoonData[tycoon] then
-        return self.TycoonData[tycoon].rooms
-    end
-    
-    -- Find structural parts
-    local floorParts, wallParts = self:FindStructuralParts(tycoon)
-    
-    -- Group parts by floor
-    local floorsByHeight, wallsByHeight = self:GroupPartsByFloor(floorParts, wallParts)
-    
-    -- Initialize rooms map
     local rooms = {}
-    
-    -- For each floor, identify rooms
+
+    local gymStructure = GymStructureIntegration:GetGymStructure(tycoon)
+    if not gymStructure then
+        warn("GymStructure not found for tycoon: " .. (tycoon.Name or "Unknown"))
+        return rooms
+    end
+
+    local floorsByHeight = {}
+    local wallsByHeight = {}
+
+    for floorNumber, floorData in pairs(gymStructure.floors) do
+        local y = floorNumber - 1
+        floorsByHeight[y] = floorData.floorParts
+        wallsByHeight[y] = floorData.wallParts
+
     for y, floorPartsForHeight in pairs(floorsByHeight) do
         local floorNumber = y + 1
         
@@ -438,21 +428,15 @@ function FloorAttributeSetup:ApplyAttributes(tycoon, floorsByHeight, wallsByHeig
     return floorsByHeight, wallsByHeight, rooms
 end
 
--- Function to identify edge and corner pieces
-function FloorAttributeSetup:IdentifyEdgesAndCorners(tycoon)
-    -- Get tycoon data if already processed
-    if not self.TycoonData[tycoon] or not self.TycoonData[tycoon].rooms then
-        self:IdentifyRooms(tycoon)
-    end
-    
-    local rooms = self.TycoonData[tycoon].rooms
-    
-    -- Process each room to identify edges and corners
+-- Function to identify edge pieces
+function FloorAttributeSetup:IdentifyEdges(tycoon)
+    local rooms = self:IdentifyRooms(tycoon)
+
     for floorNumber, floorRooms in pairs(rooms) do
         for roomName, room in pairs(floorRooms) do
             -- Calculate room bounds
             local minBound, maxBound = self:CalculateBounds(room.floorParts)
-            
+
             -- Skip if we couldn't calculate bounds
             if not minBound or not maxBound then
                 continue
@@ -462,34 +446,21 @@ function FloorAttributeSetup:IdentifyEdgesAndCorners(tycoon)
             room.bounds = {
                 min = minBound,
                 max = maxBound
-            }
-            
-            -- Find edge pieces - these are floor parts near the walls
-            for _, part in ipairs(room.floorParts) do
-                local isEdge = false
-                
-                -- Check if this part is near the edge of the room
-                if math.abs(part.Position.X - minBound.X) < 2 or
-                   math.abs(part.Position.X - maxBound.X) < 2 or
-                   math.abs(part.Position.Z - minBound.Z) < 2 or
-                   math.abs(part.Position.Z - maxBound.Z) < 2 then
-                    isEdge = true
+            } for _, part in ipairs(room.floorParts) do
+                local isEdge = math.abs(part.Position.X - minBound.X) < 2 or
+                             math.abs(part.Position.X - maxBound.X) < 2 or
+                             math.abs(part.Position.Z - minBound.Z) < 2 or
+                             math.abs(part.Position.Z - maxBound.Z) < 2
+
+                if isEdge then
                     part:SetAttribute(CONFIG.EDGE_ATTR, true)
                 end
-                
-                -- Check if this part is in a corner
-                if (math.abs(part.Position.X - minBound.X) < 2 and math.abs(part.Position.Z - minBound.Z) < 2) or
-                   (math.abs(part.Position.X - minBound.X) < 2 and math.abs(part.Position.Z - maxBound.Z) < 2) or
-                   (math.abs(part.Position.X - maxBound.X) < 2 and math.abs(part.Position.Z - minBound.Z) < 2) or
-                   (math.abs(part.Position.X - maxBound.X) < 2 and math.abs(part.Position.Z - maxBound.Z) < 2) then
-                    part:SetAttribute(CONFIG.CORNER_ATTR, true)
-                end
-            end
+        end
         end
     end
 end
+    end
 
--- Function to process a tycoon and apply all attributes
 function FloorAttributeSetup:ProcessTycoon(tycoon)
     if not tycoon then
         return 0
@@ -504,8 +475,8 @@ function FloorAttributeSetup:ProcessTycoon(tycoon)
     -- Apply attributes
     floorsByHeight, wallsByHeight, rooms = self:ApplyAttributes(tycoon, floorsByHeight, wallsByHeight)
     
-    -- Identify edges and corners
-    self:IdentifyEdgesAndCorners(tycoon)
+    -- Identify edges
+    self:IdentifyEdges(tycoon)
     
     -- Cache data for the tycoon
     self.TycoonData[tycoon] = {
@@ -513,7 +484,7 @@ function FloorAttributeSetup:ProcessTycoon(tycoon)
         wallsByHeight = wallsByHeight,
         rooms = rooms
     }
-    
+
     -- Return floor count
     return #floorsByHeight
 end
@@ -746,7 +717,7 @@ function FloorAttributeSetup:CreateGlobalFunctions()
             print("\nFloor " .. floorNumber .. ":")
             
             for roomName, room in pairs(floorRooms) do
-                local roomType = room.type or "Unknown"
+                local roomType = room.type or "Generic"
                 local floorCount = #room.floorParts
                 local wallCount = #(room.wallParts or {})
                 

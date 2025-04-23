@@ -1,4 +1,3 @@
-lua
 --[[
     DynamicEconomy.server.luau
     This script handles the dynamic pricing of resources based on supply and demand.

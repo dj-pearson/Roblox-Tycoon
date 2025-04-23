@@ -99,6 +99,19 @@ for _, definition in ipairs(systemDefinitions) do
 	loadSystem(definition)
 end
 
+-- Step 4.5: Initialize Gym Structure Integration
+local GymStructureIntegration
+pcall(function()
+    GymStructureIntegration = require(ServerScriptService:FindFirstChild("GymStructureIntegration"))
+    GymStructureIntegration.initialize() -- Ensure the structure is initialized
+    print("Initialized Gym Structure Integration")
+end)
+
+if not GymStructureIntegration then
+    warn("Failed to load GymStructureIntegration - Gym structure information will not be available!")
+end
+
+
 -- Step 4: Load the connector last (integrates all systems)
 local GymTycoonConnector
 pcall(function()

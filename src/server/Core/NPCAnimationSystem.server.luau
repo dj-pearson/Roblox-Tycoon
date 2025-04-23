@@ -14,14 +14,15 @@
     Author: Created April 21, 2025
 ]]
 
-local RunService = game:GetService("RunService")
-local ServerStorage = game:GetService("ServerStorage")
+local game = game
+--local CollectionService = game:GetService("CollectionService")
 
 -- Module dependencies
 local CoreRegistry
 local NPCSystem
 local NPCSystemPerformance
-local PerformanceManager
+--local PerformanceManager
+--local GymStructureIntegration
 local EventBridge
 
 -- Animation configuration
@@ -103,7 +104,8 @@ local NPCAnimationSystem = {
         "NPCSystem", 
         "NPCSystemPerformance", 
         "PerformanceManager", 
-        "EventBridge"
+        "EventBridge",
+        "GymStructureIntegration"
     },
     
     -- Internal state
@@ -127,7 +129,7 @@ function NPCAnimationSystem:initializeAnimationPool()
     if not CONFIG.useAnimationPooling then return end
     
     -- Create initial pool of Animation objects
-    for i = 1, CONFIG.initialAnimationPoolSize do
+    for _ = 1, CONFIG.initialAnimationPoolSize do
         local anim = Instance.new("Animation")
         table.insert(self._animationPool, anim)
     end
@@ -319,8 +321,7 @@ function NPCAnimationSystem:playAnimation(npc, animationType, options)
     if not looped then
         animTrack.Stopped:Connect(function()
             if self._activeAnimations[npc] then
-                self._activeAnimations[npc][animationType] = nil
-                
+                self._activeAnimations[npc][animationType] = nil                
                 -- If no more animations for this NPC, clean up
                 local hasAnimations = false
                 for _, _ in pairs(self._activeAnimations[npc]) do
@@ -476,27 +477,9 @@ function NPCAnimationSystem:applyDistanceBasedQuality(npc, playerPosition)
                         track:AdjustSpeed(0.5) -- Half speed
                     end
                 else
-                    -- At medium distances, simplify but keep main animations
                     if animType and string.find(animType, "SATISFACTION") then
                         track:Stop(0.1) -- Remove non-essential animations
                     end
-                end
-            end
-        end
-    else
-        -- Close enough for full animations - restore normal speeds
-        local humanoid = npc:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
-                local animType = track:GetAttribute("AnimationType")
-                
-                -- Restore normal speeds
-                if animType == "WALK" then
-                    track:AdjustSpeed(CONFIG.walkAnimationSpeed)
-                elseif animType == "IDLE" then
-                    track:AdjustSpeed(CONFIG.idleAnimationSpeed)
-                elseif string.find(animType, "EQUIPMENT") then
-                    track:AdjustSpeed(CONFIG.equipmentAnimationSpeed)
                 end
             end
         end
@@ -511,10 +494,10 @@ function NPCAnimationSystem:extendNPCSystem()
     local originalUpdateSingleNPC = NPCSystem.updateSingleNPC
     
     -- Override the updateSingleNPC function to add animations
-    NPCSystem.updateSingleNPC = function(self, npc, data)
+    NPCSystem.updateSingleNPC = function(npcSystem, npc, data)
         -- Call original function first
-        originalUpdateSingleNPC(self, npc, data)
-        
+        originalUpdateSingleNPC(npcSystem, npc, data)
+
         -- Add animations based on NPC state
         NPCAnimationSystem:playAppropriateAnimation(npc, data)
         
@@ -537,12 +520,12 @@ function NPCAnimationSystem:extendNPCSystem()
     local originalRemoveNPC = NPCSystem.removeNPC or NPCSystem.returnToPool
     
     if originalRemoveNPC then
-        NPCSystem.removeNPC = function(self, npc)
+        NPCSystem.removeNPC = function(npcSystem, npc)
             -- Stop all animations
             NPCAnimationSystem:stopAllAnimations(npc, 0.1) -- Quick fade
             
             -- Call original function
-            return originalRemoveNPC(self, npc)
+            return originalRemoveNPC(npcSystem, npc)
         end
     end
     
@@ -554,15 +537,16 @@ end
 
 -- Initialize the animation system
 function NPCAnimationSystem:init()
-    debugPrint("Initializing NPCAnimationSystem v" .. self._version)
+    debugPrint("Initializing NPCAnimationSystem v" .. NPCAnimationSystem._version)
     
     -- Get dependencies from registry
-    CoreRegistry = self.CoreRegistry
+    CoreRegistry = NPCAnimationSystem.CoreRegistry
     
     -- Get required systems
     NPCSystem = CoreRegistry:getSystem("NPCSystem")
     NPCSystemPerformance = CoreRegistry:getSystem("NPCSystemPerformance")
-    PerformanceManager = CoreRegistry:getSystem("PerformanceManager")
+
+    GymStructureIntegration = CoreRegistry:getSystem("GymStructureIntegration")
     EventBridge = CoreRegistry:getSystem("EventBridge")
     
     -- Check required dependencies
@@ -572,13 +556,13 @@ function NPCAnimationSystem:init()
     end
     
     -- Initialize animation pool
-    self:initializeAnimationPool()
+    NPCAnimationSystem:initializeAnimationPool()
     
     -- Preload animations
-    self:preloadAnimations()
+    NPCAnimationSystem:preloadAnimations()
     
     -- Extend NPCSystem with animation capabilities
-    self:extendNPCSystem()
+    NPCAnimationSystem:extendNPCSystem()
     
     -- Register for events if EventBridge is available
     if EventBridge then
@@ -630,5 +614,5 @@ end
 
 -- Register with CoreRegistry
 return CoreRegistry.registerSystem("NPCAnimationSystem", NPCAnimationSystem, {
-    "CoreRegistry", "NPCSystem", "NPCSystemPerformance", "PerformanceManager", "EventBridge"
+    "CoreRegistry", "NPCSystem", "NPCSystemPerformance", "PerformanceManager", "EventBridge", "GymStructureIntegration"
 })

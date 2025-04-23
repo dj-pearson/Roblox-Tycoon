@@ -15,7 +15,7 @@
 ]]
 
 local ServerStorage = game:GetService("ServerStorage")
-local HttpService = game:GetService("HttpService")
+local GymStructure = require(ServerStorage.AutomationLoader.Core.GymStructureIntegration)
 
 -- Constants for categorization
 local CATEGORY_KEYWORDS = {
@@ -35,50 +35,39 @@ local BUILD_ORDER_SPACING = 5  -- Gap between build order numbers for buffer
 local function GenerateBuyTileConfig()
     print("BuyTileConfigGenerator: Starting configuration generation...")
     
-    -- Find the GymParts folder
-    local gymParts = workspace:FindFirstChild("GymParts")
-    if not gymParts then
-        warn("BuyTileConfigGenerator: GymParts folder not found in workspace!")
-        
-        -- Try to find any tycoon or template
-        local tycoon
-        for _, child in ipairs(workspace:GetChildren()) do
-            if string.find(child.Name:lower(), "tycoon") or 
-               string.find(child.Name:lower(), "gym") or 
-               string.find(child.Name:lower(), "template") then
-                tycoon = child
-                print("BuyTileConfigGenerator: Using " .. child.Name .. " as template")
-                break
-            end
-        end
-        
-        if not tycoon then
-            warn("BuyTileConfigGenerator: No suitable gym model found in workspace")
-            return nil
-        end
-        
-        gymParts = tycoon
-    end
-    
     -- Collection of all models
     local allModels = {}
     local floors = {}
     local nextBuildOrder = 1
     
+    local gymAreas = GymStructure.getAreas()
+
     -- Floor detection
     local function detectFloor(model)
         -- Try to get from attribute first
         local floorAttr = model:GetAttribute("Floor")
         if floorAttr and type(floorAttr) == "number" then
+            print("Floor attribute found:", floorAttr)
             return floorAttr
         end
         
-        -- Try to detect from position (Y value)
-        local position
-        if model:IsA("Model") and model.PrimaryPart then
-            position = model.PrimaryPart.Position
-        elseif model:IsA("BasePart") then
-            position = model.Position
+        -- Check if the model is within a defined area and get the floor from there
+        local position = model:GetPivot().Position
+        for areaName, area in pairs(gymAreas) do
+            if area.Bounds then
+                local cf = area.Bounds.CFrame
+                local size = area.Bounds.Size
+
+                local objectToWorld = cf:ToObjectSpace(CFrame.new(position))
+                local x, y, z = objectToWorld:ToWorldCoordinates()
+
+                if math.abs(x) <= size.X / 2 and math.abs(y) <= size.Y / 2 and math.abs(z) <= size.Z / 2 then
+                    if area.Floor then
+                        print("Detected area:", areaName, "Floor:", area.Floor)
+                        return area.Floor
+                    end
+                end
+            end
         else
             -- Calculate average position of all parts
             local totalPos = Vector3.new(0, 0, 0)
@@ -90,19 +79,13 @@ local function GenerateBuyTileConfig()
                 end
             end
             
-            if partCount > 0 then
-                position = totalPos / partCount
-            else
-                return 1 -- Default to ground floor
-            end
+            position = partCount > 0 and totalPos / partCount or position -- Use original position if no parts found
         end
         
-        -- Detect floor based on Y position with some tolerance
-        local FLOOR_HEIGHT = 20 -- Approximate height between floors
-        local GROUND_LEVEL = 0  -- Approximate Y position of ground floor
-        
-        local relativeHeight = position.Y - GROUND_LEVEL
-        local floorNumber = math.floor(relativeHeight / FLOOR_HEIGHT) + 1
+        -- Detect floor based on Y position
+        local floorNumber = math.floor(position.Y / 20) + 1 -- Assuming 20 units per floor
+
+        print("Detected floor by Y position:", floorNumber)
         
         -- Clamp to reasonable range (1-6)
         return math.clamp(floorNumber, 1, 6)
@@ -195,7 +178,7 @@ local function GenerateBuyTileConfig()
         for _, otherModel in ipairs(allModels) do
             if otherModel.model == model then continue end
             if otherModel.floor > floor then continue end
-            
+
             local otherPosition
             local otherModelObj = otherModel.model
             if otherModelObj:IsA("Model") and otherModelObj.PrimaryPart then
@@ -206,7 +189,7 @@ local function GenerateBuyTileConfig()
                 -- Skip if position can't be determined
                 continue
             end
-            
+
             -- Check if within proximity threshold
             local distance = (modelPosition - otherPosition).Magnitude
             if distance < PROXIMITY_THRESHOLD and otherModel.buildOrder < nextBuildOrder then
@@ -224,7 +207,7 @@ local function GenerateBuyTileConfig()
     
     -- Get base price based on category and floor
     local function estimateBasePrice(category, floor, isRequired)
-        local basePrice = 100
+        local basePrice = 250
         
         -- Adjust base price by category
         local categoryMultipliers = {
@@ -238,7 +221,7 @@ local function GenerateBuyTileConfig()
         
         basePrice *= categoryMultipliers[category] or 1.0
         
-        -- Higher floors cost more
+        -- Higher floors cost slightly more
         basePrice *= (1.0 + (floor - 1) * 0.25)
         
         -- Required items are slightly cheaper
@@ -252,7 +235,7 @@ local function GenerateBuyTileConfig()
     
     -- Collect all model information
     local function scanModels(parent, currentFloor)
-        currentFloor = currentFloor or 1
+        currentFloor = currentFloor or 0
         
         -- Check if this is a floor folder
         local isFloorFolder = string.find(parent.Name:lower(), "floor") or 
@@ -267,7 +250,7 @@ local function GenerateBuyTileConfig()
             if floorNum then
                 currentFloor = tonumber(floorNum)
             elseif parent.Name:lower() == "ground" then
-                currentFloor = 1
+                currentFloor = 0
             elseif parent.Name:lower() == "roof" then
                 currentFloor = 5
             end
@@ -348,7 +331,7 @@ local function GenerateBuyTileConfig()
     end
     
     -- Scan all models in the gym
-    scanModels(gymParts)
+    scanModels(GymStructure.getGymParts())
     
     -- Sort models by floor and then by approximate position on each floor
     table.sort(allModels, function(a, b)
