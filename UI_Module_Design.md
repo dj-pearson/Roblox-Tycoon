@@ -26,12 +26,14 @@ This document outlines the design for the UI Module, which will serve as the pri
     *   Top: Game logo and player profile (level, name, resources).
     *   Center: Primary buttons (Play, Alliance, Specialization, Seasonal Events, Settings).
     *   Bottom: Social links or announcements.
+    * Center: Minigames Button.
 *   **Primary Buttons:**
     *   **Play:** Starts the main gameplay. Connects to `GameSystem.startGame()`.
     *   **Alliance:** Opens the alliance menu.
     *   **Specialization:** Opens the specialization menu.
     *   **Seasonal Events:** Opens the seasonal events menu.
     *   **Settings:** Opens the settings menu.
+    *   **Minigames**: Opens the Minigames Menu. Use `UIStyle.applyStyle()`.
 *   **Design Direction:** Clean, minimalist design with clear visual hierarchy. Prominent buttons with subtle animations on hover.
 *   **User Journey:** The Main Menu is the first screen users will see. It should facilitate quick entry into the game or other features.
 
@@ -48,6 +50,23 @@ This document outlines the design for the UI Module, which will serve as the pri
 *   **User Journey:** Accessed from the Main Menu or in-game overlay. Provides users with control over their game experience.
 
 ### 2. Buttons
+#### 1.4 Minigames Menu
+*   **Layout:**
+    *   A list of available mini-games. Use `MiniGameSystem.GetAvailableGames` to get the available minigames.
+    *   Each mini-game will have a button to start it. Use `UIStyle.applyStyle()`.
+    *   Each mini-game will have a description.
+    *   Each minigame will have a image or video.
+    *   A back button to return to the Main Menu.
+*   **Design Direction:**
+    *   Clean and well-organized.
+    *   Each mini-game should have a clear button with its name.
+    * The description of the minigame should be clear and detailed.
+*   **User Journey:**
+    *   Accessed from the Main Menu.
+    *   Provides a list of available mini-games and allows the player to select one to start.
+*   **Backend Connection:**
+    *   `MiniGameSystem.GetAvailableGames`
+
 
 #### 1.3 Rebirth Menu
 *   **Style:** `UIStyle.applyStyle()`
@@ -237,6 +256,8 @@ This document outlines the design for the UI Module, which will serve as the pri
 * `GameSystem.startGame()`: Play Button.
 * `RebirthSystem.getRebirthInfo()`: Rebirth Menu.
 * `RebirthSystem.performRebirth()`: Rebirth Button, Rebirth Menu.
+* `MiniGameSystem.GetAvailableGames`: Minigames Menu.
 ## Conclusion
 
 This document serves as a guide for the UI development team. It covers the essential UI components, their interactions, and the necessary backend connections. By adhering to these guidelines and the stated design principles, the team can create a cohesive, intuitive, and visually appealing user interface that enhances the overall player experience.
+Now the game has a good variety of mini games that the player can play and compete with other players.

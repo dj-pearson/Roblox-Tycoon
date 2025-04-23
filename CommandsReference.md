@@ -8,6 +8,7 @@ This document provides a comprehensive guide to all available global commands (`
 2. [Tycoon Automation Commands](#tycoon-automation-commands)
 3. [BoundingBox and Hitbox Commands](#boundingbox-and-hitbox-commands)
 4. [Equipment Management Commands](#equipment-management-commands)
+
 5. [Visualization Commands](#visualization-commands)
 6. [Buy Tile System Commands](#buy-tile-system-commands)
 7. [Debugging and Information Commands](#debugging-and-information-commands)
