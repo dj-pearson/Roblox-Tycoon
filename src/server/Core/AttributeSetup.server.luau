@@ -8,6 +8,23 @@ local GymStructure = require(script.Parent.GymStructureIntegration)
 local GymPartsFinder = require(script.Parent.GymPartsFinder)
 
 --[[
+    Checks if a model has a descendant named "Seat" and adds the "HasSeatLayer" attribute.
+    @param model The model to check and add the attribute to.
+]]
+local function CheckForSeatLayer(model)
+	-- Iterate through the descendants of the model.
+	for _, descendant in ipairs(model:GetDescendants()) do
+		-- Check if the descendant is named "Seat".
+		if descendant.Name == "Seat" then
+			-- Add the "HasSeatLayer" attribute and set it to true.
+			model:SetAttribute("HasSeatLayer", true)
+			return -- Exit the function early since we found a "Seat".
+		end
+	end
+	-- If no "Seat" descendant is found, don't add the attribute (it defaults to nil).
+end
+
+--[[
     Adds the IsInteractive, InteractionType, and CurrentUsers attributes to a model.
     @param model The model to which attributes will be added.
 ]]
@@ -42,17 +59,18 @@ local function SetupEquipmentAttributes()
 	end
 end
 
-
+--[[
+    Sets up the attributes for seat models.
+]]
 local function SetupSeatAttributes()
-	-- Iterate through all models.
-    for _, model in pairs(workspace:GetDescendants()) do
-		-- Check if the model's name contains "Seat".
-		if model.Name:lower():find("seat") then
-            -- Call SetupInteractiveAttributes to set the basic interactive attributes.
+	for _, model in ipairs(workspace:GetDescendants()) do
+		if model:IsA("Model") then
+			CheckForSeatLayer(model)
+			if model:GetAttribute("HasSeatLayer") then
 			SetupInteractiveAttributes(model)
-            -- Set the specific InteractionType for seats.
 			model:SetAttribute("InteractionType", "Seat")
-        end
+			end
+		end
 	end
 end
 

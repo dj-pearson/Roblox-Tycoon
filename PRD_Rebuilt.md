@@ -105,10 +105,7 @@ This document serves as the central repository for all project information, guid
     - **Description:** Expand the MilestoneSystem into a more dynamic quest or mission system that generates personalized goals for players based on their current progress, specialization, available equipment, or ongoing events.
     - **Benefits:** Provides players with clear, short-term objectives, encourages exploration of different game mechanics, and makes progression feel more personalized and engaging.
     - **Implementation Notes:** Goals could include "Train X Bodybuilder NPCs," "Earn Y revenue from Cardio equipment," or "Achieve Z member satisfaction for 10 minutes."
-- **Difficulty Settings / "Chill" Mode:**
-    - **Description:** Offer players different difficulty settings at the start or allow them to switch between a standard challenge mode and a more relaxed "Chill" or "Creative" mode.
-    - **Benefits:** Caters to a wider audience with different playstyle preferences, from those seeking a challenge to those who just want to build and customize.
-    - **Implementation Notes:** Parameters to modify could include starting money, member satisfaction decay, and failure conditions.
+
 
 ## 1. Completed Features
 
@@ -127,6 +124,11 @@ This document serves as the central repository for all project information, guid
     - **Description:** Expand on the basic member system by introducing different types of members (e.g., Bodybuilders, Cardio Enthusiasts, Seniors, Students, VIPs) with specific equipment preferences, patience levels, spending habits, and satisfaction drivers.
     - **Benefits:** Makes the simulation deeper, rewards players for creating diverse gym layouts catering to different needs, and allows for tailored marketing campaigns.
     - **Implementation Notes:** Integrate with NPC System, GymRevenueSystem, and MemberSatisfactionSystem.
+
+    - **Difficulty Settings / "Chill" Mode:**
+    - **Description:** Offer players different difficulty settings at the start or allow them to switch between a standard challenge mode and a more relaxed "Chill" or "Creative" mode.
+    - **Benefits:** Caters to a wider audience with different playstyle preferences, from those seeking a challenge to those who just want to build and customize.
+    - **Implementation Notes:** Parameters to modify could include starting money, member satisfaction decay, and failure conditions.
 
 ## ... (previous completed features)
 

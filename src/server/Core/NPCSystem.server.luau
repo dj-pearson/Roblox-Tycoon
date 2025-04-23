@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local CollectionService = game:GetService("CollectionService")
 
 -- Module dependencies
 local CoreRegistry
@@ -17,6 +18,8 @@ local TycoonSystem
 local DataManager
 local MemberSatisfactionSystem
 local RevenueSystem
+local StaffManagementSystem
+local MemberTrainingSystem
 
 -- Configuration
 local CONFIG = {
@@ -396,6 +399,55 @@ local NPCSystem = {
     _activeNPCs = {},       -- Currently active NPCs
     _spawnTimers = {},      -- Timers for spawning NPCs, keyed by tycoon
     _models = {},           -- Cached NPC models
-    _nextUpdateGroup = 0    -- For staggered updates
+    _nextUpdateGroup = 0,    -- For staggered updates
+    _dependencies = {"CoreRegistry", "EventBridge", "TycoonSystem", "DataManager", "MemberSatisfactionSystem", "RevenueSystem", "StaffManagementSystem"}
 }
+
+--[[\n    trainMember(member, equipment)\n    Handles the training logic for a member.\n    member: The member to train.\n    equipment: The equipment being used.\n]]
+function NPCSystem:trainMember(member, equipment)
+    -- Check if the member and equipment exist
+    if not member or not equipment then return end
+
+    -- Get the StaffManagementSystem
+    StaffManagementSystem = self.CoreRegistry:getSystem("StaffManagementSystem")
+
+    local trainerEfficiency = 1
+
+    local memberNPC = CollectionService:HasTag(member,"NPC") and member or member.Parent
+    if not memberNPC then return end
+    -- Check if there is a trainer nearby
+    local trainer = nil
+    local minDistance = 10
+    local memberPosition = memberNPC.HumanoidRootPart.Position
+    
+    for _, staff in ipairs(workspace.Staff:GetChildren()) do
+        if staff:IsA("Model") and staff.HumanoidRootPart then
+            local staffPosition = staff.HumanoidRootPart.Position
+            local distance = (memberPosition - staffPosition).Magnitude
+            
+            if distance < minDistance then
+                minDistance = distance
+                trainer = staff
+                if StaffManagementSystem then
+                    trainerEfficiency = StaffManagementSystem:getStaffEfficiency(trainer.Name) or 1
+                end
+            end
+        end
+    end
+    local trainerId = trainer and trainer.Name or nil
+    
+    -- Get the MemberTrainingSystem
+    MemberTrainingSystem = self.CoreRegistry:getSystem("MemberTrainingSystem")
+    
+    if MemberTrainingSystem then
+        MemberTrainingSystem:startTraining(member, equipment)
+    end
+    
+    -- Update MemberSatisfactionSystem
+    if MemberSatisfactionSystem then
+        MemberSatisfactionSystem:updateSatisfactionWithStaffInteraction(member.Name, trainerId, "Training")
+    end
+end
+
+
 -- Rest of the code remains the same

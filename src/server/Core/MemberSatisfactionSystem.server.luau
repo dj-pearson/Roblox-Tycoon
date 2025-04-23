@@ -14,6 +14,7 @@ local DataManager
 local RevenueSystem
 local NPCSystem
 local TycoonSystem
+local StaffSpecializationSystem
 
 -- Configuration
 local CONFIG = {
@@ -191,6 +192,32 @@ function MemberSatisfactionSystem:calculateRetentionFactor(player)
     return retentionFactor
 end
 
+--[[
+    updateSatisfactionWithStaffInteraction(memberId, staffId, interactionType)
+    Updates a member's satisfaction based on interaction with staff.
+    memberId: The unique identifier of the member.
+    staffId: The unique identifier of the staff member.
+    interactionType: The type of interaction (e.g., "training").
+]]
+function MemberSatisfactionSystem:updateSatisfactionWithStaffInteraction(memberId, staffId, interactionType)
+    -- Skip if there's no staffId
+    if not staffId then return end
+
+    -- Get the staff member's role
+    local staffRole = StaffManagementSystem:getStaffRole(staffId)
+    if not staffRole then return end
+    
+    -- Check for the Motivation skill in the staff member's skill tree
+    local skillTree = StaffSpecializationSystem:getSkillTreeForRole(staffRole)
+    if skillTree then
+        for _, skill in ipairs(skillTree) do
+            if skill.name == "Motivation" then
+                -- Apply the effect of the Motivation skill
+                self:BoostSatisfaction(Players:GetPlayerFromCharacter(NPCSystem:getNPCModel(memberId)), skill.effects.memberSatisfactionBoost or 0.1)
+            end
+        end
+    end
+end
 -- Process member retention based on satisfaction
 function MemberSatisfactionSystem:processMemberRetention(player)
     local tycoon = self:_getPlayerTycoon(player)
@@ -460,6 +487,7 @@ function MemberSatisfactionSystem:init()
     RevenueSystem = CoreRegistry:getSystem("RevenueSystem")
     NPCSystem = CoreRegistry:getSystem("NPCSystem")
     TycoonSystem = CoreRegistry:getSystem("TycoonSystem")
+    StaffSpecializationSystem = CoreRegistry:getSystem("StaffSpecializationSystem")
     
     -- Register events
     if EventBridge then
@@ -718,5 +746,4 @@ function MemberSatisfactionSystem:GetConfig()
     return table.freeze(table.clone(CONFIG)) -- Return immutable copy
 end
 
--- Register with CoreRegistry
-return CoreRegistry.registerSystem("MemberSatisfactionSystem", MemberSatisfactionSystem, {"CoreRegistry", "EventBridge", "DataManager", "RevenueSystem", "NPCSystem", "TycoonSystem"})
+return CoreRegistry.registerSystem("MemberSatisfactionSystem", MemberSatisfactionSystem, {"CoreRegistry", "EventBridge", "DataManager", "RevenueSystem", "NPCSystem", "TycoonSystem","StaffManagementSystem", "StaffSpecializationSystem"})
