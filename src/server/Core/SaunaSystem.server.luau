@@ -466,6 +466,8 @@ end
 -- Start the temperature update system
 function SaunaSystem:_startTemperatureSystem()
     
+    local lastUpdateTime = tick()  -- Initialize the timestamp
+    
     self._updateLoop = task.spawn(function()
         while true do
             wait(1) -- Update every second
@@ -526,6 +528,8 @@ function SaunaSystem:GetRoomInfo(roomName)
     if roomName then
         for _, room in pairs(self._rooms) do
             if room.name == roomName then return room.temperature end
+        end
+        return nil -- Return nil if room not found
     end
     
     -- Otherwise return info for all rooms

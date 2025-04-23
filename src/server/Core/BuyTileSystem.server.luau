@@ -125,7 +125,6 @@ local function findSpotInArea(self, gymStructureIntegration, tycoon, areaName)
 end
 
 -- Initialize the module
--- Initialize the module
 function BuyTileSystem:initialize()
     Log("Initializing BuyTileSystem...")
     
@@ -135,7 +134,7 @@ function BuyTileSystem:initialize()
     -- Register remote events
     self:setupRemoteEvents()
     
-    log("BuyTileSystem initialized")
+    Log("BuyTileSystem initialized")
     return true
 end
 
@@ -234,7 +233,7 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
     local success = self:placeEquipment(player, tileId)
 
     if success then
-        if not self.deductPlayerCash(player, price) then
+        if not self:deductPlayerCash(player, price) then
             Log("Failed to deduct cash AFTER successful placement. This is unexpected and requires investigation.")
         end
 
@@ -255,12 +254,10 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
     end
 end 
 
- 
-
 -- Find a suitable placement position in the tycoon, now a method
 function BuyTileSystem:findPlacementPosition(tycoon, equipment)
--- Find a suitable placement position in the tycoon
-     if not tycoon or not equipment then
+    -- Find a suitable placement position in the tycoon
+    if not tycoon or not equipment then
         Log("Invalid tycoon or equipment")
         return nil
     end
@@ -272,11 +269,11 @@ function BuyTileSystem:findPlacementPosition(tycoon, equipment)
     -- 4. Fallback to tycoon origin (if everything else fails)
     
     local GymStructureIntegration = CoreRegistry.getSystem("GymStructureIntegration")
-     if not GymStructureIntegration then
+    if not GymStructureIntegration then
         Log("GymStructureIntegration system not found")
         return nil
     end
-     local placementCFrame = nil
+    local placementCFrame = nil
 
     
     -- First, check if equipment requires a specific placement area
@@ -291,16 +288,17 @@ function BuyTileSystem:findPlacementPosition(tycoon, equipment)
 
     
     -- No spots available, find floor space
-    local floorParts = {}
-    for _, part in ipairs(tycoon:GetDescendants()) do
-        if part:IsA("BasePart") and 
-           (part.Name:lower():find("floor") or
-            part.Name:lower():find("ground")) then
-            
+    if not placementCFrame then
+        local floorParts = {}
+        for _, part in ipairs(tycoon:GetDescendants()) do
+            if part:IsA("BasePart") and 
+               (part.Name:lower():find("floor") or
+                part.Name:lower():find("ground")) then
+                
                 table.insert(floorParts, part)
             end
         end
-        
+            
         if #floorParts > 0 then
             -- Choose a random floor part
             local floor = floorParts[math.random(1, #floorParts)]
@@ -327,51 +325,15 @@ function BuyTileSystem:findPlacementPosition(tycoon, equipment)
         local offsetZ = (math.random() - 0.5) * 20
         placementCFrame = origin * CFrame.new(offsetX, 3, offsetZ)
     end
+    
     return placementCFrame or tycoon:GetPivot() * CFrame.new(0, 2, 0)
-end 
+end
 
 -- Place equipment in tycoon, now a method
 function BuyTileSystem:placeEquipment(player, tileId)
-
-    local floorParts = {}
-
-    for _, part in ipairs(tycoon:GetDescendants()) do
-        if part:IsA("BasePart") and 
-           (part.Name:lower():find("floor") or 
-            part.Name:lower():find("ground")) then
-            table.insert(floorParts, part)
-        end
-    end
-    
-    if #floorParts > 0 then
-        -- Choose a random floor part
-        local floor = floorParts[math.random(1, #floorParts)]
-        
-        -- Get a random position on the floor
-        local size = floor.Size
-        local offsetX = (math.random() - 0.5) * (size.X * 0.8)
-        local offsetZ = (math.random() - 0.5) * (size.Z * 0.8)
-        
-        local position = floor.CFrame * CFrame.new(offsetX, size.Y/2 + 1, offsetZ)
-        
-        -- Random rotation around Y axis
-        local angle = math.random() * math.pi * 2
-        position = position * CFrame.Angles(0, angle, 0)
-        
-        return position
-    end
-    
-    local origin = tycoon:GetPivot()
-        local offsetX = (math.random() - 0.5) * 20
-        local offsetZ = (math.random() - 0.5) * 20
-    
-    return origin * CFrame.new(offsetX, 3, offsetZ)
-end
--- Place equipment in tycoon
-
     if not player or not tileId then return false end
     
-        -- Get player's tycoon
+    -- Get player's tycoon
     local tycoonValue = player:FindFirstChild("Tycoon")
     if not tycoonValue or not tycoonValue.Value then
         Log("Player has no tycoon")
@@ -396,7 +358,7 @@ end
     local placementCFrame = self:findPlacementPosition(tycoon, equipment)
     
      if not placementCFrame then
-        log("Could not find placement position")
+        Log("Could not find placement position")
         equipment:Destroy()
         return false
     end
@@ -446,7 +408,7 @@ end
 
 
 -- Create visual effect for equipment purchase
-function BuyTileSystem:createPurchaseEffect(self, equipment)
+function BuyTileSystem:createPurchaseEffect(equipment)
     if not equipment then return end
     
     -- Find a suitable part for the effect
@@ -489,15 +451,15 @@ function BuyTileSystem:createPurchaseEffect(self, equipment)
 end
 
 -- Restore purchased equipment from data --
-function BuyTileSystem:restoreEquipment(self, player, equipmentList)
+function BuyTileSystem:restoreEquipment(player, equipmentList)
     if not player or not equipmentList then return false end
     
-    log("Restoring " .. #equipmentList .. " pieces of equipment for " .. player.Name)
+    Log("Restoring " .. #equipmentList .. " pieces of equipment for " .. player.Name)
     
     -- Get player's tycoon
     local tycoon = player:FindFirstChild("Tycoon")
     if not tycoon or not tycoon.Value then
-        log("Player has no tycoon")
+        Log("Player has no tycoon")
         return false
     end
     
@@ -513,7 +475,7 @@ function BuyTileSystem:restoreEquipment(self, player, equipmentList)
             end
         end
         
-        log("Finished restoring equipment for " .. player.Name)
+        Log("Finished restoring equipment for " .. player.Name)
     end)
     
     return true
@@ -526,15 +488,15 @@ local PublicAPI = {
     end,
     
     calculateTilePrice = function(player, tileId)
-        return self:calculateTilePrice(player, tileId)
+        return BuyTileSystem:calculateTilePrice(player, tileId)
     end,
     
     handleBuyTileRequest = function(player, tileId)
-        return self:handleBuyTileRequest(player, tileId)
+        return BuyTileSystem:handleBuyTileRequest(player, tileId)
     end,
     
     placeEquipment = function(player, tileId)
-         return self:placeEquipment(player, tileId)
+         return BuyTileSystem:placeEquipment(player, tileId)
     end, 
     
     restoreEquipment = function(player, equipmentList)
