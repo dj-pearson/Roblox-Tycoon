@@ -44,18 +44,18 @@ end
 -- Configuration
 local CONFIG = {
     -- Basic rebirth settings
-    baseRebirthCost = 100000, -- Starting cost for first rebirth
-    rebirthCostMultiplier = 2.5, -- How much the cost increases per level
+    baseRebirthCost = 100000,                -- Starting cost for first rebirth
+    rebirthCostMultiplier = 2.0,                -- How much the cost increases per level
     maxRebirthLevel = 50, -- Maximum rebirth level
-    
+
     -- Revenue multipliers
-    baseBonusMultiplier = 0.1, -- Base 10% bonus per rebirth
+    baseBonusMultiplier = 0.2,                -- Base 20% bonus per rebirth
     tierBonusMultipliers = {
-        [5] = 0.05,   -- Extra 5% at rebirth level 5
-        [10] = 0.1,   -- Extra 10% at rebirth level 10
-        [20] = 0.15,  -- Extra 15% at rebirth level 20
-        [30] = 0.2,   -- Extra 20% at rebirth level 30
-        [50] = 0.25   -- Extra 25% at rebirth level 50
+        [5] = 0.1,                        -- Extra 10% at rebirth level 5
+        [10] = 0.2,                        -- Extra 20% at rebirth level 10
+        [20] = 0.25,                    -- Extra 25% at rebirth level 20
+        [30] = 0.3,                        -- Extra 30% at rebirth level 30
+        [50] = 0.4                        -- Extra 40% at rebirth level 50
     },
     
     -- Unlockable gym features by rebirth level
@@ -84,6 +84,7 @@ local CONFIG = {
             name = "Specialized Training Areas",
             description = "Unlock specialized training areas",
             specializationEffectiveness = 0.25, -- 25% specialization bonus
+            specializationChanceBonus = 0.25, --25% bonus to get a specialization
             icon = "rbxassetid://12696907112"
         },
         [10] = {
@@ -138,7 +139,7 @@ local CONFIG = {
             icon = "rbxassetid://12696908712"
         }
     },
-    
+
     -- Rebirth perks (passive abilities unlocked at certain levels)
     rebirthPerks = {
         [2] = {
