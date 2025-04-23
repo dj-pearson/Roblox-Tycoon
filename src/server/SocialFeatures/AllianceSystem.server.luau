@@ -2,7 +2,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local AllianceSystem = {}
+local alliances = {}
+local playerAlliance = {}
 
+local allianceRewards = {
+    [2] = {memberCapacity = 5}, -- Example: Level 2 reward
+    [3] = {gymRevenue = 1.1},    -- Example: Level 3 reward (10% increase)
+    [4] = {equipmentDiscount = 0.9}, -- Example: Level 4 reward (10% discount)
+}
+local levelThresholds = {    
+    [2] = 100,
+	[3] = 250,
+	[4] = 500,
+}
 local alliances = {}
 local playerAlliance = {}
 
@@ -10,16 +22,137 @@ function AllianceSystem.CreateAlliance(leader, allianceName)
     local allianceId = #alliances + 1
     alliances[allianceId] = {
         name = allianceName,
-        leader = leader.UserId,
-        members = {leader.UserId},
+        xp = 0,
+        level = 1,
+        membersRoles = {[leader.UserId] = "Leader"},
         invited = {},
-        level = 1, -- Example attribute: Alliance level
-        bonuses = {}  -- Example attribute: Store alliance bonuses
+        bank = {},
+        bonuses = {},
+		members = {leader.UserId}
     }
     playerAlliance[leader.UserId] = allianceId
     return true, allianceId
 end
 
+function AllianceSystem.AddAllianceXP(allianceId, amount)
+    local alliance = alliances[allianceId]
+    if not alliance then
+        return false, "Alliance not found."
+    end
+    alliance.xp = alliance.xp + amount    
+    AllianceSystem.CheckAllianceLevelUp(allianceId)
+    return true
+end
+
+function AllianceSystem.CheckAllianceLevelUp(allianceId)
+	local alliance = alliances[allianceId]
+	if not alliance then return false, "Alliance not found" end
+
+	local currentLevel = alliance.level
+	local nextLevel = currentLevel + 1
+	local requiredXP = levelThresholds[nextLevel]
+
+	if requiredXP and alliance.xp >= requiredXP then
+		alliance.level = nextLevel
+		-- Implement rewards here if needed
+		local event = ReplicatedStorage:WaitForChild("AllianceLevelUp")
+		if event then
+			for _, userId in ipairs(alliance.members) do
+				local player = Players:GetPlayerByUserId(userId)
+				if player then
+					event:FireClient(player, alliance.name, nextLevel)
+				end
+			end
+		end
+	end
+	return true
+end
+
+function AllianceSystem.GetAllianceRewards(allianceId)
+    local alliance = alliances[allianceId]
+    if not alliance then return false, "Alliance not found" end
+
+    local rewards = allianceRewards[alliance.level]
+    if rewards then
+        for rewardType, value in pairs(rewards) do
+            if rewardType == "memberCapacity" then
+                alliance.bonuses.memberCapacity = (alliance.bonuses.memberCapacity or 0) + value
+            elseif rewardType == "gymRevenue" then
+                alliance.bonuses.gymRevenue = (alliance.bonuses.gymRevenue or 1) * value
+            elseif rewardType == "equipmentDiscount" then
+                alliance.bonuses.equipmentDiscount = (alliance.bonuses.equipmentDiscount or 1) * value
+            end
+        end
+    end
+end
+
+function AllianceSystem.GetAllianceRole(allianceId, userId)
+    local alliance = alliances[allianceId]
+    if not alliance then
+        return false, "Alliance not found"
+    end
+
+    return alliance.membersRoles[userId] or "Member" -- Default to "Member" if no role is found
+end
+
+function AllianceSystem.ChangeAllianceRole(allianceId, userId, newRole, leader)
+	local alliance = alliances[allianceId]
+	if not alliance then return false, "Alliance not found" end
+	
+	if alliance.membersRoles[leader.UserId] ~= "Leader" then return false, "Only the leader can change roles" end
+	if userId == leader.UserId then return false, "The leader can't change his own role" end
+
+	alliance.membersRoles[userId] = newRole
+	return true
+end
+
+function AllianceSystem.HasAlliancePermission(allianceId, userId, permission)
+	local alliance = alliances[allianceId]
+	if not alliance then return false, "Alliance not found" end
+	
+	local role = alliance.membersRoles[userId]
+	if role == "Leader" then return true end
+	if role == "Officer" and (permission == "invite" or permission == "kick" or permission == "manageEvents") then return true end
+
+	return false
+end
+
+function AllianceSystem.DepositToAllianceBank(allianceId, userId, resource, amount)
+	local alliance = alliances[allianceId]
+	if not alliance then return false, "Alliance not found" end
+
+	local isMember = false
+	for k,v in pairs(alliance.membersRoles) do
+		if k == userId then isMember = true end
+	end
+	if not isMember then return false, "You are not a member of this alliance" end
+
+	alliance.bank[resource] = (alliance.bank[resource] or 0) + amount
+	return true
+end
+
+function AllianceSystem.WithdrawFromAllianceBank(allianceId, userId, resource, amount)
+	local alliance = alliances[allianceId]
+	if not alliance then return false, "Alliance not found" end
+	
+	if not AllianceSystem.HasAlliancePermission(allianceId, userId, "manageBank") then
+		return false, "You do not have permission to withdraw from the bank"
+	end
+	
+	if (alliance.bank[resource] or 0) < amount then
+		return false, "Not enough resources in the bank"
+	end
+	
+	alliance.bank[resource] = alliance.bank[resource] - amount
+	return true
+end
+
+function AllianceSystem.GetAllianceBank(allianceId)
+	local alliance = alliances[allianceId]
+	if not alliance then return false, "Alliance not found" end
+	
+	return alliance.bank
+end
 function AllianceSystem.InvitePlayer(leader, playerToInvite, allianceId)
     local allianceId = playerAlliance[leader.UserId]
     if not allianceId then
@@ -27,7 +160,7 @@ function AllianceSystem.InvitePlayer(leader, playerToInvite, allianceId)
     end
 
     local alliance = alliances[allianceId]
-        if alliance.leader ~= leader.UserId then
+        if alliance.membersRoles[leader.UserId] ~= "Leader" then
             return false, "You are not the leader of this alliance."
         end
         
@@ -135,7 +268,7 @@ function AllianceSystem.DisbandAlliance(leader)
     end
 
     local alliance = alliances[allianceId]
-        if alliance.leader ~= leader.UserId then
+        if alliance.membersRoles[leader.UserId] ~= "Leader" then
             return false, "You are not the leader of this alliance."
         end
 

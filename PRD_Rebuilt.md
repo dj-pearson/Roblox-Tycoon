@@ -24,10 +24,12 @@ This document serves as the central repository for all project information, guid
     - A core seasonal event system is implemented, allowing the addition of events.
 - **Specialization system**
     - Core systems for specializations are implemented.
+- [x] Refine Specialization System
 - **Alliance System**
     - Base functionality for Alliances are implemented.
 - **Rebirth System**
-    - Players can rebirth their progress.
+
+   - Players can rebirth their progress.
 
 ## 2. Remaining Tasks/Features
 -   **Enhanced UI:**
@@ -50,6 +52,7 @@ This document serves as the central repository for all project information, guid
     - **Description:** Improve and refine the base functionality of Alliances, add events, and
     - **Priority:** High
     - **Notes:** Alliances need more functionality to be impactful.
+- [ ] 
 - **Refine Rebirth System**
     - **Description:** Ensure Rebirth System properly rewards players .
     - **Priority:** High
@@ -217,3 +220,61 @@ This document serves as the central repository for all project information, guid
 - Test: Make sure all elements work as intended.
 - **Testing Framework**
     - **Note:** Add proper testing framework and write tests for all implemented systems.
+
+## Refine Alliance System
+- [ ] 
+- **Description:** Improve and refine the base functionality of Alliances, add events, and
+    -   **Priority:** High
+    -   **Notes:** Alliances need more functionality to be impactful.
+
+    - [x] **Alliance Progression/Leveling:**
+        -   **Concept:** Alliances can gain experience points (XP) by completing activities or participating in events.
+        -   **Benefits:** As alliances level up, they could unlock:
+            -   Larger member capacity.
+            -   Unique alliance cosmetic items (e.g., custom banners, titles).
+            -   Passive bonuses (e.g., increased gym revenue for all members, reduced equipment costs).
+            - Access to new special events.
+        -   **Implementation Notes:**
+            -   Add an `xp` attribute to the alliance data.
+            -   Create a system for awarding XP (e.g., daily quests, participating in competitions).
+            -   Define level-up thresholds and rewards.
+
+    -   [x] **Alliance Roles:**
+        -   **Concept:** Introduce different roles within alliances (e.g., Leader, Officer, Member).
+        -   **Benefits:**
+            -   Officers can help manage the alliance (e.g., invite/kick members, manage events).
+            -   Creates a sense of hierarchy and responsibility.
+        -   **Implementation Notes:**
+            -   Add a `roles` field to the alliance data (e.g., a table of `userId` to `role`).
+            -   Modify existing functions (e.g., `InvitePlayer`, `DisbandAlliance`) to respect roles.
+            -   Add a new function to change the role of a player.
+
+    -   [x] **Alliance Bank/Shared Resources:**
+        -   **Concept:** Alliances can have a shared bank where members can contribute resources (e.g., in-game currency, special items).
+        -   **Benefits:**
+            -   Allows alliances to pool resources for shared goals (e.g., purchasing a special item, starting an event).
+        -   **Implementation Notes:**
+            -   Add a `bank` attribute to the alliance data (e.g., a table of resource type to amount).
+            -   Create functions to deposit and withdraw resources.
+
+    -   [ ] **Alliance Competitions/Challenges:**
+        -   **Concept:** Introduce alliance-versus-alliance or alliance-versus-environment challenges.
+        -   **Examples:**
+            -   **Gym Revenue Race:** Alliances compete to earn the most gym revenue in a given time.
+            -   **Member Satisfaction Challenge:** Alliances try to maximize the overall satisfaction of their members.
+            -   **Cooperative Goals:** Alliances work together to achieve a common goal (e.g., collectively train X number of NPCs).
+        -   **Benefits:**
+            -   Encourages competition and cooperation.
+            -   Provides a sense of accomplishment.
+        -   **Implementation Notes:**
+            -   Integrate with existing game systems (e.g., `CompetitionSystem`, `RevenueSystem`).
+            -   Define the rules and rewards for each event type.
+
+    -   [ ] **Alliance Communication:**
+        -   **Concept:** A way to communicate with all the members of the alliance.
+        -   **Benefits:**
+            -   Allows the alliance to strategize.
+            -   Makes it easier to organize events.
+        -   **Implementation Notes:**
+            -   Use of existing in game chat system.
+            -   Create a specific channel for the alliance.
