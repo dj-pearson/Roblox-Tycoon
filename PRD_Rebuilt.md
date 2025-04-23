@@ -49,11 +49,13 @@ This document serves as the central repository for all project information, guid
     - **Priority:** High
     - **Notes:** Ensure balancing is appropriate to keep players engaged.
 
-## 2. Remaining Tasks/Features
 -   **Enhanced UI:**
     -   **Description:** Redesign and expand the UI to include more detailed stats, controls, and customization options.
     -   **Priority:** High
     -   **Notes:** Requires improved navigation and visual feedback.
+
+## 2. Remaining Tasks/Features
+
 -   **Multiplayer Features:**
     -   **Description:** Implement features like visiting other player's gyms or competing in events.
     -   **Priority:** Medium
