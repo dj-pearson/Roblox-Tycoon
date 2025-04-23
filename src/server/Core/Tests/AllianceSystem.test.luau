@@ -1,5 +1,4 @@
-lua
----[[
+--[[
     AllianceSystem.test.luau
 
     Test script to validate the AllianceSystem.
