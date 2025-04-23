@@ -3,6 +3,7 @@
 -- Place in ServerScriptService/Core
 
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreFolder = ServerScriptService:FindFirstChild("Core")
 local ConnectorsFolder = ServerScriptService:FindFirstChild("Connectors")
 
@@ -14,6 +15,45 @@ local CONFIG = {
     startupDelay = 0,        -- Optional delay before initializing systems (seconds)
     interSystemInitDelay = 0.5 -- Delay between initializing each system (seconds)
 }
+
+-- Debug function
+local function log(...)
+    if CONFIG.debugEnabled then
+        print("[SystemBootstrap]", ...)
+    end
+end
+
+local function warn(...)
+    if CONFIG.debugEnabled then
+        warn("[SystemBootstrap]", ...)
+    end
+end
+
+log("Starting system initialization...")
+
+-- Run folder setup first to ensure all required folders exist
+local folderSetupPath = script.Parent:FindFirstChild("FolderSetup")
+if folderSetupPath then
+    log("Running FolderSetup...")
+    require(folderSetupPath)
+else
+    log("Warning: FolderSetup not found, some scripts might yield indefinitely")
+end
+
+-- Ensure folders exist
+local function ensureFolderExists(parent, name)
+    local folder = parent:FindFirstChild(name)
+    if not folder then
+        folder = Instance.new("Folder")
+        folder.Name = name
+        folder.Parent = parent
+    end
+    return folder
+end
+
+-- Create necessary folders in ReplicatedStorage
+local eventsFolder = ensureFolderExists(ReplicatedStorage, "Events")
+local sharedFolder = ensureFolderExists(ReplicatedStorage, "shared")
 
 -- Get the CoreRegistry to access all systems
 local CoreRegistry = require(CoreFolder:FindFirstChild("CoreRegistry"))
@@ -43,19 +83,6 @@ local systemsToInitialize = {
 local connectorsToInitialize = {
     "GymTycoonConnector" -- Bridge between new architecture and legacy code
 }
-
--- Utility functions
-local function log(...)
-    if CONFIG.debugEnabled then
-        print("[SystemBootstrap]", ...)
-    end
-end
-
-local function warn(...)
-    if CONFIG.debugEnabled then
-        warn("[SystemBootstrap]", ...)
-    end
-end
 
 -- Handle when a player joins
 local function handlePlayerJoin(player)

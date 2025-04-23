@@ -37,8 +37,23 @@ function CoreRegistry.getSystem(name)
     
     -- Check if system exists
     if not CoreRegistry.systems[name] then
-        log("Error: System not found: " .. name)
-        return nil
+        -- Try to load it directly for certain core systems
+        if name == "DataThrottler" then
+            local success, result = pcall(function()
+                return require(script.Parent.DataThrottler)
+            end)
+            
+            if success then
+                CoreRegistry.registerSystem(name, result, {})
+                log("Auto-loaded system: " .. name)
+            else
+                log("Error: Failed to auto-load system: " .. name)
+                return nil
+            end
+        else
+            log("Error: System not found: " .. name)
+            return nil
+        end
     end
     
     -- Detect circular dependencies
@@ -184,6 +199,13 @@ local EventBridge = {
 
 -- Register core EventBridge system first
 CoreRegistry.registerSystem("EventBridge", EventBridge, {})
+
+-- Register DataThrottler early to ensure it's available for other systems
+pcall(function()
+    local DataThrottler = require(script.Parent:FindFirstChild("DataThrottler"))
+    CoreRegistry.registerSystem("DataThrottler", DataThrottler, {"CoreRegistry"})
+    log("Registered DataThrottler system")
+end)
 
 -- Register the AdminDashboardSystem
 local AdminDashboardSystem = require(script.Parent:FindFirstChild("AdminDashboardSystem"))

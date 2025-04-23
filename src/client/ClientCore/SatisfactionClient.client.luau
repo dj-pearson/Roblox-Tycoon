@@ -8,8 +8,58 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Import client-side systems
+-- Try to find ClientRegistry
 local ClientRegistry
+local success, result = pcall(function()
+    -- Try to get from ReplicatedStorage first
+    return require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("ClientRegistry"))
+end)
+
+if not success then
+    success, result = pcall(function()
+        -- Try directly in ReplicatedStorage
+        return require(ReplicatedStorage:WaitForChild("ClientRegistry"))
+    end)
+    
+    if not success then
+        -- Look in StarterPlayerScripts
+        success, result = pcall(function()
+            return require(LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("ClientCore"):WaitForChild("ClientRegistry"))
+        end)
+        
+        if not success then
+            -- Create a basic ClientRegistry as fallback
+            warn("ClientRegistry not found, creating a fallback implementation")
+            result = {
+                systems = {},
+                initialized = {},
+                
+                registerSystem = function(self, name, api, dependencies)
+                    print("Registering system: " .. name)
+                    self.systems[name] = api
+                    return api
+                end,
+                
+                getSystem = function(self, name)
+                    return self.systems[name]
+                end,
+                
+                initializeSystem = function(self, name)
+                    local system = self.systems[name]
+                    if system and typeof(system.initialize) == "function" then
+                        self.initialized[name] = true
+                        return system.initialize()
+                    end
+                    return false
+                end
+            }
+        end
+    end
+end
+
+ClientRegistry = result
+
+-- Import client-side systems
 local ClientEventBridge
 local UIManager
 local NotificationSystem
@@ -55,7 +105,6 @@ function SatisfactionClient:initialize()
     log("Initializing SatisfactionClient...")
     
     -- Get dependencies
-    ClientRegistry = self.ClientRegistry
     ClientEventBridge = ClientRegistry:getSystem("ClientEventBridge")
     UIManager = ClientRegistry:getSystem("UIManager")
     NotificationSystem = ClientRegistry:getSystem("NotificationSystem")

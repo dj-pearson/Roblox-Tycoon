@@ -1,7 +1,48 @@
 local TutorialManager = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TutorialSteps = require(ReplicatedStorage.src.TutorialSteps)
+local ServerScriptService = game:GetService("ServerScriptService")
+
+-- Fix path to TutorialSteps - try multiple paths to ensure it works
+local TutorialSteps
+local success, result = pcall(function()
+    -- Try in shared folder which is the standard location
+    return require(ReplicatedStorage.shared.TutorialSteps)
+end)
+
+if not success then
+    -- Fallback to server location
+    success, result = pcall(function()
+        return require(ServerScriptService.Core.TutorialSteps)
+    end)
+    
+    if not success then
+        -- Create a basic version if not found
+        warn("TutorialSteps module not found, creating a basic version")
+        TutorialSteps = {
+            MovementTutorial = {
+                Name = "MovementTutorial",
+                Description = "Learn how to move around your gym",
+                TriggerCondition = function(player) return true end,
+                Action = function(player)
+                    -- Send message to player
+                    local message = "Welcome to your gym! Use WASD to move around."
+                    if player then
+                        game.StarterGui:SetCore("SendNotification", {
+                            Title = "Movement Tutorial",
+                            Text = message,
+                            Duration = 5
+                        })
+                    end
+                end
+            }
+        }
+    else
+        TutorialSteps = result
+    end
+else
+    TutorialSteps = result
+end
 
 local PlayerTutorialProgress = {}
 local RegisteredTutorialSteps = {}

@@ -10,7 +10,12 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Attempt to load other systems
+-- Attempt to load DataThrottler and other systems
+local DataThrottler
+pcall(function()
+    DataThrottler = require(script.Parent.Parent.Core.DataThrottler)
+end)
+
 local BuyTileSystem
 pcall(function()
 	BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
@@ -71,6 +76,13 @@ function DataStorage.initialize()
 	local success, result = pcall(function()
 		DataStorage.dataStore = DataStoreService:GetDataStore(CONFIG.mainDataStoreName)
 		DataStorage.backupStore = DataStoreService:GetDataStore(CONFIG.backupDataStoreName)
+		
+		-- Register with DataThrottler if available
+		if DataThrottler then
+			DataThrottler.registerSystem("EnhancedDataStorageSystem")
+			debugPrint("Registered with DataThrottler")
+		end
+		
 		return true
 	end)
 
@@ -118,6 +130,12 @@ local function safeDataStoreCall(func)
 	local retries = 0
 	local success, result
 
+	-- If DataThrottler is available, use it
+	if DataThrottler and DataThrottler.queueRequest then
+		return DataThrottler.queueRequest("EnhancedDataStorageSystem", func)
+	end
+	
+	-- Fallback to traditional retry logic
 	repeat
 		success, result = pcall(func)
 
@@ -145,10 +163,19 @@ function DataStorage.loadData(player)
 	local key = tostring(userId)
 	local data
 
-	-- Try to load data
-	local success, result = safeDataStoreCall(function()
-		return DataStorage.dataStore:GetAsync(key)
-	end)
+	-- Try to load data using DataThrottler if available
+	local success, result
+	
+	if DataThrottler and DataThrottler.queueRequest then
+		success, result = DataThrottler.queueRequest("EnhancedDataStorageSystem", function()
+			return DataStorage.dataStore:GetAsync(key)
+		end)
+	else
+		-- Fallback to traditional method
+		success, result = safeDataStoreCall(function()
+			return DataStorage.dataStore:GetAsync(key)
+		end)
+	end
 
 	if success then
 		data = result
@@ -208,11 +235,22 @@ function DataStorage.saveData(player, immediate)
 		data.sessionStart = os.time() -- Reset for next save
 	end
 
-	-- Try to save data
-	local success, result = safeDataStoreCall(function()
-		DataStorage.dataStore:SetAsync(key, data)
-		return true
-	end)
+	-- Try to save data using DataThrottler if available, with higher priority for immediate saves
+	local success, result
+	
+	if DataThrottler and DataThrottler.queueRequest then
+		local priority = immediate and 1 or 3 -- Priority 1 for immediate saves, 3 for regular saves
+		success, result = DataThrottler.queueRequestWithPriority("EnhancedDataStorageSystem", priority, function()
+			DataStorage.dataStore:SetAsync(key, data)
+			return true
+		end)
+	else
+		-- Fallback to traditional method
+		success, result = safeDataStoreCall(function()
+			DataStorage.dataStore:SetAsync(key, data)
+			return true
+		end)
+	end
 
 	if success then
 		debugPrint("Successfully saved data for " .. player.Name .. (immediate and " (immediate)" or ""))
@@ -242,10 +280,21 @@ function DataStorage.createBackup(player)
 	local data = DataStorage.loadedData[userId]
 	local key = "Backup_" .. userId .. "_" .. os.time()
 
-	local success, result = safeDataStoreCall(function()
-		DataStorage.backupStore:SetAsync(key, data)
-		return true
-	end)
+	-- Use DataThrottler with lower priority if available
+	local success, result
+	
+	if DataThrottler and DataThrottler.queueRequest then
+		success, result = DataThrottler.queueRequestWithPriority("EnhancedDataStorageSystem", 5, function()
+			DataStorage.backupStore:SetAsync(key, data)
+			return true
+		end)
+	else
+		-- Fallback to traditional method
+		success, result = safeDataStoreCall(function()
+			DataStorage.backupStore:SetAsync(key, data)
+			return true
+		end)
+	end
 
 	if success then
 		debugPrint("Created backup for " .. player.Name)

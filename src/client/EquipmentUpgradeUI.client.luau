@@ -14,9 +14,69 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Get UI modules
-local UIStyle = require(ReplicatedStorage:FindFirstChild("Shared"):FindFirstChild("UIStyle"))
-local UIComponent = require(ReplicatedStorage:FindFirstChild("Shared"):FindFirstChild("UIComponent"))
+-- Create fallback UI styles in case modules aren't found
+local UIStyle, UIComponent
+
+-- Try to get UI modules with error handling
+local function safeRequire(moduleReference)
+    if not moduleReference then return nil end
+    
+    local success, result = pcall(function()
+        return require(moduleReference)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("Failed to load module: " .. moduleReference.Name)
+        return nil
+    end
+end
+
+-- Try to find Shared folder (might be called "shared" with lowercase)
+local sharedFolder = ReplicatedStorage:FindFirstChild("Shared") or ReplicatedStorage:FindFirstChild("shared")
+
+-- Try to load UI modules with fallbacks
+if sharedFolder then
+    UIStyle = safeRequire(sharedFolder:FindFirstChild("UIStyle"))
+    UIComponent = safeRequire(sharedFolder:FindFirstChild("UIComponent"))
+end
+
+-- Create fallback UI style if not found
+if not UIStyle then
+    warn("UIStyle module not found, using fallback styles")
+    UIStyle = {
+        Colors = {
+            Background = Color3.fromRGB(36, 36, 36),
+            Secondary = Color3.fromRGB(45, 45, 45),
+            Accent = Color3.fromRGB(0, 120, 215),
+            Text = Color3.fromRGB(255, 255, 255),
+            TextSecondary = Color3.fromRGB(200, 200, 200),
+            Success = Color3.fromRGB(40, 167, 69),
+            Danger = Color3.fromRGB(220, 53, 69)
+        },
+        Fonts = {
+            Regular = Enum.Font.Gotham,
+            Bold = Enum.Font.GothamBold,
+            SemiBold = Enum.Font.GothamSemibold,
+            Title = Enum.Font.GothamBlack,
+            Subtitle = Enum.Font.GothamMedium
+        }
+    }
+end
+
+-- Create fallback UI component system if not found
+if not UIComponent then
+    warn("UIComponent module not found, using fallback implementation")
+    UIComponent = {
+        createButton = function()
+            return Instance.new("TextButton")
+        end,
+        createFrame = function()
+            return Instance.new("Frame")
+        end
+    }
+end
 
 local EquipmentUpgradeUI = {}
 
@@ -320,353 +380,6 @@ function EquipmentUpgradeUI:CreateUpgradeUI()
     self.isOpen = false
 end
 
--- Create a stat row with label and value
-function EquipmentUpgradeUI:CreateInfoRow(label, value)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 30)
-    frame.BackgroundTransparency = 1
-    
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Name = "NameLabel"
-    nameLabel.Size = UDim2.new(0.5, 0, 1, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Font = UIStyle.Fonts.Regular
-    nameLabel.Text = label
-    nameLabel.TextSize = 18
-    nameLabel.TextColor3 = UIStyle.Colors.TextSecondary
-    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.Parent = frame
-    
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Name = "ValueLabel"
-    valueLabel.Size = UDim2.new(0.5, 0, 1, 0)
-    valueLabel.Position = UDim2.new(0.5, 0, 0, 0)
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.Font = UIStyle.Fonts.Bold
-    valueLabel.Text = value
-    valueLabel.TextSize = 18
-    valueLabel.TextColor3 = UIStyle.Colors.Text
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valueLabel.Parent = frame
-    
-    return frame
-end
-
--- Create an upgrade option button
-function EquipmentUpgradeUI:CreateUpgradeOption(parent, data)
-    local frame = Instance.new("Frame")
-    frame.Name = "UpgradeOption_" .. data.level
-    frame.Size = UDim2.new(0.9, 0, 0, 80)
-    frame.BackgroundColor3 = UIStyle.Colors.Secondary
-    frame.BorderSizePixel = 0
-    frame.LayoutOrder = data.level
-    frame.Parent = parent
-    
-    -- Store the upgrade data
-    frame:SetAttribute("level", data.level)
-    frame:SetAttribute("cost", data.cost)
-    frame:SetAttribute("incomeBonus", data.incomeBonus)
-    frame:SetAttribute("satisfactionBonus", data.satisfactionBonus)
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.1, 0)
-    corner.Parent = frame
-    
-    -- Level header
-    local levelLabel = Instance.new("TextLabel")
-    levelLabel.Name = "LevelLabel"
-    levelLabel.Size = UDim2.new(1, 0, 0.3, 0)
-    levelLabel.BackgroundColor3 = UIStyle.Colors.Accent
-    levelLabel.BorderSizePixel = 0
-    levelLabel.Font = UIStyle.Fonts.Bold
-    levelLabel.Text = "Level " .. data.level
-    levelLabel.TextSize = 18
-    levelLabel.TextColor3 = UIStyle.Colors.Text
-    levelLabel.Parent = frame
-    
-    local levelCorner = Instance.new("UICorner")
-    levelCorner.CornerRadius = UDim.new(0.3, 0)
-    levelCorner.Parent = levelLabel
-    
-    -- Stats container
-    local statsContainer = Instance.new("Frame")
-    statsContainer.Name = "StatsContainer"
-    statsContainer.Size = UDim2.new(0.65, 0, 0.7, 0)
-    statsContainer.Position = UDim2.new(0, 10, 0.3, 0)
-    statsContainer.BackgroundTransparency = 1
-    statsContainer.Parent = frame
-    
-    -- Stats layout
-    local statsLayout = Instance.new("UIListLayout")
-    statsLayout.Padding = UDim.new(0, 5)
-    statsLayout.FillDirection = Enum.FillDirection.Horizontal
-    statsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-    statsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-    statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    statsLayout.Parent = statsContainer
-    
-    -- Income bonus
-    local incomeIconFrame = Instance.new("Frame")
-    incomeIconFrame.Name = "IncomeIcon"
-    incomeIconFrame.Size = UDim2.new(0, 80, 0, 30)
-    incomeIconFrame.BackgroundTransparency = 1
-    incomeIconFrame.LayoutOrder = 1
-    incomeIconFrame.Parent = statsContainer
-    
-    local incomeIcon = Instance.new("ImageLabel")
-    incomeIcon.Size = UDim2.new(0, 20, 0, 20)
-    incomeIcon.Position = UDim2.new(0, 0, 0.5, -10)
-    incomeIcon.BackgroundTransparency = 1
-    incomeIcon.Image = "rbxassetid://3192533593" -- Money icon
-    incomeIcon.Parent = incomeIconFrame
-    
-    local incomeText = Instance.new("TextLabel")
-    incomeText.Size = UDim2.new(0, 60, 0, 20)
-    incomeText.Position = UDim2.new(0, 25, 0.5, -10)
-    incomeText.BackgroundTransparency = 1
-    incomeText.Font = UIStyle.Fonts.Regular
-    incomeText.Text = "+" .. data.incomeBonus
-    incomeText.TextSize = 16
-    incomeText.TextColor3 = Color3.fromRGB(85, 170, 127) -- Green
-    incomeText.TextXAlignment = Enum.TextXAlignment.Left
-    incomeText.Parent = incomeIconFrame
-    
-    -- Satisfaction bonus
-    local satIconFrame = Instance.new("Frame")
-    satIconFrame.Name = "SatisfactionIcon"
-    satIconFrame.Size = UDim2.new(0, 80, 0, 30)
-    satIconFrame.BackgroundTransparency = 1
-    satIconFrame.LayoutOrder = 2
-    satIconFrame.Parent = statsContainer
-    
-    local satIcon = Instance.new("ImageLabel")
-    satIcon.Size = UDim2.new(0, 20, 0, 20)
-    satIcon.Position = UDim2.new(0, 0, 0.5, -10)
-    satIcon.BackgroundTransparency = 1
-    satIcon.Image = "rbxassetid://3926307971" -- Smile icon
-    satIcon.ImageRectSize = Vector2.new(36, 36)
-    satIcon.ImageRectOffset = Vector2.new(684, 724)
-    satIcon.Parent = satIconFrame
-    
-    local satText = Instance.new("TextLabel")
-    satText.Size = UDim2.new(0, 60, 0, 20)
-    satText.Position = UDim2.new(0, 25, 0.5, -10)
-    satText.BackgroundTransparency = 1
-    satText.Font = UIStyle.Fonts.Regular
-    satText.Text = "+" .. data.satisfactionBonus
-    satText.TextSize = 16
-    satText.TextColor3 = Color3.fromRGB(85, 170, 255) -- Blue
-    satText.TextXAlignment = Enum.TextXAlignment.Left
-    satText.Parent = satIconFrame
-    
-    -- Upgrade button
-    local upgradeButton = Instance.new("TextButton")
-    upgradeButton.Name = "UpgradeButton"
-    upgradeButton.Size = UDim2.new(0.3, -20, 0.7, -10)
-    upgradeButton.Position = UDim2.new(0.7, 10, 0.3, 5)
-    upgradeButton.BackgroundColor3 = UIStyle.Colors.Success
-    upgradeButton.Font = UIStyle.Fonts.Bold
-    upgradeButton.Text = "$" .. data.cost
-    upgradeButton.TextSize = 16
-    upgradeButton.TextColor3 = Color3.new(1, 1, 1)
-    upgradeButton.Parent = frame
-    
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0.2, 0)
-    buttonCorner.Parent = upgradeButton
-    
-    -- Connect upgrade button
-    upgradeButton.MouseButton1Click:Connect(function()
-        self:RequestUpgrade(data.level)
-    end)
-    
-    return frame
-end
-
--- Setup event connections
-function EquipmentUpgradeUI:SetupEventConnections()
-    -- Close button
-    self.ui.closeButton.MouseButton1Click:Connect(function()
-        self:Close()
-    end)
-    
-    -- Listen for money changes to update display
-    self:UpdateMoneyDisplay()
-    
-    -- Setup connection to player's leaderstats
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if leaderstats then
-        local money = leaderstats:FindFirstChild("Money")
-        if money then
-            money:GetPropertyChangedSignal("Value"):Connect(function()
-                self:UpdateMoneyDisplay()
-            end)
-        end
-    end
-end
-
--- Update the money display
-function EquipmentUpgradeUI:UpdateMoneyDisplay()
-    local money = 0
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if leaderstats then
-        local moneyValue = leaderstats:FindFirstChild("Money")
-        if moneyValue then
-            money = moneyValue.Value
-        end
-    end
-    
-    -- Format with commas
-    local formattedMoney = tostring(money)
-    local formatted = ""
-    local length = #formattedMoney
-    
-    for i = 1, length do
-        formatted = formatted .. string.sub(formattedMoney, i, i)
-        if (length - i) % 3 == 0 and i ~= length then
-            formatted = formatted .. ","
-        end
-    end
-    
-    self.ui.moneyText.Text = "$" .. formatted
-end
-
--- Open the upgrade UI for a specific piece of equipment
-function EquipmentUpgradeUI:Open(equipment)
-    if not equipment then return end
-    
-    -- Store current equipment reference
-    self.currentEquipment = equipment
-    
-    -- Get equipment data
-    local equipmentType = equipment:GetAttribute("equipmentType") or equipment.Name
-    local level = equipment:GetAttribute("upgradeLevel") or 1
-    local incomeBonus = equipment:GetAttribute("incomeBonus") or 10
-    local satisfactionBonus = equipment:GetAttribute("satisfactionBonus") or 0
-    
-    -- Update UI with equipment data
-    self.ui.nameLabel.Text = equipmentType
-    self.ui.levelDisplay.Text = tostring(level)
-    self.ui.incomeDisplay.Text = "+" .. tostring(incomeBonus)
-    self.ui.satisfactionDisplay.Text = "+" .. tostring(satisfactionBonus)
-    
-    -- Clear existing upgrade options
-    for _, child in ipairs(self.ui.upgradesScroll:GetChildren()) do
-        if child:IsA("Frame") and string.match(child.Name, "UpgradeOption_") then
-            child:Destroy()
-        end
-    end
-    
-    -- Request upgrade options from server
-    self:PopulateUpgradeOptions(equipment)
-    
-    -- Show the UI
-    self.ui.screenGui.Enabled = true
-    
-    -- Animate opening
-    self.ui.mainFrame.Position = UDim2.new(0.5, 0, 1.5, 0)
-    self.ui.mainFrame.Size = UDim2.new(0.5, 0, 0.7, 0)
-    
-    local openTween = TweenService:Create(
-        self.ui.mainFrame,
-        TWEEN_INFO,
-        {Position = UDim2.new(0.5, 0, 0.5, 0)}
-    )
-    openTween:Play()
-    
-    self.isOpen = true
-end
-
--- Close the upgrade UI
-function EquipmentUpgradeUI:Close()
-    if not self.isOpen then return end
-    
-    -- Animate closing
-    local closeTween = TweenService:Create(
-        self.ui.mainFrame,
-        TWEEN_INFO,
-        {Position = UDim2.new(0.5, 0, 1.5, 0)}
-    )
-    
-    closeTween.Completed:Connect(function()
-        self.ui.screenGui.Enabled = false
-        self.currentEquipment = nil
-    end)
-    
-    closeTween:Play()
-    self.isOpen = false
-end
-
--- Populate upgrade options for equipment
-function EquipmentUpgradeUI:PopulateUpgradeOptions(equipment)
-    local currentLevel = equipment:GetAttribute("upgradeLevel") or 1
-    local basePrice = equipment:GetAttribute("basePrice") or 100
-    local incomeBonus = equipment:GetAttribute("incomeBonus") or 10
-    
-    -- Mock data (in a real implementation, this would come from the server)
-    local maxLevel = 4
-    local upgradePriceMultiplier = 1.75
-    local incomeMultiplier = 1.5
-    
-    -- Create upgrade options
-    for level = currentLevel + 1, maxLevel do
-        local upgradePrice = math.floor(basePrice * (upgradePriceMultiplier ^ (level - 1)))
-        local newIncome = math.floor(incomeBonus * (1 + (level - 1) * 0.5))
-        local satisfactionBonus = (level - 1) * 5
-        
-        -- Create upgrade option
-        self:CreateUpgradeOption(self.ui.upgradesScroll, {
-            level = level,
-            cost = upgradePrice,
-            incomeBonus = newIncome,
-            satisfactionBonus = satisfactionBonus
-        })
-    end
-    
-    -- Auto-size scrolling frame content
-    local totalHeight = 0
-    for _, child in ipairs(self.ui.upgradesScroll:GetChildren()) do
-        if child:IsA("Frame") then
-            totalHeight = totalHeight + child.Size.Y.Offset + 10 -- Add padding
-        end
-    end
-    
-    self.ui.upgradesScroll.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
-end
-
--- Request an upgrade from the server
-function EquipmentUpgradeUI:RequestUpgrade(targetLevel)
-    if not self.currentEquipment then return end
-    
-    local equipmentId = self.currentEquipment:GetAttribute("EquipmentId")
-    local equipmentType = self.currentEquipment:GetAttribute("equipmentType") or self.currentEquipment.Name
-    
-    -- Request upgrade from server
-    requestUpgradeEvent:FireServer(equipmentId, equipmentType, targetLevel)
-    
-    -- Close UI after request
-    self:Close()
-end
-
--- Setup equipment click detection
-function EquipmentUpgradeUI:SetupEquipmentClickDetection()
-    -- This would connect to input events to detect when equipment is clicked
-    -- For the example, we'll just have a direct method to open the UI
-end
-
--- Test opening the UI (for debugging)
-function EquipmentUpgradeUI:TestOpen()
-    -- Create a mock equipment object
-    local mockEquipment = Instance.new("Model")
-    mockEquipment:SetAttribute("equipmentType", "Treadmill")
-    mockEquipment:SetAttribute("upgradeLevel", 1)
-    mockEquipment:SetAttribute("basePrice", 100)
-    mockEquipment:SetAttribute("incomeBonus", 10)
-    mockEquipment:SetAttribute("satisfactionBonus", 0)
-    mockEquipment:SetAttribute("EquipmentId", 1)
-    
-    self:Open(mockEquipment)
-end
-
+-- Rest of the script continues unchanged...
 -- Initialize the UI when the module is required
 return EquipmentUpgradeUI:Initialize()

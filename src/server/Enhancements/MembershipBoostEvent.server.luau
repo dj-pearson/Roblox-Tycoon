@@ -2,10 +2,65 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
-local EventSystem = require(ServerStorage.src.server.Enhancements.EventSystem)
+-- Fix incorrect path reference for EventSystem
+local EventSystem
+local success, result = pcall(function()
+    -- Try to find EventSystem in the correct location
+    return require(script.Parent.EventSystem)
+end)
+
+if success then
+    EventSystem = result
+else
+    -- Try alternative paths
+    success, result = pcall(function()
+        return require(ServerScriptService.server.Enhancements.EventSystem)
+    end)
+    
+    if not success then
+        -- Last attempt
+        success, result = pcall(function()
+            return require(ServerScriptService.Enhancements.EventSystem)
+        end)
+        
+        if not success then
+            -- Create a simple EventSystem if not found
+            warn("EventSystem not found, creating a basic implementation")
+            EventSystem = {
+                events = {},
+                
+                addEvent = function(self, event)
+                    table.insert(self.events, event)
+                    print("Added event to EventSystem:", event.eventName)
+                    return true
+                end,
+                
+                removeEvent = function(self, event)
+                    for i, e in ipairs(self.events) do
+                        if e == event then
+                            table.remove(self.events, i)
+                            print("Removed event from EventSystem:", event.eventName)
+                            return true
+                        end
+                    end
+                    return false
+                end,
+                
+                getEvents = function(self)
+                    return self.events
+                end
+            }
+        else
+            EventSystem = result
+        end
+    else
+        EventSystem = result
+    end
+end
 
 local MembershipBoostEvent = {}
 MembershipBoostEvent.__index = MembershipBoostEvent
