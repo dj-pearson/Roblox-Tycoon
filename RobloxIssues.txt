@@ -1,0 +1,146 @@
+# Roblox Issues Tracking Document
+
+Last Test Date: April 23, 2025
+This document categorizes issues found during testing to help track and resolve them.
+
+## Asset Loading Issues
+
+### Missing Meshes
+- Multiple "Could not find mesh for fish" errors in various mesh types:
+  - Meshes/fish
+  - Meshes/TropicalFish12
+  - Union
+  - Mesh
+- Location: src/server/Features/Aquarium/AquariumSystem.server.luau:24
+- Impact: Visual issue - fish models likely not displaying correctly in aquarium feature
+
+### Failed Animation Loading
+- Failed to load animations with IDs:
+  - rbxassetid://4479935848
+  - rbxassetid://4479937122
+  - rbxassetid://4571857828
+- Location: src/server/Systems/NPCAnimationSystem.server.luau
+- Impact: NPCs likely missing animations, affecting visual presentation
+
+### Failed Sound Loading
+- Failed to load sounds with IDs:
+  - rbxassetid://9048378264
+  - rbxassetid://9125601193 
+- Location: src/client/Audio/SoundManager.client.luau
+- Impact: Missing sound effects, potentially affecting user experience
+
+## Module Loading Errors
+
+### Invalid require() Arguments
+- Multiple "Attempted to call require with invalid argument(s)" errors in:
+  - src/server/Core/GymTycoonConnector.server.luau (multiple locations)
+  - src/server/Admin/AdminCommands.server.luau
+  - src/server/Testing/TestLauncher.server.luau
+  - src/server/Systems/AchievementSystem.server.luau
+  - src/server/Testing/DataManagerTests.server.luau
+  - src/server/Systems/MilestoneSystem.server.luau
+  - src/server/Legacy/LegacyBridge.server.luau
+  - src/server/Events/EventBridge.server.luau
+  - Several core systems
+- Impact: Critical - core functionality likely broken due to module loading failures
+
+### Missing Dependencies
+- Failed to load dependencies:
+  - src/server/Systems/GymRevenueSystem.server.luau (multiple instances)
+  - src/server/Data/GymTycoonDataManager.server.luau - "data persistence will not work!"
+  - src/server/Core/GymTycoonConnector.server.luau - "system integration may not work properly!"
+  - src/server/Systems/GymSpecializationSystem.server.luau
+- Impact: High - critical systems may be non-functional
+
+## Null Reference Errors
+
+### Attempt to Index nil
+- Several "attempt to index nil with X" errors:
+  - 'registerSystem' in src/server/Systems/MemberSatisfactionSystem.server.luau:722
+  - 'registerSystem' in src/server/Features/SaunaSystem.server.luau:733
+  - 'PlayerGui' in src/client/Controllers/CleanGymController.client.luau:33
+  - 'WaitForChild' in src/client/UI/SatisfactionButton.client.luau:28
+  - 'Background' in src/client/UI/EquipmentUpgradeUI.client.luau:73
+  - 'WaitForChild' in src/client/UI/TemperatureDisplay.client.luau:9
+  - 'PlayerGui' in src/client/UI/ResetButton.client.luau:14
+- Impact: Medium to High - UI elements and core systems not functioning
+
+### Invalid Member Access
+- "Floor is not a valid member of Workspace 'Workspace'" in src/server/Features/ElevatorMovement.server.luau:46
+- Impact: Medium - Elevator functionality likely broken
+
+## Client-Server Context Issues
+
+- "OnClientEvent can only be used on the client" in:
+  - src/client/UI/StatsGui.client.luau:282
+  - src/client/UI/RebirthUI.client.luau:977
+- Impact: Medium - GUI systems likely broken due to context confusion
+
+## Initialization Issues
+
+### Failed System Initialization
+- "SystemBootstrap: Error initializing CoreRegistry" followed by "Failed to initialize CoreRegistry. Cannot continue with dependency-based initialization."
+- Location: src/server/Core/SystemBootstrap.server.luau
+- Impact: Critical - core system initialization failed
+
+### Infinite Yield Warnings
+- Infinite yield on 'ReplicatedStorage:WaitForChild("shared")' in:
+  - src/client/CompetitionClient.client.luau:9
+  - src/client/UI/UIHub.client.luau:10
+- Impact: Medium - certain client systems waiting indefinitely for resources
+
+## Data Management Issues
+
+- "BuyTileSystem not found, cannot integrate" in src/server/Core/FloorAttributeSetup.server.luau:249
+- "[DataSystemIntegration] Enhanced data storage system not found!" in src/server/Data/DataSystemIntegration.server.luau:122
+- BuyTile system unavailable or missing spawnGymPart function in src/server/Systems/BuyTileSystem.server.luau
+- Failed to restore tiles for players in src/server/Data/TileDataManager.server.luau
+- Impact: High - data persistence and tile system have issues
+
+## Front Desk System Issues
+- "[FrontDeskSystem] Could not find front desk for Xdjpearsonx" in src/server/Features/FrontDeskSystem.server.luau:147
+- "[FrontDeskSystem] No front desk found for Xdjpearsonx" in src/server/Features/FrontDeskSystem.server.luau:203
+- Impact: Medium - affected functionality for specific players
+
+## Sauna/Steam Room Related Issues
+
+- Multiple issues with heaters in sauna rooms having "0 heaters" in src/server/Features/SaunaSystem.server.luau:85
+- Impact: Low - specific feature may not work correctly
+
+## Analysis and Recommendations
+
+### Critical Priorities:
+1. Fix module loading issues - especially in src/server/Core/GymTycoonConnector.server.luau and core dependencies
+2. Address SystemBootstrap initialization failure in src/server/Core/SystemBootstrap.server.luau
+3. Resolve null reference errors in core systems like MemberSatisfactionSystem and SaunaSystem
+
+### High Priorities:
+1. Fix missing mesh and animation assets in src/server/Features/Aquarium/AquariumSystem.server.luau and src/server/Systems/NPCAnimationSystem.server.luau
+2. Address data persistence issues in src/server/Data/GymTycoonDataManager.server.luau and src/server/Data/TileDataManager.server.luau
+3. Fix client-server context confusion in UI scripts (StatsGui.client.luau and RebirthUI.client.luau)
+
+### Medium Priorities:
+1. Resolve Front Desk system issues in src/server/Features/FrontDeskSystem.server.luau
+2. Fix infinite yield warnings in client scripts (CompetitionClient.client.luau and UIHub.client.luau)
+3. Address elevator movement functionality in src/server/Features/ElevatorMovement.server.luau
+
+### Low Priorities:
+1. Fix sauna/steam room functionality in src/server/Features/SaunaSystem.server.luau
+2. Address missing sound effects in src/client/Audio/SoundManager.client.luau
+
+## Implementation Notes
+
+Most critical issues appear to be related to module loading and initialization sequence. The dependency tree may need review to ensure proper loading order. Many systems are attempting to use modules that aren't properly loaded or initialized.
+
+## Specific Script Issues to Check
+
+1. **SystemBootstrap.server.luau**: Review initialization sequence and error handling
+2. **GymTycoonConnector.server.luau**: Fix require() arguments and dependency loading
+3. **MemberSatisfactionSystem.server.luau**: Check line 722 for null reference
+4. **SaunaSystem.server.luau**: Fix registerSystem call on line 733 and heater counting on line 85
+5. **EquipmentUpgradeUI.client.luau**: Fix null reference to Background on line 73
+6. **FrontDeskSystem.server.luau**: Improve error handling for missing front desks on lines 147 and 203
+7. **FloorAttributeSetup.server.luau**: Fix integration with BuyTileSystem on line 249
+8. **TileDataManager.server.luau**: Debug tile restoration functionality
+9. **NPCAnimationSystem.server.luau**: Fix animation loading and fallback handling
+10. **AquariumSystem.server.luau**: Fix mesh loading on line 24
