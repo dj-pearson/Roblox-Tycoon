@@ -32,7 +32,10 @@
 *   `src/server/Core/MemoryStoreManager.server.luau` - Manages the memory store.
 *   `src/server/Core/MigrationUtils.server.luau` - Utilities for data migration.
 *   `src/server/Core/MilestoneSystem.server.luau` - Manages milestones.
-*   `src/server/Core/NPCSystem.server.luau` - Manages the NPC system.
+*   `src/server/Core/NPCSystem.server.luau` - Manages the NPC system. This system handles the spawning, behavior, and movement of non-player characters (NPCs) within the gym.
+    It introduces member archetypes with specific attributes and needs, such as:
+    Bodybuilders, Cardio Enthusiasts, Seniors, Students, VIPs and Regular.
+    It ensures a diverse and dynamic gym environment.
 *   `src/server/Core/NPCSystemPerformance.server.luau` - Handles NPC system performance.
 *   `src/server/Core/PerformanceManager.server.luau` - Manages performance.
 *   `src/server/Core/PerformanceOptimizationFramework.server.luau` - Framework for performance optimization.
@@ -49,6 +52,7 @@
 *   `src/server/Core/SpecializationSystem.server.luau` - Manages specializations.
 *   `src/server/Core/SystemBootstrap.server.luau` - Bootstraps systems.
 *   `src/server/Core/TaskScheduler.server.luau` - Schedules tasks.
+*   `src/server/Core/SpecializationNPC.server.luau` - Manages specializations of npcs.
 *   `src/server/Core/TestingFramework.server.luau` - Framework for testing.
 *   `src/server/Core/TileDataGenerator.server.luau` - Generates tile data.
 *   `src/server/Core/TutorialManager.server.luau` - Manages tutorials.
