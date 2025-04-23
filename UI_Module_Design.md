@@ -20,6 +20,7 @@ This document outlines the design for the UI Module, which will serve as the pri
 ### 1. Menus
 
 #### 1.1 Main Menu
+*   **Style:** `UIStyle.applyStyle()`
 
 *   **Layout:** A central hub that provides access to all major game features.
     *   Top: Game logo and player profile (level, name, resources).
@@ -35,6 +36,7 @@ This document outlines the design for the UI Module, which will serve as the pri
 *   **User Journey:** The Main Menu is the first screen users will see. It should facilitate quick entry into the game or other features.
 
 #### 1.2 Settings Menu
+*   **Style:** `UIStyle.applyStyle()`
 
 *   **Layout:** A clear, vertically scrolling list of settings.
     *   **Sound:** Volume sliders for music, sound effects.
@@ -46,6 +48,34 @@ This document outlines the design for the UI Module, which will serve as the pri
 *   **User Journey:** Accessed from the Main Menu or in-game overlay. Provides users with control over their game experience.
 
 ### 2. Buttons
+
+#### 1.3 Rebirth Menu
+*   **Style:** `UIStyle.applyStyle()`
+
+    *   **Layout:**
+        *   **Rebirth Count:** Display the player's current rebirth count. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a simple numerical text.
+        *   **Rebirth Cost:** Show the cost for the next rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text with a dollar icon.
+        *   **Rebirth Multiplier:** Display the current revenue multiplier. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text with a multiplier icon.
+        *   **Rebirth Progress:** Show the progress towards the next rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a progress bar with numerical completion.
+        *   **Unlocked Features:** Show the unlocked features. Connects to `RebirthSystem.getRebirthInfo()`. Display each feature with the name, description, and icon.
+        *   **Active Perks:** Show the active perks. Connects to `RebirthSystem.getRebirthInfo()`. Display each perk with the name, description, and icon.
+        *   **Achievements:** Show the achieved achievements and the requirements of the unachieved ones. Connects to `RebirthSystem.getRebirthInfo()`. Display each achievement with the name, description, icon, and if it is achieved or not. If it is not achieved, show the requirements.
+        *   **Total Rebirths:** Show the total number of rebirths the player has performed. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
+        *   **Fastest Rebirth Time:** Show the fastest time the player has performed a rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
+        *   **Current Rebirth Time:** Show the time the player has been in the current rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
+        *   **Rebirth Button:** A button to perform the rebirth. Connects to `RebirthSystem.performRebirth()`. If the player can not perform the rebirth, the button will be disabled and the reason will be shown in a tooltip.
+         * **Features toggle:** A toggle to change between showing the features by the level they are unlocked and the order they were unlocked.
+    *   **Design Direction:** Clean, well-organized design that clearly separates the different categories of information.
+    *   **User Journey:** Accessed from the Main Menu. Provides the player all information about the Rebirth System.
+
+### 2. Buttons
+#### 2.5 Rebirth Button
+    *   **Functionality:** Initiates the rebirth process. Checks if the player has enough cash to rebirth. If yes, triggers `RebirthSystem.performRebirth()`. If not, displays a tooltip with the reason why the player cannot rebirth.
+    *   **Backend Connection:** `RebirthSystem.performRebirth()`.
+    *   **Suggested Placement:** Rebirth Menu.
+    *   **Design:** Prominent, with a clear indication of the required cost. Should be disabled if the player cannot rebirth, displaying a tooltip with the reason why.
+
+
 
 #### 2.1 Alliance Buttons
 
@@ -205,6 +235,8 @@ This document outlines the design for the UI Module, which will serve as the pri
 * `AdminSystem.executeCommand(command)`: Admin Command Input.
 * `AdminSystem.*`: Admin Dashboard.
 * `GameSystem.startGame()`: Play Button.
+* `RebirthSystem.getRebirthInfo()`: Rebirth Menu.
+* `RebirthSystem.performRebirth()`: Rebirth Button, Rebirth Menu.
 ## Conclusion
 
 This document serves as a guide for the UI development team. It covers the essential UI components, their interactions, and the necessary backend connections. By adhering to these guidelines and the stated design principles, the team can create a cohesive, intuitive, and visually appealing user interface that enhances the overall player experience.

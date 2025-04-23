@@ -31,16 +31,7 @@ This document serves as the central repository for all project information, guid
 
    - Players can rebirth their progress.
 
-## 2. Remaining Tasks/Features
--   **Enhanced UI:**
-    -   **Description:** Redesign and expand the UI to include more detailed stats, controls, and customization options.
-    -   **Priority:** High
-    -   **Notes:** Requires improved navigation and visual feedback.
--   **Multiplayer Features:**
-    -   **Description:** Implement features like visiting other player's gyms or competing in events.
-    -   **Priority:** Medium
-    -   **Notes:** Requires server-side enhancements for handling multiple players.
-- **Refine Specialization System**
+   - **Refine Specialization System**
     - **Description:** Ensure the specialization system is fine tuned and implemented in every
     - **Priority:** High
     - **Notes:** Ensure this system works in tandem with the NPC system.
@@ -57,6 +48,16 @@ This document serves as the central repository for all project information, guid
     - **Description:** Ensure Rebirth System properly rewards players .
     - **Priority:** High
     - **Notes:** Ensure balancing is appropriate to keep players engaged.
+
+## 2. Remaining Tasks/Features
+-   **Enhanced UI:**
+    -   **Description:** Redesign and expand the UI to include more detailed stats, controls, and customization options.
+    -   **Priority:** High
+    -   **Notes:** Requires improved navigation and visual feedback.
+-   **Multiplayer Features:**
+    -   **Description:** Implement features like visiting other player's gyms or competing in events.
+    -   **Priority:** Medium
+    -   **Notes:** Requires server-side enhancements for handling multiple players.
 
 ## 3. New Feature Ideas
 
