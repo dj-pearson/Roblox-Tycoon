@@ -92,10 +92,7 @@ This document serves as the central repository for all project information, guid
     - **Description:** Introduce a system where players can invest in research to unlock new equipment tiers, unique staff skills, marketing strategies, or even permanent gym-wide passive bonuses.
     - **Benefits:** Adds a long-term strategic goal beyond just earning money and expanding space. Provides a sink for excess resources and a clear progression path.
     - **Implementation Notes:** Could include research trees or categories (e.g., Equipment Tech, Marketing, Staff Training, Member Comfort).
-- **Member Archetypes & Needs:**
-    - **Description:** Expand on the basic member system by introducing different types of members (e.g., Bodybuilders, Cardio Enthusiasts, Seniors, Students, VIPs) with specific equipment preferences, patience levels, spending habits, and satisfaction drivers.
-    - **Benefits:** Makes the simulation deeper, rewards players for creating diverse gym layouts catering to different needs, and allows for tailored marketing campaigns.
-    - **Implementation Notes:** Integrate with NPC System, GymRevenueSystem, and MemberSatisfactionSystem.
+
 - **Marketing and Branding:**
     - **Description:** Allow players to invest in marketing campaigns (local flyers, online ads, celebrity endorsements) to attract more members or specific member archetypes. Introduce a "Gym Brand" or "Reputation" score influenced by marketing, cleanliness, satisfaction, and events.
     - **Benefits:** Provides more control over growth and target audience, adds a new resource expenditure avenue, and makes reputation a more tangible game mechanic.
@@ -125,6 +122,11 @@ This document serves as the central repository for all project information, guid
         -   Created a system for NPCs to identify and interact with interactive elements.
         -   Created attributes for models: IsInteractive, InteractionType, and CurrentUsers.
         -   Created a script to add those attributes to all models: `src/server/Core/AttributeSetup.server.luau`.
+
+        - **Member Archetypes & Needs:**
+    - **Description:** Expand on the basic member system by introducing different types of members (e.g., Bodybuilders, Cardio Enthusiasts, Seniors, Students, VIPs) with specific equipment preferences, patience levels, spending habits, and satisfaction drivers.
+    - **Benefits:** Makes the simulation deeper, rewards players for creating diverse gym layouts catering to different needs, and allows for tailored marketing campaigns.
+    - **Implementation Notes:** Integrate with NPC System, GymRevenueSystem, and MemberSatisfactionSystem.
 
 ## ... (previous completed features)
 
