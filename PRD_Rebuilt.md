@@ -49,10 +49,7 @@ This document serves as the central repository for all project information, guid
     - **Priority:** High
     - **Notes:** Ensure balancing is appropriate to keep players engaged.
 
--   **Enhanced UI:**
-    -   **Description:** Redesign and expand the UI to include more detailed stats, controls, and customization options.
-    -   **Priority:** High
-    -   **Notes:** Requires improved navigation and visual feedback.
+
 
 ## 2. Remaining Tasks/Features
 

@@ -1,3 +1,6 @@
+--[[ This script analyzes the real GymStructure in the workspace, instead of using the GymStructureJSON.
+-- This script reads the real Gym Structure in the workspace, checks if everything is correct, and gives a detailed report of the errors. It can also generate the GymStructureJSON data.]]
+
 --[[
     GymStructureIntegration.server.luau
     
@@ -10,6 +13,7 @@
 
 local ServerStorage = game:GetService("ServerStorage")
 local HttpService = game:GetService("HttpService")
+local workspace = game:GetService("Workspace")
 
 -- Try to get the CoreRegistry
 local CoreRegistry = require(script.Parent:FindFirstChild("CoreRegistry") or {})
@@ -23,6 +27,16 @@ function GymStructureIntegration:Initialize()
     
     -- Register with CoreRegistry if available
     if CoreRegistry and CoreRegistry.RegisterSystem then
+		if not _G.GenerateGymStructureJSON then
+			_G.GenerateGymStructureJSON = function()
+				if self.GenerateGymStructureJSON then
+					return self:GenerateGymStructureJSON()
+				else
+					warn("GenerateGymStructureJSON method not found")
+				end
+			end
+		end
+
         CoreRegistry:RegisterSystem("GymStructureIntegration", self)
     end
     
@@ -46,6 +60,12 @@ function GymStructureIntegration:LoadGymStructureData()
     
     if not gymStructureJSON then
         warn("GymStructureIntegration: GymStructureJSON not found in ServerStorage")
+		local structure = self:AnalyzeGymStructure(false)
+		if structure then
+			warn("GymStructureIntegration: Trying to generate a new GymStructureJSON")
+			self:GenerateGymStructureJSON()
+			return self:LoadGymStructureData()
+		end
         return nil
     end
     
@@ -74,6 +94,121 @@ function GymStructureIntegration:ProcessGymStructureData()
     
     -- Integrate floor prerequisites with BuyTileSystem
     if self.buyTileSystem then self:IntegrateDataWithBuyTileSystem() end
+end
+
+--[[
+	This function will analyze the real gym structure in the workspace, instead of using the GymStructureJSON.
+	This function will have as a first step a print of "Analyzing Gym Structure..." and another one saying "Gym Structure analysis finished."
+]]
+
+function GymStructureIntegration:AnalyzeGymStructure(verbose)
+	print("Analyzing Gym Structure...")
+	local gymParts = workspace:FindFirstChild("GymParts")
+	if not gymParts then
+		warn("GymStructureIntegration: GymParts folder not found in workspace.")
+		return nil
+	end
+
+	local structure = {}    
+	local validation = {}
+	local function processChild(child, parentStructure)
+        local childData = {
+            type = child:IsA("Folder") and "Folder" or (child:IsA("BasePart") and "Part" or "Model"),
+            attributes = {}
+        }
+        
+        -- Get attributes
+        for _, attributeName in ipairs(child:GetAttributeNames()) do
+            childData.attributes[attributeName] = child:GetAttribute(attributeName)
+        end
+
+        --Check for specific attributes
+        if child:GetAttribute("Category") then childData.attributes["Category"] = child:GetAttribute("Category") end
+        if child:GetAttribute("Room") then childData.attributes["Room"] = child:GetAttribute("Room") end
+        if child:GetAttribute("Floor") then childData.attributes["Floor"] = child:GetAttribute("Floor") end
+        if child:GetAttribute("FloorName") then childData.attributes["FloorName"] = child:GetAttribute("FloorName") end
+
+		-- Add default values
+		childData.isValid = true
+		childData.validation = {}
+        parentStructure[child.Name] = childData
+
+        if child:IsA("Folder") then
+            childData.children = {}
+            for _, subChild in ipairs(child:GetChildren()) do
+                processChild(subChild, childData.children)
+			end
+		end
+
+		-- Validation Checks
+		local requiredAttributes = {}
+		if childData.type == "Model" then
+			requiredAttributes = {"Category", "Room", "Floor", "FloorName"}
+		end
+		for _, attribute in ipairs(requiredAttributes) do
+			if not childData.attributes[attribute] then
+				childData.isValid = false
+				table.insert(childData.validation, "Missing required attribute: " .. attribute)
+			end
+		end
+
+		-- Check for correct build order (example)
+		if childData.attributes.buildOrder then
+			local buildOrder = childData.attributes.buildOrder
+			if type(buildOrder) ~= "number" or buildOrder < 1 then
+				childData.isValid = false
+				table.insert(childData.validation, "Invalid buildOrder: " .. tostring(buildOrder))
+			end
+		end
+
+		-- Check for prerequisites (example)
+		if childData.attributes.prerequisites then
+			-- Check if the prerequisites exist
+			-- ...
+			--if a prerequisite is not found
+			--childData.isValid = false
+			--table.insert(childData.validation, "Missing prerequisite: " .. tostring(aPrerequisite))
+		end
+
+		-- Check for gateways (example)
+		if childData.attributes.unlocksFloor then
+			--check if the next floor exists.
+			if not childData.attributes["Floor"] then
+				childData.isValid = false
+				table.insert(childData.validation, "Gateway must have a floor attribute")
+            end
+        end
+    end
+    for _, child in ipairs(gymParts:GetChildren()) do
+        processChild(child, structure)
+    end
+	print("Gym Structure analysis finished.")
+
+	structure.validation = validation
+
+	return structure
+end
+
+--[[
+    Generates a report based on the analyzed gym structure.
+    
+    This function recursively traverses the structure and prints
+    information about each element, including its validity status
+    and any validation errors.
+]]
+local function GenerateReport(structure)
+    local allValid = true
+    local function processElement(element, name)
+        local elementType = element.type
+        print(elementType .. ": " .. name .. (element.isValid and " (Valid)" or " (Invalid)"))
+        if not element.isValid then
+            allValid = false
+            warn("  Validation Errors: " .. table.concat(element.validation, ", "))
+        end
+        if element.children then for childName, childData in pairs(element.children) do processElement(childData, childName) end end
+    end
+    for name, data in pairs(structure) do if name ~= "validation" then processElement(data, name) end end
+    return allValid
 end
 
 -- Integrate gym structure data with BuyTileSystem
@@ -204,4 +339,37 @@ function GymStructureIntegration:GetRoomFloorMapping()
         end
     end
     return mapping
+end
+
+-- Generate the GymStructureJSON
+function GymStructureIntegration:GenerateGymStructureJSON()
+    print("Generating GymStructureJSON...")
+    local structure = self:AnalyzeGymStructure(false)
+
+	if structure then
+		local jsonString = HttpService:JSONEncode(structure)
+
+		local gymStructureJSON = ServerStorage:FindFirstChild("GymStructureJSON")
+        if gymStructureJSON then gymStructureJSON:Destroy() end
+		
+		local newGymStructureJSON = Instance.new("StringValue")
+		newGymStructureJSON.Name = "GymStructureJSON"
+		newGymStructureJSON.Value = jsonString
+		newGymStructureJSON.Parent = ServerStorage
+        print("GymStructureJSON generated.")
+    end
+    return true
+end
+
+function GymStructureIntegration:AnalyzeGymStructure(verbose)
+	print("Analyzing Gym Structure...")
+	local gymParts = workspace:FindFirstChild("GymParts")
+	if not gymParts then
+		warn("GymStructureIntegration: GymParts folder not found in workspace.")
+		return nil
+	end
+	local structure = processGymParts(gymParts)
+    GenerateReport(structure)
+	print("Gym Structure analysis finished.")
+	return structure
 end

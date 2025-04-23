@@ -2,7 +2,7 @@
     GymTycoonAutomation.server.luau - 
     
     Master automation script that combines all the automation tools into simple commands.
-    This script serves as the central hub for all automation features, allowing you to:
+    This script serves as the central hub for all automation features, allowing you to:\n
     1. Run the entire automation process with a single command
     2. Choose between different automation workflows
     3. Configure automation options
@@ -14,11 +14,14 @@
 
 local ServerStorage = game:GetService("ServerStorage")
 
+
 -- Import automation modules
 local AutoBuyTileSetup = require(script.Parent:FindFirstChild("AutoBuyTileSetup"))
 local BuyTileConfigGenerator = require(script.Parent:FindFirstChild("BuyTileConfigGenerator"))
 local BuyTileHitboxGenerator = require(script.Parent:FindFirstChild("BuyTileHitboxGenerator"))
 local CoreRegistry = require(script.Parent.Parent:FindFirstChild("Core"):FindFirstChild("CoreRegistry") or {})
+local ModelValidator = require(script.Parent.Parent:FindFirstChild("Core"):FindFirstChild("ModelValidation"):FindFirstChild("ModelValidator"))
+local EquipmentManager = require(script.Parent.Parent:FindFirstChild("Core"):FindFirstChild("EquipmentManager"))
 
 -- Get GymStructureIntegration if available
 local GymStructureIntegration = CoreRegistry and CoreRegistry:GetSystem("GymStructureIntegration")
@@ -39,6 +42,8 @@ local AUTOMATION_CONFIG = {
     showDebug = true,           -- Show debug output
     useProximityDetection = true, -- Use proximity for prerequisites
     adjustEconomy = true,       -- Automatically balance economy
+    generateGymStructureJSON = false, -- Generate GymStructureJSON if not found.
+    setupEquipment = true,      -- Setup the equipment
 }
 
 -- Run the full automation process
@@ -46,6 +51,11 @@ local function AutomateGymTycoon(config)
     config = config or {}
 
     -- Merge provided config with defaults
+    local gymModel = workspace:FindFirstChild('GymParts') or workspace:FindFirstChild('Gym') or workspace:FindFirstChild('Tycoon') or workspace:FindFirstChild('GymTycoon')
+    if not gymModel then
+        warn("Gym Tycoon Model not found in workspace. Please ensure your Gym Tycoon Model is named 'GymParts', 'Gym', 'Tycoon', or 'GymTycoon'.")
+        return
+    end
     for key, value in pairs(config) do
         AUTOMATION_CONFIG[key] = value
     end
@@ -60,7 +70,40 @@ local function AutomateGymTycoon(config)
         config = 0,
         structure = {},
     }
+    -- Step 0: Validate Models
+    print("\n== VALIDATING MODELS ==")
+    local validationResults = ModelValidator.ValidateAllModels(gymModel)
+    if not validationResults.valid then
+        ModelValidator.PrintIssues(validationResults)
+        warn("Model validation failed. Stopping automation process.")
+        return
+    else
+        print("✓ All models passed validation!")
+    end
+
+    --Tag models by category
+    ModelValidator.TagModelsByCategory(gymModel)
     
+    -- Step 0.5: Try to fix common model issues
+    if _G.FixModelIssues then
+        print("\n== FIXING MODEL ISSUES ==")
+        local fixResults = _G.FixModelIssues(gymModel, true) --Attempt to fix without asking
+        print("Fixed: ", fixResults.fixed)
+        print("Not fixed: ", fixResults.notFixed)
+    end
+    
+        -- Step 1: Analyze Gym Structure if available and enabled
+    if AUTOMATION_CONFIG.analyzeStructure and GymStructureIntegration then
+        print("\n== ANALYZING GYM STRUCTURE ==")
+        local structureStats = GymStructureIntegration:AnalyzeGymStructure(AUTOMATION_CONFIG.showDebug)
+        if _G.GenerateGymStructureJSON and AUTOMATION_CONFIG.generateGymStructureJSON then
+            _G.GenerateGymStructureJSON()
+        end
+        if structureStats and next(structureStats) then
+            stats.structure = structureStats
+        end
+    end
+
     -- Step 1: Analyze Gym Structure if available and enabled
     if AUTOMATION_CONFIG.analyzeStructure and GymStructureIntegration then
         print("\n== ANALYZING GYM STRUCTURE ==")
@@ -79,6 +122,12 @@ local function AutomateGymTycoon(config)
         else
             print("GymStructureIntegration found but SyncGymStructure method not available")
         end
+    end
+    
+    -- Step 0.7: Set up equipment if enabled
+    if AUTOMATION_CONFIG.setupEquipment then
+        print("\n== SETTING UP EQUIPMENT ==")
+        EquipmentManager.SetupEquipment(gymModel, AUTOMATION_CONFIG)
     end
     
     -- Step 2: Generate BuyTile Config if enabled
