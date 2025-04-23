@@ -46,8 +46,6 @@ local SpecializationSystem = {
                 decor_placement = "WeightliftingArea"  -- Placement area for specialization decor
             },
             equipment_tags = {"weights", "bench", "rack", "machine", "IsEquipment", "equipment"}
-			
-
         },
         cardio = {
             name = "Cardio Fitness",
@@ -89,9 +87,6 @@ local SpecializationSystem = {
                 decor_placement = "FunctionalTrainingArea"  -- Placement area for specialization decor
             },
             equipment_tags = {"functional", "crossfit", "box", "IsEquipment", "equipment"} -- Added "IsEquipment" and "equipment" tag
-			-- IsEquipment: This tag will target any model that has the attribute "IsEquipment", allowing more flexibility.
-			-- equipment: This tag will target any model that has the name "equipment", allowing more flexibility.
-			
         }
     }
 }
@@ -269,7 +264,7 @@ function SpecializationSystem:applySpecializationBenefits(player)
 
             -- Competition bonus
             if primary.benefits.competition_boost then
-                tycoon:SetAttribute("SpecCompetitionBoost", primary.benefits.competition_bonus)
+                tycoon:SetAttribute("SpecCompetitionBoost", primary.benefits.competition_boost)
             end
             
             -- Strength bonus
@@ -284,7 +279,7 @@ function SpecializationSystem:applySpecializationBenefits(player)
             
             -- Energy bonus
             if primary.benefits.energy_bonus then
-                tycoon:SetAttribute("SpecCompetitionBoost", primary.benefits.competition_boost)
+                tycoon:SetAttribute("SpecEnergyBonus", primary.benefits.energy_bonus)
             end
         end
     end
@@ -320,6 +315,27 @@ function SpecializationSystem:applySpecializationBenefits(player)
                 local secondaryEffect = (secondary.benefits.vip_multiplier - 1.0) * 0.5
                 tycoon:SetAttribute("SpecVIPMultiplier", currentMultiplier + secondaryEffect)
             end
+            
+            -- Strength bonus (half effect)
+            if secondary.benefits.strength_bonus then
+                local currentBoost = tycoon:GetAttribute("SpecStrengthBonus")
+                local secondaryEffect = secondary.benefits.strength_bonus * 0.5
+                tycoon:SetAttribute("SpecStrengthBonus", currentBoost + secondaryEffect)
+            end
+            
+            -- Endurance bonus (half effect)
+            if secondary.benefits.endurance_bonus then
+                local currentBoost = tycoon:GetAttribute("SpecEnduranceBonus")
+                local secondaryEffect = secondary.benefits.endurance_bonus * 0.5
+                tycoon:SetAttribute("SpecEnduranceBonus", currentBoost + secondaryEffect)
+            end
+            
+            -- Energy bonus (half effect)
+            if secondary.benefits.energy_bonus then
+                local currentBoost = tycoon:GetAttribute("SpecEnergyBonus")
+                local secondaryEffect = secondary.benefits.energy_bonus * 0.5
+                tycoon:SetAttribute("SpecEnergyBonus", currentBoost + secondaryEffect)
+            end
         end
     end
 
@@ -327,10 +343,7 @@ function SpecializationSystem:applySpecializationBenefits(player)
     self:recreateSpecializationDecor(player)
 
     -- Update revenue system if available
-    local GymRevenueSystem = CoreRegistry.getSystem("GymRevenueSystem")
-    if GymRevenueSystem then
-        GymRevenueSystem:updateRevenue(player)
-    end
+    self:updateRevenue(player)
 end
 
 -- Remove all existing specialization decor from the tycoon
@@ -431,25 +444,14 @@ function SpecializationSystem:recreateSpecializationDecor(player)
         self:createSpecializationDecor(tycoon, specs.primary, specs.secondary)
     end
 end
-            end
-            
-             -- Strength bonus (half effect)
-            if secondary.benefits.strength_bonus then
-                local currentBoost = tycoon:GetAttribute("SpecStrengthBonus")
-                local secondaryEffect = secondary.benefits.strength_bonus * 0.5
-                tycoon:SetAttribute("SpecStrengthBonus", currentBoost + secondaryEffect)
-            end
-            
-            -- Other bonus (half effect)
-            if secondary.benefits.other_bonus then
-                local currentBoost = tycoon:GetAttribute("SpecOtherBonus")
-                local secondaryEffect = (secondary.benefits.competition_boost - 1.0) * 0.5
-                tycoon:SetAttribute("SpecCompetitionBoost", currentBoost + secondaryEffect)
-            end
-        end
-    end
 
-    -- Update revenue system if available
+-- Update revenue system if available
+function SpecializationSystem:updateRevenue(player)
+    if not player then return end
+    
     local GymRevenueSystem = CoreRegistry.getSystem("GymRevenueSystem")
     if GymRevenueSystem then
+        GymRevenueSystem:updateRevenue(player)
+    end
+end
 

@@ -49,8 +49,6 @@ This document serves as the central repository for all project information, guid
     - **Priority:** High
     - **Notes:** Ensure balancing is appropriate to keep players engaged.
 
-
-
 ## 2. Remaining Tasks/Features
 
 -   **Multiplayer Features:**
@@ -90,6 +88,30 @@ This document serves as the central repository for all project information, guid
 - **Trading System**
     - **Description:** Allow players to trade resources, items, or other assets with each other.
     - **Benefits:** Add more player interactions.
+- **Research & Development System:**
+    - **Description:** Introduce a system where players can invest in research to unlock new equipment tiers, unique staff skills, marketing strategies, or even permanent gym-wide passive bonuses.
+    - **Benefits:** Adds a long-term strategic goal beyond just earning money and expanding space. Provides a sink for excess resources and a clear progression path.
+    - **Implementation Notes:** Could include research trees or categories (e.g., Equipment Tech, Marketing, Staff Training, Member Comfort).
+- **Member Archetypes & Needs:**
+    - **Description:** Expand on the basic member system by introducing different types of members (e.g., Bodybuilders, Cardio Enthusiasts, Seniors, Students, VIPs) with specific equipment preferences, patience levels, spending habits, and satisfaction drivers.
+    - **Benefits:** Makes the simulation deeper, rewards players for creating diverse gym layouts catering to different needs, and allows for tailored marketing campaigns.
+    - **Implementation Notes:** Integrate with NPC System, GymRevenueSystem, and MemberSatisfactionSystem.
+- **Marketing and Branding:**
+    - **Description:** Allow players to invest in marketing campaigns (local flyers, online ads, celebrity endorsements) to attract more members or specific member archetypes. Introduce a "Gym Brand" or "Reputation" score influenced by marketing, cleanliness, satisfaction, and events.
+    - **Benefits:** Provides more control over growth and target audience, adds a new resource expenditure avenue, and makes reputation a more tangible game mechanic.
+    - **Implementation Notes:** Marketing options should affect NPC spawn rates and types.
+- **Staff Specializations & Skill Trees:**
+    - **Description:** Build on the Staff Management System by giving staff members unique roles (Trainer, Manager, Janitor, Receptionist) and skill trees they can progress through via the Staff Training System.
+    - **Benefits:** Adds significant depth to the Staff Management feature, allows for min-maxing and strategic staff placement, and provides another layer of progression.
+    - **Implementation Notes:** Staff skills could impact revenue, member satisfaction, cleanliness, and security.
+- **Dynamic Goal/Quest System:**
+    - **Description:** Expand the MilestoneSystem into a more dynamic quest or mission system that generates personalized goals for players based on their current progress, specialization, available equipment, or ongoing events.
+    - **Benefits:** Provides players with clear, short-term objectives, encourages exploration of different game mechanics, and makes progression feel more personalized and engaging.
+    - **Implementation Notes:** Goals could include "Train X Bodybuilder NPCs," "Earn Y revenue from Cardio equipment," or "Achieve Z member satisfaction for 10 minutes."
+- **Difficulty Settings / "Chill" Mode:**
+    - **Description:** Offer players different difficulty settings at the start or allow them to switch between a standard challenge mode and a more relaxed "Chill" or "Creative" mode.
+    - **Benefits:** Caters to a wider audience with different playstyle preferences, from those seeking a challenge to those who just want to build and customize.
+    - **Implementation Notes:** Parameters to modify could include starting money, member satisfaction decay, and failure conditions.
 
 ## 1. Completed Features
 
@@ -164,6 +186,19 @@ This document serves as the central repository for all project information, guid
         -   Implement graphics settings to adjust quality.
         -   Optimize code for efficiency and reduced resource usage.
         -   Consider lower detail models for less powerful devices.
+-   **Spatial Partitioning for Dynamic Elements:**
+    -   **Issue:** Performance bottlenecks with many NPCs and interactive objects.
+    -   **Approach:**
+        -   Implement spatial data structures (like a grid or quadtree) on the server.
+        -   Allow faster querying of objects within a certain radius, crucial for NPC AI pathfinding.
+        -   Integrate with NPC System and Unified Interaction System.
+-   **Aggressive Client-Side Rendering Optimizations:**
+    -   **Issue:** Poor client-side performance on various devices.
+    -   **Approach:**
+        -   Implement manual or automated render distance management for less important visual details.
+        -   Add level-of-detail (LOD) for models.
+        -   Implement culling objects based on visibility frustum.
+        -   Focus on supporting a wider range of device capabilities.
 
 ## 6. General Code Cleanup
 
@@ -202,6 +237,14 @@ This document serves as the central repository for all project information, guid
     - **Component:** Creating new UI elements.
     - **Consolidation:** Create templates and base objects for UI creation.
     - **Benefits:** Faster UI creation and maintainability.
+-   **Unified Interactive Object System:**
+    - **Component:** Standardize the interface and logic for any object in the game that a player or NPC can interact with (equipment, front desk, vending machines, mini-game stations, staff).
+    - **Consolidation:** Build on the attributes already introduced (IsInteractive, InteractionType, CurrentUsers) to create a unified system.
+    - **Benefits:** Reduces code duplication across different interactive items, makes it easier to add new interactive objects, improves maintainability.
+-   **Centralized Game Data Configuration:**
+    - **Component:** All configurable game data (equipment stats, prices, upgrade paths, staff costs/stats, event parameters).
+    - **Consolidation:** Leverage the ConfigurationGenerator and DataManager to load and manage all game data through a single, robust system.
+    - **Benefits:** Easier balancing and tuning, faster iteration on game parameters, reduced risk of inconsistencies, and cleaner code.
 
 ## 8. Other
 

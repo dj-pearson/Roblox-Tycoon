@@ -68,19 +68,19 @@ local function GenerateBuyTileConfig()
                     end
                 end
             end
-        else
-            -- Calculate average position of all parts
-            local totalPos = Vector3.new(0, 0, 0)
-            local partCount = 0
-            for _, part in ipairs(model:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    totalPos += part.Position
-                    partCount += 1
-                end
-            end
-            
-            position = partCount > 0 and totalPos / partCount or position -- Use original position if no parts found
         end
+        
+        -- Calculate average position of all parts
+        local totalPos = Vector3.new(0, 0, 0)
+        local partCount = 0
+        for _, part in ipairs(model:GetDescendants()) do
+            if part:IsA("BasePart") then
+                totalPos += part.Position
+                partCount += 1
+            end
+        end
+        
+        position = partCount > 0 and totalPos / partCount or position -- Use original position if no parts found
         
         -- Detect floor based on Y position
         local floorNumber = math.floor(position.Y / 20) + 1 -- Assuming 20 units per floor
