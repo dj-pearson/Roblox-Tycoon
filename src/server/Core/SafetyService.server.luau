@@ -1,4 +1,4 @@
-lua
+--lua
 --[[
     SafetyService.server.luau
     

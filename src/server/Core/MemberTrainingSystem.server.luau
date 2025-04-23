@@ -1,4 +1,4 @@
-lua
+--lua
 --[[
     MemberTrainingSystem.server.luau
     Handles the training logic for gym members.

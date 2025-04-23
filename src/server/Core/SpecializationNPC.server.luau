@@ -1,4 +1,4 @@
-lua
+--lua
 local SpecializationNPC = {}
 
 local CollectionService = game:GetService("CollectionService")

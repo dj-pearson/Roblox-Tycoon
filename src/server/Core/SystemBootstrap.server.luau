@@ -1,291 +1,112 @@
--- SystemBootstrap.luau
--- Main entry point for initializing all core systems
+-- SystemBootstrap.server.luau
+-- Script responsible for initializing the core systems in the correct order
 -- Place in ServerScriptService/Core
 
 local ServerScriptService = game:GetService("ServerScriptService")
-local CoreFolder = ServerScriptService:FindFirstChild("Core")
-local ConnectorsFolder = ServerScriptService:FindFirstChild("Connectors")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Basic configuration
-local CONFIG = {
-    debugEnabled = true,
-    systemInitTimeout = 10, -- Maximum time to wait for a system to initialize (seconds)
-    initRetryCount = 3,     -- Number of times to retry initializing a failed system
-    startupDelay = 0,        -- Optional delay before initializing systems (seconds)
-    interSystemInitDelay = 0.5 -- Delay between initializing each system (seconds)
-}
-
--- Get the CoreRegistry to access all systems
-local CoreRegistry = require(CoreFolder:FindFirstChild("CoreRegistry"))
-
--- Systems to initialize in order (dependencies handled by registry)
--- "LeaderstatsSystem" is initialized first to ensure leaderstats are set up before other systems rely on them.
-local systemsToInitialize = {
-    "EventBridge",
-    "DataManager",
-    "PerformanceManager", -- Added PerformanceManager early in the initialization process
-    "ConfigManager", -- Added ConfigManager 
-    "NPCSystem",
-    "NPCSystemPerformance", -- Added NPCSystemPerformance after NPCSystem
-    "NPCAnimationSystem", -- Added NPCAnimationSystem after NPCSystemPerformance
-    "TycoonSystem",
-    "BuyTileSystem",
-    "SpecializationSystem",
-    "MilestoneSystem",
-    "AchievementSystem",
-    "SaunaSystem",
-    "RevenueSystem",
-    "MemoryStoreManager" -- Added MemoryStoreManager
-    -- Additional systems can be added here
-}
-
--- Connectors to initialize after core systems
-local connectorsToInitialize = {
-    "GymTycoonConnector" -- Bridge between new architecture and legacy code
-}
-
--- Utility functions
+-- Debug function
 local function log(...)
-    if CONFIG.debugEnabled then
-        print("[SystemBootstrap]", ...)
-    end
+    print("[SystemBootstrap]", ...)
 end
 
-local function warn(...)
-    if CONFIG.debugEnabled then
-        warn("[SystemBootstrap]", ...)
+log("Starting system initialization...")
+
+-- Ensure folders exist
+local function ensureFolderExists(parent, name)
+    local folder = parent:FindFirstChild(name)
+    if not folder then
+        folder = Instance.new("Folder")
+        folder.Name = name
+        folder.Parent = parent
     end
+    return folder
 end
 
--- Handle when a player joins
-local function handlePlayerJoin(player)
-    if not player then return end
+-- Create necessary folders in ReplicatedStorage
+local eventsFolder = ensureFolderExists(ReplicatedStorage, "Events")
+local sharedFolder = ensureFolderExists(ReplicatedStorage, "shared")
 
-    log("Setting up player: " .. player.Name)
-
-    -- Create leaderstats first (if needed)
-    local LeaderstatsSystem = CoreRegistry.getSystem("LeaderstatsSystem")
-    if LeaderstatsSystem and LeaderstatsSystem.setupLeaderstats then
-        LeaderstatsSystem.setupLeaderstats(player)
-    else
-        warn("LeaderstatsSystem not found or setupLeaderstats function missing")
-    end
-
-    -- Ensure player has a tycoon
-    local TycoonSystem = CoreRegistry.getSystem("TycoonSystem")
-    if TycoonSystem and TycoonSystem.ensurePlayerTycoon then
-        task.spawn(function()
-            local tycoon = TycoonSystem.ensurePlayerTycoon(player)
-
-            if tycoon then
-                log("Tycoon ready for " .. player.Name)
-            else
-                warn("Failed to create tycoon for " .. player.Name)
-            end
-        end)
-    end
-
-    -- Additional player setup logic can go here
+-- First load CoreRegistry which manages all other systems
+local coreRegistryPath = script.Parent:FindFirstChild("CoreRegistry")
+if not coreRegistryPath then
+    log("ERROR: Could not find CoreRegistry. System initialization cannot continue.")
+    return
 end
 
--- Initialize connector modules
-local function initializeConnectors()
-    if not ConnectorsFolder then
-        warn("Connectors folder not found in ServerScriptService")
-        return
-    end
-
-    log("Initializing connector modules...")
-
-    -- Track successful initializations
-    local initializedCount = 0
-    local failedConnectors = {}
-
-    for _, connectorName in ipairs(connectorsToInitialize) do
-        local connectorScript = ConnectorsFolder:FindFirstChild(connectorName)
-        if not connectorScript then
-            warn("Connector not found: " .. connectorName)
-            table.insert(failedConnectors, connectorName)
-            continue
-        end
-
-        log("Loading connector: " .. connectorName)
-
-        -- Try to load and initialize the connector
-        local success, connector = pcall(function()
-            return require(connectorScript)
-        end)
-
-        if success and connector then
-            -- Try to initialize the connector
-            if typeof(connector.initialize) == "function" then
-                local initSuccess, result = pcall(function()
-                    return connector.initialize()
-                end)
-
-                if initSuccess and result ~= false then
-                    log("Successfully initialized connector: " .. connectorName)
-                    initializedCount = initializedCount + 1
-
-                    -- Register with CoreRegistry for other systems to access
-                    CoreRegistry.registerSystem(connectorName, connector)
-                else
-                    warn("Failed to initialize connector: " .. connectorName)
-                    table.insert(failedConnectors, connectorName)
-                end
-            else
-                log("Connector has no initialize function: " .. connectorName)
-                -- Still register it with CoreRegistry
-                CoreRegistry.registerSystem(connectorName, connector)
-                initializedCount = initializedCount + 1
-            end
-        else
-            warn("Failed to load connector: " .. connectorName)
-            table.insert(failedConnectors, connectorName)
-        end
-    end
-
-    -- Final report
-    log("Connectors initialization complete: " .. initializedCount .. " of " .. #connectorsToInitialize .. " connectors initialized")
-
-    if #failedConnectors > 0 then
-        warn("Failed to initialize " .. #failedConnectors .. " connectors: " .. table.concat(failedConnectors, ", "))
-    end
-end
-
--- Tasks to run after all systems are initialized
-local function postInitialization()
-    log("Running post-initialization tasks...")
-
-    -- Connect player joined event
-    game:GetService("Players").PlayerAdded:Connect(function(player)
-        log("Player joined: " .. player.Name)
-        handlePlayerJoin(player)
-    end)
-
-    -- Handle existing players
-    for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-        task.spawn(function()
-            handlePlayerJoin(player)
-        end)
-    end
-
-    log("Post-initialization complete")
-    log("System bootstrap complete - Ready to play!")
-end
-
--- Main initialization function
-local function initializeSystems()
-    log("Beginning system initialization...")
-
-    if CONFIG.startupDelay > 0 then
-        log("Waiting " .. CONFIG.startupDelay .. " seconds before initializing systems...")
-        task.wait(CONFIG.startupDelay)
-    end
-
-    -- Track successful initializations
-    local initializedCount = 0
-    local failedSystems = {}
-
-    for _, systemName in ipairs(systemsToInitialize) do
-        local success, retryCount = false, 0
-
-        -- Attempt to initialize with retries
-        while not success and retryCount < CONFIG.initRetryCount do
-            log("Initializing " .. systemName .. (retryCount > 0 and " (retry " .. retryCount .. ")" or ""))
-
-            local system = CoreRegistry.getSystem(systemName)
-
-            if not system then
-                warn("System not found: " .. systemName)
-                continue -- Continue to the next system
-            end
-
-            -- Check if the system has already been initialized using CoreRegistry's initialized table
-            if CoreRegistry.initialized and CoreRegistry.initialized[systemName] then
-                log(systemName .. " was already initialized")
-                success = true
-                break
-            end
-
-            -- Attempt initialization with timeout protection
-            local initializationComplete = false
-            local initSuccess = false
-
-            -- Create a separate thread for initialization
-            task.spawn(function()
-                local result = pcall(function()
-                    -- Call system's initialize function if it exists
-                    if typeof(system.initialize) == "function" then
-                        initSuccess = system.initialize() ~= false
-                    else
-                        -- Try alternative init method (some systems may use init instead)
-                        if typeof(system.init) == "function" then
-                            initSuccess = system.init() ~= false
-                        else
-                            initSuccess = true -- No initialize function means success by default
-                        end
-                    end
-                end)
-
-                if not result then
-                    initSuccess = false
-                end
-
-                initializationComplete = true
-            end)
-
-            -- Wait for initialization with timeout
-            local startTime = os.clock()
-            while not initializationComplete do
-                if os.clock() - startTime > CONFIG.systemInitTimeout then
-                    warn("System initialization timed out: " .. systemName)
-                    break
-                end
-                task.wait(0.1)
-            end
-
-            -- Check result
-            if initSuccess then
-                success = true
-                -- The CoreRegistry should already mark it as initialized if successful
-                log("Successfully initialized: " .. systemName)
-                initializedCount = initializedCount + 1
-            else
-                retryCount = retryCount + 1
-                warn("Failed to initialize: " .. systemName .. (retryCount < CONFIG.initRetryCount and ", will retry" or ""))
-                task.wait(1) -- Wait before retry
-            end
-
-            task.wait(CONFIG.interSystemInitDelay)
-        end
-
-        -- Track failed systems
-        if not success then
-            table.insert(failedSystems, systemName)
-        end
-    end
-
-    -- Final report
-    log("Core systems initialization complete: " .. initializedCount .. " of " .. #systemsToInitialize .. " systems initialized")
-
-    if #failedSystems > 0 then
-        warn("Failed to initialize " .. #failedSystems .. " systems: " .. table.concat(failedSystems, ", "))
-    end
-
-    -- Initialize connectors after core systems
-    initializeConnectors()
-
-    -- Begin post-initialization tasks
-    task.spawn(postInitialization)
-end
-
--- Start the initialization process
-task.spawn(function()
-    initializeSystems()
+-- Load CoreRegistry
+local success, CoreRegistry = pcall(function()
+    return require(coreRegistryPath)
 end)
 
--- Return the bootstrap module
-return {
-    reInitialize = initializeSystems
+if not success or not CoreRegistry then
+    log("ERROR: Failed to load CoreRegistry:", CoreRegistry)
+    return
+end
+
+log("CoreRegistry loaded successfully")
+
+-- Define initialization order for critical systems
+local initializationOrder = {
+    -- Core infrastructure first
+    "EventBridge",
+    "GymTycoonConnector",
+    
+    -- Data systems next
+    "DataManager",
+    
+    -- Base gameplay systems
+    "TycoonSystem",
+    "BuyTileSystem",
+    "GymStructureIntegration",
+    
+    -- Feature systems
+    "NPCSystem",
+    "RevenueSystem",
+    "MemberSatisfactionSystem",
+    "FrontDeskSystem",
+    "SaunaSystem",
+    
+    -- Integration systems
+    "GymTycoonConnectorBridge"
 }
+
+-- Initialize systems in specified order
+for _, systemName in ipairs(initializationOrder) do
+    log("Initializing " .. systemName .. "...")
+    local system = CoreRegistry.getSystem(systemName)
+    
+    if system then
+        log(systemName .. " initialized successfully")
+    else
+        log("Warning: " .. systemName .. " failed to initialize or was not found")
+    end
+end
+
+-- Check for any remaining systems that weren't explicitly initialized
+local allSystems = CoreRegistry.getSystemNames()
+log("All registered systems: " .. table.concat(allSystems, ", "))
+
+-- Initialize remaining systems
+CoreRegistry.initializeAll()
+
+log("System initialization complete!")
+
+-- Create global access point for debugging
+_G.SystemBootstrap = {
+    CoreRegistry = CoreRegistry,
+    reinitialize = function()
+        log("Attempting to reinitialize all systems...")
+        CoreRegistry.initializeAll()
+        log("Reinitialization complete")
+    end,
+    getSystem = function(name)
+        return CoreRegistry.getSystem(name)
+    end
+}
+
+-- Signal to any waiting scripts that initialization is complete
+local initComplete = Instance.new("BoolValue")
+initComplete.Name = "SystemInitializationComplete"
+initComplete.Value = true
+initComplete.Parent = script

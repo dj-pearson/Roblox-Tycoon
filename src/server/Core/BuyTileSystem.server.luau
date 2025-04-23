@@ -4,12 +4,25 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
--- Get the CoreRegistry and dependencies, including the GymStructureIntegration
-local CoreRegistry = require(game:GetService("ServerScriptService").Core.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
-local DataManager = CoreRegistry.getSystem("DataManager") 
-local TycoonSystem = CoreRegistry.getSystem("TycoonSystem")
+-- Get the CoreRegistry safely using multiple methods to ensure it loads
+local CoreRegistry 
+if _G.CoreRegistry then
+    CoreRegistry = _G.CoreRegistry
+else
+    -- Try to require directly from parent
+    local success, result = pcall(function() 
+        return require(script.Parent.CoreRegistry)
+    end)
+    
+    if success then
+        CoreRegistry = result
+    else
+        -- Final fallback
+        CoreRegistry = require(ServerScriptService.Core.CoreRegistry)
+    end
+end
 
 -- Configuration
 local CONFIG = {
@@ -17,6 +30,7 @@ local CONFIG = {
     
     -- Equipment templates
     equipmentFolder = "GymEquipment", -- Folder in ReplicatedStorage with equipment templates
+    fallbackEquipmentFolder = "Equipment", -- Fallback folder name
     
     -- Pricing
     baseTilePrice = 100,          -- Base price for the first tile
@@ -42,22 +56,46 @@ local BuyTileSystem = {
     -- Cache
     equipmentTemplates = {},
     equipmentPrices = {},
-    specialEquipment = {}
+    specialEquipment = {},
+    initialized = false
 }
 
 -- Debug function
-local Log = function(...)
+local function Log(...)
     if CONFIG.debugEnabled then
         print("[BuyTileSystem]", ...)
     end
 end
+
 -- Load equipment templates from ReplicatedStorage, now local and private
-local function loadEquipmentTemplates(self)
-        local templateFolder = ReplicatedStorage:FindFirstChild(CONFIG.equipmentFolder)
+function BuyTileSystem:loadEquipmentTemplates()
+    local templateFolder = ReplicatedStorage:FindFirstChild(CONFIG.equipmentFolder)
     
+    -- Try fallback folder if main one not found
     if not templateFolder then
-        Log("Equipment template folder not found")
-        return false
+        templateFolder = ReplicatedStorage:FindFirstChild(CONFIG.fallbackEquipmentFolder)
+    end
+    
+    -- Create folder if it doesn't exist
+    if not templateFolder then
+        Log("Equipment template folder not found, creating one")
+        templateFolder = Instance.new("Folder")
+        templateFolder.Name = CONFIG.equipmentFolder
+        templateFolder.Parent = ReplicatedStorage
+        
+        -- Create a basic template for testing
+        local basicEquipment = Instance.new("Model")
+        basicEquipment.Name = "BasicBench"
+        
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(2, 1, 4)
+        part.Anchored = true
+        part.CanCollide = true
+        part.BrickColor = BrickColor.new("Brown")
+        part.Parent = basicEquipment
+        
+        basicEquipment:SetAttribute("Price", 100)
+        basicEquipment.Parent = templateFolder
     end
     
     -- Clear existing templates
@@ -89,11 +127,11 @@ local function loadEquipmentTemplates(self)
     end
     
     Log("Loaded " .. loadedCount .. " equipment templates")
-    return true
-end 
+    return loadedCount > 0
+end
 
--- Check if player can afford a tile, now a private method
-local function canPlayerAfford(self, player, price)
+-- Check if player can afford a tile
+function BuyTileSystem:canPlayerAfford(player, price)
     if not player or not price then return false end
     
     -- Get player's cash
@@ -107,9 +145,21 @@ local function canPlayerAfford(self, player, price)
     return cashValue.Value >= price
 end
 
---Find spot in area, now a method
-local function findSpotInArea(self, gymStructureIntegration, tycoon, areaName)    
-    local area = gymStructureIntegration:getArea(tycoon, areaName)
+-- Find spot in area
+function BuyTileSystem:findSpotInArea(gymStructureIntegration, tycoon, areaName)  
+    if not gymStructureIntegration or not tycoon or not areaName then
+        return nil
+    end
+      
+    local area
+    
+    -- Try directly accessing the area if structure integration is not available
+    if not gymStructureIntegration.getArea then
+        area = tycoon:FindFirstChild(areaName, true)
+    else
+        area = gymStructureIntegration:getArea(tycoon, areaName)
+    end
+    
     if area then
         local equipmentSpots = area:FindFirstChild("EquipmentSpots")
         if equipmentSpots then
@@ -126,28 +176,74 @@ end
 
 -- Initialize the module
 function BuyTileSystem:initialize()
+    if self.initialized then
+        return true
+    end
+
     Log("Initializing BuyTileSystem...")
     
     -- Load equipment templates
-    self:loadEquipmentTemplates()
+    if not self:loadEquipmentTemplates() then
+        Log("Warning: Failed to load equipment templates")
+    end
     
     -- Register remote events
     self:setupRemoteEvents()
     
+    -- Create a basic GymStructureIntegration if it doesn't exist
+    local GymStructureIntegration = CoreRegistry.getSystem("GymStructureIntegration")
+    if not GymStructureIntegration then
+        Log("GymStructureIntegration not found, creating a basic version")
+        
+        local BasicGymStructureIntegration = {
+            getArea = function(self, tycoon, areaName)
+                -- Simple implementation to find an area by name in the tycoon
+                return tycoon:FindFirstChild(areaName, true)
+            end,
+            
+            initialize = function()
+                return true
+            end
+        }
+        
+        CoreRegistry.registerSystem("GymStructureIntegration", BasicGymStructureIntegration, {})
+    end
+    
+    self.initialized = true
     Log("BuyTileSystem initialized")
     return true
 end
 
 -- Setup remote events 
 function BuyTileSystem:setupRemoteEvents()
+    -- Wait for EventBridge to be available
+    local attempts = 0
+    local EventBridge
+    
+    while not EventBridge and attempts < 5 do
+        EventBridge = CoreRegistry.getSystem("EventBridge")
+        if not EventBridge then
+            attempts = attempts + 1
+            task.wait(0.5)
+        end
+    end
+    
+    if not EventBridge then
+        Log("Warning: EventBridge not found after multiple attempts")
+        return
+    end
+    
     -- Get or create remote event for buy tile requests
     local buyTileEvent = EventBridge:getOrCreateRemoteEvent("BuyTile")
     
     -- Connect handler
-    EventBridge:connectRemoteEvent("BuyTile", function(player, tileId) self:handleBuyTileRequest(player, tileId) end) -- Corrected call
+    EventBridge:connectRemoteEvent("BuyTile", function(player, tileId) 
+        self:handleBuyTileRequest(player, tileId) 
+    end)
     
     Log("Remote events set up")
 end
+
 function BuyTileSystem:calculateTilePrice(player, tileId)    
     if not player or not tileId then return 0 end
     
@@ -175,8 +271,6 @@ function BuyTileSystem:calculateTilePrice(player, tileId)
     return finalPrice
 end
 
-    
-
 -- Deduct cash from player, now a method
 function BuyTileSystem:deductPlayerCash(player, amount)
     if not player or not amount then return false end
@@ -199,7 +293,6 @@ end
 
 -- Handle a buy tile request, now a method
 function BuyTileSystem:handleBuyTileRequest(player, tileId)
-
     if not player or not tileId then
         Log("Invalid buy tile request")
         return false
@@ -212,7 +305,20 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
         return false
     end
 
-    local tycoon = TycoonSystem and TycoonSystem:GetPlayerTycoon(player)
+    -- Get TycoonSystem safely
+    local TycoonSystem = CoreRegistry.getSystem("TycoonSystem")
+    local tycoon
+    
+    if TycoonSystem and TycoonSystem.GetPlayerTycoon then
+        tycoon = TycoonSystem:GetPlayerTycoon(player)
+    else
+        -- Fallback to direct lookup
+        local tycoonValue = player:FindFirstChild("Tycoon")
+        if tycoonValue then
+            tycoon = tycoonValue.Value
+        end
+    end
+    
     if not tycoon then
         Log("Player has no tycoon")
         return false
@@ -226,10 +332,11 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
 
     local price = self:calculateTilePrice(player, tileId)
 
-    if not canPlayerAfford(self,player, price) then
+    if not self:canPlayerAfford(player, price) then
         Log("Player cannot afford this tile")
         return false
     end
+    
     local success = self:placeEquipment(player, tileId)
 
     if success then
@@ -237,13 +344,28 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
             Log("Failed to deduct cash AFTER successful placement. This is unexpected and requires investigation.")
         end
 
+        -- Try to record the purchase in DataManager
+        local DataManager = CoreRegistry.getSystem("DataManager")
         if DataManager and DataManager.recordEquipmentPurchase then
             DataManager.recordEquipmentPurchase(player, tileId)
         end
 
-        if EventBridge and EventBridge.fireEvent then
-            EventBridge:fireEvent("TilePurchased", player, tileId, price)
-            EventBridge:fireClientEvent("TilePurchasedClient", player, tileId, price)
+        -- Fire purchase events
+        local EventBridge = CoreRegistry.getSystem("EventBridge")
+        if EventBridge then
+            if EventBridge.fireEvent then
+                EventBridge:fireEvent("TilePurchased", player, tileId, price)
+            end
+            
+            if EventBridge.fireClientEvent then
+                EventBridge:fireClientEvent("TilePurchasedClient", player, tileId, price)
+            end
+        end
+
+        -- Update gym tycoon connector
+        local GymTycoonConnector = CoreRegistry.getSystem("GymTycoonConnector")
+        if GymTycoonConnector and GymTycoonConnector.onTilePurchased then
+            GymTycoonConnector:onTilePurchased(player, tileId)
         end
 
         Log(player.Name .. " successfully purchased tile: " .. tileId)
@@ -252,7 +374,7 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
         Log("Failed to place equipment for " .. player.Name)
         return false
     end
-end 
+end
 
 -- Find a suitable placement position in the tycoon, now a method
 function BuyTileSystem:findPlacementPosition(tycoon, equipment)
@@ -279,11 +401,11 @@ function BuyTileSystem:findPlacementPosition(tycoon, equipment)
     -- First, check if equipment requires a specific placement area
     local equipmentType = equipment:GetAttribute("EquipmentType")
     if equipmentType then
-        placementCFrame = findSpotInArea(self, GymStructureIntegration, tycoon, equipmentType)
+        placementCFrame = self:findSpotInArea(GymStructureIntegration, tycoon, equipmentType)
     end
     
     if not placementCFrame then   
-        placementCFrame = findSpotInArea(self, GymStructureIntegration, tycoon, "Gym Floor")
+        placementCFrame = self:findSpotInArea(GymStructureIntegration, tycoon, "Gym Floor")
     end    
 
     
@@ -406,7 +528,6 @@ function BuyTileSystem:placeEquipment(player, tileId)
     return true
 end
 
-
 -- Create visual effect for equipment purchase
 function BuyTileSystem:createPurchaseEffect(equipment)
     if not equipment then return end
@@ -450,7 +571,7 @@ function BuyTileSystem:createPurchaseEffect(equipment)
     end)
 end
 
--- Restore purchased equipment from data --
+-- Restore purchased equipment from data
 function BuyTileSystem:restoreEquipment(player, equipmentList)
     if not player or not equipmentList then return false end
     
@@ -513,8 +634,17 @@ local PublicAPI = {
     
     getConfig = function()
         return CONFIG
+    end,
+    
+    -- Add this critical function that was missing
+    spawnGymPart = function(player, tileId)
+        -- This is a compatibility function for legacy code
+        return BuyTileSystem:placeEquipment(player, tileId)
     end
 }
 
+-- Make BuyTileSystem globally accessible for emergency access
+_G.BuyTileSystem = BuyTileSystem
+
 -- Register with CoreRegistry
-return CoreRegistry.registerSystem("BuyTileSystem", PublicAPI, {"EventBridge", "DataManager", "TycoonSystem", "GymStructureIntegration"})
+return CoreRegistry.registerSystem("BuyTileSystem", PublicAPI, {"EventBridge"})

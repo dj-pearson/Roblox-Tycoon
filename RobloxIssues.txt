@@ -3,144 +3,157 @@
 Last Test Date: April 23, 2025
 This document categorizes issues found during testing to help track and resolve them.
 
-## Asset Loading Issues
+## Module Loading Errors
 
-### Missing Meshes
-- Multiple "Could not find mesh for fish" errors in various mesh types:
-  - Meshes/fish
-  - Meshes/TropicalFish12
-  - Union
-  - Mesh
-- Location: src/server/Features/Aquarium/AquariumSystem.server.luau:24
-- Impact: Visual issue - fish models likely not displaying correctly in aquarium feature
+### Invalid require() Arguments
+- Multiple "Attempted to call require with invalid argument(s)" errors in:
+  - ServerScriptService.Server.Connectors.GymTycoonConnector:10
+  - ServerScriptService.Server.Core.CoreRegistry:103
+  - ServerScriptService.Core.Tests.RunTests:5
+  - ServerScriptService.Core.TycoonSystem:10
+  - ServerScriptService.Server.Core.GymTycoonConnector:10
+  - ServerScriptService.Core.EventBridge:152
+  - ServerScriptService.Server.Core.InitializeCore:20
+  - ServerScriptService.Core.BuyTileSystem:9
+  - ServerScriptService.Core.Tests.EventBridgeTests:5
+  - ServerScriptService.Core.Tests.DataManagerTests:5
+  - ServerScriptService.Core.SeasonalSystem:9
+  - ServerScriptService.Core.NPCSystem:12
+  - ServerScriptService.Core.SatisfactionEventHandler:11
+  - ServerScriptService.Core.LegacyBridge:6
+  - ServerScriptService.Server.Core.SystemBootstrap:19
+  - ServerScriptService.Server.Core.FeatureManager:5
+  - Many more systems affected
+- Impact: Critical - core functionality broken due to module loading failures
+
+## Null Reference Errors
+
+### Attempt to Index nil
+- Several "attempt to index nil with X" errors:
+  - 'GetSystem' in ServerScriptService.Server.Core.FloorAttributeSetup:32
+  - 'registerSystem' in ServerScriptService.Server.Core.NPCAnimationSystem:616
+  - 'baseStructure' in ServerScriptService.Server.Core.AnalyzeGymStructure:211
+  - 'PlayerGui' in Players.Xdjpearsonx.PlayerGui.CleanGymController:33
+  - 'WaitForChild' in Players.Xdjpearsonx.PlayerGui.SatisfactionButton:28
+  - 'Background' in Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI:73
+  - 'WaitForChild' in Players.Xdjpearsonx.PlayerGui.TemperatureDisplay:9
+  - 'PlayerGui' in Players.Xdjpearsonx.PlayerGui.ResetButton:14
+  - 'registerSystem' in Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.SatisfactionClient:245
+- Impact: Medium to High - UI elements and core systems not functioning
+
+### Invalid Member Access
+- "Floor is not a valid member of Workspace 'Workspace'" in ServerScriptService.Model Function.ElevatorMovement:46
+- "AutomationLoader is not a valid member of ServerStorage" in ServerScriptService.Server.Connectors.BuyTileConfigGenerator:18
+- "EquipmentBoundingBox is not a valid member of Folder" in ServerScriptService.Server.Core.EquipmentUpgradeSystem:16
+- "Utils is not a valid member of Folder 'ServerScriptService.Core'" in ServerScriptService.Server.Essentials.AdminCommands:9
+- "src is not a valid member of ServerStorage" in ServerScriptService.Server.Enhancements.MembershipBoostEvent:8
+- "src is not a valid member of ReplicatedStorage" in ServerScriptService.Server.Core.TutorialManager:4
+- "ClientRegistry is not a valid member" in multiple client UI scripts
+- Impact: Medium - Multiple features are broken due to invalid path references
+
+## Client-Server Context Issues
+
+- "OnClientEvent can only be used on the client" in:
+  - Players.Xdjpearsonx.PlayerGui.StatsGui:282
+  - Players.Xdjpearsonx.PlayerGui.RebirthUI:977
+- Impact: Medium - GUI systems broken due to context confusion
+
+## System Initialization Issues
+
+### Missing Dependency Issues
+- "CoreRegistry not found. Cannot run tests without it." in ServerScriptService.Server.Core.Tests.ConsolidationTest:34
+- "SpecializationIntegration: Failed to load GymSpecializationSystem"
+- "BuyTileSystem not found, cannot generate build order" in ServerScriptService.Server.Core.BuyTileProgressionManager
+- "BuyTileSystem not found, cannot set up floor prerequisites"
+- "BuyTileSystem not found, cannot identify required tiles"
+- "BuyTileSystem not found, cannot integrate"
+- "CommandService not found, progression commands won't be available"
+- "[DataSystemIntegration] Enhanced data storage system not found!"
+- Impact: High - Core systems failing to initialize due to missing dependencies
+
+### Infinite Yield Warnings
+- Infinite yield on 'ServerStorage:WaitForChild("MemberSatisfactionSystem")'
+- Infinite yield on 'ServerScriptService:WaitForChild("src")'
+- Infinite yield on 'ReplicatedStorage:WaitForChild("ReplicatedEvents")'
+- Infinite yield on 'ReplicatedStorage:WaitForChild("shared")'
+- Infinite yield on 'ReplicatedStorage:WaitForChild("MembershipBoostEvent")'
+- Infinite yield on 'ReplicatedStorage:WaitForChild("CreateAllianceEvent")'
+- Infinite yield on 'ReplicatedStorage:WaitForChild("Events")'
+- Infinite yield on 'Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui:WaitForChild("PurchaseButton")'
+- Impact: Medium - Systems waiting indefinitely for resources that don't exist
+
+## Data Management Issues
+
+- "BuyTile system not available or missing spawnGymPart function"
+- "[DataManager] Using fallback spawnGymPart for ID: X" for multiple IDs
+- "Could not find gym part with ID: X" for IDs 0, 2, 3, 4, 5, 9, 19
+- "Failed to restore tile X for Xdjpearsonx" for multiple tiles
+- "DoubleMember model not found in ServerStorage > GymParts!"
+- Impact: High - data persistence and tile system have significant issues
+
+## Asset Loading Issues
 
 ### Failed Animation Loading
 - Failed to load animations with IDs:
   - rbxassetid://4479935848
   - rbxassetid://4479937122
   - rbxassetid://4571857828
-- Location: src/server/Systems/NPCAnimationSystem.server.luau
 - Impact: NPCs likely missing animations, affecting visual presentation
 
 ### Failed Sound Loading
 - Failed to load sounds with IDs:
   - rbxassetid://9048378264
   - rbxassetid://9125601193 
-- Location: src/client/Audio/SoundManager.client.luau
 - Impact: Missing sound effects, potentially affecting user experience
 
-## Module Loading Errors
+## DataStore Issues
 
-### Invalid require() Arguments
-- Multiple "Attempted to call require with invalid argument(s)" errors in:
-  - src/server/Core/GymTycoonConnector.server.luau (multiple locations)
-  - src/server/Admin/AdminCommands.server.luau
-  - src/server/Testing/TestLauncher.server.luau
-  - src/server/Systems/AchievementSystem.server.luau
-  - src/server/Testing/DataManagerTests.server.luau
-  - src/server/Systems/MilestoneSystem.server.luau
-  - src/server/Legacy/LegacyBridge.server.luau
-  - src/server/Events/EventBridge.server.luau
-  - Several core systems
-- Impact: Critical - core functionality likely broken due to module loading failures
-
-### Missing Dependencies
-- Failed to load dependencies:
-  - src/server/Systems/GymRevenueSystem.server.luau (multiple instances)
-  - src/server/Data/GymTycoonDataManager.server.luau - "data persistence will not work!"
-  - src/server/Core/GymTycoonConnector.server.luau - "system integration may not work properly!"
-  - src/server/Systems/GymSpecializationSystem.server.luau
-- Impact: High - critical systems may be non-functional
-
-## Null Reference Errors
-
-### Attempt to Index nil
-- Several "attempt to index nil with X" errors:
-  - 'registerSystem' in src/server/Systems/MemberSatisfactionSystem.server.luau:722
-  - 'registerSystem' in src/server/Features/SaunaSystem.server.luau:733
-  - 'PlayerGui' in src/client/Controllers/CleanGymController.client.luau:33
-  - 'WaitForChild' in src/client/UI/SatisfactionButton.client.luau:28
-  - 'Background' in src/client/UI/EquipmentUpgradeUI.client.luau:73
-  - 'WaitForChild' in src/client/UI/TemperatureDisplay.client.luau:9
-  - 'PlayerGui' in src/client/UI/ResetButton.client.luau:14
-- Impact: Medium to High - UI elements and core systems not functioning
-
-### Invalid Member Access
-- "Floor is not a valid member of Workspace 'Workspace'" in src/server/Features/ElevatorMovement.server.luau:46
-- Impact: Medium - Elevator functionality likely broken
-
-## Client-Server Context Issues
-
-- "OnClientEvent can only be used on the client" in:
-  - src/client/UI/StatsGui.client.luau:282
-  - src/client/UI/RebirthUI.client.luau:977
-- Impact: Medium - GUI systems likely broken due to context confusion
-
-## Initialization Issues
-
-### Failed System Initialization
-- "SystemBootstrap: Error initializing CoreRegistry" followed by "Failed to initialize CoreRegistry. Cannot continue with dependency-based initialization."
-- Location: src/server/Core/SystemBootstrap.server.luau
-- Impact: Critical - core system initialization failed
-
-### Infinite Yield Warnings
-- Infinite yield on 'ReplicatedStorage:WaitForChild("shared")' in:
-  - src/client/CompetitionClient.client.luau:9
-  - src/client/UI/UIHub.client.luau:10
-- Impact: Medium - certain client systems waiting indefinitely for resources
-
-## Data Management Issues
-
-- "BuyTileSystem not found, cannot integrate" in src/server/Core/FloorAttributeSetup.server.luau:249
-- "[DataSystemIntegration] Enhanced data storage system not found!" in src/server/Data/DataSystemIntegration.server.luau:122
-- BuyTile system unavailable or missing spawnGymPart function in src/server/Systems/BuyTileSystem.server.luau
-- Failed to restore tiles for players in src/server/Data/TileDataManager.server.luau
-- Impact: High - data persistence and tile system have issues
-
-## Front Desk System Issues
-- "[FrontDeskSystem] Could not find front desk for Xdjpearsonx" in src/server/Features/FrontDeskSystem.server.luau:147
-- "[FrontDeskSystem] No front desk found for Xdjpearsonx" in src/server/Features/FrontDeskSystem.server.luau:203
-- Impact: Medium - affected functionality for specific players
+- Multiple "DataStore request was added to queue. If request queue fills, further requests will be dropped."
+- Key = Player_7768610061
+- Impact: Medium - potential data loss risk if requests are dropped
 
 ## Sauna/Steam Room Related Issues
 
-- Multiple issues with heaters in sauna rooms having "0 heaters" in src/server/Features/SaunaSystem.server.luau:85
-- Impact: Low - specific feature may not work correctly
+- Multiple sauna rooms reported with "0 heaters":
+  - Sauna Mens 3, Sauna Mens, Sauna Mens 4, Sauna Floor, Sauna Ceiling, etc.
+- Impact: Low - Sauna temperature system may not function correctly
 
 ## Analysis and Recommendations
 
 ### Critical Priorities:
-1. Fix module loading issues - especially in src/server/Core/GymTycoonConnector.server.luau and core dependencies
-2. Address SystemBootstrap initialization failure in src/server/Core/SystemBootstrap.server.luau
-3. Resolve null reference errors in core systems like MemberSatisfactionSystem and SaunaSystem
+1. Fix module loading issues - especially in Server.Core.CoreRegistry and GymTycoonConnector
+2. Address system initialization failures in SystemBootstrap
+3. Resolve the path structure issues (src references that don't exist)
 
 ### High Priorities:
-1. Fix missing mesh and animation assets in src/server/Features/Aquarium/AquariumSystem.server.luau and src/server/Systems/NPCAnimationSystem.server.luau
-2. Address data persistence issues in src/server/Data/GymTycoonDataManager.server.luau and src/server/Data/TileDataManager.server.luau
-3. Fix client-server context confusion in UI scripts (StatsGui.client.luau and RebirthUI.client.luau)
+1. Fix data persistence and tile restoration issues in the DataManager systems
+2. Address BuyTileSystem integration problems with other systems
+3. Fix null reference errors in core systems like NPCAnimationSystem and FloorAttributeSetup
 
 ### Medium Priorities:
-1. Resolve Front Desk system issues in src/server/Features/FrontDeskSystem.server.luau
-2. Fix infinite yield warnings in client scripts (CompetitionClient.client.luau and UIHub.client.luau)
-3. Address elevator movement functionality in src/server/Features/ElevatorMovement.server.luau
+1. Resolve client-server context confusion in UI scripts (StatsGui and RebirthUI)
+2. Fix infinite yield warnings by ensuring necessary instances exist before referencing
+3. Optimize DataStore requests to prevent queue overflow warnings
 
 ### Low Priorities:
-1. Fix sauna/steam room functionality in src/server/Features/SaunaSystem.server.luau
-2. Address missing sound effects in src/client/Audio/SoundManager.client.luau
+1. Fix sauna heating system
+2. Address failed animation and sound loading
 
 ## Implementation Notes
 
-Most critical issues appear to be related to module loading and initialization sequence. The dependency tree may need review to ensure proper loading order. Many systems are attempting to use modules that aren't properly loaded or initialized.
+The primary issues appear to be a mismatch between expected and actual path structures. Many scripts are attempting to require modules from paths that don't exist or have changed. The project may have undergone restructuring without updating all references.
+
+The failure of core systems (CoreRegistry, GymTycoonConnector, BuyTileSystem) is causing cascading failures throughout the game. Focusing on these systems first will likely resolve many dependent errors.
 
 ## Specific Script Issues to Check
 
-1. **SystemBootstrap.server.luau**: Review initialization sequence and error handling
-2. **GymTycoonConnector.server.luau**: Fix require() arguments and dependency loading
-3. **MemberSatisfactionSystem.server.luau**: Check line 722 for null reference
-4. **SaunaSystem.server.luau**: Fix registerSystem call on line 733 and heater counting on line 85
-5. **EquipmentUpgradeUI.client.luau**: Fix null reference to Background on line 73
-6. **FrontDeskSystem.server.luau**: Improve error handling for missing front desks on lines 147 and 203
-7. **FloorAttributeSetup.server.luau**: Fix integration with BuyTileSystem on line 249
-8. **TileDataManager.server.luau**: Debug tile restoration functionality
-9. **NPCAnimationSystem.server.luau**: Fix animation loading and fallback handling
-10. **AquariumSystem.server.luau**: Fix mesh loading on line 24
+1. **CoreRegistry**: Fix require path and initialization to ensure it loads properly
+2. **GymTycoonConnector**: Check all require paths and dependencies
+3. **BuyTileSystem**: Fix integration with other systems and the spawnGymPart function
+4. **NPCAnimationSystem**: Fix registerSystem call on line 616
+5. **DataManager**: Review tile restoration functionality
+6. **AnalyzeGymStructure**: Fix null reference to baseStructure on line 211
+7. **FloorAttributeSetup**: Fix null reference to GetSystem on line 32
+8. **ClientRegistry**: Ensure this module is available to client UI scripts
+9. **SatisfactionClient**: Fix registerSystem call on line 245
+10. **DataStore Management**: Implement request throttling to prevent queue warnings

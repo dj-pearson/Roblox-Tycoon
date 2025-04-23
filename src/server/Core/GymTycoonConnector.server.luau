@@ -6,9 +6,9 @@ local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Get the CoreRegistry
-local CoreRegistry = require(script.Parent.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
+-- Get the CoreRegistry - use direct references rather than paths
+local CoreRegistry = _G.CoreRegistry or require(script.Parent.CoreRegistry)
+-- Don't get EventBridge yet to avoid circular dependencies
 
 local GymTycoonConnector = {}
 
@@ -40,6 +40,12 @@ end
 function GymTycoonConnector:initialize()
     log("Initializing GymTycoonConnector...")
     
+    -- Get EventBridge only after initialization has started
+    local EventBridge = CoreRegistry.getSystem("EventBridge")
+    if not EventBridge then
+        log("Warning: EventBridge not found, some functionality may be limited")
+    end
+    
     -- Register core systems (order matters for dependencies)
     -- First, find and register existing systems
     self:registerExistingSystems()
@@ -63,13 +69,14 @@ function GymTycoonConnector:registerExistingSystems()
     local systemPaths = {
         -- Core Systems
         {name = "DataManager", paths = {
+            script.Parent:FindFirstChild("DataManager"),
             ServerScriptService.Data and ServerScriptService.Data:FindFirstChild("GymTycoonDataManager"),
-            ServerScriptService:FindFirstChild("DataStorageSystem"),
-            script.Parent:FindFirstChild("DataManager")
+            ServerScriptService:FindFirstChild("DataStorageSystem")
         }},
         
         -- NPC Systems - prioritize the unified version
         {name = "NPCSystem", paths = {
+            script.Parent:FindFirstChild("NPCSystem"),
             ServerScriptService.Enhancements and ServerScriptService.Enhancements:FindFirstChild("UnifiedNPCSystem"),
             ServerScriptService:FindFirstChild("UnifiedNPCSystem"),
             ServerScriptService:FindFirstChild("NPCSystemIntegration")
@@ -77,47 +84,61 @@ function GymTycoonConnector:registerExistingSystems()
         
         -- Tycoon Management
         {name = "TycoonSystem", paths = {
-            ServerScriptService:FindFirstChild("UnifiedTycoonSystem"),
-            script.Parent:FindFirstChild("TycoonSystem")
+            script.Parent:FindFirstChild("TycoonSystem"),
+            ServerScriptService:FindFirstChild("UnifiedTycoonSystem")
         }},
         
         -- Economy Systems
         {name = "RevenueSystem", paths = {
+            script.Parent:FindFirstChild("RevenueSystem"),
             ServerScriptService.Essentials and ServerScriptService.Essentials:FindFirstChild("GymRevenueSystem"),
             ServerScriptService:FindFirstChild("GymRevenueSystem")
         }},
         
         {name = "EconomyBalancer", paths = {
+            script.Parent:FindFirstChild("EconomyBalancer"),
             ServerScriptService.Enhancements and ServerScriptService.Enhancements:FindFirstChild("DynamicEconomyBalancer"),
             ServerScriptService:FindFirstChild("DynamicEconomyBalancer")
         }},
         
         -- Feature Systems
         {name = "BuyTileSystem", paths = {
+            script.Parent:FindFirstChild("BuyTileSystem"),
             ServerScriptService.Essentials and ServerScriptService.Essentials:FindFirstChild("BuyTile"),
             ServerScriptService:FindFirstChild("BuyTile")
         }},
         
         {name = "MilestoneSystem", paths = {
+            script.Parent:FindFirstChild("MilestoneSystem"),
             ServerScriptService:FindFirstChild("GymMilestonesSystem")
         }},
         
         {name = "SpecializationSystem", paths = {
+            script.Parent:FindFirstChild("SpecializationSystem"),
             ServerScriptService:FindFirstChild("GymSpecializationSystem"),
             ServerScriptService:FindFirstChild("SpecializationIntegration")
         }},
         
         {name = "SeasonalSystem", paths = {
+            script.Parent:FindFirstChild("SeasonalSystem"),
             ServerScriptService:FindFirstChild("SeasonalSpecializationSystem")
         }},
         
         {name = "FrontDeskSystem", paths = {
+            script.Parent:FindFirstChild("FrontDeskSystem"),
             ServerScriptService:FindFirstChild("FrontDeskPrompt")
         }},
         
         {name = "CompetitionSystem", paths = {
+            script.Parent:FindFirstChild("CompetitionSystem"),
             ServerScriptService:FindFirstChild("CompetitionSystem")
         }},
+        
+        -- Structure Systems
+        {name = "GymStructureIntegration", paths = {
+            script.Parent:FindFirstChild("GymStructureIntegration"),
+            ServerScriptService:FindFirstChild("GymStructureIntegration")
+        }}
     }
     
     -- Register systems with their dependencies
@@ -149,9 +170,11 @@ function GymTycoonConnector:registerExistingSystems()
             elseif systemInfo.name == "SeasonalSystem" then
                 dependencies = {"EventBridge", "DataManager", "SpecializationSystem"}
             elseif systemInfo.name == "BuyTileSystem" then
-                dependencies = {"EventBridge", "DataManager", "TycoonSystem"}
+                dependencies = {"EventBridge", "DataManager", "TycoonSystem", "GymStructureIntegration"}
             elseif systemInfo.name == "CompetitionSystem" then
                 dependencies = {"EventBridge", "RevenueSystem"}
+            elseif systemInfo.name == "GymStructureIntegration" then
+                dependencies = {"EventBridge", "TycoonSystem"}
             end
             
             -- Register with CoreRegistry
@@ -234,6 +257,8 @@ function GymTycoonConnector:setupPlayer(player)
                 DataManager.setupPlayer(player)
             end
         end)
+    else
+        log("Warning: DataManager not found, player data won't be loaded")
     end
     
     -- Setup player tycoon
@@ -253,6 +278,8 @@ function GymTycoonConnector:setupPlayer(player)
                 FrontDeskSystem.updateFrontDeskDisplay(player)
             end
         end)
+    else
+        log("Warning: TycoonSystem not found, player tycoon won't be set up")
     end
     
     -- Initialize NPCs after a delay
@@ -317,23 +344,24 @@ function GymTycoonConnector:onTilePurchased(player, tileId)
     log(player.Name .. " purchased tile " .. tileId)
     
     -- Fire event through EventBridge
+    local EventBridge = CoreRegistry.getSystem("EventBridge")
     if EventBridge then
         EventBridge:fireEvent("TilePurchased", player, tileId)
     end
     
     -- Get tycoon reference
     local tycoon = player:FindFirstChild("Tycoon")
-    if tycoon then
+    if tycoon and tycoon.Value then
         -- Update equipment count
-        local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
-        tycoon:SetAttribute("EquipmentCount", equipmentCount + 1)
+        local equipmentCount = tycoon.Value:GetAttribute("EquipmentCount") or 0
+        tycoon.Value:SetAttribute("EquipmentCount", equipmentCount + 1)
         
         -- Check if we need to update gym tier
-        local currentTier = tycoon:GetAttribute("GymTier") or 1
+        local currentTier = tycoon.Value:GetAttribute("GymTier") or 1
         local newTier = math.floor(equipmentCount / 5) + 1
         
         if newTier > currentTier then
-            tycoon:SetAttribute("GymTier", newTier)
+            tycoon.Value:SetAttribute("GymTier", newTier)
             
             -- Fire level up event
             if EventBridge then
@@ -368,11 +396,11 @@ function GymTycoonConnector:onDuesCollected(player, amount)
     if not player then return false end
     
     local tycoon = player:FindFirstChild("Tycoon")
-    if not tycoon then return false end
+    if not tycoon or not tycoon.Value then return false end
     
     -- If amount not specified, use accrued dues
     if not amount then
-        amount = tycoon:GetAttribute("AccruedDues") or 0
+        amount = tycoon.Value:GetAttribute("AccruedDues") or 0
     end
     
     -- Skip if no dues
@@ -382,7 +410,7 @@ function GymTycoonConnector:onDuesCollected(player, amount)
     end
     
     -- Reset accrued dues
-    tycoon:SetAttribute("AccruedDues", 0)
+    tycoon.Value:SetAttribute("AccruedDues", 0)
     
     -- Add to player's cash
     local leaderstats = player:FindFirstChild("leaderstats")
@@ -407,6 +435,7 @@ function GymTycoonConnector:onDuesCollected(player, amount)
     log(player.Name .. " collected $" .. amount .. " in dues")
     
     -- Fire event
+    local EventBridge = CoreRegistry.getSystem("EventBridge")
     if EventBridge then
         EventBridge:fireEvent("DuesCollected", player, amount)
     end
@@ -442,6 +471,4 @@ function GymTycoonConnector:getLegacyFunctionTable()
 end
 
 -- Register with CoreRegistry
-CoreRegistry.registerSystem("GymTycoonConnector", GymTycoonConnector, {"EventBridge"})
-
-return GymTycoonConnector
+return CoreRegistry.registerSystem("GymTycoonConnector", GymTycoonConnector, {"EventBridge"})

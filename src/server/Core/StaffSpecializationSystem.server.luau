@@ -1,4 +1,4 @@
-lua
+--lua
 -- src/server/Core/StaffSpecializationSystem.server.luau
 
 --[[

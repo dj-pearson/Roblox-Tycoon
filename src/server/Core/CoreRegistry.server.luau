@@ -52,7 +52,10 @@ function CoreRegistry.getSystem(name)
     
     -- Initialize dependencies first
     for _, dependencyName in ipairs(CoreRegistry.systems[name].dependencies) do
-        CoreRegistry.getSystem(dependencyName)
+        local dependency = CoreRegistry.getSystem(dependencyName)
+        if not dependency then
+            log("Warning: Failed to load dependency '" .. dependencyName .. "' for system '" .. name .. "'")
+        end
     end
     
     -- Initialize the system
@@ -99,8 +102,94 @@ function CoreRegistry.getSystemNames()
     return names
 end
 
+-- Create a basic EventBridge system if it doesn't exist yet
+-- This is critical as many systems depend on it
+local EventBridge = {
+    events = {},
+    remoteEvents = {},
+    
+    initialize = function(self)
+        log("EventBridge initialized")
+        return true
+    end,
+    
+    getOrCreateEvent = function(self, eventName)
+        if not self.events[eventName] then
+            self.events[eventName] = {
+                callbacks = {}
+            }
+        end
+        return self.events[eventName]
+    end,
+    
+    fireEvent = function(self, eventName, ...)
+        local event = self.events[eventName]
+        if event then
+            for _, callback in ipairs(event.callbacks) do
+                task.spawn(function()
+                    callback(...)
+                end)
+            end
+        end
+    end,
+    
+    connectEvent = function(self, eventName, callback)
+        local event = self:getOrCreateEvent(eventName)
+        table.insert(event.callbacks, callback)
+    end,
+    
+    getOrCreateRemoteEvent = function(self, eventName)
+        if not self.remoteEvents[eventName] then
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            
+            -- Create events folder if it doesn't exist
+            local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
+            if not eventsFolder then
+                eventsFolder = Instance.new("Folder")
+                eventsFolder.Name = "Events"
+                eventsFolder.Parent = ReplicatedStorage
+            end
+            
+            -- Create or get remote event
+            local remoteEvent = eventsFolder:FindFirstChild(eventName)
+            if not remoteEvent then
+                remoteEvent = Instance.new("RemoteEvent")
+                remoteEvent.Name = eventName
+                remoteEvent.Parent = eventsFolder
+            end
+            
+            self.remoteEvents[eventName] = remoteEvent
+        end
+        
+        return self.remoteEvents[eventName]
+    end,
+    
+    fireClientEvent = function(self, eventName, player, ...)
+        local remoteEvent = self:getOrCreateRemoteEvent(eventName)
+        if player then
+            remoteEvent:FireClient(player, ...)
+        else
+            remoteEvent:FireAllClients(...)
+        end
+    end,
+    
+    connectRemoteEvent = function(self, eventName, callback)
+        local remoteEvent = self:getOrCreateRemoteEvent(eventName)
+        
+        remoteEvent.OnServerEvent:Connect(function(player, ...)
+            callback(player, ...)
+        end)
+    end
+}
+
+-- Register core EventBridge system first
+CoreRegistry.registerSystem("EventBridge", EventBridge, {})
+
 -- Register the AdminDashboardSystem
 local AdminDashboardSystem = require(script.Parent:FindFirstChild("AdminDashboardSystem"))
 CoreRegistry.registerSystem("AdminDashboardSystem", AdminDashboardSystem, {"DataManager", "TycoonSystem", "NPCSystem", "RevenueSystem"})
+
+-- Make CoreRegistry available to _G for emergency access
+_G.CoreRegistry = CoreRegistry
 
 return CoreRegistry
