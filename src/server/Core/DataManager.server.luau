@@ -58,6 +58,71 @@ local DataManager = {
     orderedStores = {}
 }
 
+-- Encryption/Decryption functions
+local function encryptData(data, key)
+    if type(data) ~= "table" then
+        log("Cannot encrypt data, it's not a table")
+        return nil
+    end
+    
+    if type(key) ~= "string" or #key ~= 32 then
+        log("Invalid encryption key")
+        return nil
+    end
+    
+    local dataString = HttpService:JSONEncode(data)
+    local encrypted = HttpService:Encrypt(dataString, key)
+    
+    if encrypted then
+        return encrypted
+    else
+        log("Encryption failed")
+        return nil
+    end
+end
+
+local function decryptData(encryptedData, key)
+    if type(encryptedData) ~= "string" then
+        log("Cannot decrypt data, it's not a string")
+        return nil
+    end
+    
+    if type(key) ~= "string" or #key ~= 32 then
+        log("Invalid decryption key")
+        return nil
+    end
+    
+    local decrypted = HttpService:Decrypt(encryptedData, key)
+    
+    if decrypted then
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(decrypted)
+        end)
+        
+        if success then
+            return result
+        else
+            log("Decryption succeeded but failed to decode: " .. tostring(result))
+            log("Failed to decode decrypted data:", tostring(result), encryptedData, key)
+            return nil
+        end
+    else
+        log("Decryption failed")
+        return nil
+    end
+end
+        log("Decryption failed")
+
+local function generateEncryptionKey()
+    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local key = ""
+    for _ = 1, 32 do
+        key = key .. chars:sub(math.random(1, #chars), math.random(1, #chars))
+    end
+    return key
+end
+
+
 -- Debug function
 local function log(...)
     print("[DataManager]", ...)
@@ -122,11 +187,21 @@ end
 -- Initialize the module
 function DataManager:initialize()
     log("Initializing DataManager...")
+
+    if not CoreRegistry then
+        log("[DataManager] Error: CoreRegistry is not loaded")
+        return false
+    end
     
     -- Initialize data stores
     local storesReady = self:initDataStores()
     if not storesReady then
         log("Warning: DataStores not ready")
+    end
+    
+    if not storesReady then
+        log("[DataManager] Error: Failed to initialize DataStores.")
+        return false -- Abort initialization
     end
     
     -- Register with DataThrottler if available
@@ -399,15 +474,16 @@ function DataManager:loadData(player)
                     log("Successfully loaded unlocked data for " .. player.Name)
                     break
                 end
-            else
-                -- No data found, not locked
-                sessionLocked = false
-                log("No existing data found for " .. player.Name)
-                break
+            else                
+                 log("Failed to load data for player: " .. player.Name .. " after retries, no data found")
+                 return nil
             end
-            
+
             -- If still locked, wait before retry
             if sessionLocked then
+
+
+
                 log("Session still locked for " .. player.Name .. ", retry in " .. CONFIG.retryDelay .. "s")
                 task.wait(CONFIG.retryDelay)
             end
@@ -421,6 +497,11 @@ function DataManager:loadData(player)
             return nil
         end
         
+         if not data then
+            log("Failed to load data for " .. player.Name .. ", returning nil")
+            return nil
+        end
+
         -- Migrate data structure if needed
         data = self:migrateDataIfNeeded(data)
         
@@ -446,6 +527,7 @@ end
 -- Update data structure if version changes
 function DataManager:migrateDataIfNeeded(data)
     if not data then return self:getDefaultData() end
+
     
     -- Check if migration is needed
     if not data.dataVersion or data.dataVersion < CONFIG.dataVersion then
@@ -497,31 +579,60 @@ function DataManager:loadAdditionalData(player, data)
         pcall(function()
             local equipmentData = self.dataStores.equipment:GetAsync(key)
             if equipmentData then
-                data.equipment = equipmentData
+                if data.encryptionKey then
+                    if not decryptData(equipmentData, data.encryptionKey) then
+                         log("Failed to decrypt equipment data for " .. player.Name)
+                    end
+                    data.equipment = decryptData(equipmentData, data.encryptionKey)
+                else
+                    data.equipment = equipmentData
+                end
                 log("Loaded equipment data for " .. player.Name)
             end
+        else
+             log("Failed to load equipment data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
+end
     
     -- Load milestone data
     if self.dataStores.milestones then
         pcall(function()
             local milestoneData = self.dataStores.milestones:GetAsync(key)
             if milestoneData then
+                 if data.encryptionKey then
+                    if not decryptData(milestoneData, data.encryptionKey) then
+                         log("Failed to decrypt milestone data for " .. player.Name)
+                    end
+                    data.milestones = decryptData(milestoneData, data.encryptionKey)
+                 else
+                    data.milestones = milestoneData
                 data.milestones = milestoneData
                 log("Loaded milestone data for " .. player.Name)
             end
+         else
+                log("Failed to load milestone data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
-    
+end
+
     -- Load specialization data
     if self.dataStores.specialty then
         pcall(function()
             local specialtyData = self.dataStores.specialty:GetAsync(key)
-            if specialtyData then
+             if specialtyData then
+                if data.encryptionKey then
+                     if not decryptData(specialtyData, data.encryptionKey) then
+                         log("Failed to decrypt specialty data for " .. player.Name)
+                    end
+                    data.specialization = decryptData(specialtyData, data.encryptionKey)
+                else
+                    data.specialization = specialtyData
                 data.specialization = specialtyData
                 log("Loaded specialization data for " .. player.Name)
             end
+        else
+              log("Failed to load specialty data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
     
@@ -529,10 +640,19 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.memberships then
         pcall(function()
             local membershipData = self.dataStores.memberships:GetAsync(key)
-            if membershipData then
+             if membershipData then
+                 if data.encryptionKey then
+                    if not decryptData(membershipData, data.encryptionKey) then
+                         log("Failed to decrypt membership data for " .. player.Name)
+                if data.encryptionKey then
+                    data.members = decryptData(membershipData, data.encryptionKey)
+                else
+                    data.members = membershipData
                 data.members = membershipData
                 log("Loaded membership data for " .. player.Name)
             end
+        else
+             log("Failed to load membership data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
     
@@ -540,11 +660,19 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.vips then
         pcall(function()
             local vipData = self.dataStores.vips:GetAsync(key)
-            if vipData and vipData.vips then
+            if vipData then
+                 if data.encryptionKey then
+                    if not decryptData(vipData, data.encryptionKey) then
+                         log("Failed to decrypt VIP data for " .. player.Name)
+                    end
+
+                vipData = decryptData(vipData, data.encryptionKey)
                 data.members.vip = vipData.vips
                 data.members.premium = vipData.premium or 0
                 log("Loaded VIP data for " .. player.Name)
             end
+        else
+             log("Failed to load VIP data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
     
@@ -552,10 +680,19 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.revenue then
         pcall(function()
             local revenueData = self.dataStores.revenue:GetAsync(key)
-            if revenueData then
+           if revenueData then
+                 if data.encryptionKey then
+                    if not decryptData(revenueData, data.encryptionKey) then
+                         log("Failed to decrypt revenue data for " .. player.Name)
+                if data.encryptionKey then
+                    data.revenue = decryptData(revenueData, data.encryptionKey)
+                else
+                    data.revenue = revenueData
                 data.revenue = revenueData
                 log("Loaded revenue data for " .. player.Name)
             end
+        else
+              log("Failed to load revenue data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
     
@@ -563,10 +700,19 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.staff then
         pcall(function()
             local staffData = self.dataStores.staff:GetAsync(key)
-            if staffData then
+            if staffData then 
+                 if data.encryptionKey then
+                    if not decryptData(staffData, data.encryptionKey) then
+                         log("Failed to decrypt staff data for " .. player.Name)
+                if data.encryptionKey then
+                    data.staff = decryptData(staffData, data.encryptionKey)
+                else
+                    data.staff = staffData
                 data.staff = staffData
                 log("Loaded staff data for " .. player.Name)
             end
+        else
+               log("Failed to load staff data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
     
@@ -574,10 +720,19 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.achievements then
         pcall(function()
             local achievementsData = self.dataStores.achievements:GetAsync(key)
-            if achievementsData then
+             if achievementsData then
+                 if data.encryptionKey then
+                    if not decryptData(achievementsData, data.encryptionKey) then
+                         log("Failed to decrypt achievements data for " .. player.Name)
+                if data.encryptionKey then
+                    data.achievements = decryptData(achievementsData, data.encryptionKey)
+                else
+                    data.achievements = achievementsData
                 data.achievements = achievementsData
                 log("Loaded achievements data for " .. player.Name)
             end
+        else
+               log("Failed to load achievements data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
     
@@ -585,10 +740,19 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.seasonal then
         pcall(function()
             local seasonalData = self.dataStores.seasonal:GetAsync(key)
-            if seasonalData then
+             if seasonalData then
+                 if data.encryptionKey then
+                    if not decryptData(seasonalData, data.encryptionKey) then
+                         log("Failed to decrypt seasonal data for " .. player.Name)
+                if data.encryptionKey then
+                    data.seasonal = decryptData(seasonalData, data.encryptionKey)
+                else
+                    data.seasonal = seasonalData
                 data.seasonal = seasonalData
                 log("Loaded seasonal data for " .. player.Name)
             end
+        else
+               log("Failed to load seasonal data for " .. player.Name .. ": " .. tostring(result))
         end)
     end
 end

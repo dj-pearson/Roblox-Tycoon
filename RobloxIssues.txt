@@ -1,100 +1,102 @@
 # Roblox Issues Tracking Document
 
-Last Test Date: April 24, 2025
-Last Update: April 24, 2025
-This document categorizes issues found during testing to help track and resolve them.
+## Unhandled Module Loading Errors
 
-## Fixed Issues
+**Error Message:**  Unable to load module. This indicates a critical issue in either locating the necessary modules, or the modules themselves are not correctly written.
 
-### Core System Issues
-- ✅ CoreRegistry loading issues fixed - Added improved error handling and path fallbacks
-- ✅ GymTycoonConnector duplicate modules issue resolved - Created a Bridge system between the two versions
-- ✅ BuyTileSystem dependency issues addressed - Added proper system integration and the missing spawnGymPart function
-- ✅ Missing GymStructureIntegration system created
-- ✅ SystemBootstrap added to ensure proper initialization order
-- ✅ NPCAnimationSystem registerSystem errors fixed - Added proper module initialization
-- ✅ Client-Server context issues fixed in UI scripts - Renamed StatsGui and RebirthUI to use .client.luau extension
-- ✅ TutorialManager and MembershipBoostEvent path references fixed - Added robust path resolution
-- ✅ FolderSetup script added to prevent infinite yield warnings
+**Context:**  Observed when the game starts or when certain features are accessed.
 
-### Module Loading/Require Errors
-- ✅ "Attempted to call require with invalid argument(s)" errors fixed - Fixed module paths and dependencies
-- ✅ Added robust module loading with fallbacks and better error handling
+**Impact:**  Major. Prevents systems from functioning correctly, potentially breaking the game's functionality.
 
-### Missing or Invalid Members
-- ✅ Fixed "Utils is not a valid member of Folder 'ServerScriptService.Core'" and other invalid member errors
-- ✅ Restructured folder hierarchy to match script references
-- ✅ Updated Font enumeration references for UI scripts
+**Frequency:**  High, game systems fail to start.
 
-## Remaining Issues (as of April 24, 2025)
+**Reproduction Steps:**
 
-### 1. ✅ Module Loading/Require Errors
-- ✅ Many scripts report: "Attempted to call require with invalid argument(s)."
-  - Examples: DataThrottler, NPCAnimationSystem, StaffTrainingSystem, FeatureManager, StaffSpecializationSystem, ReputationSystem, EquipmentSetup, EquipmentSetupCommands, DataManager, AdminCommands, EventBridge, BuyTileSystem, GymTycoonConnector, DataManagerTests, TestLauncher, AchievementSystem, EventBridgeTests, RunTests, and many more.
-  - ✅ Fixed: Enhanced module loading with multi-path resolution and robust error handling.
+1.  Start the game.
+2.  Attempt to use features linked to modules that fail to load.
 
-### 2. ✅ Missing or Invalid Members
-- ✅ "Utils is not a valid member of Folder 'ServerScriptService.Core'" (AdminCommands:9)
-- ✅ "Core is not a valid member of Folder 'ServerScriptService.Core'" (TestSuite:66)
-- ✅ "server is not a valid member of Folder 'ServerScriptService.src'" (MovementTutorial:7)
-- ✅ "server is not a valid member of ServerScriptService 'ServerScriptService'" (MigrationTest:13)
-- ✅ "EquipmentBoundingBox is not a valid member of Folder 'ServerScriptService.Server.Core'" (EquipmentUpgradeSystem:16)
-- ✅ "ClientRegistry is not a valid member of Folder ..." (multiple UI scripts)
-- ✅ "OnClientEvent is not a valid member of Folder 'ReplicatedStorage.MembershipBoostEvent'" (MembershipBoostClient:83)
-- ✅ "GothamItalic is not a valid member of 'Enum.Font'" (RebirthUI:786)
-- ✅ Fixed: Implemented path resolution and dependency fallbacks.
+**Expected Behavior:** Modules should load correctly without errors.
 
-### 3. ✅ Data/Integration Issues
-- ✅ "Failed to load GymTycoonDataManager - data persistence will not work!" (GymTycoonInit:45)
-- ✅ "Failed to load dependency: GymRevenueSystem" (GymTycoonInit:81)
-- ✅ "Failed to load GymTycoonConnector - system integration may not work properly!" (GymTycoonInit:123)
-- ✅ "No data system found! Data operations will fail!" (DataAccessLayer:292)
-- ✅ "DataAccessLayer not found. Integration will be limited." (DataPersistenceIntegration:261)
-- ✅ "BuyTile system not available or missing spawnGymPart function" (EnhancedDataStorageSystem:413)
-- ✅ "Could not find gym part with ID: X" (GymTycoonDataManager:398)
-- ✅ "Failed to restore tile X for Xdjpearsonx" (GymTycoonDataManager:523)
-- ✅ Fixed: Created DataSystemBridge to standardize interfaces between data systems and ensure proper integration.
-
-### 4. ✅ Infinite Yield Warnings
-- ✅ "Infinite yield possible on 'ServerScriptService.src:WaitForChild("server")'" (GymAutomation:31)
-- ✅ "Infinite yield possible on 'ReplicatedStorage:WaitForChild("ReputationEvents")'" (ReputationClient:6)
-- ✅ "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("CompetitionUI")'" (CompetitionClient:9)
-- ✅ "Infinite yield possible on 'ReplicatedStorage:WaitForChild("JoinAllianceEvent")'" (AllianceClient:8)
-- ✅ "Infinite yield possible on 'ReplicatedStorage.ReplicatedEvents:WaitForChild("TutorialEvent")'" (TutorialClient:8)
-- ✅ "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("UIStyle")'" (UIHub:10)
-- ✅ "Infinite yield possible on 'Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui:WaitForChild("PurchaseButton")'" (BuilderBoostPurchaseGui:7)
-- ✅ Fixed: Created FolderSetup script and used SafeWait utility consistently to prevent infinite yield warnings.
-
-### 5. Asset/Animation/Sound Loading Issues
-- "Failed to load sound rbxassetid://9048378264: Asset type does not match requested type"
-- "Failed to load sound rbxassetid://9125601193: Asset type does not match requested type"
-- "Failed to load animation with sanitized ID rbxassetid://4479935848: Animation failed to load"
-- "Failed to load animation with sanitized ID rbxassetid://4479937122: Animation failed to load"
-- "Failed to load animation with sanitized ID rbxassetid://4571857828: Animation failed to load"
-- Impact: Low. Affects user experience and NPC visuals.
-
-### 6. UI/Client Issues
-- "PurchaseButton is not a valid member of PlayerGui 'Players.Xdjpearsonx.PlayerGui'" (DoubleMemberPurchaseGui:10)
-- "CleanGymFunction not found in ReplicatedStorage" (CleanGymController:117)
-- Impact: Medium. Some UI features are broken or missing.
-
-### 7. Miscellaneous
-- "SetPrimaryPartCFrame is not a valid member of Folder 'ServerScriptService.Server.Model Function'" (ElevatorMovement:457)
-- "Floor is not a valid member of Workspace 'Workspace'" (ElevatorMovement:46)
-- "WARNING: Xdjpearsonx's Tycoon is incorrectly set to their character!" (PlayerCharacterCheck:15)
-- "No tycoon to restore equipment to for Xdjpearsonx" (PlayerProgressRestoration:15)
-- Impact: Medium. Some systems are misconfigured or missing expected objects.
-
----
-
-**Summary:**
-- Critical: Module loading, missing members, and data restoration issues are blocking core gameplay and persistence.
-- Medium: Infinite yield, UI, and some integration issues.
-- Low: Asset loading and sauna/steam room heater issues.
+**Actual Behavior:** Modules fail to load, causing errors and preventing features from working.
 
 **Recommended Next Steps:**
-1. Fix module loading errors and ensure all required modules exist and are referenced correctly.
-2. Audit folder and object structure for missing or misnamed members.
-3. Address data restoration and BuyTile system integration issues.
-4. Review all WaitForChild and require calls for correct paths and existence.
-5. Fix or replace missing assets and UI elements as reported.
+
+1.  Fix module loading errors and ensure all required modules exist and are referenced correctly.
+2.  Audit folder and object structure for missing or misnamed members.
+3.  Address data restoration and BuyTile system integration issues.
+4.  Review all WaitForChild and require calls for correct paths and existence.
+
+## Missing Assets and UI Elements
+
+**Error Message:**  Assets or UI elements are not found when the game attempts to load them.
+
+**Context:**  Observed when specific game areas or UI components are loaded.
+
+**Impact:**  Medium to High. Degrades the user experience and can block progression.
+
+**Frequency:**  Varies, depending on the frequency of accessing affected areas.
+
+**Reproduction Steps:**
+
+1.  Navigate to areas where assets are expected to load.
+2.  Open UI components.
+
+**Expected Behavior:** Assets and UI elements should load and display correctly.
+
+**Actual Behavior:** Assets and UI elements fail to load or display, resulting in missing content or broken UI.
+
+**Recommended Next Steps:**
+
+1.  Identify all missing assets and UI elements.
+2.  Re-add or repair the missing content.
+3.  Review paths and loading logic to prevent future occurrences.
+
+## Data Restoration Issues
+
+**Error Message:** Data is not correctly loaded or restored, leading to a loss of player progress.
+
+**Context:**  Occurs during player login, after game restarts, or when data is supposed to be reloaded.
+
+**Impact:**  Critical. Directly affects player retention and satisfaction.
+
+**Frequency:**  High, causing data loss in several circumstances.
+
+**Reproduction Steps:**
+
+1.  Join the game.
+2.  Play until data is saved.
+3.  Leave and rejoin, or cause a server reset.
+
+**Expected Behavior:** Data should be correctly loaded, and players should have their progress restored.
+
+**Actual Behavior:** Player data is missing, corrupted, or not loaded, resulting in lost progress.
+
+**Recommended Next Steps:**
+
+1.  Fix DataStore and saving functions to ensure correct data storage.
+2.  Review the loadData function to ensure that it will always load data.
+3.  Audit all save functions to make sure no data is lost.
+
+## BuyTile System Integration Problems
+
+**Error Message:**  BuyTile system fails to correctly interface with other game systems.
+
+**Context:**  When players attempt to purchase or use tiles, or when the game interacts with tile placement.
+
+**Impact:**  High. Prevents players from fully utilizing the tycoon system, which is a core game mechanic.
+
+**Frequency:**  High, occurring whenever tile purchases or usage is attempted.
+
+**Reproduction Steps:**
+
+1.  Attempt to purchase or use a tile.
+
+**Expected Behavior:**  Tiles should be purchasable and usable, and their states should be saved and restored correctly.
+
+**Actual Behavior:** Tile purchase fails, usage not allowed, or tile state not saved or restored.
+
+**Recommended Next Steps:**
+
+1.  Review BuyTile integration with all relevant systems, especially DataManager.
+2.  Fix any issues preventing tile purchase or usage.
+3.  Ensure tile states are correctly saved and restored.
