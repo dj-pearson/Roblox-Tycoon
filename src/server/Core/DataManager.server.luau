@@ -1,68 +1,23 @@
 -- DataManager.luau
 -- Unified system for player data storage with redundancy and automatic retries
 -- Place in ServerScriptService/Core
-local HttpService = game:GetService("HttpService")
 
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Try to use ModuleLoader for better dependency management
-local ModuleLoader
-local CoreRegistry
-local EventBridge
-local DataThrottler
+-- Get the CoreRegistry and EventBridge
+local CoreRegistry = require(script.Parent.CoreRegistry)
+local EventBridge = CoreRegistry.getSystem("EventBridge")
 
--- First try to load ModuleLoader
-local loaderSuccess, loaderResult = pcall(function()
-    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
-end)
-
-if loaderSuccess and loaderResult then
-    ModuleLoader = loaderResult
-    print("[DataManager] Using ModuleLoader for dependencies")
-    
-    -- Load dependencies using ModuleLoader
-    CoreRegistry = ModuleLoader:LoadServerModule("Core", "CoreRegistry")
-    if CoreRegistry then
-        -- If CoreRegistry is loaded, use it to get other systems
-        EventBridge = CoreRegistry.getSystem("EventBridge")
-        DataThrottler = CoreRegistry.getSystem("DataThrottler")
-    end
-    
-    -- Attempt to load dependencies directly through ModuleLoader if not found through CoreRegistry
-    if not DataThrottler then
-        DataThrottler = ModuleLoader:LoadServerModule("Core", "DataThrottler")
-    end
-else
-    print("[DataManager] ModuleLoader not found, using legacy loading")
-    
-    -- Legacy loading method
-    local success, result = pcall(function()
-        return require(script.Parent.CoreRegistry)
+-- Require DataThrottler to manage DataStore requests
+local DataThrottler = CoreRegistry.getSystem("DataThrottler")
+if not DataThrottler then
+    -- If not registered yet, try requiring it directly
+    pcall(function()
+        DataThrottler = require(script.Parent.DataThrottler)
     end)
-    
-    if success then
-        CoreRegistry = result
-        EventBridge = CoreRegistry.getSystem("EventBridge")
-        DataThrottler = CoreRegistry.getSystem("DataThrottler")
-    else
-        warn("[DataManager] Failed to load CoreRegistry: " .. tostring(result))
-    end
-    
-    -- If DataThrottler still not loaded, try direct require
-    if not DataThrottler then
-        pcall(function()
-            DataThrottler = require(script.Parent.DataThrottler)
-        end)
-    end
 end
-
--- Log dependency status
-if not CoreRegistry then warn("[DataManager] WARNING: CoreRegistry not loaded") end
-if not EventBridge then warn("[DataManager] WARNING: EventBridge not loaded") end
-if not DataThrottler then warn("[DataManager] WARNING: DataThrottler not loaded") end
 
 -- Configuration
 local CONFIG = {
@@ -102,69 +57,6 @@ local DataManager = {
     dataStores = {},
     orderedStores = {}
 }
-
--- Encryption/Decryption functions
-local function encryptData(data, key)
-    if type(data) ~= "table" then
-        log("Cannot encrypt data, it's not a table")
-        return nil
-    end
-    
-    if type(key) ~= "string" or #key ~= 32 then
-        log("Invalid encryption key")
-        return nil
-    end
-    
-    local dataString = HttpService:JSONEncode(data)
-    local encrypted = HttpService:Encrypt(dataString, key)
-    
-    if encrypted then
-        return encrypted
-    else
-        log("Encryption failed")
-        return nil
-    end
-end
-
-local function decryptData(encryptedData, key)
-    if type(encryptedData) ~= "string" then
-        log("Cannot decrypt data, it's not a string")
-        return nil
-    end
-    
-    if type(key) ~= "string" or #key ~= 32 then
-        log("Invalid decryption key")
-        return nil
-    end
-    
-    local decrypted = HttpService:Decrypt(encryptedData, key)
-    
-    if decrypted then
-        local success, result = pcall(function()
-            return HttpService:JSONDecode(decrypted)
-        end)
-        
-        if success then
-            return result
-        else
-            log("Decryption succeeded but failed to decode: " .. tostring(result))
-            return nil
-        end
-    else
-        log("Decryption failed")
-        return nil
-    end
-end
-
-local function generateEncryptionKey()
-    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    local key = ""
-    for _ = 1, 32 do
-        key = key .. chars:sub(math.random(1, #chars), math.random(1, #chars))
-    end
-    return key
-end
-
 
 -- Debug function
 local function log(...)
@@ -339,8 +231,7 @@ function DataManager:getDefaultData()
         -- Important metadata
         sessionLock = nil,
         lastSave = os.time(),
-        dataVersion = CONFIG.dataVersion,
-        encryptionKey = generateEncryptionKey()
+        dataVersion = CONFIG.dataVersion
     }
 end
 
@@ -430,7 +321,7 @@ function DataManager:loadVersionedData(userId)
     local baseKey = key
     
     -- Try the latest version first
-    local latestKey = self:getLatestVersionKey(userId)   
+    local latestKey = self:getLatestVersionKey(userId)
     local success, data = pcall(function()
         return self.dataStores.main:GetAsync(latestKey)
     end)
@@ -438,15 +329,6 @@ function DataManager:loadVersionedData(userId)
     -- If successful and not corrupted, return this data
     if success and data and not isCorruptedData(data) then
         log("Successfully loaded latest version data with key: " .. latestKey)
-
-        -- Decrypt data
-        if data.encryptionKey then
-            local decryptedData = decryptData(data.encryptedData, data.encryptionKey)
-            if decryptedData then
-                return decryptedData
-            end
-        end
-
         return data
     end
     
@@ -462,14 +344,6 @@ function DataManager:loadVersionedData(userId)
         
         if success and data and not isCorruptedData(data) then
             log("Successfully loaded from older version: " .. versionKey)
-
-             -- Decrypt data
-            if data.encryptionKey then
-                local decryptedData = decryptData(data.encryptedData, data.encryptionKey)
-                if decryptedData then
-                    return decryptedData
-                end
-            end
             return data
         end
     end
@@ -481,15 +355,6 @@ function DataManager:loadVersionedData(userId)
     
     if success and data and not isCorruptedData(data) then
         log("Successfully loaded from base key without version")
-
-        -- Decrypt data
-        if data.encryptionKey then
-            local decryptedData = decryptData(data.encryptedData, data.encryptionKey)
-            if decryptedData then
-                return decryptedData
-            end
-        end
-
         return data
     end
     
@@ -609,12 +474,6 @@ function DataManager:migrateDataIfNeeded(data)
             if data.totalRevenue then
                 newData.revenue.total = data.totalRevenue
             end
-
-             -- Generate a new encryption key if it doesn't exist
-            if not data.encryptionKey then
-                newData.encryptionKey = generateEncryptionKey()
-            end
-
         end
         
         -- Set the new version
@@ -638,11 +497,7 @@ function DataManager:loadAdditionalData(player, data)
         pcall(function()
             local equipmentData = self.dataStores.equipment:GetAsync(key)
             if equipmentData then
-                if data.encryptionKey then
-                    data.equipment = decryptData(equipmentData, data.encryptionKey)
-                else
-                    data.equipment = equipmentData
-                end
+                data.equipment = equipmentData
                 log("Loaded equipment data for " .. player.Name)
             end
         end)
@@ -652,11 +507,7 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.milestones then
         pcall(function()
             local milestoneData = self.dataStores.milestones:GetAsync(key)
-            if milestoneData then  
-                if data.encryptionKey then
-                    data.milestones = decryptData(milestoneData, data.encryptionKey)
-                else
-                    data.milestones = milestoneData
+            if milestoneData then
                 data.milestones = milestoneData
                 log("Loaded milestone data for " .. player.Name)
             end
@@ -667,11 +518,7 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.specialty then
         pcall(function()
             local specialtyData = self.dataStores.specialty:GetAsync(key)
-             if specialtyData then
-                if data.encryptionKey then
-                    data.specialization = decryptData(specialtyData, data.encryptionKey)
-                else
-                    data.specialization = specialtyData
+            if specialtyData then
                 data.specialization = specialtyData
                 log("Loaded specialization data for " .. player.Name)
             end
@@ -682,11 +529,7 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.memberships then
         pcall(function()
             local membershipData = self.dataStores.memberships:GetAsync(key)
-             if membershipData then
-                if data.encryptionKey then
-                    data.members = decryptData(membershipData, data.encryptionKey)
-                else
-                    data.members = membershipData
+            if membershipData then
                 data.members = membershipData
                 log("Loaded membership data for " .. player.Name)
             end
@@ -698,7 +541,6 @@ function DataManager:loadAdditionalData(player, data)
         pcall(function()
             local vipData = self.dataStores.vips:GetAsync(key)
             if vipData and vipData.vips then
-                vipData = decryptData(vipData, data.encryptionKey)
                 data.members.vip = vipData.vips
                 data.members.premium = vipData.premium or 0
                 log("Loaded VIP data for " .. player.Name)
@@ -710,11 +552,7 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.revenue then
         pcall(function()
             local revenueData = self.dataStores.revenue:GetAsync(key)
-           if revenueData then
-                if data.encryptionKey then
-                    data.revenue = decryptData(revenueData, data.encryptionKey)
-                else
-                    data.revenue = revenueData
+            if revenueData then
                 data.revenue = revenueData
                 log("Loaded revenue data for " .. player.Name)
             end
@@ -725,11 +563,7 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.staff then
         pcall(function()
             local staffData = self.dataStores.staff:GetAsync(key)
-            if staffData then 
-                if data.encryptionKey then
-                    data.staff = decryptData(staffData, data.encryptionKey)
-                else
-                    data.staff = staffData
+            if staffData then
                 data.staff = staffData
                 log("Loaded staff data for " .. player.Name)
             end
@@ -740,11 +574,7 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.achievements then
         pcall(function()
             local achievementsData = self.dataStores.achievements:GetAsync(key)
-             if achievementsData then
-                if data.encryptionKey then
-                    data.achievements = decryptData(achievementsData, data.encryptionKey)
-                else
-                    data.achievements = achievementsData
+            if achievementsData then
                 data.achievements = achievementsData
                 log("Loaded achievements data for " .. player.Name)
             end
@@ -755,11 +585,7 @@ function DataManager:loadAdditionalData(player, data)
     if self.dataStores.seasonal then
         pcall(function()
             local seasonalData = self.dataStores.seasonal:GetAsync(key)
-             if seasonalData then
-                if data.encryptionKey then
-                    data.seasonal = decryptData(seasonalData, data.encryptionKey)
-                else
-                    data.seasonal = seasonalData
+            if seasonalData then
                 data.seasonal = seasonalData
                 log("Loaded seasonal data for " .. player.Name)
             end
@@ -885,13 +711,7 @@ function DataManager:processSave(player, key, data)
             local pcallSuccess, result = pcall(function()
                 return self.dataStores.main:UpdateAsync(versionKey, function(oldData)
                     -- Keep session lock if this is not a final save
-                     -- Encrypt data
-                    if data.encryptionKey then
-                       data.encryptedData = encryptData(data, data.encryptionKey)
-                    else
-                         data.encryptionKey = generateEncryptionKey()
-                    end
-                   if self.sessionLocks[userId] then
+                    if self.sessionLocks[userId] then
                         data.sessionLock = os.time()
                     else
                         data.sessionLock = nil
@@ -1032,12 +852,8 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.equipment and data.equipment then
         pcall(function()
             self.dataStores.equipment:UpdateAsync(key, function()
-                 if data.encryptionKey then
-                    return encryptData(data.equipment, data.encryptionKey)
-                else
-                     return data.equipment
-                end
-             end)
+                return data.equipment
+            end)
         end)
     end
     
@@ -1045,12 +861,8 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.milestones and data.milestones then
         pcall(function()
             self.dataStores.milestones:UpdateAsync(key, function()
-                if data.encryptionKey then
-                    return encryptData(data.milestones, data.encryptionKey)
-                else
-                     return data.milestones
-                end
-            end)            
+                return data.milestones
+            end)
         end)
     end
     
@@ -1058,12 +870,8 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.specialty and data.specialization then
         pcall(function()
             self.dataStores.specialty:UpdateAsync(key, function()
-                 if data.encryptionKey then
-                    return encryptData(data.specialization, data.encryptionKey)
-                else
-                     return data.specialization
-                end
-             end)
+                return data.specialization
+            end)
         end)
     end
     
@@ -1071,12 +879,8 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.memberships and data.members then
         pcall(function()
             self.dataStores.memberships:UpdateAsync(key, function()
-                 if data.encryptionKey then
-                    return encryptData(data.members, data.encryptionKey)
-                else
-                     return data.members
-                end
-             end)
+                return data.members
+            end)
         end)
     end
     
@@ -1084,13 +888,10 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.vips and data.members then
         pcall(function()
             self.dataStores.vips:UpdateAsync(key, function()
-                 if data.encryptionKey then
-                    return encryptData({vips = data.members.vip or 0, premium = data.members.premium or 0}, data.encryptionKey)
-                else
                 return {
                     vips = data.members.vip or 0,
                     premium = data.members.premium or 0
-                end}
+                }
             end)
         end)
     end
@@ -1099,12 +900,8 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.revenue and data.revenue then
         pcall(function()
             self.dataStores.revenue:UpdateAsync(key, function()
-                 if data.encryptionKey then
-                    return encryptData(data.revenue, data.encryptionKey)
-                else
-                     return data.revenue
-                end
-             end)
+                return data.revenue
+            end)
         end)
     end
     
@@ -1112,12 +909,8 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.staff and data.staff then
         pcall(function()
             self.dataStores.staff:UpdateAsync(key, function()
-                 if data.encryptionKey then
-                    return encryptData(data.staff, data.encryptionKey)
-                else
-                     return data.staff
-                end
-             end)
+                return data.staff
+            end)
         end)
     end
     
@@ -1125,12 +918,8 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.achievements and data.achievements then
         pcall(function()
             self.dataStores.achievements:UpdateAsync(key, function()
-                 if data.encryptionKey then
-                    return encryptData(data.achievements, data.encryptionKey)
-                else
-                     return data.achievements
-                end
-             end)
+                return data.achievements
+            end)
         end)
     end
     
@@ -1138,12 +927,8 @@ function DataManager:saveAdditionalData(player, data)
     if self.dataStores.seasonal and data.seasonal then
         pcall(function()
             self.dataStores.seasonal:UpdateAsync(key, function()
-                 if data.encryptionKey then
-                    return encryptData(data.seasonal, data.encryptionKey)
-                else
-                     return data.seasonal
-                end
-             end)
+                return data.seasonal
+            end)
         end)
     end
 end
@@ -1289,7 +1074,6 @@ function DataManager:onServerShutdown()
     for userId, _ in pairs(self.sessionLocks) do
         local key = tostring(userId)
         pcall(function()
-            
             self.dataStores.main:UpdateAsync(key, function(oldData)
                 if oldData and type(oldData) == "table" then
                     oldData.sessionLock = nil
