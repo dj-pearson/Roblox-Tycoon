@@ -159,12 +159,10 @@ function DeprecationHelper.GenerateDeprecationHeader(oldScriptName, newModuleNam
     → %s
     
     %s
-    
-    For documentation and migration guides, see:
+      For documentation and migration guides, see:
     %s
 ]]
 
-]]
     return string.format(
         header, 
         DEPRECATION_CONFIG.DeprecationDate, 
