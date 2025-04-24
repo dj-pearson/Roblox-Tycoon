@@ -1,10 +1,13 @@
 --[[
     AdminControlsUI.client.luau
     
-    Administrator control panel UI implementation that leverages the UIUtils
-    library for consistent UI patterns and proper close functionality.
+    Administrator control panel UI implementation that leverages the new UI modules:
+    - UIStyle: For consistent styling
+    - IconSet: For standardized icons
+    - ButtonFactory: For consistent button creation
+    - DialogFactory: For confirmations, notifications, and tooltips
     
-    Author: Created April 2025
+    Updated: April 24, 2025
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,7 +17,6 @@ local player = Players.LocalPlayer
 
 -- Load required modules
 local sharedFolder = ReplicatedStorage:FindFirstChild("shared") or ReplicatedStorage:FindFirstChild("Shared")
-local UIUtils, UIStyle
 
 -- Safe require helper
 local function requireSafely(moduleScript)
@@ -33,28 +35,27 @@ local function requireSafely(moduleScript)
     return nil
 end
 
--- Try to load the modules
-if sharedFolder then
-    UIUtils = requireSafely(sharedFolder:FindFirstChild("UIUtils"))
-    UIStyle = requireSafely(sharedFolder:FindFirstChild("UIStyle"))
-end
+-- Import UI modules
+local UIStyle = requireSafely(sharedFolder:FindFirstChild("UIStyle"))
+local IconSet = requireSafely(sharedFolder:FindFirstChild("IconSet"))
+local ButtonFactory = requireSafely(sharedFolder:FindFirstChild("ButtonFactory"))
+local DialogFactory = requireSafely(sharedFolder:FindFirstChild("DialogFactory"))
 
--- Create fallbacks if modules not found
-if not UIUtils then
-    warn("UIUtils module not found, AdminControlsUI will have limited functionality")
-    UIUtils = {}
-end
-
+-- Check if modules loaded correctly
 if not UIStyle then
-    warn("UIStyle module not found, using fallback styles")
-    UIStyle = {
-        colors = {
-            primary = Color3.fromRGB(0, 132, 255),
-            background = Color3.fromRGB(30, 30, 50),
-            backgroundLight = Color3.fromRGB(40, 40, 70),
-            textPrimary = Color3.fromRGB(255, 255, 255)
-        }
-    }
+    warn("UIStyle module not found, AdminControlsUI will have limited functionality")
+end
+
+if not IconSet then
+    warn("IconSet module not found, AdminControlsUI will have limited functionality")
+end
+
+if not ButtonFactory then
+    warn("ButtonFactory module not found, AdminControlsUI will have limited functionality")
+end
+
+if not DialogFactory then
+    warn("DialogFactory module not found, AdminControlsUI will have limited functionality")
 end
 
 -- Admin Controls UI Module
@@ -66,7 +67,8 @@ local uiState = {
     isInitialized = false,
     adminPanelVisible = false,
     menuElements = {},
-    currentTab = "Players"
+    currentTab = "Players",
+    selectedPlayer = nil
 }
 
 -- Initialize the admin UI
@@ -87,61 +89,187 @@ end
 
 -- Create the admin toggle button
 function AdminControlsUI:CreateAdminToggleButton()
-    -- Only create if UIUtils is available
-    if not UIUtils.createToggleButton then return end
+    local adminToggle = ButtonFactory.createIconButton(
+        "AdminFunctions", 
+        "Admin", 
+        UDim2.new(0, 120, 0, 40), 
+        UDim2.new(1, -130, 0, 10), 
+        function()
+            self:ToggleAdminPanel()
+        end
+    )
     
-    -- Create toggle button for admin panel
-    local adminToggle = UIUtils.createToggleButton("Admin", "settings", UDim2.new(1, -10, 0, 10), function()
-        self:ToggleAdminPanel()
-    end)
+    -- Add to player's GUI
+    adminToggle.Parent = player:FindFirstChild("PlayerGui") or Instance.new("ScreenGui", player)
     
+    -- Store for later reference
     uiState.menuElements.adminToggle = adminToggle
     return adminToggle
 end
 
 -- Create the admin panel
 function AdminControlsUI:CreateAdminPanel()
-    -- Only create if UIUtils is available
-    if not UIUtils.createMenuContainer then return end
+    -- Create the container GUI
+    local screenGui = player:FindFirstChild("AdminPanelGui")
+    if not screenGui then
+        screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "AdminPanelGui"
+        screenGui.ResetOnSpawn = false
+        screenGui.Parent = player:FindFirstChild("PlayerGui")
+    end
     
-    -- Create the main container
-    local adminContainer = UIUtils.createMenuContainer(
-        "AdminControls", 
-        "Admin Control Panel", 
-        UDim2.new(0, 600, 0, 450),
-        UDim2.new(0.5, -300, 0.5, -225)
-    )
+    -- Create the main panel frame
+    local adminFrame = Instance.new("Frame")
+    adminFrame.Name = "AdminPanel"
+    adminFrame.Size = UDim2.new(0, 600, 0, 450)
+    adminFrame.Position = UDim2.new(0.5, -300, 0.5, -225)
+    adminFrame.BackgroundColor3 = UIStyle.Colors.Background
+    adminFrame.BorderSizePixel = 0
+    adminFrame.Visible = false
+    adminFrame.Parent = screenGui
     
-    -- Create tabs for different admin functions
+    -- Apply corner rounding
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UIStyle.Sizes.CornerRadius
+    corner.Parent = adminFrame
+    
+    -- Create header
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 50)
+    header.BackgroundColor3 = UIStyle.Colors.HeaderBackground
+    header.BorderSizePixel = 0
+    header.Parent = adminFrame
+    
+    -- Add corner rounding to header (top corners only)
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UIStyle.Sizes.CornerRadius
+    headerCorner.Parent = header
+    
+    -- Fix header bottom corners (make them straight)
+    local bottomFrame = Instance.new("Frame")
+    bottomFrame.Size = UDim2.new(1, 0, 0, 10)
+    bottomFrame.Position = UDim2.new(0, 0, 1, -10)
+    bottomFrame.BackgroundColor3 = UIStyle.Colors.HeaderBackground
+    bottomFrame.BorderSizePixel = 0
+    bottomFrame.Parent = header
+    
+    -- Add title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -60, 1, 0)
+    title.Position = UDim2.new(0, 20, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Font = UIStyle.Fonts.Bold
+    title.TextSize = UIStyle.TextSizes.Title
+    title.TextColor3 = UIStyle.Colors.Text
+    title.Text = "Admin Control Panel"
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = header
+    
+    -- Add icon
+    local icon = IconSet.createIcon("AdminFunctions", UDim2.new(0, 30, 0, 30), UDim2.new(1, -90, 0.5, -15))
+    icon.Parent = header
+    
+    -- Add close button
+    local closeButton = ButtonFactory.createCloseButton(header, UDim2.new(1, -10, 0.5, 0), function()
+        self:ToggleAdminPanel()
+    end)
+    closeButton.AnchorPoint = Vector2.new(1, 0.5)
+    
+    -- Create tab container
+    local tabContainer = Instance.new("Frame")
+    tabContainer.Name = "TabContainer"
+    tabContainer.Size = UDim2.new(1, 0, 0, 40)
+    tabContainer.Position = UDim2.new(0, 0, 0, 50)
+    tabContainer.BackgroundColor3 = UIStyle.Colors.BackgroundDark
+    tabContainer.BorderSizePixel = 0
+    tabContainer.Parent = adminFrame
+    
+    -- Create tab buttons
     local tabs = {
-        { name = "Players", label = "Players" },
-        { name = "GameSettings", label = "Game Settings" },
-        { name = "ServerStats", label = "Server Stats" },
-        { name = "Commands", label = "Commands" }
+        { id = "Players", label = "Players", icon = "User" },
+        { id = "GameSettings", label = "Game Settings", icon = "Gear" },
+        { id = "ServerStats", label = "Server Stats", icon = "Info" },
+        { id = "Commands", label = "Commands", icon = "Close" }
     }
     
-    local tabSystem = UIUtils.createTabSystem(adminContainer.mainFrame, tabs)
+    -- Create tab buttons
+    for i, tab in ipairs(tabs) do
+        local tabButton = ButtonFactory.createIconButton(
+            tab.icon,
+            tab.label,
+            UDim2.new(0, 145, 1, 0),
+            UDim2.new(0, (i-1)*150, 0, 0),
+            function()
+                self:SwitchTab(tab.id)
+            end
+        )
+        tabButton.Name = tab.id .. "Tab"
+        tabButton.Parent = tabContainer
+        tabButton.BackgroundColor3 = tab.id == uiState.currentTab and UIStyle.Colors.TabActive or UIStyle.Colors.TabInactive
+        
+        -- Store reference
+        uiState.menuElements[tab.id .. "Tab"] = tabButton
+    end
     
-    -- Populate the Players tab
-    self:CreatePlayersTab(tabSystem.tabContents.Players)
+    -- Create content container
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "ContentContainer"
+    contentContainer.Size = UDim2.new(1, 0, 1, -90)
+    contentContainer.Position = UDim2.new(0, 0, 0, 90)
+    contentContainer.BackgroundTransparency = 1
+    contentContainer.Parent = adminFrame
     
-    -- Populate the Game Settings tab
-    self:CreateGameSettingsTab(tabSystem.tabContents.GameSettings)
+    -- Create tab content frames
+    for _, tab in ipairs(tabs) do
+        local contentFrame = Instance.new("Frame")
+        contentFrame.Name = tab.id .. "Content"
+        contentFrame.Size = UDim2.new(1, 0, 1, 0)
+        contentFrame.BackgroundTransparency = 1
+        contentFrame.Visible = tab.id == uiState.currentTab
+        contentFrame.Parent = contentContainer
+        
+        -- Store reference
+        uiState.menuElements[tab.id .. "Content"] = contentFrame
+    end
     
-    -- Populate the Server Stats tab
-    self:CreateServerStatsTab(tabSystem.tabContents.ServerStats)
+    -- Populate tabs
+    self:CreatePlayersTab(uiState.menuElements.PlayersContent)
+    self:CreateGameSettingsTab(uiState.menuElements.GameSettingsContent)
+    self:CreateServerStatsTab(uiState.menuElements.ServerStatsContent)
+    self:CreateCommandsTab(uiState.menuElements.CommandsContent)
     
-    -- Populate the Commands tab
-    self:CreateCommandsTab(tabSystem.tabContents.Commands)
+    -- Store admin panel reference
+    uiState.menuElements.adminPanel = adminFrame
+    uiState.menuElements.screenGui = screenGui
     
-    -- Store UI elements for later access
-    uiState.menuElements.adminContainer = adminContainer
-    uiState.menuElements.tabSystem = tabSystem
+    return adminFrame
+end
+
+-- Switch between tabs
+function AdminControlsUI:SwitchTab(tabId)
+    -- Update current tab
+    uiState.currentTab = tabId
     
-    -- Initially hide the panel
-    adminContainer.mainFrame.Visible = false
+    -- Update tab button appearances
+    local tabs = {"Players", "GameSettings", "ServerStats", "Commands"}
+    for _, tab in ipairs(tabs) do
+        local tabButton = uiState.menuElements[tab .. "Tab"]
+        local contentFrame = uiState.menuElements[tab .. "Content"]
+        
+        if tabButton and contentFrame then
+            tabButton.BackgroundColor3 = tab == tabId and UIStyle.Colors.TabActive or UIStyle.Colors.TabInactive
+            contentFrame.Visible = (tab == tabId)
+        end
+    end
     
-    return adminContainer
+    -- Refresh content if needed
+    if tabId == "Players" then
+        self:UpdatePlayersList()
+    elseif tabId == "ServerStats" then
+        self:UpdateServerStats()
+    end
 end
 
 -- Create the Players tab content
@@ -153,26 +281,34 @@ function AdminControlsUI:CreatePlayersTab(parent)
     searchBar.Text = ""
     searchBar.Size = UDim2.new(1, -20, 0, 30)
     searchBar.Position = UDim2.new(0, 10, 0, 10)
-    searchBar.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    searchBar.TextColor3 = Color3.fromRGB(255, 255, 255)
-    searchBar.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
-    searchBar.Font = Enum.Font.Gotham
-    searchBar.TextSize = 14
-    searchBar.BorderSizePixel = 0
+    
+    -- Apply style
+    UIStyle.applyStyle(searchBar, "input")
     searchBar.Parent = parent
     
-    -- Add corner radius to search bar
-    local searchCorner = Instance.new("UICorner")
-    searchCorner.CornerRadius = UDim.new(0, 6)
-    searchCorner.Parent = searchBar
+    -- Create players list container
+    local playersContainer = Instance.new("Frame")
+    playersContainer.Name = "PlayersContainer"
+    playersContainer.Size = UDim2.new(1, -20, 1, -100)
+    playersContainer.Position = UDim2.new(0, 10, 0, 50)
+    playersContainer.BackgroundTransparency = 1
+    playersContainer.Parent = parent
     
-    -- Create players list
-    local playersScrolling = UIUtils.createScrollingList(
-        parent,
-        UDim.new(0, 10),
-        UDim2.new(1, -20, 1, -100),
-        UDim2.new(0, 10, 0, 50)
-    )
+    -- Create scrolling frame for players
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "PlayersList"
+    scrollFrame.Size = UDim2.new(1, 0, 1, 0)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+    scrollFrame.Parent = playersContainer
+    
+    -- Add layout for player entries
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 5)
+    listLayout.SortOrder = Enum.SortOrder.Name
+    listLayout.Parent = scrollFrame
     
     -- Create action buttons at bottom
     local actionsContainer = Instance.new("Frame")
@@ -183,68 +319,71 @@ function AdminControlsUI:CreatePlayersTab(parent)
     actionsContainer.Parent = parent
     
     -- Add kick button
-    local kickButton = Instance.new("TextButton")
-    kickButton.Name = "KickButton"
-    kickButton.Size = UDim2.new(0.3, -10, 1, 0)
-    kickButton.Position = UDim2.new(0, 0, 0, 0)
-    kickButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-    kickButton.Font = Enum.Font.GothamBold
-    kickButton.Text = "Kick Player"
-    kickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    kickButton.TextSize = 16
+    local kickButton = ButtonFactory.createIconButton("Close", "Kick Player", UDim2.new(0.3, -10, 1, 0), UDim2.new(0, 0, 0, 0), function()
+        if uiState.selectedPlayer then
+            -- Show confirmation dialog
+            self:ShowKickConfirmation(uiState.selectedPlayer)
+        else
+            DialogFactory.createNotification("No player selected", 3, "warning")
+        end
+    end, "danger")
     kickButton.Parent = actionsContainer
     
-    local kickCorner = Instance.new("UICorner")
-    kickCorner.CornerRadius = UDim.new(0, 6)
-    kickCorner.Parent = kickButton
-    
     -- Add ban button
-    local banButton = Instance.new("TextButton")
-    banButton.Name = "BanButton"
-    banButton.Size = UDim2.new(0.3, -10, 1, 0)
-    banButton.Position = UDim2.new(0.35, 0, 0, 0)
-    banButton.BackgroundColor3 = Color3.fromRGB(180, 20, 20)
-    banButton.Font = Enum.Font.GothamBold
-    banButton.Text = "Ban Player"
-    banButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    banButton.TextSize = 16
+    local banButton = ButtonFactory.createIconButton("Lock", "Ban Player", UDim2.new(0.3, -10, 1, 0), UDim2.new(0.35, 0, 0, 0), function()
+        if uiState.selectedPlayer then
+            -- Show confirmation dialog
+            self:ShowBanConfirmation(uiState.selectedPlayer)
+        else
+            DialogFactory.createNotification("No player selected", 3, "warning")
+        end
+    end, "danger")
     banButton.Parent = actionsContainer
     
-    local banCorner = Instance.new("UICorner")
-    banCorner.CornerRadius = UDim.new(0, 6)
-    banCorner.Parent = banButton
-    
     -- Add teleport button
-    local teleportButton = Instance.new("TextButton")
-    teleportButton.Name = "TeleportButton"
-    teleportButton.Size = UDim2.new(0.3, -10, 1, 0)
-    teleportButton.Position = UDim2.new(0.7, 0, 0, 0)
-    teleportButton.BackgroundColor3 = Color3.fromRGB(50, 120, 220)
-    teleportButton.Font = Enum.Font.GothamBold
-    teleportButton.Text = "Teleport"
-    teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    teleportButton.TextSize = 16
+    local teleportButton = ButtonFactory.createIconButton("ArrowUp", "Teleport", UDim2.new(0.3, -10, 1, 0), UDim2.new(0.7, 0, 0, 0), function()
+        if uiState.selectedPlayer then
+            local targetPlayer = Players:FindFirstChild(uiState.selectedPlayer)
+            if targetPlayer and targetPlayer.Character then
+                player.Character:SetPrimaryPartCFrame(targetPlayer.Character:GetPrimaryPartCFrame())
+                DialogFactory.createNotification("Teleported to " .. uiState.selectedPlayer, 3, "info")
+            else
+                DialogFactory.createNotification("Could not teleport to " .. uiState.selectedPlayer, 3, "error")
+            end
+        else
+            DialogFactory.createNotification("No player selected", 3, "warning")
+        end
+    end)
     teleportButton.Parent = actionsContainer
     
-    local teleportCorner = Instance.new("UICorner")
-    teleportCorner.CornerRadius = UDim.new(0, 6)
-    teleportCorner.Parent = teleportButton
-    
-    -- Populate players list (example - would be populated dynamically)
-    self:UpdatePlayersList(playersScrolling.scrollFrame)
-    
-    -- Store UI elements
+    -- Store UI elements for later access
     uiState.menuElements.playerSearch = searchBar
-    uiState.menuElements.playersList = playersScrolling.scrollFrame
+    uiState.menuElements.playersList = scrollFrame
+    uiState.menuElements.kickButton = kickButton
+    uiState.menuElements.banButton = banButton
+    uiState.menuElements.teleportButton = teleportButton
+    
+    -- Connect search functionality
+    searchBar.Changed:Connect(function(prop)
+        if prop == "Text" then
+            self:FilterPlayersList(searchBar.Text)
+        end
+    end)
+    
+    -- Update the player list
+    self:UpdatePlayersList()
     
     return parent
 end
 
--- Update the players list with current players
-function AdminControlsUI:UpdatePlayersList(scrollFrame)
-    -- Clear existing player entries
+-- Update players list
+function AdminControlsUI:UpdatePlayersList()
+    local scrollFrame = uiState.menuElements.playersList
+    if not scrollFrame then return end
+    
+    -- Clear existing entries
     for _, child in ipairs(scrollFrame:GetChildren()) do
-        if child:IsA("Frame") and child.Name:match("^PlayerEntry_") then
+        if child:IsA("Frame") then
             child:Destroy()
         end
     end
@@ -252,47 +391,124 @@ function AdminControlsUI:UpdatePlayersList(scrollFrame)
     -- Get all players
     local playersList = Players:GetPlayers()
     
-    -- Create entry for each player
+    -- Add entries for each player
     for i, plr in ipairs(playersList) do
-        local entry = UIUtils.createCard(scrollFrame, 60)
-        entry.Name = "PlayerEntry_" .. plr.Name
-        entry.LayoutOrder = i
+        -- Create player entry card
+        local entryFrame = Instance.new("Frame")
+        entryFrame.Name = "PlayerEntry_" .. plr.Name
+        entryFrame.Size = UDim2.new(1, -10, 0, 60)
+        entryFrame.BackgroundColor3 = UIStyle.Colors.CardBackground
+        entryFrame.BorderSizePixel = 0
         
-        -- Add player name
+        -- Add corner rounding
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = entryFrame
+        
+        -- Add player name label
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Name = "PlayerName"
         nameLabel.Size = UDim2.new(0.7, -10, 1, 0)
         nameLabel.Position = UDim2.new(0, 10, 0, 0)
         nameLabel.BackgroundTransparency = 1
-        nameLabel.Font = Enum.Font.GothamSemibold
+        nameLabel.Font = UIStyle.Fonts.Bold
+        nameLabel.TextSize = UIStyle.TextSizes.Medium
+        nameLabel.TextColor3 = UIStyle.Colors.Text
         nameLabel.Text = plr.Name
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.TextSize = 16
         nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-        nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-        nameLabel.Parent = entry
+        nameLabel.TextYAlignment = Enum.TextYAlignment.Center
+        nameLabel.Parent = entryFrame
         
-        -- Add selection button
-        local selectButton = Instance.new("TextButton")
-        selectButton.Name = "SelectButton"
-        selectButton.Size = UDim2.new(0.25, -20, 0, 30)
-        selectButton.Position = UDim2.new(0.75, 10, 0.5, -15)
-        selectButton.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
-        selectButton.Font = Enum.Font.GothamMedium
-        selectButton.Text = "Select"
-        selectButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        selectButton.TextSize = 14
-        selectButton.Parent = entry
-        
-        local selectCorner = Instance.new("UICorner")
-        selectCorner.CornerRadius = UDim.new(0, 6)
-        selectCorner.Parent = selectButton
-        
-        -- Add click handler for selection
-        selectButton.MouseButton1Click:Connect(function()
+        -- Add select button
+        local selectButton = ButtonFactory.createButton("Select", UDim2.new(0.3, -10, 0, 30), UDim2.new(0.7, 5, 0.5, -15), function()
             self:SelectPlayer(plr.Name)
         end)
+        selectButton.Parent = entryFrame
+        
+        -- Set initial selection state
+        if uiState.selectedPlayer == plr.Name then
+            entryFrame.BackgroundColor3 = UIStyle.Colors.Primary
+            nameLabel.Font = UIStyle.Fonts.Title
+        end
+        
+        entryFrame.Parent = scrollFrame
     end
+    
+    -- Update canvas size
+    local listLayout = scrollFrame:FindFirstChildOfClass("UIListLayout")
+    if listLayout then
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 5)
+    end
+end
+
+-- Filter players list by search term
+function AdminControlsUI:FilterPlayersList(searchTerm)
+    local scrollFrame = uiState.menuElements.playersList
+    if not scrollFrame then return end
+    
+    searchTerm = searchTerm:lower()
+    
+    -- Show/hide entries based on search
+    for _, entry in ipairs(scrollFrame:GetChildren()) do
+        if entry:IsA("Frame") and entry.Name:sub(1, 13) == "PlayerEntry_" then
+            local playerName = entry.Name:sub(14)
+            entry.Visible = searchTerm == "" or playerName:lower():find(searchTerm, 1, true)
+        end
+    end
+end
+
+-- Select a player from the list
+function AdminControlsUI:SelectPlayer(playerName)
+    -- Update selected player
+    uiState.selectedPlayer = playerName
+    
+    -- Update UI to show selected player
+    self:UpdatePlayersList()
+    
+    -- Show notification
+    DialogFactory.createNotification("Selected player: " .. playerName, 2, "info")
+end
+
+-- Show kick confirmation dialog
+function AdminControlsUI:ShowKickConfirmation(playerName)
+    DialogFactory.createConfirmationDialog(
+        "Confirm Kick",
+        "Are you sure you want to kick " .. playerName .. " from the game?",
+        function()
+            -- Execute kick command
+            self:ExecuteCommand("kick " .. playerName)
+            DialogFactory.createNotification("Player " .. playerName .. " has been kicked", 3, "success")
+        end,
+        function()
+            -- Cancelled
+            DialogFactory.createNotification("Kick operation cancelled", 2, "info")
+        end,
+        {
+            confirmText = "Kick Player", 
+            cancelText = "Cancel"
+        }
+    )
+end
+
+-- Show ban confirmation dialog
+function AdminControlsUI:ShowBanConfirmation(playerName)
+    DialogFactory.createConfirmationDialog(
+        "Confirm Ban",
+        "Are you sure you want to ban " .. playerName .. " from the game? This is a critical action that should be used carefully.",
+        function()
+            -- Execute ban command
+            self:ExecuteCommand("ban " .. playerName)
+            DialogFactory.createNotification("Player " .. playerName .. " has been banned", 3, "success")
+        end,
+        function()
+            -- Cancelled
+            DialogFactory.createNotification("Ban operation cancelled", 2, "info")
+        end,
+        {
+            confirmText = "Ban Player", 
+            cancelText = "Cancel"
+        }
+    )
 end
 
 -- Create the Game Settings tab
@@ -314,123 +530,137 @@ function AdminControlsUI:CreateGameSettingsTab(parent)
     titleLabel.Size = UDim2.new(1, -20, 0, 30)
     titleLabel.Position = UDim2.new(0, 10, 0, 10)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Font = UIStyle.Fonts.Bold
     titleLabel.Text = "Game Settings"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextSize = 18
+    titleLabel.TextColor3 = UIStyle.Colors.Text
+    titleLabel.TextSize = UIStyle.TextSizes.Subheader
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = settingsContainer
     
     -- Sample settings (these would be dynamically populated and connected to real game settings)
     local settings = {
-        { name = "Player Spawn Rate", type = "slider", min = 1, max = 60, default = 10 },
-        { name = "Economy Multiplier", type = "slider", min = 0.1, max = 5, default = 1 },
-        { name = "Enable PvP", type = "toggle", default = false },
-        { name = "Max Players", type = "number", min = 1, max = 100, default = 50 },
-        { name = "Game Difficulty", type = "dropdown", options = {"Easy", "Normal", "Hard"}, default = "Normal" }
+        { name = "Player Spawn Rate", type = "slider", min = 1, max = 60, default = 10, icon = "Clock" },
+        { name = "Economy Multiplier", type = "slider", min = 0.1, max = 5, default = 1, step = 0.1, icon = "Coin" },
+        { name = "Enable PvP", type = "toggle", default = false, icon = "Warning" },
+        { name = "Max Players", type = "number", min = 1, max = 100, default = 50, icon = "User" },
+        { name = "Game Difficulty", type = "dropdown", options = {"Easy", "Normal", "Hard"}, default = "Normal", icon = "Settings" }
     }
     
     -- Create UI for each setting
     local yOffset = 50
     for i, setting in ipairs(settings) do
+        -- Create setting card
+        local settingCard = Instance.new("Frame")
+        settingCard.Name = setting.name .. "Setting"
+        settingCard.Size = UDim2.new(1, -20, 0, 50)
+        settingCard.Position = UDim2.new(0, 10, 0, yOffset)
+        settingCard.BackgroundColor3 = UIStyle.Colors.CardBackground
+        settingCard.BorderSizePixel = 0
+        settingCard.Parent = settingsContainer
+        
+        -- Add corner rounding
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = settingCard
+        
+        -- Add icon
+        local icon = IconSet.createIcon(setting.icon, UDim2.new(0, 30, 0, 30), UDim2.new(0, 10, 0.5, -15))
+        icon.Parent = settingCard
+        
         -- Setting label
         local label = Instance.new("TextLabel")
-        label.Name = setting.name .. "Label"
-        label.Size = UDim2.new(0.4, -10, 0, 30)
-        label.Position = UDim2.new(0, 10, 0, yOffset)
+        label.Name = "Label"
+        label.Size = UDim2.new(0.4, -50, 1, 0)
+        label.Position = UDim2.new(0, 50, 0, 0)
         label.BackgroundTransparency = 1
-        label.Font = Enum.Font.Gotham
-        label.Text = setting.name .. ":"
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextSize = 16
+        label.Font = UIStyle.Fonts.SemiBold
+        label.Text = setting.name
+        label.TextColor3 = UIStyle.Colors.Text
+        label.TextSize = UIStyle.TextSizes.Medium
         label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = settingsContainer
+        label.Parent = settingCard
         
         -- Create control based on setting type
         if setting.type == "slider" then
-            -- Create a slider using our progress bar
-            local slider = UIUtils.createProgressBar(
-                settingsContainer,
-                UDim2.new(0.5, -10, 0, 30),
-                UDim2.new(0.45, 0, 0, yOffset)
-            )
-            slider.updateProgress(setting.default / setting.max)
+            -- For brevity, just using a TextButton as a placeholder for the slider control
+            local sliderValue = Instance.new("TextLabel")
+            sliderValue.Name = "Value"
+            sliderValue.Size = UDim2.new(0.2, 0, 0, 30)
+            sliderValue.Position = UDim2.new(0.8, -10, 0.5, -15)
+            sliderValue.BackgroundColor3 = UIStyle.Colors.BackgroundDark
+            sliderValue.TextColor3 = UIStyle.Colors.Text
+            sliderValue.Font = UIStyle.Fonts.Bold
+            sliderValue.TextSize = UIStyle.TextSizes.Medium
+            sliderValue.Text = tostring(setting.default)
+            sliderValue.TextXAlignment = Enum.TextXAlignment.Center
+            
+            local sliderCorner = Instance.new("UICorner")
+            sliderCorner.CornerRadius = UDim.new(0, 6)
+            sliderCorner.Parent = sliderValue
+            
+            sliderValue.Parent = settingCard
         elseif setting.type == "toggle" then
             -- Create a toggle switch
-            local toggleButton = Instance.new("TextButton")
-            toggleButton.Name = setting.name .. "Toggle"
-            toggleButton.Size = UDim2.new(0, 60, 0, 30)
-            toggleButton.Position = UDim2.new(0.45, 0, 0, yOffset)
-            toggleButton.BackgroundColor3 = setting.default and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 180, 180)
-            toggleButton.Font = Enum.Font.GothamBold
-            toggleButton.Text = setting.default and "ON" or "OFF"
-            toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            toggleButton.TextSize = 14
-            toggleButton.Parent = settingsContainer
-            
-            local toggleCorner = Instance.new("UICorner")
-            toggleCorner.CornerRadius = UDim.new(0, 15)
-            toggleCorner.Parent = toggleButton
-            
-            -- Add toggle functionality
-            local isOn = setting.default
-            toggleButton.MouseButton1Click:Connect(function()
-                isOn = not isOn
-                toggleButton.Text = isOn and "ON" or "OFF"
-                toggleButton.BackgroundColor3 = isOn and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 180, 180)
-            end)
+            local toggleButton = ButtonFactory.createToggleButton(
+                "", 
+                setting.default, 
+                UDim2.new(0, 60, 0, 30),
+                UDim2.new(0.8, -30, 0.5, -15),
+                function(isOn)
+                    -- This would connect to backend systems to update the setting
+                    DialogFactory.createNotification(setting.name .. " set to " .. (isOn and "ON" or "OFF"), 2, "info")
+                end
+            )
+            toggleButton.Parent = settingCard
         elseif setting.type == "number" then
             -- Create a number input
             local inputBox = Instance.new("TextBox")
-            inputBox.Name = setting.name .. "Input"
-            inputBox.Size = UDim2.new(0.2, -10, 0, 30)
-            inputBox.Position = UDim2.new(0.45, 0, 0, yOffset)
-            inputBox.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-            inputBox.Font = Enum.Font.Gotham
+            inputBox.Name = "Input"
+            inputBox.Size = UDim2.new(0.2, 0, 0, 30)
+            inputBox.Position = UDim2.new(0.8, -10, 0.5, -15)
+            inputBox.BackgroundColor3 = UIStyle.Colors.BackgroundDark
+            inputBox.TextColor3 = UIStyle.Colors.Text
+            inputBox.Font = UIStyle.Fonts.Regular
+            inputBox.TextSize = UIStyle.TextSizes.Medium
             inputBox.Text = tostring(setting.default)
-            inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-            inputBox.TextSize = 16
-            inputBox.Parent = settingsContainer
+            inputBox.TextXAlignment = Enum.TextXAlignment.Center
             
             local inputCorner = Instance.new("UICorner")
             inputCorner.CornerRadius = UDim.new(0, 6)
             inputCorner.Parent = inputBox
-        elseif setting.type == "dropdown" then
-            -- Create dropdown
-            local dropdown = Instance.new("TextButton")
-            dropdown.Name = setting.name .. "Dropdown"
-            dropdown.Size = UDim2.new(0.5, -10, 0, 30)
-            dropdown.Position = UDim2.new(0.45, 0, 0, yOffset)
-            dropdown.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-            dropdown.Font = Enum.Font.Gotham
-            dropdown.Text = setting.default
-            dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
-            dropdown.TextSize = 16
-            dropdown.Parent = settingsContainer
             
-            local dropdownCorner = Instance.new("UICorner")
-            dropdownCorner.CornerRadius = UDim.new(0, 6)
-            dropdownCorner.Parent = dropdown
+            inputBox.Parent = settingCard
+        elseif setting.type == "dropdown" then
+            -- Create a dropdown button (simplified)
+            local dropdown = ButtonFactory.createButton(
+                setting.default,
+                UDim2.new(0.4, 0, 0, 30),
+                UDim2.new(0.6, -10, 0.5, -15),
+                function()
+                    -- This would open a dropdown menu with options
+                    DialogFactory.createNotification("Dropdown functionality would be implemented here", 2, "info")
+                end
+            )
+            dropdown.Parent = settingCard
         end
         
         yOffset = yOffset + 60
     end
     
     -- Add save button at the bottom
-    local saveButton = Instance.new("TextButton")
-    saveButton.Name = "SaveSettingsButton"
-    saveButton.Size = UDim2.new(0.3, 0, 0, 40)
-    saveButton.Position = UDim2.new(0.5, -0.15 * parent.Size.X.Offset, 0, yOffset)
-    saveButton.BackgroundColor3 = Color3.fromRGB(0, 120, 210)
-    saveButton.Font = Enum.Font.GothamBold
-    saveButton.Text = "Save Settings"
-    saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    saveButton.TextSize = 16
+    local saveButton = ButtonFactory.createIconButton("Check", "Save Settings", UDim2.new(0.3, 0, 0, 40), UDim2.new(0.5, -0.15 * parent.Size.X.Offset, 0, yOffset), function()
+        -- Show confirmation before saving
+        DialogFactory.createConfirmationDialog(
+            "Save Settings",
+            "Are you sure you want to save these settings? This might affect all players in the game.",
+            function()
+                DialogFactory.createNotification("Settings saved successfully", 3, "success")
+            end,
+            nil,
+            { confirmText = "Save" }
+        )
+    end, "success")
     saveButton.Parent = settingsContainer
-    
-    local saveCorner = Instance.new("UICorner")
-    saveCorner.CornerRadius = UDim.new(0, 8)
-    saveCorner.Parent = saveButton
     
     -- Update canvas size
     settingsContainer.CanvasSize = UDim2.new(0, 0, 0, yOffset + 60)
@@ -446,10 +676,10 @@ function AdminControlsUI:CreateServerStatsTab(parent)
     headerLabel.Size = UDim2.new(1, -20, 0, 30)
     headerLabel.Position = UDim2.new(0, 10, 0, 10)
     headerLabel.BackgroundTransparency = 1
-    headerLabel.Font = Enum.Font.GothamBold
+    headerLabel.Font = UIStyle.Fonts.Bold
     headerLabel.Text = "Server Statistics"
-    headerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    headerLabel.TextSize = 18
+    headerLabel.TextColor3 = UIStyle.Colors.Text
+    headerLabel.TextSize = UIStyle.TextSizes.Subheader
     headerLabel.TextXAlignment = Enum.TextXAlignment.Left
     headerLabel.Parent = parent
     
@@ -461,14 +691,6 @@ function AdminControlsUI:CreateServerStatsTab(parent)
     statsContainer.BackgroundTransparency = 1
     statsContainer.Parent = parent
     
-    -- Add stats cards
-    local stats = {
-        { name = "Players", value = tostring(#Players:GetPlayers()) .. "/" .. Players.MaxPlayers, icon = "rbxassetid://7025806665" },
-        { name = "Uptime", value = "2h 45m", icon = "rbxassetid://7025807372" },
-        { name = "Memory", value = "428 MB", icon = "rbxassetid://7025809274" },
-        { name = "CPU", value = "32%", icon = "rbxassetid://7025807166" }
-    }
-    
     -- Create grid layout
     local gridLayout = Instance.new("UIGridLayout")
     gridLayout.CellSize = UDim2.new(0.48, 0, 0, 120)
@@ -476,72 +698,85 @@ function AdminControlsUI:CreateServerStatsTab(parent)
     gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
     gridLayout.Parent = statsContainer
     
-    -- Add stat cards
+    -- Store UI elements for later update
+    uiState.menuElements.statsContainer = statsContainer
+    
+    -- Initialize stats data
+    self:UpdateServerStats()
+    
+    -- Add refresh button
+    local refreshButton = ButtonFactory.createIconButton("ArrowUp", "Refresh", UDim2.new(0, 120, 0, 40), UDim2.new(0.5, -60, 0, 360), function()
+        self:UpdateServerStats()
+        DialogFactory.createNotification("Server statistics refreshed", 2, "info")
+    end)
+    refreshButton.Parent = parent
+    
+    return parent
+end
+
+-- Update server stats
+function AdminControlsUI:UpdateServerStats()
+    local statsContainer = uiState.menuElements.statsContainer
+    if not statsContainer then return end
+    
+    -- Clear existing stat cards
+    for _, child in ipairs(statsContainer:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    -- Get current stats
+    -- In a real implementation, these would be retrieved from backend systems
+    local stats = {
+        { name = "Players", value = tostring(#Players:GetPlayers()) .. "/" .. Players.MaxPlayers, icon = "User" },
+        { name = "Uptime", value = "2h 45m", icon = "Clock" },
+        { name = "Memory", value = "428 MB", icon = "Warning" },
+        { name = "CPU", value = "32%", icon = "Gear" }
+    }
+    
+    -- Create stat cards
     for i, stat in ipairs(stats) do
+        -- Create card frame
         local card = Instance.new("Frame")
         card.Name = stat.name .. "Card"
-        card.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-        card.BorderSizePixel = 0
+        card.BackgroundColor3 = UIStyle.Colors.CardBackground
         card.LayoutOrder = i
         card.Parent = statsContainer
         
+        -- Add corner radius
         local cardCorner = Instance.new("UICorner")
         cardCorner.CornerRadius = UDim.new(0, 10)
         cardCorner.Parent = card
         
-        -- Add icon
-        local icon = Instance.new("ImageLabel")
-        icon.Name = "Icon"
-        icon.Size = UDim2.new(0, 40, 0, 40)
-        icon.Position = UDim2.new(0, 20, 0, 20)
-        icon.BackgroundTransparency = 1
-        icon.Image = stat.icon
+        -- Create icon
+        local icon = IconSet.createIcon(stat.icon, UDim2.new(0, 40, 0, 40), UDim2.new(0, 20, 0, 20))
         icon.Parent = card
         
         -- Add stat name
         local nameLabel = Instance.new("TextLabel")
-        nameLabel.Name = "StatName"
         nameLabel.Size = UDim2.new(1, -100, 0, 30)
         nameLabel.Position = UDim2.new(0, 80, 0, 25)
         nameLabel.BackgroundTransparency = 1
-        nameLabel.Font = Enum.Font.GothamMedium
+        nameLabel.Font = UIStyle.Fonts.SemiBold
         nameLabel.Text = stat.name
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.TextSize = 18
+        nameLabel.TextColor3 = UIStyle.Colors.Text
+        nameLabel.TextSize = UIStyle.TextSizes.Medium
         nameLabel.TextXAlignment = Enum.TextXAlignment.Left
         nameLabel.Parent = card
         
-        -- Add value 
+        -- Add value
         local valueLabel = Instance.new("TextLabel")
-        valueLabel.Name = "StatValue"
         valueLabel.Size = UDim2.new(0, 150, 0, 40)
         valueLabel.Position = UDim2.new(0, 20, 0, 70)
         valueLabel.BackgroundTransparency = 1
-        valueLabel.Font = Enum.Font.GothamBold
+        valueLabel.Font = UIStyle.Fonts.Bold
         valueLabel.Text = stat.value
-        valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        valueLabel.TextSize = 24
+        valueLabel.TextColor3 = UIStyle.Colors.Text
+        valueLabel.TextSize = UIStyle.TextSizes.Large
         valueLabel.TextXAlignment = Enum.TextXAlignment.Left
         valueLabel.Parent = card
     end
-    
-    -- Add refresh button
-    local refreshButton = Instance.new("TextButton")
-    refreshButton.Name = "RefreshButton"
-    refreshButton.Size = UDim2.new(0, 120, 0, 40)
-    refreshButton.Position = UDim2.new(0.5, -60, 0, 360)
-    refreshButton.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
-    refreshButton.Font = Enum.Font.GothamBold
-    refreshButton.Text = "Refresh"
-    refreshButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    refreshButton.TextSize = 16
-    refreshButton.Parent = parent
-    
-    local refreshCorner = Instance.new("UICorner")
-    refreshCorner.CornerRadius = UDim.new(0, 8)
-    refreshCorner.Parent = refreshButton
-    
-    return parent
 end
 
 -- Create the Commands tab
@@ -553,51 +788,38 @@ function AdminControlsUI:CreateCommandsTab(parent)
     commandBox.Text = ""
     commandBox.Size = UDim2.new(1, -120, 0, 40)
     commandBox.Position = UDim2.new(0, 10, 0, 10)
-    commandBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    commandBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    commandBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
-    commandBox.Font = Enum.Font.Code
-    commandBox.TextSize = 16
-    commandBox.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Apply style
+    UIStyle.applyStyle(commandBox, "input")
     commandBox.Parent = parent
     
-    local commandCorner = Instance.new("UICorner")
-    commandCorner.CornerRadius = UDim.new(0, 6)
-    commandCorner.Parent = commandBox
-    
     -- Execute button
-    local executeButton = Instance.new("TextButton")
-    executeButton.Name = "ExecuteButton"
-    executeButton.Size = UDim2.new(0, 90, 0, 40)
-    executeButton.Position = UDim2.new(1, -100, 0, 10)
-    executeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 210)
-    executeButton.Font = Enum.Font.GothamBold
-    executeButton.Text = "Run"
-    executeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    executeButton.TextSize = 16
+    local executeButton = ButtonFactory.createIconButton("Play", "Run", UDim2.new(0, 100, 0, 40), UDim2.new(1, -110, 0, 10), function()
+        if commandBox.Text ~= "" then
+            self:ExecuteCommand(commandBox.Text)
+            commandBox.Text = "" -- Clear after execution
+        end
+    end)
     executeButton.Parent = parent
-    
-    local executeCorner = Instance.new("UICorner")
-    executeCorner.CornerRadius = UDim.new(0, 6)
-    executeCorner.Parent = executeButton
     
     -- Output log
     local outputLog = Instance.new("ScrollingFrame")
     outputLog.Name = "OutputLog"
     outputLog.Size = UDim2.new(1, -20, 0, 280)
     outputLog.Position = UDim2.new(0, 10, 0, 60)
-    outputLog.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    outputLog.BackgroundColor3 = UIStyle.Colors.BackgroundDark
     outputLog.BorderSizePixel = 0
     outputLog.ScrollBarThickness = 6
     outputLog.ScrollingDirection = Enum.ScrollingDirection.Y
     outputLog.CanvasSize = UDim2.new(0, 0, 0, 0)
     outputLog.Parent = parent
     
+    -- Add corner radius
     local outputCorner = Instance.new("UICorner")
-    outputCorner.CornerRadius = UDim.new(0, 6)
+    outputCorner.CornerRadius = UDim.new(0, 8)
     outputCorner.Parent = outputLog
     
-    -- Add padding to the output log
+    -- Add padding
     local padding = Instance.new("UIPadding")
     padding.PaddingLeft = UDim.new(0, 10)
     padding.PaddingRight = UDim.new(0, 10)
@@ -605,17 +827,17 @@ function AdminControlsUI:CreateCommandsTab(parent)
     padding.PaddingBottom = UDim.new(0, 10)
     padding.Parent = outputLog
     
-    -- Layout for log entries
+    -- Add list layout
     local listLayout = Instance.new("UIListLayout")
     listLayout.Padding = UDim.new(0, 5)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = outputLog
     
-    -- Add some sample output
+    -- Add initial output
     self:AddCommandOutput(outputLog, "System", "Admin console initialized")
     self:AddCommandOutput(outputLog, "Help", "Type 'help' for a list of commands")
     
-    -- Add common commands
+    -- Add command shortcuts
     local commandsContainer = Instance.new("Frame")
     commandsContainer.Name = "CommandsContainer"
     commandsContainer.Size = UDim2.new(1, -20, 0, 40)
@@ -628,37 +850,23 @@ function AdminControlsUI:CreateCommandsTab(parent)
     local buttonWidth = 1 / #commands
     
     for i, cmd in ipairs(commands) do
-        local cmdButton = Instance.new("TextButton")
-        cmdButton.Name = cmd .. "Button"
-        cmdButton.Size = UDim2.new(buttonWidth, -10, 1, 0)
-        cmdButton.Position = UDim2.new(buttonWidth * (i-1), 5, 0, 0)
-        cmdButton.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-        cmdButton.Font = Enum.Font.GothamMedium
-        cmdButton.Text = cmd
-        cmdButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        cmdButton.TextSize = 14
+        local cmdButton = ButtonFactory.createButton(
+            cmd,
+            UDim2.new(buttonWidth, -10, 1, 0),
+            UDim2.new(buttonWidth * (i-1), 5, 0, 0),
+            function()
+                commandBox.Text = cmd .. " "
+                commandBox:CaptureFocus()
+            end
+        )
         cmdButton.Parent = commandsContainer
-        
-        local cmdCorner = Instance.new("UICorner")
-        cmdCorner.CornerRadius = UDim.new(0, 6)
-        cmdCorner.Parent = cmdButton
-        
-        -- Click handler to insert command
-        cmdButton.MouseButton1Click:Connect(function()
-            commandBox.Text = cmd .. " "
-            commandBox:CaptureFocus()
-        end)
     end
     
-    -- Connect execute button
-    executeButton.MouseButton1Click:Connect(function()
-        self:ExecuteCommand(commandBox.Text, outputLog)
-    end)
-    
-    -- Connect enter key to execute
+    -- Connect enter key to execute command
     commandBox.FocusLost:Connect(function(enterPressed)
         if enterPressed and commandBox.Text ~= "" then
-            self:ExecuteCommand(commandBox.Text, outputLog)
+            self:ExecuteCommand(commandBox.Text)
+            commandBox.Text = "" -- Clear after execution
         end
     end)
     
@@ -669,20 +877,26 @@ function AdminControlsUI:CreateCommandsTab(parent)
     return parent
 end
 
--- Helper function to add output to the command log
+-- Add output to the command log
 function AdminControlsUI:AddCommandOutput(outputLog, prefix, message)
+    if not outputLog then
+        outputLog = uiState.menuElements.outputLog
+        if not outputLog then return end
+    end
+    
     -- Create a new log entry
     local logEntry = Instance.new("TextLabel")
     logEntry.Name = "LogEntry" .. #outputLog:GetChildren()
     logEntry.Size = UDim2.new(1, 0, 0, 20)
     logEntry.BackgroundTransparency = 1
-    logEntry.Font = Enum.Font.Code
+    logEntry.Font = UIStyle.Fonts.Mono
     logEntry.Text = "[" .. prefix .. "] " .. message
-    logEntry.TextColor3 = prefix == "Error" and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(255, 255, 255)
-    logEntry.TextSize = 14
+    logEntry.TextColor3 = prefix == "Error" and UIStyle.Colors.Danger or UIStyle.Colors.Text
+    logEntry.TextSize = UIStyle.TextSizes.Medium
     logEntry.TextXAlignment = Enum.TextXAlignment.Left
     logEntry.TextWrapped = true
     logEntry.AutomaticSize = Enum.AutomaticSize.Y
+    logEntry.LayoutOrder = #outputLog:GetChildren() -- Order by creation order
     logEntry.Parent = outputLog
     
     -- Update canvas size
@@ -697,11 +911,11 @@ function AdminControlsUI:AddCommandOutput(outputLog, prefix, message)
 end
 
 -- Execute a command
-function AdminControlsUI:ExecuteCommand(commandText, outputLog)
+function AdminControlsUI:ExecuteCommand(commandText)
     if not commandText or commandText == "" then return end
     
-    -- Here you would connect to your actual admin command system
-    -- This is just a sample implementation that shows output
+    local outputLog = uiState.menuElements.outputLog
+    if not outputLog then return end
     
     -- Add the command to the log
     self:AddCommandOutput(outputLog, "Command", commandText)
@@ -718,21 +932,39 @@ function AdminControlsUI:ExecuteCommand(commandText, outputLog)
         if #args < 1 then
             self:AddCommandOutput(outputLog, "Error", "Usage: kick [player]")
         else
-            self:AddCommandOutput(outputLog, "System", "Attempting to kick player: " .. args[1])
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been kicked")
+            -- In a real implementation, this would call server-side admin functions
         end
     elseif command == "ban" then
         if #args < 1 then
             self:AddCommandOutput(outputLog, "Error", "Usage: ban [player]")
         else
-            self:AddCommandOutput(outputLog, "System", "Attempting to ban player: " .. args[1])
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been banned")
+            -- In a real implementation, this would call server-side admin functions
         end
     elseif command == "shutdown" then
-        self:AddCommandOutput(outputLog, "System", "Server shutdown initiated")
+        -- Add confirmation dialog for shutdown
+        DialogFactory.createConfirmationDialog(
+            "Confirm Shutdown",
+            "Are you sure you want to shut down the server? All players will be disconnected.",
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown initiated")
+                -- In a real implementation, this would call server-side admin functions
+            end,
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown cancelled")
+            end,
+            {
+                confirmText = "Shut Down",
+                cancelText = "Cancel"
+            }
+        )
     elseif command == "heal" then
         if #args < 1 then
             self:AddCommandOutput(outputLog, "Error", "Usage: heal [player]")
         else
             self:AddCommandOutput(outputLog, "System", "Healing player: " .. args[1])
+            -- In a real implementation, this would call server-side admin functions
         end
     elseif command == "clear" then
         -- Clear the output log
@@ -746,138 +978,54 @@ function AdminControlsUI:ExecuteCommand(commandText, outputLog)
     else
         self:AddCommandOutput(outputLog, "Error", "Unknown command: " .. command)
     end
-    
-    -- Reset the command box
-    if uiState.menuElements.commandBox then
-        uiState.menuElements.commandBox.Text = ""
-    end
-end
-
--- Select a player in the player list
-function AdminControlsUI:SelectPlayer(playerName)
-    -- Here you would highlight the selected player and enable appropriate actions
-    print("Selected player: " .. playerName)
-    
-    -- Sample implementation to show a notification
-    local modalDialog = UIUtils.createModalDialog(
-        "Player Selected",
-        "Selected player: " .. playerName .. "\n\nWhat action would you like to take?",
-        UDim2.new(0, 400, 0, 200)
-    )
-    
-    -- Customize the dialog
-    if modalDialog then
-        -- Replace the default OK button with custom buttons
-        if modalDialog.okButton then
-            modalDialog.okButton:Destroy()
-        end
-        
-        -- Add kick button
-        local kickButton = Instance.new("TextButton")
-        kickButton.Name = "KickButton"
-        kickButton.Size = UDim2.new(0, 100, 0, 40)
-        kickButton.Position = UDim2.new(0.3, -50, 0, 0)
-        kickButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-        kickButton.Font = Enum.Font.GothamBold
-        kickButton.Text = "Kick"
-        kickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        kickButton.TextSize = 16
-        kickButton.Parent = modalDialog.buttonsContainer
-        
-        local kickCorner = Instance.new("UICorner")
-        kickCorner.CornerRadius = UDim.new(0, 6)
-        kickCorner.Parent = kickButton
-        
-        -- Add teleport button
-        local teleportButton = Instance.new("TextButton")
-        teleportButton.Name = "TeleportButton"
-        teleportButton.Size = UDim2.new(0, 100, 0, 40)
-        teleportButton.Position = UDim2.new(0.7, -50, 0, 0)
-        teleportButton.BackgroundColor3 = Color3.fromRGB(50, 120, 220)
-        teleportButton.Font = Enum.Font.GothamBold
-        teleportButton.Text = "Teleport"
-        teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        teleportButton.TextSize = 16
-        teleportButton.Parent = modalDialog.buttonsContainer
-        
-        local teleportCorner = Instance.new("UICorner")
-        teleportCorner.CornerRadius = UDim.new(0, 6)
-        teleportCorner.Parent = teleportButton
-        
-        -- Connect button events
-        kickButton.MouseButton1Click:Connect(function()
-            -- Simulate kick action
-            if uiState.menuElements.outputLog then
-                self:AddCommandOutput(uiState.menuElements.outputLog, "System", "Kicking player: " .. playerName)
-            end
-            modalDialog.destroy()
-        end)
-        
-        teleportButton.MouseButton1Click:Connect(function()
-            -- Simulate teleport action
-            if uiState.menuElements.outputLog then
-                self:AddCommandOutput(uiState.menuElements.outputLog, "System", "Teleporting to player: " .. playerName)
-            end
-            modalDialog.destroy()
-        end)
-    end
 end
 
 -- Toggle the admin panel visibility
 function AdminControlsUI:ToggleAdminPanel()
-    if not uiState.menuElements.adminContainer then
+    local adminPanel = uiState.menuElements.adminPanel
+    if not adminPanel then
         warn("Admin panel not initialized")
         return
     end
     
     uiState.adminPanelVisible = not uiState.adminPanelVisible
     
-    local mainFrame = uiState.menuElements.adminContainer.mainFrame
-    
     if uiState.adminPanelVisible then
         -- Show the panel with animation
-        mainFrame.Visible = true
-        mainFrame.Position = UDim2.new(
-            mainFrame.Position.X.Scale,
-            mainFrame.Position.X.Offset,
-            0.6, 0
-        )
-        mainFrame.BackgroundTransparency = 0.5
+        adminPanel.Visible = true
+        adminPanel.BackgroundTransparency = 1
+        adminPanel.Position = UDim2.new(0.5, -300, 0.6, -225)
         
-        -- Tween to final position
+        -- Animate in
         TweenService:Create(
-            mainFrame,
-            TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            adminPanel,
+            UIStyle.Animations.Standard,
             {
-                Position = UDim2.new(
-                    mainFrame.Position.X.Scale,
-                    mainFrame.Position.X.Offset,
-                    0.5, 0
-                ),
-                BackgroundTransparency = 0.1
+                Position = UDim2.new(0.5, -300, 0.5, -225),
+                BackgroundTransparency = 0
             }
         ):Play()
         
-        -- Update players list
-        self:UpdatePlayersList(uiState.menuElements.playersList)
+        -- Update players list if on players tab
+        if uiState.currentTab == "Players" then
+            self:UpdatePlayersList()
+        elseif uiState.currentTab == "ServerStats" then
+            self:UpdateServerStats()
+        end
     else
         -- Hide with animation
         TweenService:Create(
-            mainFrame,
-            TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+            adminPanel,
+            UIStyle.Animations.Standard,
             {
-                Position = UDim2.new(
-                    mainFrame.Position.X.Scale,
-                    mainFrame.Position.X.Offset,
-                    0.6, 0
-                ),
+                Position = UDim2.new(0.5, -300, 0.6, -225),
                 BackgroundTransparency = 1
             }
         ):Play()
         
         -- Hide after animation
-        task.delay(0.3, function()
-            mainFrame.Visible = false
+        task.delay(UIStyle.Animations.Standard.Time, function()
+            adminPanel.Visible = false
         end)
     end
 end
