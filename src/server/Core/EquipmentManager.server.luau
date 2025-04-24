@@ -76,6 +76,7 @@ local EquipmentManager = {
     Debug = false,  -- Set to true for detailed logging
     EquipmentData = {},
     UpgradeCache = {},
+    LegacyAPIEnabled = true, -- Controls whether legacy API support is enabled
 }
 
 -- Log messages if debug is enabled
@@ -498,6 +499,88 @@ end
 -- INITIALIZATION
 ----------------------------------
 
+----------------------------------
+-- LEGACY SUPPORT
+----------------------------------
+
+-- Initialize legacy support for older scripts
+function EquipmentManager:LegacySupport()
+    if not self.LegacyAPIEnabled then
+        self:Log("Legacy API support is disabled")
+        return
+    end
+    
+    self:Log("Initializing legacy support for EquipmentSetup and EquipmentUpgradeSystem")
+    
+    -- Create aliases for old script functions in the global environment
+    -- This allows old scripts to continue working with the new consolidated system
+    
+    -- Legacy Equipment Setup functions
+    if _G.EquipmentSetup == nil then
+        _G.EquipmentSetup = {
+            -- Map old functions to new equivalents
+            SetupEquipment = function(model, options)
+                self:Log("Legacy call to EquipmentSetup.SetupEquipment")
+                return self:ProcessEquipment(model, options or {})
+            end,
+            
+            ProcessGymEquipment = function(folder)
+                self:Log("Legacy call to EquipmentSetup.ProcessGymEquipment")
+                return self:ProcessAllEquipment(folder)
+            end,
+            
+            GetEquipmentCategory = function(model)
+                self:Log("Legacy call to EquipmentSetup.GetEquipmentCategory")
+                return self:DetectEquipmentCategory(model)
+            end,
+            
+            ApplyAttributes = function(model, attributes)
+                self:Log("Legacy call to EquipmentSetup.ApplyAttributes")
+                return self:ApplyEquipmentAttributes(model, attributes)
+            end,
+            
+            -- Add any other legacy functions that need to be supported
+        }
+    end
+    
+    -- Legacy Equipment Upgrade System functions
+    if _G.EquipmentUpgradeSystem == nil then
+        _G.EquipmentUpgradeSystem = {
+            -- Map old functions to new equivalents
+            UpgradeEquipment = function(model, level)
+                self:Log("Legacy call to EquipmentUpgradeSystem.UpgradeEquipment")
+                if level then
+                    return self:SetEquipmentLevel(model, level)
+                else
+                    return self:UpgradeEquipment(model)
+                end
+            end,
+            
+            GetUpgradeInfo = function(model)
+                self:Log("Legacy call to EquipmentUpgradeSystem.GetUpgradeInfo")
+                return self:GetNextUpgradeInfo(model)
+            end,
+            
+            GetNextLevel = function(model)
+                self:Log("Legacy call to EquipmentUpgradeSystem.GetNextLevel")
+                local info = self:GetNextUpgradeInfo(model)
+                return info and info.nextLevel or nil
+            end,
+            
+            GetUpgradePrice = function(model)
+                self:Log("Legacy call to EquipmentUpgradeSystem.GetUpgradePrice")
+                local info = self:GetNextUpgradeInfo(model)
+                return info and info.price or 0
+            end,
+            
+            -- Add any other legacy functions that need to be supported
+        }
+    end
+    
+    self:Log("Legacy support initialized")
+    return true
+end
+
 -- Initialize EquipmentManager
 function EquipmentManager:Initialize()
     self:Log("Initializing EquipmentManager...")
@@ -513,6 +596,11 @@ function EquipmentManager:Initialize()
     
     -- Register global functions
     self:RegisterGlobalFunctions()
+    
+    -- Set up legacy support
+    if self.LegacyAPIEnabled then
+        self:LegacySupport()
+    end
     
     self:Log("EquipmentManager initialization complete")
     return self

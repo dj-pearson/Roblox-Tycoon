@@ -441,5 +441,96 @@ function BoundingBoxManager:SetDebugMode(enabled)
     return { debugMode = _debugMode }
 end
 
--- Return the BoundingBoxManager module
-return BoundingBoxManager
+-- Initialize legacy support for old BoundingBoxGenerator and EquipmentBoundingBox scripts
+-- This enables backward compatibility with existing scripts that might still call the old functions
+function BoundingBoxManager:LegacySupport()
+    -- Get access to the shared environment without using _G directly
+    local sharedEnv = _ENV
+    
+    -- Create a LegacyBoundingBoxGenerator API that forwards to our new methods
+    local LegacyBoundingBoxGenerator = {
+        CreateHitbox = function(instance, options)
+            return BoundingBoxManager:CreateHitbox(instance, options)
+        end,
+        
+        GenerateBoundingBox = function(instance, padding)
+            local result = BoundingBoxManager:CalculateBoundingBox(instance)
+            -- Apply padding if specified
+            if padding and type(padding) == "number" then
+                result.Size = result.Size + Vector3.new(padding * 2, padding * 2, padding * 2)
+            end
+            return result
+        end,
+        
+        ShowHitboxes = function(visible)
+            return BoundingBoxManager:SetHitboxVisibility(visible ~= false)
+        end,
+        
+        HideHitboxes = function()
+            return BoundingBoxManager:SetHitboxVisibility(false)
+        end,
+        
+        CreateTileHitbox = function(tile, options)
+            return BoundingBoxManager:CreateBuyTileHitbox(tile, options)
+        end
+    }
+    
+    -- Create a LegacyEquipmentBoundingBox API that forwards to our new methods
+    local LegacyEquipmentBoundingBox = {
+        CreateInteractionBox = function(equipment, options)
+            return BoundingBoxManager:CreateEquipmentInteractionBox(equipment, options)
+        end,
+        
+        GenerateEquipmentBounds = function(equipment, padding)
+            local options = type(padding) == "number" and {padding = padding} or {}
+            return BoundingBoxManager:CalculateBoundingBox(equipment, options)
+        end
+    }
+    
+    -- Set up an interface for legacy access through CoreRegistry
+    if script.Parent and script.Parent.Parent then
+        local CoreRegistry = script.Parent.Parent:FindFirstChild("CoreRegistry")
+        if CoreRegistry and CoreRegistry:IsA("ModuleScript") then
+            local Registry = require(CoreRegistry)
+            if Registry and Registry.RegisterLegacySystem then
+                Registry:RegisterLegacySystem("BoundingBoxGenerator", LegacyBoundingBoxGenerator)
+                Registry:RegisterLegacySystem("EquipmentBoundingBox", LegacyEquipmentBoundingBox)
+            end
+        end
+    end
+    
+    -- Set up Studio-only global functions for backward compatibility
+    -- In strict mode, we should use RunService:IsStudio() check rather than direct _G assignment
+    if RunService:IsStudio() then
+        local success, errorMsg = pcall(function()
+            -- Use rawset to avoid strict mode errors for global assignments
+            rawset(sharedEnv, "ShowHitboxes", function()
+                return BoundingBoxManager:SetHitboxVisibility(true)
+            end)
+            
+            rawset(sharedEnv, "HideHitboxes", function()
+                return BoundingBoxManager:SetHitboxVisibility(false)
+            end)
+        end)
+        
+        if not success then
+            warn("BoundingBoxManager: Failed to set up legacy global functions: " .. errorMsg)
+        end
+    end
+    
+    return {
+        BoundingBoxGenerator = LegacyBoundingBoxGenerator,
+        EquipmentBoundingBox = LegacyEquipmentBoundingBox
+    }
+end
+
+-- Initialize and return the module
+local function Initialize()
+    -- Set up legacy support
+    BoundingBoxManager:LegacySupport()
+    
+    return BoundingBoxManager
+end
+
+-- Return the initialized BoundingBoxManager module
+return Initialize()
