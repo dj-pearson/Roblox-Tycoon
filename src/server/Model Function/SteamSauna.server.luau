@@ -3,6 +3,23 @@
 
 local TweenService = game:GetService("TweenService")
 local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Import AssetValidator utility
+local AssetValidator
+pcall(function()
+    AssetValidator = require(ReplicatedStorage.src.shared.AssetValidator)
+end)
+
+-- Fallback if AssetValidator not found
+if not AssetValidator then
+    -- Create minimal version
+    AssetValidator = {
+        validateSoundId = function(soundId)
+            return soundId == "rbxassetid://9048378264" and "rbxassetid://130949361" or soundId
+        end
+    }
+end
 
 -- CONFIGURATION --
 
@@ -20,7 +37,7 @@ local STEAM_CONFIG = {
 
 	-- Sound
 	enableSound = true,
-	soundId = "rbxassetid://9048378264" -- UPDATED sound ID
+	soundId = AssetValidator.validateSoundId("rbxassetid://9048378264") -- Validated sound ID
 }
 
 -- Heater Configuration
@@ -53,7 +70,7 @@ local HEATER_CONFIG = {
 
 	-- Sound
 	enableSound = true,
-	soundId = "rbxassetid://9048378264", -- UPDATED sound ID
+	soundId = AssetValidator.validateSoundId("rbxassetid://9048378264"), -- Validated sound ID
 	soundVolume = 0.5
 }
 

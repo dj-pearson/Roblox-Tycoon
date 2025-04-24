@@ -55,15 +55,15 @@ This document categorizes issues found during testing to help track and resolve 
 - ✅ "Failed to restore tile X for Xdjpearsonx" (GymTycoonDataManager:523)
 - ✅ Fixed: Created DataSystemBridge to standardize interfaces between data systems and ensure proper integration.
 
-### 4. Infinite Yield Warnings
-- "Infinite yield possible on 'ServerScriptService.src:WaitForChild("server")'" (GymAutomation:31)
-- "Infinite yield possible on 'ReplicatedStorage:WaitForChild("ReputationEvents")'" (ReputationClient:6)
-- "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("CompetitionUI")'" (CompetitionClient:9)
-- "Infinite yield possible on 'ReplicatedStorage:WaitForChild("JoinAllianceEvent")'" (AllianceClient:8)
-- "Infinite yield possible on 'ReplicatedStorage.ReplicatedEvents:WaitForChild("TutorialEvent")'" (TutorialClient:8)
-- "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("UIStyle")'" (UIHub:10)
-- "Infinite yield possible on 'Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui:WaitForChild("PurchaseButton")'" (BuilderBoostPurchaseGui:7)
-- Impact: Medium. Indicates missing or late-created objects, causing scripts to hang or fail.
+### 4. ✅ Infinite Yield Warnings
+- ✅ "Infinite yield possible on 'ServerScriptService.src:WaitForChild("server")'" (GymAutomation:31)
+- ✅ "Infinite yield possible on 'ReplicatedStorage:WaitForChild("ReputationEvents")'" (ReputationClient:6)
+- ✅ "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("CompetitionUI")'" (CompetitionClient:9)
+- ✅ "Infinite yield possible on 'ReplicatedStorage:WaitForChild("JoinAllianceEvent")'" (AllianceClient:8)
+- ✅ "Infinite yield possible on 'ReplicatedStorage.ReplicatedEvents:WaitForChild("TutorialEvent")'" (TutorialClient:8)
+- ✅ "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("UIStyle")'" (UIHub:10)
+- ✅ "Infinite yield possible on 'Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui:WaitForChild("PurchaseButton")'" (BuilderBoostPurchaseGui:7)
+- ✅ Fixed: Created FolderSetup script and used SafeWait utility consistently to prevent infinite yield warnings.
 
 ### 5. Asset/Animation/Sound Loading Issues
 - "Failed to load sound rbxassetid://9048378264: Asset type does not match requested type"
