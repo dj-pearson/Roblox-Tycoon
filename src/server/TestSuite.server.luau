@@ -63,12 +63,12 @@ local TestSuite = {
 -- Modules to test (try to get from CoreRegistry if available)
 local Modules = {
     BoundingBoxManager = CoreRegistry and CoreRegistry:GetSystem("BoundingBoxManager") 
-        or TryRequire(coreFolder.Core.BoundingBoxManager),
+        or TryRequire(coreFolder:FindFirstChild("BoundingBoxManager")),
     EquipmentManager = CoreRegistry and CoreRegistry:GetSystem("EquipmentManager") 
-        or TryRequire(coreFolder.Core.EquipmentManager),
+        or TryRequire(coreFolder:FindFirstChild("EquipmentManager")),
     BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem") 
-        or TryRequire(coreFolder.Core.BuyTileSystem),
-    TileDataGenerator = CoreRegistry and CoreRegistry:GetSystem("TileDataGenerator") 
+        or TryRequire(coreFolder:FindFirstChild("BuyTileSystem")),
+    TileDataGenerator = CoreRegistry and CoreRegistry:GetSystem("TileDataGenerator")
         or TryRequire(coreFolder.Core.TileDataGenerator),
     FloorAttributeSetup = CoreRegistry and CoreRegistry:GetSystem("FloorAttributeSetup") 
         or TryRequire(coreFolder.FloorAttributeSetup)

@@ -6,7 +6,8 @@ local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Load the sanction system
-local SanctionSystem = require(game:GetService("ServerScriptService").Core.Utils.ErrorHandler)
+-- Fixed path to ErrorHandler - moved from Core.Utils to Core
+local SanctionSystem = require(ServerScriptService:WaitForChild("Core"):WaitForChild("DevUtilityFunctions"))
 
 -- List of admin user IDs (replace with your actual admin IDs)
 local ADMIN_IDS = {
@@ -260,16 +261,17 @@ local function processAdminCommand(player, message)
 			message.Text = "Invalid user ID: " .. (userIdString or "nil")
 			message.Parent = player
 			game:GetService("Debris"):AddItem(message, 3)
-		end
-	elseif command == "createNPC" then
+		end	elseif command == "createNPC" then
         -- Create NPC
-        local createNPC = function(player, args)
-            local npcSystem = require(ServerScriptService.src.server.Core.NPCSystem)
-            npcSystem:createNewNPC()
-			local message = Instance.new("Message")
-			message.Text = "NPC Created"
-			message.Parent = player
-			game:GetService("Debris"):AddItem(message, 3)        end
+        -- Fixed path to NPCSystem - using direct Core folder reference
+        local npcSystem = require(ServerScriptService:WaitForChild("Core"):WaitForChild("NPCSystem"))
+        npcSystem:createNewNPC()
+        
+        -- Notify admin
+        local notificationMsg = Instance.new("Message")
+        notificationMsg.Text = "NPC Created"
+        notificationMsg.Parent = player
+        game:GetService("Debris"):AddItem(notificationMsg, 3)
 	end
 end
 
