@@ -1,4 +1,4 @@
---!strict
+--!strict -
 --[[
     MigrationTest.server.luau
     Test script for validating the data migration utilities
@@ -6,7 +6,8 @@
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- ReplicatedStorage will be used in future expansion
+-- local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Get necessary modules
 local MigrationUtils = require(ServerScriptService.server.MigrationUtils)
@@ -145,32 +146,47 @@ local function RunMigrationTests()
     print("==========================================")
     print("RUNNING DATA MIGRATION TESTS")
     print("==========================================")
-    
-    -- Test equipment data migration
+      -- Test equipment data migration
     print("\n----- EQUIPMENT DATA MIGRATION TESTS -----")
     for i, oldData in ipairs(sampleData.equipmentData) do
         print("\nTesting equipment format " .. i)
         local migratedData = MigrationUtils.MigrateEquipmentData(oldData)
         print("Migration result: " .. (MigrationUtils.ValidateEquipmentData(migratedData) and "PASSED" or "FAILED"))
-        print("Items migrated: " .. tostring(#table.keys(migratedData)))
+        
+        -- Count the number of keys in the table
+        local itemCount = 0
+        for _ in pairs(migratedData) do
+            itemCount += 1
+        end
+        print("Items migrated: " .. tostring(itemCount))
     end
-    
-    -- Test tile data migration
+      -- Test tile data migration
     print("\n----- TILE DATA MIGRATION TESTS -----")
     for i, oldData in ipairs(sampleData.tileData) do
         print("\nTesting tile format " .. i)
         local migratedData = MigrationUtils.MigrateTileData(oldData)
         print("Migration result: " .. (MigrationUtils.ValidateTileData(migratedData) and "PASSED" or "FAILED"))
-        print("Items migrated: " .. tostring(#table.keys(migratedData)))
+        
+        -- Count the number of keys in the table
+        local itemCount = 0
+        for _ in pairs(migratedData) do
+            itemCount += 1
+        end
+        print("Items migrated: " .. tostring(itemCount))
     end
-    
-    -- Test progression data migration
+      -- Test progression data migration
     print("\n----- PROGRESSION DATA MIGRATION TESTS -----")
     for i, oldData in ipairs(sampleData.progressionData) do
         print("\nTesting progression format " .. i)
         local migratedData = MigrationUtils.MigrateProgressionData(oldData)
         print("Migration result: " .. (MigrationUtils.ValidateProgressionData(migratedData) and "PASSED" or "FAILED"))
-        print("Floors migrated: " .. tostring(#table.keys(migratedData.floors)))
+        
+        -- Count the number of floor keys in the table
+        local floorCount = 0
+        for _ in pairs(migratedData.floors) do
+            floorCount += 1
+        end
+        print("Floors migrated: " .. tostring(floorCount))
     end
     
     -- Test rollback functionality
@@ -187,10 +203,15 @@ end
 
 -- Create command to run migration tests
 local function SetupTestCommands()
-    -- Register a global function to run tests in Studio
+    -- Register a function to run tests in Studio
     if game:GetService("RunService"):IsStudio() then
-        _G.RunMigrationTests = RunMigrationTests
-        print("Migration test command registered. Run _G.RunMigrationTests() to test migrations.")
+        -- Create a BindableFunction to allow testing from command bar
+        local testFunction = Instance.new("BindableFunction")
+        testFunction.Name = "RunMigrationTests"
+        testFunction.OnInvoke = RunMigrationTests
+        testFunction.Parent = game:GetService("ServerScriptService")
+        
+        print("Migration test command registered. Run game.ServerScriptService.RunMigrationTests:Invoke() to test migrations.")
     end
 end
 
