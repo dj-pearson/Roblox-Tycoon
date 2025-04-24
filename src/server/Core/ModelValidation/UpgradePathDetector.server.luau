@@ -68,7 +68,7 @@ function UpgradePathDetector:ExtractBaseNameAndTier(modelName)
     end
     
     -- Check for tier variant pattern (e.g., "Weights_Basic")
-    baseName, local tierName = string.match(modelName, self.NAMING_PATTERNS.TIER_VARIANT)
+    local baseName, tierName = string.match(modelName, self.NAMING_PATTERNS.TIER_VARIANT)
     if baseName and tierName and self.TIER_ORDER[tierName] then
         return baseName, self.TIER_ORDER[tierName], "tier", tierName
     end
@@ -132,7 +132,7 @@ function UpgradePathDetector:EstablishUpgradeRelationships(upgradeGroups, option
     }
     
     -- Process each upgrade group
-    for baseName, group in pairs(upgradeGroups) do
+    for groupName, group in pairs(upgradeGroups) do
         if #group.models > 1 then
             stats.groupsFound = stats.groupsFound + 1
             local models = group.models
@@ -179,7 +179,7 @@ function UpgradePathDetector:EstablishUpgradeRelationships(upgradeGroups, option
             end
             
             -- Store the complete upgrade path for this group
-            upgradeGroups[baseName].upgradePath = upgradePath
+            upgradeGroups[groupName].upgradePath = upgradePath
         end
     end
     
@@ -190,7 +190,7 @@ end
 function UpgradePathDetector:ApplyUpgradeTags(upgradeGroups)
     local tagStats = {}
     
-    for baseName, group in pairs(upgradeGroups) do
+    for groupName, group in pairs(upgradeGroups) do
         local models = group.models
         
         -- Tag first model in series as base tier
@@ -213,7 +213,7 @@ function UpgradePathDetector:ApplyUpgradeTags(upgradeGroups)
             end
             
             -- Tag all models with their equipment family
-            local familyTag = "Family_" .. baseName
+            local familyTag = "Family_" .. groupName
             
             for _, modelInfo in ipairs(models) do
                 if not CollectionService:HasTag(modelInfo.model, familyTag) then

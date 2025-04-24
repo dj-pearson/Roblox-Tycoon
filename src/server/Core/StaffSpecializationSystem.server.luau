@@ -43,8 +43,6 @@ local SKILL_TREES = {
                 memberSatisfactionBoost = 0.1 -- 10% boost to member satisfaction
             }
         },
-        
-    },
         {
             name = "Member Retention",
             description = "Reduces member churn rate.",
