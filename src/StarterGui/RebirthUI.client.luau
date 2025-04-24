@@ -783,7 +783,8 @@ local function createRebirthUI()
             noFeaturesLabel.Name = "NoFeaturesLabel"
             noFeaturesLabel.Size = UDim2.new(1, -20, 0, 40)
             noFeaturesLabel.BackgroundTransparency = 1
-            noFeaturesLabel.Font = Enum.Font.GothamItalic
+            -- Updated to a supported font (GothamItalic is deprecated)
+            noFeaturesLabel.Font = Enum.Font.GothamMedium
             noFeaturesLabel.Text = "No features unlocked yet. Rebirth to unlock special features!"
             noFeaturesLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
             noFeaturesLabel.TextSize = 14

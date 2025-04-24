@@ -13,7 +13,8 @@ local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
-local EquipmentBoundingBox = require(script.Parent.EquipmentBoundingBox)
+-- Fixed reference to BoundingBoxManager instead of EquipmentBoundingBox
+local EquipmentBoundingBox = require(script.Parent.BoundingBoxManager)
 
 local EquipmentUpgradeSystem = {}
 EquipmentUpgradeSystem.__index = EquipmentUpgradeSystem

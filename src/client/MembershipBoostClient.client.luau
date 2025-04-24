@@ -7,7 +7,27 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local MembershipBoostEvent = ReplicatedStorage:WaitForChild("MembershipBoostEvent") -- Assuming this is your RemoteEvent
+-- Fix reference to MembershipBoostEvent - use FindFirstChild and fallback to proper RemoteEvent
+local MembershipBoostEvent = ReplicatedStorage:FindFirstChild("MembershipBoostEvent")
+
+-- Create RemoteEvent if it doesn't exist or isn't the correct type
+if not MembershipBoostEvent or not MembershipBoostEvent:IsA("RemoteEvent") then
+    -- Look for the RemoteEvent in any Events folder that might exist
+    local eventsFolder = ReplicatedStorage:FindFirstChild("Events") or 
+                        ReplicatedStorage:FindFirstChild("ReplicatedEvents")
+    
+    if eventsFolder then
+        MembershipBoostEvent = eventsFolder:FindFirstChild("MembershipBoostEvent")
+    end
+    
+    -- If still not found or wrong type, use a placeholder RemoteEvent
+    if not MembershipBoostEvent or not MembershipBoostEvent:IsA("RemoteEvent") then
+        warn("MembershipBoostEvent not found or not a RemoteEvent. Using placeholder.")
+        MembershipBoostEvent = Instance.new("RemoteEvent")
+        MembershipBoostEvent.Name = "MembershipBoostEvent"
+        -- Don't parent it, just use as a placeholder to prevent errors
+    end
+end
 
 local UI = Instance.new("ScreenGui")
 UI.Name = "MembershipBoostUI"

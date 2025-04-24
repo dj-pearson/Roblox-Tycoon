@@ -4,7 +4,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local TutorialManager = require(ServerScriptService.src.server.Core.TutorialManager)
+-- Fix path to TutorialManager - direct Core reference
+local TutorialManager = require(ServerScriptService:WaitForChild("Core"):WaitForChild("TutorialManager"))
 
 local MovementTutorial = {}
 

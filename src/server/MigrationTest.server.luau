@@ -10,7 +10,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 -- local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Get necessary modules
-local MigrationUtils = require(ServerScriptService.server.MigrationUtils)
+local MigrationUtils = require(ServerScriptService:WaitForChild("Core"):WaitForChild("MigrationUtils"))
 
 -- Sample data in old formats
 local sampleData = {

@@ -6,12 +6,42 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
--- Import required modules
-local UIStyle = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("UIStyle"))
+-- Import SafeWait utility
+local SafeWait
+pcall(function()
+    SafeWait = require(ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"):FindFirstChild("SafeWait"))
+end)
+
+-- If SafeWait isn't available, create a simple version
+if not SafeWait then
+    SafeWait = {
+        waitForChild = function(parent, name, timeout)
+            return parent:WaitForChild(name, timeout or 5)
+        end,
+        waitForPath = function(parent, path, timeout)
+            local current = parent
+            for _, name in ipairs(path) do
+                current = current:WaitForChild(name, timeout or 5)
+                if not current then return nil end
+            end
+            return current
+        end
+    }
+end
+
+-- Safely wait for shared folder and import UIStyle
+local shared = SafeWait.waitForChild(ReplicatedStorage, "shared", 5)
+local UIStyleModule = shared and SafeWait.waitForChild(shared, "UIStyle", 5)
+local UIStyle = UIStyleModule and require(UIStyleModule)
+
+-- Add warning if module couldn't be loaded
+if not UIStyle then
+    warn("UIHub: Failed to load UIStyle module")
+end
 
 -- Private variables
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local playerGui = SafeWait.waitForChild(player, "PlayerGui", 5)
 local ClientRegistry
 local UIManager
 
