@@ -5,19 +5,63 @@
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Get the CoreRegistry and EventBridge
-local CoreRegistry = require(script.Parent.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
+-- Try to use ModuleLoader for better dependency management
+local ModuleLoader
+local CoreRegistry
+local EventBridge
+local DataThrottler
 
--- Require DataThrottler to manage DataStore requests
-local DataThrottler = CoreRegistry.getSystem("DataThrottler")
-if not DataThrottler then
-    -- If not registered yet, try requiring it directly
-    pcall(function()
-        DataThrottler = require(script.Parent.DataThrottler)
+-- First try to load ModuleLoader
+local loaderSuccess, loaderResult = pcall(function()
+    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
+end)
+
+if loaderSuccess and loaderResult then
+    ModuleLoader = loaderResult
+    print("[DataManager] Using ModuleLoader for dependencies")
+    
+    -- Load dependencies using ModuleLoader
+    CoreRegistry = ModuleLoader:LoadServerModule("Core", "CoreRegistry")
+    if CoreRegistry then
+        -- If CoreRegistry is loaded, use it to get other systems
+        EventBridge = CoreRegistry.getSystem("EventBridge")
+        DataThrottler = CoreRegistry.getSystem("DataThrottler")
+    end
+    
+    -- Attempt to load dependencies directly through ModuleLoader if not found through CoreRegistry
+    if not DataThrottler then
+        DataThrottler = ModuleLoader:LoadServerModule("Core", "DataThrottler")
+    end
+else
+    print("[DataManager] ModuleLoader not found, using legacy loading")
+    
+    -- Legacy loading method
+    local success, result = pcall(function()
+        return require(script.Parent.CoreRegistry)
     end)
+    
+    if success then
+        CoreRegistry = result
+        EventBridge = CoreRegistry.getSystem("EventBridge")
+        DataThrottler = CoreRegistry.getSystem("DataThrottler")
+    else
+        warn("[DataManager] Failed to load CoreRegistry: " .. tostring(result))
+    end
+    
+    -- If DataThrottler still not loaded, try direct require
+    if not DataThrottler then
+        pcall(function()
+            DataThrottler = require(script.Parent.DataThrottler)
+        end)
+    end
 end
+
+-- Log dependency status
+if not CoreRegistry then warn("[DataManager] WARNING: CoreRegistry not loaded") end
+if not EventBridge then warn("[DataManager] WARNING: EventBridge not loaded") end
+if not DataThrottler then warn("[DataManager] WARNING: DataThrottler not loaded") end
 
 -- Configuration
 local CONFIG = {

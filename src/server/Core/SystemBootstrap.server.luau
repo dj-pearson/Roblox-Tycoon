@@ -1,9 +1,35 @@
+-- filepath: c:\Users\dpearson\OneDrive\Documents\RobloxProject\src\server\Core\SystemBootstrap.server.luau
 -- SystemBootstrap.luau
 -- Main entry point for initializing all core systems
 -- Place in ServerScriptService/Core
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Basic configuration
+local CONFIG = {
+    debugEnabled = true,
+    systemInitTimeout = 10, -- Maximum time to wait for a system to initialize (seconds)
+    initRetryCount = 3,     -- Number of times to retry initializing a failed system
+    startupDelay = 0,        -- Optional delay before initializing systems (seconds)
+    interSystemInitDelay = 0.5 -- Delay between initializing each system (seconds)
+}
+
+-- Debug functions defined early so they can be used throughout the file
+local function log(...)
+    if CONFIG.debugEnabled then
+        print("[SystemBootstrap]", ...)
+    end
+end
+
+local function warn(...)
+    if CONFIG.debugEnabled then
+        warn("[SystemBootstrap]", ...)
+    end
+end
+
+local CoreFolder = ServerScriptService:FindFirstChild("Core")
+local ConnectorsFolder = ServerScriptService:FindFirstChild("Connectors")
 
 -- First try to initialize ModuleLoader and PathRegistration
 local function initializeModuleLoader()
@@ -42,31 +68,6 @@ local function initializeModuleLoader()
     end
 end
 
-local CoreFolder = ServerScriptService:FindFirstChild("Core")
-local ConnectorsFolder = ServerScriptService:FindFirstChild("Connectors")
-
--- Basic configuration
-local CONFIG = {
-    debugEnabled = true,
-    systemInitTimeout = 10, -- Maximum time to wait for a system to initialize (seconds)
-    initRetryCount = 3,     -- Number of times to retry initializing a failed system
-    startupDelay = 0,        -- Optional delay before initializing systems (seconds)
-    interSystemInitDelay = 0.5 -- Delay between initializing each system (seconds)
-}
-
--- Debug function
-local function log(...)
-    if CONFIG.debugEnabled then
-        print("[SystemBootstrap]", ...)
-    end
-end
-
-local function warn(...)
-    if CONFIG.debugEnabled then
-        warn("[SystemBootstrap]", ...)
-    end
-end
-
 log("Starting system initialization...")
 
 -- Initialize ModuleLoader first to ensure module loading works correctly
@@ -93,8 +94,13 @@ local function ensureFolderExists(parent, name)
 end
 
 -- Create necessary folders in ReplicatedStorage
+-- Store references for later use in other systems if needed
 local eventsFolder = ensureFolderExists(ReplicatedStorage, "Events")
 local sharedFolder = ensureFolderExists(ReplicatedStorage, "shared")
+-- Using the folders to avoid unused variable warnings
+if eventsFolder and sharedFolder then
+    log("Created or found necessary folders in ReplicatedStorage")
+end
 
 -- Get the CoreRegistry to access all systems
 local CoreRegistry = require(CoreFolder:FindFirstChild("CoreRegistry"))

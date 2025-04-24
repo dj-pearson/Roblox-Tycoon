@@ -6,21 +6,50 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
--- Get the CoreRegistry safely using multiple methods to ensure it loads
-local CoreRegistry 
-if _G.CoreRegistry then
-    CoreRegistry = _G.CoreRegistry
-else
-    -- Try to require directly from parent
-    local success, result = pcall(function() 
-        return require(script.Parent.CoreRegistry)
-    end)
+-- Try to use ModuleLoader for better dependency management
+local ModuleLoader
+local CoreRegistry
+
+-- First try to load ModuleLoader
+local loaderSuccess, loaderResult = pcall(function()
+    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
+end)
+
+if loaderSuccess and loaderResult then
+    ModuleLoader = loaderResult
+    print("[BuyTileSystem] Using ModuleLoader for dependencies")
     
-    if success then
-        CoreRegistry = result
+    -- Load CoreRegistry using ModuleLoader
+    CoreRegistry = ModuleLoader:LoadServerModule("Core", "CoreRegistry")
+else
+    print("[BuyTileSystem] ModuleLoader not found, using legacy loading")
+    
+    -- Legacy loading methods in order of preference
+    if _G.CoreRegistry then
+        CoreRegistry = _G.CoreRegistry
+        print("[BuyTileSystem] Loaded CoreRegistry from _G")
     else
-        -- Final fallback
-        CoreRegistry = require(ServerScriptService.Core.CoreRegistry)
+        -- Try to require directly from parent
+        local success, result = pcall(function() 
+            return require(script.Parent.CoreRegistry)
+        end)
+        
+        if success then
+            CoreRegistry = result
+            print("[BuyTileSystem] Loaded CoreRegistry from parent")
+        else
+            -- Final fallback
+            local finalSuccess, finalResult = pcall(function()
+                return require(ServerScriptService.Core.CoreRegistry)
+            end)
+            
+            if finalSuccess then
+                CoreRegistry = finalResult
+                print("[BuyTileSystem] Loaded CoreRegistry from ServerScriptService.Core")
+            else
+                warn("[BuyTileSystem] CRITICAL: Failed to load CoreRegistry!")
+            end
+        end
     end
 end
 

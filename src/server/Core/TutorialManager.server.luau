@@ -1,4 +1,5 @@
-	--[[
+-- filepath: c:\Users\dpearson\OneDrive\Documents\RobloxProject\src\server\Core\TutorialManager.server.luau
+--[[
     TutorialManager.server.luau
     
     A comprehensive tutorial system for Gym Tycoon that guides new players through all aspects of the game.
@@ -19,6 +20,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
 
+-- Debug/logging
+local DEBUG_ENABLED = true
+local function debugPrint(...)
+    if DEBUG_ENABLED then
+        print("[TutorialManager]", ...)
+    end
+end
+
 -- Core modules
 local CoreRegistry
 local EventBridge
@@ -35,24 +44,6 @@ if loaderSuccess then
     debugPrint("ModuleLoader found and loaded successfully")
 else
     debugPrint("ModuleLoader not found, using legacy module loading")
-end
-
--- Try to load ModuleLoader first
-local ModuleLoader
-local loaderSuccess, loaderResult = pcall(function()
-    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
-end)
-
-if loaderSuccess then
-    ModuleLoader = loaderResult
-end
-
--- Debug/logging
-local DEBUG_ENABLED = true
-local function debugPrint(...)
-    if DEBUG_ENABLED then
-        print("[TutorialManager]", ...)
-    end
 end
 
 -- Load tutorial steps using ModuleLoader if available
@@ -90,11 +81,10 @@ if not TutorialSteps then
             debugPrint("TutorialSteps module not found, creating default tutorials")
             -- We'll define the tutorials directly in this file instead
             TutorialSteps = {}
+        end
     else
         TutorialSteps = result
     end
-else
-    TutorialSteps = result
 end
 
 -- Data structures
@@ -761,8 +751,7 @@ function TutorialManager.defineDefaultTutorials()
                 if showTutorialUIEvent then
                     showTutorialUIEvent:FireClient(player, {
                         title = "Staff Management",
-                        description = "Hire staff to improve your gym's revenue and member satisfaction.\nClick on the Staff button to open the staff management panel.",
-                        image = "rbxassetid://7734056104", -- Example asset ID
+                        description = "You can now hire staff to help run your gym!",
                         highlightSelector = ".StaffButton"
                     })
                 end
@@ -800,9 +789,7 @@ function TutorialManager.defineDefaultTutorials()
                 if showTutorialUIEvent then
                     showTutorialUIEvent:FireClient(player, {
                         title = "Alliance System",
-                        description = "Join forces with other gym owners in an Alliance!\nUnlock unique benefits and participate in challenges together.",
-                        image = "rbxassetid://7734056105", -- Example asset ID
-                        highlightSelector = ".AllianceButton"
+                        description = "Form alliances with other gym owners to get special bonuses!"
                     })
                 end
             end
@@ -834,15 +821,12 @@ function TutorialManager.defineDefaultTutorials()
                 if showTutorialUIEvent then
                     showTutorialUIEvent:FireClient(player, {
                         title = "Gym Specializations",
-                        description = "Specialize your gym to attract specific types of members!\nEach specialization offers unique bonuses and equipment.",
-                        image = "rbxassetid://7734056106", -- Example asset ID
-                        highlightSelector = ".SpecializationButton"
+                        description = "Specialize your gym to attract different types of members!"
                     })
                 end
             end
         end,
         completionCondition = function(player)
-            -- Auto-complete after viewing
             return true
         end,
         requiresInteraction = false
@@ -855,7 +839,7 @@ function TutorialManager.defineDefaultTutorials()
         importance = 4,
         prerequisiteSteps = {"SpecializationSystemTutorial"},
         triggerCondition = function(player)
-            -- Only show after player has a high enough level
+            -- Only show after player has reached a high level
             local tycoon = player:FindFirstChild("Tycoon")
             if tycoon and tycoon:GetAttribute("Level") then
                 return tycoon:GetAttribute("Level") >= 10
@@ -868,15 +852,12 @@ function TutorialManager.defineDefaultTutorials()
                 if showTutorialUIEvent then
                     showTutorialUIEvent:FireClient(player, {
                         title = "Rebirth System",
-                        description = "Ready for a new challenge?\nRebirth to start fresh with powerful permanent bonuses!",
-                        image = "rbxassetid://7734056107", -- Example asset ID
-                        highlightSelector = ".RebirthButton"
+                        description = "Reset your progress to gain permanent bonuses!"
                     })
                 end
             end
         end,
         completionCondition = function(player)
-            -- Auto-complete after viewing
             return true
         end,
         requiresInteraction = false
@@ -896,146 +877,141 @@ function TutorialManager.defineDefaultTutorials()
         },
         unlockCondition = function(player)
             return true -- Always available
-        }
+        end
     })
     
     TutorialManager.registerTutorialSequence({
-        name = "AdvancedFeaturesSequence",
-        description = "Take your gym to the next level with advanced features!",
+        name = "AdvancedSequence",
+        description = "Take your gym to the next level with advanced features.",
         category = "Progression",
         importance = 8,
         steps = {
             "StaffManagementTutorial",
-            "AllianceSystemTutorial",
-            "SpecializationSystemTutorial"
+            "SpecializationSystemTutorial",
+            "AllianceSystemTutorial"
         },
         unlockCondition = function(player)
-            -- Only unlock after completing the welcome sequence
-            if not PlayerTutorialProgress[player.UserId] then return false end
+            -- Only available after completing welcome sequence
+            if not PlayerTutorialProgress[player.UserId] or 
+               not PlayerTutorialProgress[player.UserId].sequenceProgress then 
+                return false 
+            end
             
             local completedWelcome = PlayerTutorialProgress[player.UserId].sequenceProgress["WelcomeSequence"]
             return completedWelcome and completedWelcome.completed
-        }
+        end
     })
     
     TutorialManager.registerTutorialSequence({
-        name = "MasterySequence",
-        description = "Master advanced gameplay systems and maximize your gym's potential!",
-        category = "Mastery",
+        name = "EndgameSequence",
+        description = "Master the endgame content to become a gym tycoon legend.",
+        category = "Endgame",
         importance = 6,
         steps = {
             "RebirthSystemTutorial"
             -- Add more advanced tutorial steps here
         },
         unlockCondition = function(player)
-            -- Only unlock at high level
+            -- Only level 10+ players can access
             local tycoon = player:FindFirstChild("Tycoon")
-            if tycoon and tycoon:GetAttribute("Level") then
-                return tycoon:GetAttribute("Level") >= 10
+            if not tycoon or not tycoon:GetAttribute("Level") then
+                return false
             end
-            return false
-        }
-    })
-}
-
---[[ Event Handling ]]--
-
--- Handle remote events
-function TutorialManager.setupRemoteEvents()
-    if not EventBridge then return end
-    
-    -- Create remote events
-    local skipTutorialEvent = Instance.new("RemoteEvent")
-    skipTutorialEvent.Name = "SkipTutorial"
-    skipTutorialEvent.Parent = EventBridge
-    
-    local requestTutorialEvent = Instance.new("RemoteEvent")
-    requestTutorialEvent.Name = "RequestTutorial"
-    requestTutorialEvent.Parent = EventBridge
-    
-    local updateTutorialSettingsEvent = Instance.new("RemoteEvent")
-    updateTutorialSettingsEvent.Name = "UpdateTutorialSettings"
-    updateTutorialSettingsEvent.Parent = EventBridge
-    
-    -- Create remote functions
-    local getTutorialProgressFunction = Instance.new("RemoteFunction")
-    getTutorialProgressFunction.Name = "GetTutorialProgress"
-    getTutorialProgressFunction.Parent = EventBridge
-    
-    -- Connect event handlers
-    skipTutorialEvent.OnServerEvent:Connect(function(player, stepName)
-        if not player then return end
-        TutorialManager.skipStep(player, stepName)
-    end)
-    
-    requestTutorialEvent.OnServerEvent:Connect(function(player, tutorialName)
-        if not player then return end
-        
-        if TutorialSequences[tutorialName] then
-            TutorialManager.startSequence(player, tutorialName)
-        elseif RegisteredTutorialSteps[tutorialName] then
-            TutorialManager.triggerTutorialStep(player, tutorialName)
+            return tycoon:GetAttribute("Level") >= 10
         end
-    end)
+    })
+end
+
+-- Initialize the tutorial manager
+function TutorialManager.initialize()
+    debugPrint("Initializing TutorialManager...")
+    
+    -- Try to get core modules
+    if not CoreRegistry then
+        -- Try to get CoreRegistry from ServerScriptService (preferred location)
+        local success, result = pcall(function()
+            return require(ServerScriptService.Core.CoreRegistry)
+        end)
+        
+        if success then
+            CoreRegistry = result
+            debugPrint("Successfully loaded CoreRegistry")
+            
+            -- Get EventBridge and DataManager from CoreRegistry
+            EventBridge = CoreRegistry.getSystem("EventBridge")
+            DataManager = CoreRegistry.getSystem("DataManager")
+        else
+            warn("Failed to load CoreRegistry, some features may not work:", result)
+        end
+    end
+    
+    -- Create events folder if needed
+    if not EventBridge then
+        warn("EventBridge not found, creating a basic one")
+        EventBridge = ReplicatedStorage:FindFirstChild("Events")
+        if not EventBridge then
+            EventBridge = Instance.new("Folder")
+            EventBridge.Name = "Events"
+            EventBridge.Parent = ReplicatedStorage
+        end
+    end
+    
+    -- Set up remote events
+    local getTutorialProgressEvent = EventBridge:FindFirstChild("GetTutorialProgress")
+    if not getTutorialProgressEvent then
+        getTutorialProgressEvent = Instance.new("RemoteFunction")
+        getTutorialProgressEvent.Name = "GetTutorialProgress"
+        getTutorialProgressEvent.Parent = EventBridge
+    end
+    
+    -- Handle the remote function call
+    getTutorialProgressEvent.OnServerInvoke = function(player)
+        return PlayerTutorialProgress[player.UserId] or {
+            completedSteps = {},
+            activeSequence = nil,
+            sequenceProgress = {}
+        }
+    end
+    
+    local updateTutorialSettingsEvent = EventBridge:FindFirstChild("UpdateTutorialSettings")
+    if not updateTutorialSettingsEvent then
+        updateTutorialSettingsEvent = Instance.new("RemoteEvent")
+        updateTutorialSettingsEvent.Name = "UpdateTutorialSettings"
+        updateTutorialSettingsEvent.Parent = EventBridge
+    end
     
     updateTutorialSettingsEvent.OnServerEvent:Connect(function(player, settings)
-        if not player then return end
         TutorialManager.updatePlayerSettings(player, settings)
     end)
     
-    -- Set up remote function handlers
-    getTutorialProgressFunction.OnServerInvoke = function(player)
-        if not player or not PlayerTutorialProgress[player.UserId] then return {} end
-        return PlayerTutorialProgress[player.UserId]
-    end
-}
-
---[[ Initialization ]]--
-
-function TutorialManager.init(registry)
-    CoreRegistry = registry
-    
-    -- Get dependencies
-    EventBridge = CoreRegistry:getSystem("EventBridge")
-    DataManager = CoreRegistry:getSystem("DataManager")
-    
-    -- Define default tutorials
-    TutorialManager.defineDefaultTutorials()
-    
-    -- Set up remote events
-    TutorialManager.setupRemoteEvents()
-    
-    -- Connect player events
-    Players.PlayerAdded:Connect(function(player)
-        task.delay(2, function() -- Give time for other systems to initialize
-            TutorialManager.initializePlayer(player)
-        end)
-    end)
-    
-    Players.PlayerRemoving:Connect(function(player)
-        TutorialManager.playerLeaving(player)
-    end)
-    
-    -- Initialize existing players
-    for _, player in pairs(Players:GetPlayers()) do
+    -- Handle existing players
+    for _, player in ipairs(Players:GetPlayers()) do
         task.spawn(function()
             TutorialManager.initializePlayer(player)
         end)
     end
     
-    debugPrint("Tutorial Manager initialized (v" .. TutorialManager._version .. ")")
-    return true
-end
-
-function TutorialManager.start()
+    -- Handle player joining
+    Players.PlayerAdded:Connect(function(player)
+        TutorialManager.initializePlayer(player)
+    end)
+    
+    -- Handle player leaving
+    Players.PlayerRemoving:Connect(function(player)
+        TutorialManager.playerLeaving(player)
+    end)
+    
+    -- Define default tutorials
+    TutorialManager.defineDefaultTutorials()
+    
+    -- Register with CoreRegistry if available
+    if CoreRegistry and CoreRegistry.registerSystem then
+        CoreRegistry.registerSystem("TutorialManager", TutorialManager)
+        debugPrint("Registered TutorialManager with CoreRegistry")
+    end
+    
     debugPrint("Tutorial Manager started")
     return true
-end
-
--- Legacy support
-function TutorialManager.initialize()
-    warn("TutorialManager.initialize() is deprecated, use TutorialManager.init() instead")
-    return TutorialManager.init()
 end
 
 return TutorialManager
