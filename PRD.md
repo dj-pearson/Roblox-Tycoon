@@ -43,6 +43,24 @@
    - [ ] Identify all systems that interact with data persistence
    - [ ] Map out ideal data architecture
 
+   #### System Analysis
+   - **DataManager:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **TycoonSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **NPCSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **RevenueSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+
 2. **Phase 2: System Consolidation**
    - [ ] Select primary data system (Core DataManager)
    - [ ] Update dependency injection in CoreRegistry
@@ -62,6 +80,34 @@
    - [ ] Test data persistence across all game scenarios
    - [ ] Verify recovery from common failure modes
    - [ ] Document final system architecture
+   - **MilestoneSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **AchievementSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **SpecializationSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **AllianceSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **RebirthSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **LeaderstatsSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
+   - **QuestSystem:**
+     - Loads Data:
+     - Saves Data:
+     - Dependencies:
 
 ## Feature Ideas (Ready for Implementation)
 
