@@ -143,14 +143,39 @@ This document serves as the central repository for all project information, guid
     -   **Vulnerability:** Potential for data breaches or unauthorized access to player data.
     -   **Mitigation:**
         -   Encrypt all sensitive data both in transit and at rest.
+            -   **Encryption in Transit:** Utilize TLS (Transport Layer Security) 1.3 or higher for all network communications involving player data. This ensures that data is encrypted while being transmitted between the client and server, preventing eavesdropping and man-in-the-middle attacks.
+            -   **Encryption at Rest:** Employ strong encryption algorithms (e.g., AES-256) to protect sensitive data stored in databases, files, or other persistent storage.
+            -   **Key Management:** Implement a secure key management system. Keys should be stored separately from the encrypted data, regularly rotated, and access to keys should be strictly controlled. Consider using a Hardware Security Module (HSM) or a cloud-based key management service.
+            -   **Data to Encrypt:** Identify and encrypt all personally identifiable information (PII), financial data, game-related data, and any other data that could compromise player privacy or the integrity of the game if exposed.
         -   Implement strict access controls and logging.
+            -   **Role-Based Access Control (RBAC):** Define roles and permissions to control access to player data. Each role should have the minimum necessary access. For example, customer support roles would only have access to view data but not modify it.
+            -   **Principle of Least Privilege:** Grant users and systems only the minimum level of access needed to perform their functions. This reduces the potential damage if an account is compromised.
+            -   **Authentication and Authorization:** Implement strong authentication mechanisms, such as multi-factor authentication (MFA), to verify user identities. Authorization mechanisms should verify if the authenticated user is allowed to perform the requested action.
+            -   **Logging:** Maintain comprehensive logs of all access to and modifications of player data. Logs should include the timestamp, user ID, IP address, action performed, and data affected. Ensure logs are stored securely and regularly reviewed for suspicious activity.
         -   Regularly audit and update security measures.
+            -   **Frequency:** Conduct security audits at least quarterly, or more frequently if there are significant changes to the game or its infrastructure. Consider also trigger-based security audits after critical events.
+            -   **Scope:** Audits should encompass code, infrastructure, network, and access controls. Vulnerability scans and penetration testing should be part of the audit process.
+            -   **Tools:** Utilize automated vulnerability scanning tools to identify potential security weaknesses. Manual code review and penetration testing by security experts are also crucial.
+            -   **Updates:** Promptly apply security patches and updates to all software and systems. Keep abreast of the latest security threats and update security measures accordingly.
+            - **Incident Response:** Create a plan to respond to any incidents that may occur, and the steps required to recover from the incident.
+            - **Third-Party Vendors:** All third-party vendors should have their security reviewed and have a written policy.
+            - **Data Retention:** Data that is no longer needed should be deleted.
 -   **User Authentication:**
     -   **Vulnerability:** Weak or compromised player accounts.
     -   **Mitigation:**
         -   Enforce strong password policies.
         -   Consider multi-factor authentication.
         -   Monitor for suspicious login activity.
+
+
+
+
+
+
+
+
+
+
 -   **Anti-Cheat Measures:**
     -   **Vulnerability:** Players using cheats or exploits to gain an unfair advantage.
     -   **Mitigation:**
