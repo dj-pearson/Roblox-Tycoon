@@ -31,9 +31,13 @@ end
 -- Safely wait for required objects with timeouts
 local shared = SafeWait.waitForChild(ReplicatedStorage, "shared", 10)
 
--- Get UI modules (with nil checks)
-local CompetitionUI = shared and require(shared:FindFirstChild("CompetitionUI"))
-local UIStyle = shared and require(shared:FindFirstChild("UIStyle"))
+-- Use SafeWait for CompetitionUI to prevent infinite yield warning
+local CompetitionUI = shared and SafeWait.waitForChild(shared, "CompetitionUI", 5)
+local UIStyle = shared and SafeWait.waitForChild(shared, "UIStyle", 5)
+
+-- Now require the modules if they were found
+CompetitionUI = CompetitionUI and require(CompetitionUI)
+UIStyle = UIStyle and require(UIStyle)
 
 -- Add warning if modules couldn't be loaded
 if not CompetitionUI then

@@ -42,8 +42,16 @@ if not SafeWait then
         waitForPath = function(parent, path, timeout)
             local current = parent
             for _, name in ipairs(path) do
-                current = current:WaitForChild(name, timeout or 5)
-                if not current then return nil end
+                -- Add a timeout to prevent infinite yield
+                local next = parent:FindFirstChild(name)
+                if not next then
+                    next = parent:WaitForChild(name, timeout or 5)
+                    if not next then 
+                        warn("SafeWait: Timed out waiting for " .. name .. " in " .. parent:GetFullName())
+                        return nil 
+                    end
+                end
+                current = next
             end
             return current
         end
@@ -54,8 +62,16 @@ end
 -- Define the path components for cleaner code
 local serverCorePath = {"src", "server", "Core"}
 
--- Use SafeWait to avoid infinite yield warnings
-local serverCore = SafeWait.waitForPath(ServerScriptService, serverCorePath, 10)
+-- First check if the path already exists
+local serverCore = ServerScriptService:FindFirstChild("src") and 
+                  ServerScriptService.src:FindFirstChild("server") and 
+                  ServerScriptService.src.server:FindFirstChild("Core")
+                  
+-- Only wait if needed
+if not serverCore then
+    -- Use SafeWait to avoid infinite yield warnings
+    serverCore = SafeWait.waitForPath(ServerScriptService, serverCorePath, 10)
+end
 if not serverCore then
     warn("Failed to load server core modules - GymAutomation functionality will be limited")
 end

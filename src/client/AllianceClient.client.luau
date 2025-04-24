@@ -34,11 +34,13 @@ local DisbandAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "DisbandAl
 if not JoinAllianceEvent then
     warn("AllianceClient: Failed to load JoinAllianceEvent")
 end
-local ServerToClientEvents = ReplicatedStorage:WaitForChild("ServerToClientEvents")
 
-local AllianceCreatedEvent = ReplicatedStorage:WaitForChild("AllianceCreatedEvent")
-local PlayerJoinedAllianceEvent = ReplicatedStorage:WaitForChild("PlayerJoinedAllianceEvent")
-local PlayerLeftAllianceEvent = ReplicatedStorage:WaitForChild("PlayerLeftAllianceEvent")
+-- Use SafeWait for all remaining events to prevent infinite yield warnings
+local ServerToClientEvents = SafeWait.waitForChild(ReplicatedStorage, "ServerToClientEvents", 5)
+
+local AllianceCreatedEvent = SafeWait.waitForChild(ReplicatedStorage, "AllianceCreatedEvent", 5)
+local PlayerJoinedAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "PlayerJoinedAllianceEvent", 5)
+local PlayerLeftAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "PlayerLeftAllianceEvent", 5)
 local PlayerRemovedFromAllianceEvent = ReplicatedStorage:WaitForChild("PlayerRemovedFromAllianceEvent")
 local PlayerInvitedToAllianceEvent = ReplicatedStorage:WaitForChild("PlayerInvitedToAllianceEvent")
 local AllianceDisbandedEvent = ReplicatedStorage:WaitForChild("AllianceDisbandedEvent")

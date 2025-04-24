@@ -12,6 +12,13 @@ end)
 if not SafeWait then
     SafeWait = {
         waitForChild = function(parent, name, timeout)
+            -- First check if child already exists
+            local child = parent:FindFirstChild(name)
+            if child then
+                return child
+            end
+            
+            -- Use timeout to prevent infinite yield
             return parent:WaitForChild(name, timeout or 5)
         end
     }
@@ -22,7 +29,8 @@ local Events = SafeWait.waitForChild(ReplicatedStorage, "Events", 10)
 local ReputationEvents = SafeWait.waitForChild(ReplicatedStorage, "ReputationEvents", 10)
 local ReputationBenefitsUpdated = Events and SafeWait.waitForChild(Events, "ReputationBenefitsUpdated", 5)
 
-local ReputationUpdated = ReputationEvents:WaitForChild("ReputationUpdated")
+-- Use SafeWait instead of direct WaitForChild to prevent infinite yield
+local ReputationUpdated = ReputationEvents and SafeWait.waitForChild(ReputationEvents, "ReputationUpdated", 5)
 
 local ReputationUI = require(script.Parent.Parent.Shared.ReputationUI)
 

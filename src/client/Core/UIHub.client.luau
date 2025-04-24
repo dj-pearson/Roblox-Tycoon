@@ -31,7 +31,8 @@ end
 
 -- Safely wait for shared folder and import UIStyle
 local shared = SafeWait.waitForChild(ReplicatedStorage, "shared", 5)
-local UIStyle = shared and require(shared:FindFirstChild("UIStyle"))
+local UIStyleModule = shared and SafeWait.waitForChild(shared, "UIStyle", 5)
+local UIStyle = UIStyleModule and require(UIStyleModule)
 
 -- Add warning if module couldn't be loaded
 if not UIStyle then
@@ -40,7 +41,7 @@ end
 
 -- Private variables
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local playerGui = SafeWait.waitForChild(player, "PlayerGui", 5)
 local ClientRegistry
 local UIManager
 
