@@ -4,6 +4,44 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- First try to initialize ModuleLoader and PathRegistration
+local function initializeModuleLoader()
+    log("Initializing ModuleLoader and registering paths...")
+    
+    -- Create shared folder if it doesn't exist
+    if not ReplicatedStorage:FindFirstChild("shared") then
+        local sharedFolder = Instance.new("Folder")
+        sharedFolder.Name = "shared"
+        sharedFolder.Parent = ReplicatedStorage
+        log("Created shared folder in ReplicatedStorage")
+    end
+    
+    -- Check for ModuleLoader, and copy it to shared folder if missing
+    if not ReplicatedStorage.shared:FindFirstChild("ModuleLoader") then
+        -- Try to find it in the src/shared folder
+        local srcShared = game:GetService("ServerScriptService"):FindFirstChild("src"):FindFirstChild("shared")
+        if srcShared and srcShared:FindFirstChild("ModuleLoader") then
+            local moduleLoader = srcShared.ModuleLoader:Clone()
+            moduleLoader.Parent = ReplicatedStorage.shared
+            log("Copied ModuleLoader to ReplicatedStorage.shared")
+        else
+            warn("ModuleLoader not found in src/shared, module loading might not work correctly")
+        end
+    end
+    
+    -- Run PathRegistration early (if not already run)
+    local success, result = pcall(function()
+        return require(script.Parent:FindFirstChild("PathRegistration"))
+    end)
+    
+    if not success then
+        warn("Failed to run PathRegistration: " .. tostring(result))
+    else
+        log("PathRegistration completed successfully")
+    end
+end
+
 local CoreFolder = ServerScriptService:FindFirstChild("Core")
 local ConnectorsFolder = ServerScriptService:FindFirstChild("Connectors")
 
@@ -30,6 +68,9 @@ local function warn(...)
 end
 
 log("Starting system initialization...")
+
+-- Initialize ModuleLoader first to ensure module loading works correctly
+initializeModuleLoader()
 
 -- Run folder setup first to ensure all required folders exist
 local folderSetupPath = script.Parent:FindFirstChild("FolderSetup")

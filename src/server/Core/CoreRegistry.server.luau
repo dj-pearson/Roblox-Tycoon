@@ -2,16 +2,35 @@
 -- Central registry for managing system dependencies and initialization
 -- Place in ServerScriptService/Core
 
+local Services = {
+    ReplicatedStorage = game:GetService("ReplicatedStorage"),
+    ServerScriptService = game:GetService("ServerScriptService")
+}
+
+-- Use ModuleLoader if it exists, otherwise fall back to legacy loading
+local ModuleLoader
+local loaderSuccess, loaderResult = pcall(function()
+    return require(Services.ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
+end)
+
+if loaderSuccess then
+    ModuleLoader = loaderResult
+    print("[CoreRegistry] Successfully loaded ModuleLoader")
+else
+    print("[CoreRegistry] ModuleLoader not found, using legacy loading")
+end
+
 -- Create the registry table
 local CoreRegistry = {
-	systems = {},     -- Systems that have been registered
-	initialized = {}, -- Systems that have been initialized
-	loading = {}      -- Systems currently being initialized (to detect circular dependencies)
+    systems = {},     -- Systems that have been registered
+    initialized = {}, -- Systems that have been initialized
+    loading = {},     -- Systems currently being initialized (to detect circular dependencies)
+    moduleLoader = ModuleLoader -- Store ModuleLoader reference for other systems to use
 }
 
 -- Debug function
 local function log(...)
-	print("[CoreRegistry]", ...)
+    print("[CoreRegistry]", ...)
 end
 
 -- Register a system with the registry
@@ -38,22 +57,50 @@ function CoreRegistry.getSystem(name)
 	
 	-- Check if system exists
 	if not CoreRegistry.systems[name] then
-		-- Try to load it directly for certain core systems
-		if name == "DataThrottler" then
-			local success, result = pcall(function()
-				return require(script.Parent.DataThrottler)
-			end)
-			
-			if success then
-				CoreRegistry.registerSystem(name, result, {})
-				log("Auto-loaded system: " .. name)
+		-- Try to load it directly using ModuleLoader if available
+		if ModuleLoader then
+			local module = ModuleLoader:LoadServerModule("Core", name)
+			if module then
+				CoreRegistry.registerSystem(name, module, {})
+				log("Auto-loaded system '" .. name .. "' using ModuleLoader")
+				-- Continue with initialization below
 			else
-				log("Error: Failed to auto-load system: " .. name)
-				return nil
+				-- Fall back to legacy loading for common core systems
+				if name == "DataThrottler" or name == "EventBridge" or name == "DataManager" or name == "BuyTileSystem" then
+					local loadSuccess, loadResult = pcall(function()
+						return require(script.Parent:FindFirstChild(name))
+					end)
+					
+					if loadSuccess then
+						CoreRegistry.registerSystem(name, loadResult, {})
+						log("Auto-loaded system '" .. name .. "' using legacy loading")
+					else
+						log("Error: Failed to auto-load system: " .. name)
+						return nil
+					end
+				else
+					log("Error: System not found: " .. name)
+					return nil
+				end
 			end
 		else
-			log("Error: System not found: " .. name)
-			return nil
+			-- Legacy loading path for backwards compatibility
+			if name == "DataThrottler" then
+				local loadSuccess, loadResult = pcall(function()
+					return require(script.Parent.DataThrottler)
+				end)
+				
+				if loadSuccess then
+					CoreRegistry.registerSystem(name, loadResult, {})
+					log("Auto-loaded system: " .. name)
+				else
+					log("Error: Failed to auto-load system: " .. name)
+					return nil
+				end
+			else
+				log("Error: System not found: " .. name)
+				return nil
+			end
 		end
 	end
 	
@@ -158,14 +205,15 @@ local EventBridge = {
 	
 	getOrCreateRemoteEvent = function(self, eventName)
 		if not self.remoteEvents[eventName] then
-			local ReplicatedStorage = game:GetService("ReplicatedStorage")
+			-- Use the global Services table to avoid shadowing
+			local replicatedStorage = Services.ReplicatedStorage
 			
 			-- Create events folder if it doesn't exist
-			local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
+			local eventsFolder = replicatedStorage:FindFirstChild("Events")
 			if not eventsFolder then
 				eventsFolder = Instance.new("Folder")
 				eventsFolder.Name = "Events"
-				eventsFolder.Parent = ReplicatedStorage
+				eventsFolder.Parent = replicatedStorage
 			end
 			
 			-- Create or get remote event

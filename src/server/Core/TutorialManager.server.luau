@@ -24,6 +24,29 @@ local CoreRegistry
 local EventBridge
 local DataManager
 
+-- Try to load ModuleLoader first
+local ModuleLoader
+local loaderSuccess, loaderResult = pcall(function()
+    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
+end)
+
+if loaderSuccess then
+    ModuleLoader = loaderResult
+    debugPrint("ModuleLoader found and loaded successfully")
+else
+    debugPrint("ModuleLoader not found, using legacy module loading")
+end
+
+-- Try to load ModuleLoader first
+local ModuleLoader
+local loaderSuccess, loaderResult = pcall(function()
+    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
+end)
+
+if loaderSuccess then
+    ModuleLoader = loaderResult
+end
+
 -- Debug/logging
 local DEBUG_ENABLED = true
 local function debugPrint(...)
@@ -32,23 +55,41 @@ local function debugPrint(...)
     end
 end
 
--- Load tutorial steps
+-- Load tutorial steps using ModuleLoader if available
 local TutorialSteps
-local success, result = pcall(function()
-    -- Try in shared folder which is the standard location
-    return require(ReplicatedStorage.shared.TutorialSteps)
-end)
+if ModuleLoader then
+    -- Try to load TutorialSteps using ModuleLoader
+    TutorialSteps = ModuleLoader:LoadSharedModule("TutorialSteps")
+    
+    if not TutorialSteps then
+        -- Try server module location
+        TutorialSteps = ModuleLoader:LoadServerModule("TutorialSteps", "TutorialSteps")
+    end
+end
 
-if not success then
-    -- Fallback to server location
-    success, result = pcall(function()
-        return require(ServerScriptService.Core.TutorialSteps)
+-- Fall back to traditional loading if ModuleLoader failed or isn't available
+if not TutorialSteps then
+    local success, result = pcall(function()
+        -- Try in shared folder which is the standard location
+        return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("TutorialSteps"))
     end)
     
     if not success then
-        debugPrint("TutorialSteps module not found, creating default tutorials")
-        -- We'll define the tutorials directly in this file instead
-        TutorialSteps = {}
+        -- Fallback to server location
+        success, result = pcall(function()
+            if ServerScriptService:FindFirstChild("Core") then
+                return require(ServerScriptService.Core.TutorialSteps)
+            else
+                return require(ServerScriptService:FindFirstChild("src"):FindFirstChild("server"):FindFirstChild("Core"):FindFirstChild("TutorialSteps"))
+            end
+        end)
+        
+        if success then
+            TutorialSteps = result
+        else
+            debugPrint("TutorialSteps module not found, creating default tutorials")
+            -- We'll define the tutorials directly in this file instead
+            TutorialSteps = {}
     else
         TutorialSteps = result
     end

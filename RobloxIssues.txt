@@ -1,7 +1,7 @@
 # Roblox Issues Tracking Document
 
-Last Test Date: April 23, 2025
-Last Update: April 23, 2025
+Last Test Date: April 24, 2025
+Last Update: April 24, 2025
 This document categorizes issues found during testing to help track and resolve them.
 
 ## Fixed Issues
@@ -17,111 +17,75 @@ This document categorizes issues found during testing to help track and resolve 
 - ✅ TutorialManager and MembershipBoostEvent path references fixed - Added robust path resolution
 - ✅ FolderSetup script added to prevent infinite yield warnings
 
-## Remaining Issues
+## Remaining Issues (as of April 24, 2025)
 
-### Module Loading Errors
+### 1. Module Loading/Require Errors
+- Many scripts report: "Attempted to call require with invalid argument(s)."
+  - Examples: DataThrottler, NPCAnimationSystem, StaffTrainingSystem, FeatureManager, StaffSpecializationSystem, ReputationSystem, EquipmentSetup, EquipmentSetupCommands, DataManager, AdminCommands, EventBridge, BuyTileSystem, GymTycoonConnector, DataManagerTests, TestLauncher, AchievementSystem, EventBridgeTests, RunTests, and many more.
+  - Impact: High. Most systems and UIs are affected, causing initialization failures.
 
-- Multiple "Attempted to call require with invalid argument(s)" errors in:
-  - ServerScriptService.Core.Tests.RunTests:5
-  - ServerScriptService.Core.TycoonSystem:10
-  - ServerScriptService.Core.EventBridge:152
-  - ServerScriptService.Core.Tests.EventBridgeTests:5
-  - ServerScriptService.Core.Tests.DataManagerTests:5
-  - ServerScriptService.Core.SeasonalSystem:9
-  - ServerScriptService.Core.SatisfactionEventHandler:11
-  - ServerScriptService.Core.LegacyBridge:6
-  - ServerScriptService.Server.Core.FeatureManager:5
-  - Many more systems affected
-- Impact: Medium - Some systems may still fail to initialize properly
+### 2. Missing or Invalid Members
+- "Utils is not a valid member of Folder 'ServerScriptService.Core'" (AdminCommands:9)
+- "Core is not a valid member of Folder 'ServerScriptService.Core'" (TestSuite:66)
+- "server is not a valid member of Folder 'ServerScriptService.src'" (MovementTutorial:7)
+- "server is not a valid member of ServerScriptService 'ServerScriptService'" (MigrationTest:13)
+- "EquipmentBoundingBox is not a valid member of Folder 'ServerScriptService.Server.Core'" (EquipmentUpgradeSystem:16)
+- "ClientRegistry is not a valid member of Folder ..." (multiple UI scripts)
+- "OnClientEvent is not a valid member of Folder 'ReplicatedStorage.MembershipBoostEvent'" (MembershipBoostClient:83)
+- "GothamItalic is not a valid member of 'Enum.Font'" (RebirthUI:786)
+- Impact: High. Many scripts are referencing missing or misnamed objects/folders.
 
-## Null Reference Errors
+### 3. Data/Integration Issues
+- "Failed to load GymTycoonDataManager - data persistence will not work!" (GymTycoonInit:45)
+- "Failed to load dependency: GymRevenueSystem" (GymTycoonInit:81)
+- "Failed to load GymTycoonConnector - system integration may not work properly!" (GymTycoonInit:123)
+- "No data system found! Data operations will fail!" (DataAccessLayer:292)
+- "DataAccessLayer not found. Integration will be limited." (DataPersistenceIntegration:261)
+- "BuyTile system not available or missing spawnGymPart function" (EnhancedDataStorageSystem:413)
+- "Could not find gym part with ID: X" (GymTycoonDataManager:398)
+- "Failed to restore tile X for Xdjpearsonx" (GymTycoonDataManager:523)
+- Impact: High. Data persistence and restoration are unreliable.
 
-### Attempt to Index nil
-- Several "attempt to index nil with X" errors:
-  - 'GetSystem' in ServerScriptService.Server.Core.FloorAttributeSetup:32
-  - 'baseStructure' in ServerScriptService.Server.Core.AnalyzeGymStructure:211
-  - 'PlayerGui' in Players.Xdjpearsonx.PlayerGui.CleanGymController:33
-  - 'WaitForChild' in Players.Xdjpearsonx.PlayerGui.SatisfactionButton:28
-  - 'Background' in Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI:73
-  - 'WaitForChild' in Players.Xdjpearsonx.PlayerGui.TemperatureDisplay:9
-  - 'PlayerGui' in Players.Xdjpearsonx.PlayerGui.ResetButton:14
-  - 'registerSystem' in Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.SatisfactionClient:245
-- Impact: Medium - UI elements and non-critical systems may still have issues
+### 4. Infinite Yield Warnings
+- "Infinite yield possible on 'ServerScriptService.src:WaitForChild("server")'" (GymAutomation:31)
+- "Infinite yield possible on 'ReplicatedStorage:WaitForChild("ReputationEvents")'" (ReputationClient:6)
+- "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("CompetitionUI")'" (CompetitionClient:9)
+- "Infinite yield possible on 'ReplicatedStorage:WaitForChild("JoinAllianceEvent")'" (AllianceClient:8)
+- "Infinite yield possible on 'ReplicatedStorage.ReplicatedEvents:WaitForChild("TutorialEvent")'" (TutorialClient:8)
+- "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("UIStyle")'" (UIHub:10)
+- "Infinite yield possible on 'Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui:WaitForChild("PurchaseButton")'" (BuilderBoostPurchaseGui:7)
+- Impact: Medium. Indicates missing or late-created objects, causing scripts to hang or fail.
 
-### Invalid Member Access
-- "Floor is not a valid member of Workspace 'Workspace'" in ServerScriptService.Model Function.ElevatorMovement:46
-- "AutomationLoader is not a valid member of ServerStorage" in ServerScriptService.Server.Connectors.BuyTileConfigGenerator:18
-- "EquipmentBoundingBox is not a valid member of Folder" in ServerScriptService.Server.Core.EquipmentUpgradeSystem:16
-- "Utils is not a valid member of Folder 'ServerScriptService.Core'" in ServerScriptService.Server.Essentials.AdminCommands:9
-- "ClientRegistry is not a valid member" in multiple client UI scripts
-- Impact: Medium - Some features still have path issues
+### 5. Asset/Animation/Sound Loading Issues
+- "Failed to load sound rbxassetid://9048378264: Asset type does not match requested type"
+- "Failed to load sound rbxassetid://9125601193: Asset type does not match requested type"
+- "Failed to load animation with sanitized ID rbxassetid://4479935848: Animation failed to load"
+- "Failed to load animation with sanitized ID rbxassetid://4479937122: Animation failed to load"
+- "Failed to load animation with sanitized ID rbxassetid://4571857828: Animation failed to load"
+- Impact: Low. Affects user experience and NPC visuals.
 
-## System Initialization Issues
+### 6. UI/Client Issues
+- "PurchaseButton is not a valid member of PlayerGui 'Players.Xdjpearsonx.PlayerGui'" (DoubleMemberPurchaseGui:10)
+- "CleanGymFunction not found in ReplicatedStorage" (CleanGymController:117)
+- Impact: Medium. Some UI features are broken or missing.
 
-### Infinite Yield Warnings
-- ✅ Most infinite yield warnings now fixed with FolderSetup script
-- Some remaining instances may occur depending on race conditions
-- Impact: Low - Most critical systems now have proper initialization via SystemBootstrap and FolderSetup
+### 7. Miscellaneous
+- "SetPrimaryPartCFrame is not a valid member of Folder 'ServerScriptService.Server.Model Function'" (ElevatorMovement:457)
+- "Floor is not a valid member of Workspace 'Workspace'" (ElevatorMovement:46)
+- "WARNING: Xdjpearsonx's Tycoon is incorrectly set to their character!" (PlayerCharacterCheck:15)
+- "No tycoon to restore equipment to for Xdjpearsonx" (PlayerProgressRestoration:15)
+- Impact: Medium. Some systems are misconfigured or missing expected objects.
 
-## Asset Loading Issues
+---
 
-### Failed Animation Loading
-- Failed to load animations with IDs:
-  - rbxassetid://4479935848
-  - rbxassetid://4479937122
-  - rbxassetid://4571857828
-- Impact: Low - NPCs may still be missing animations, affecting visual presentation
+**Summary:**
+- Critical: Module loading, missing members, and data restoration issues are blocking core gameplay and persistence.
+- Medium: Infinite yield, UI, and some integration issues.
+- Low: Asset loading and sauna/steam room heater issues.
 
-### Failed Sound Loading
-- Failed to load sounds with IDs:
-  - rbxassetid://9048378264
-  - rbxassetid://9125601193 
-- Impact: Low - Missing sound effects, affecting user experience
-
-## DataStore Issues
-
-- Multiple "DataStore request was added to queue. If request queue fills, further requests will be dropped."
-- Key = Player_7768610061
-- Impact: Medium - potential data loss risk if requests are dropped
-
-## Sauna/Steam Room Related Issues
-
-- Multiple sauna rooms reported with "0 heaters":
-  - Sauna Mens 3, Sauna Mens, Sauna Mens 4, Sauna Floor, Sauna Ceiling, etc.
-- Impact: Low - Sauna temperature system may not function correctly
-
-## Analysis and Recommendations
-
-### Completed Critical Fixes:
-1. ✅ Fixed CoreRegistry to properly handle module loading and system initialization
-2. ✅ Fixed GymTycoonConnector duplication issues with a bridge system
-3. ✅ Repaired BuyTileSystem with proper error handling and system access
-4. ✅ Added missing GymStructureIntegration system
-5. ✅ Created SystemBootstrap for proper initialization order
-6. ✅ Fixed NPCAnimationSystem initialization issues
-7. ✅ Resolved client-server context confusion in UI scripts
-8. ✅ Fixed path reference issues in multiple scripts
-9. ✅ Added FolderSetup to prevent infinite yield warnings
-
-### Remaining High Priorities:
-1. Address the remaining path structure issues and invalid member access errors
-2. Fix null reference errors in client UI scripts
-
-### Medium Priorities:
-1. Optimize DataStore requests to prevent queue overflow warnings
-
-### Low Priorities:
-1. Fix sauna heating system
-2. Address failed animation and sound loading
-
-## Implementation Notes
-
-The core systems (CoreRegistry, GymTycoonConnector, BuyTileSystem) have been fixed to provide a solid foundation. The NPCAnimationSystem has been fixed to work properly with the CoreRegistry. Client scripts that were incorrectly marked as server scripts (.server.luau in StarterGui) have been renamed to use the correct .client.luau extension.
-
-The system initialization process has been greatly improved with the addition of the SystemBootstrap script and the FolderSetup script, which ensures all necessary folders and events exist before other scripts try to access them.
-
-## Next Steps
-
-1. Fix the remaining null reference errors in client UI scripts
-2. Address the remaining path structure issues in scripts
-3. Implement DataStore request throttling
+**Recommended Next Steps:**
+1. Fix module loading errors and ensure all required modules exist and are referenced correctly.
+2. Audit folder and object structure for missing or misnamed members.
+3. Address data restoration and BuyTile system integration issues.
+4. Review all WaitForChild and require calls for correct paths and existence.
+5. Fix or replace missing assets and UI elements as reported.
