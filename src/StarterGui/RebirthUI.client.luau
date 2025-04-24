@@ -1,9 +1,29 @@
--- RebirthUI.lua
--- Enhanced client-side UI for interacting with the rebirth system with unlockable content progression
+--!strict
+--[[
+    RebirthUI.client.luau
+    Enhanced client-side UI for the rebirth system with unlockable content progression
+    
+    Uses modern UI framework components:
+    - UIStyle for consistent styling
+    - ButtonFactory for standardized buttons
+    - DialogFactory for notifications and popups
+    - IconSet for consistent iconography
+    
+    Updated: April 24, 2025
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Import modern UI framework components
+local UIStyle = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("UIStyle"))
+local ButtonFactory = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("ButtonFactory"))
+local DialogFactory = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("DialogFactory"))
+local IconSet = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("IconSet"))
 
 -- Wait for the remote event
 local RebirthRemote = ReplicatedStorage:WaitForChild("RebirthRemote")
@@ -15,21 +35,17 @@ local function createRebirthUI()
     screenGui.Name = "RebirthUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
-    -- Create main frame
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "RebirthFrame"
-    mainFrame.Size = UDim2.new(0, 500, 0, 400)  -- Increased size for more content
-    mainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)  -- Centered on screen
-    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    mainFrame.BackgroundTransparency = 0.1
-    mainFrame.BorderSizePixel = 0
+      -- Create main frame using UIStyle
+    local mainFrame = UIStyle.createFrame({
+        name = "RebirthFrame",
+        size = UDim2.new(0, 500, 0, 400),
+        position = UDim2.new(0.5, -250, 0.5, -200),
+        color = UIStyle.Colors.Background,
+        cornerRadius = UDim.new(0, 10),
+        transparency = 0.1,
+        zIndex = UIStyle.ZIndex.Standard
+    })
     mainFrame.Parent = screenGui
-    
-    -- Add corner rounding
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = mainFrame
     
     -- Add title
     local titleLabel = Instance.new("TextLabel")
@@ -72,7 +88,7 @@ local function createRebirthUI()
         button.Size = UDim2.new(0.25, -10, 1, 0)
         button.Position = UDim2.new(0.25 * position, position > 0 and 5 or 0, 0, 0)
         button.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-        button.Font = Enum.Font.GothamSemibold
+        button.Font = Enum.Font.GothamMedium
         button.Text = text
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
         button.TextSize = 14
@@ -120,7 +136,7 @@ local function createRebirthUI()
     costLabel.Size = UDim2.new(1, -20, 0, 25)
     costLabel.Position = UDim2.new(0, 10, 0, 20)
     costLabel.BackgroundTransparency = 1
-    costLabel.Font = Enum.Font.GothamSemibold
+    costLabel.Font = Enum.Font.GothamMedium
     costLabel.Text = "Cost: $100,000"
     costLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
     costLabel.TextSize = 18
@@ -353,7 +369,7 @@ local function createRebirthUI()
     toggleButton.Position = UDim2.new(1, -130, 0, 10)
     toggleButton.AnchorPoint = Vector2.new(1, 0)
     toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
-    toggleButton.Font = Enum.Font.GothamSemibold
+    toggleButton.Font = Enum.Font.GothamMedium
     toggleButton.Text = "Rebirth"
     toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     toggleButton.TextSize = 16
@@ -508,14 +524,13 @@ local function createRebirthUI()
         descLabel.TextWrapped = true
         descLabel.TextXAlignment = Enum.TextXAlignment.Left
         descLabel.Parent = featureCard
-        
-        -- Level indicator
+          -- Level indicator
         local levelLabel = Instance.new("TextLabel")
         levelLabel.Name = "LevelLabel"
         levelLabel.Size = UDim2.new(0, 50, 0, 20)
         levelLabel.Position = UDim2.new(1, -60, 0, 10)
         levelLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
-        levelLabel.Font = Enum.Font.GothamSemibold
+        levelLabel.Font = Enum.Font.GothamMedium
         levelLabel.Text = "Lvl " .. feature.level
         levelLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
         levelLabel.TextSize = 12
