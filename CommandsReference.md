@@ -2,6 +2,43 @@
 
 This document provides a comprehensive guide to all available global commands (`_G` functions) in the Gym Tycoon project. These commands can be executed in the Command Bar in Roblox Studio to assist with development, debugging, and testing.
 
+## Getting Started with Commands
+
+### How to Use These Commands
+
+1. **Open the Command Bar**: Press F9 in Roblox Studio to open the Output window, then click on the "Command Bar" tab, or press Ctrl+Shift+P (Windows) / Cmd+Shift+P (Mac).
+
+2. **Enter a Command**: Type the command from this reference document into the Command Bar. For example:
+   ```lua
+   _G.ShowTycoonInfo()
+   ```
+
+3. **View Results**: Most commands will print their output to the Output window. Some commands also create visual effects in the 3D workspace.
+
+### Debug Mode
+
+Some commands support a debug or verbose mode for additional information:
+
+```lua
+_G.ProcessTycoon("GymParts", {debug = true})
+```
+
+### Command Categories
+
+Commands in this document are organized by category based on their functionality:
+- **Floor and Room Structure**: Commands for working with the physical layout of your tycoon
+- **Tycoon Automation**: Commands for automating common tasks across your tycoon
+- **BoundingBox and Hitbox**: Commands for creating and managing interactive areas
+- **Equipment Management**: Commands for working with gym equipment
+- And more...
+
+### Tips for Effective Command Usage
+
+- **Start with Analysis**: Before making changes, use commands like `_G.ShowTycoonInfo()` and `_G.AnalyzeGymStructure()` to understand your current setup
+- **Use Automation for Speed**: The `_G.AutomateGym()` command can quickly set up a basic tycoon with all necessary components
+- **Validate Before Testing**: Always use `_G.ValidateGymModels()` after making significant changes to ensure everything is properly configured
+- **Visual Debugging**: Commands like `_G.ShowHitboxes()` and `_G.HighlightRoom()` provide visual feedback to help identify issues
+
 ## Table of Contents
 
 1. [Floor and Room Structure Commands](#floor-and-room-structure-commands)
@@ -645,33 +682,103 @@ _G.InitializeDevelopmentEnvironment({
 
 **Implementation details:** This command creates a consistent development environment by initializing core systems, setting up debug configurations, and configuring recommended plugins. It also runs initial validation on models if a tycoon is present in the workspace.
 
-## Recommended Workflow
+## Troubleshooting and Best Practices
 
-For a typical development workflow, here is a recommended sequence of commands:
+### Common Error Resolution
 
-1. **Process the tycoon structure**: `_G.ProcessTycoon()`
-2. **Review room information**: `_G.ShowRoomInfo()`
-3. **Set proper room types**: `_G.SetRoomType()` for each room that needs adjustment
-4. **Process equipment**: `_G.ProcessEquipment()`
-5. **Validate models**: `_G.ValidateGymModels()` and review the report
-6. **Fix model issues**: Address any issues identified in the validation report
-7. **Generate equipment configuration**: `_G.GenerateEquipmentConfig()`
-8. **Detect upgrade paths**: `_G.DetectUpgradePaths()`
-9. **Apply Collection Tags**: `_G.ApplyCollectionTags()`
-10. **Generate build order**: `_G.GenerateBuildOrder()`
-11. **Generate hitboxes**: `_G.GenerateHitboxes()`
-12. **Show hitboxes to verify**: `_G.ShowHitboxes()`
-13. **Review final tycoon info**: `_G.ShowTycoonInfo()`
+When running commands, you might encounter these common errors and solutions:
 
-Alternatively, use the all-in-one automation: `_G.AutomateGym()` or `_G.AutomateGymTycoon()`
+#### Module Not Found Errors
+```
+Attempted to call require with invalid argument(s)
+```
+**Solution**: Use the recently implemented ModuleLoader system:
+```lua
+_G.FixModuleLoadingErrors()
+```
+This command ensures the ModuleLoader and PathRegistration systems are properly initialized, fixing most module loading errors.
 
-## Notes
+#### Script Execution Errors
+```
+attempt to index nil with 'X'
+```
+**Solution**: Check system dependencies with:
+```lua
+_G.CheckSystemDependencies()
+```
 
-- Most commands will work with either a specific tycoon name provided or will default to looking for "GymParts" or "Tycoon" in the workspace.
-- All functions are designed to work in Studio mode only.
-- When customizing room types, refer to the allowed room types defined in the `CONFIG.ROOM_TYPES` table in the FloorAttributeSetup module.
+#### Performance Issues
+If commands are causing lag or the game is running slowly:
+```lua
+_G.OptimizePerformance({
+    reduceParticles = true,
+    optimizeUI = true,
+    batchPhysics = true
+})
+```
 
+### Module Loading Best Practices
 
-New NPC:
-_G.ApplyNPCAnimations() - Animate NPCs
+When adding new scripts to the project, follow these best practices to avoid module loading errors:
+
+1. **Use ModuleLoaderHelper**: At the top of your script, add:
+   ```lua
+   local ModuleLoaderHelper = require(script.Parent.ModuleLoaderHelper)
+   local YourModule = ModuleLoaderHelper:GetModule("YourModuleName")
+   ```
+
+2. **Register Systems Properly**: When creating a new system, register it with CoreRegistry:
+   ```lua
+   local CoreRegistry = ModuleLoaderHelper:GetCoreRegistry()
+   return CoreRegistry.registerSystem("YourSystemName", YourSystemAPI, {"DependencyName"})
+   ```
+
+3. **Avoid Direct References**: Instead of direct paths like:
+   ```lua
+   local Module = require(ServerScriptService.src.server.Core.ModuleName)
+   ```
+   
+   Use ModuleLoader:
+   ```lua
+   local Module = ModuleLoader:LoadServerModule("Core", "ModuleName")
+   ```
+
+### Command Execution Context
+
+Some commands need to be run in specific contexts:
+
+- **Server Commands**: Most commands run on the server and should be executed in a server script or the Command Bar while in Studio
+- **Client Commands**: Commands marked with [Client] must be run in a LocalScript or the Command Bar with a LocalScript context
+- **Studio-Only Commands**: Commands marked with [Studio] are only intended for use during development
+
+### Performance Impact
+
+Commands are categorized by their performance impact:
+
+- **🟢 Low Impact**: Safe to use in most scenarios
+- **🟨 Medium Impact**: May cause temporary performance drops
+- **🔴 High Impact**: Should only be used during development, not at runtime
+
+See the command descriptions for performance impact ratings.
+
+## Contributing New Commands
+
+To add your own commands to the global registry:
+
+1. Create a new module in the appropriate category folder
+2. Define your command function
+3. Register it with the CommandRegistry:
+   ```lua
+   local CommandRegistry = require(ServerScriptService.Core.CommandRegistry)
+   CommandRegistry:RegisterCommand("YourCommandName", YourCommandFunction, {
+       description = "Description of what your command does",
+       parameters = {
+           {name = "param1", type = "string", description = "Description of parameter 1"},
+       },
+       category = "Developer Utility",
+       impact = "Low"
+   })
+   ```
+
+4. Update this reference document with documentation for your new command
 

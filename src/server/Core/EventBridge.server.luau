@@ -4,9 +4,21 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Try to load ModuleLoader first
+local ModuleLoader
+local loaderSuccess, loaderResult = pcall(function()
+    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
+end)
+
+if loaderSuccess and loaderResult then
+    ModuleLoader = loaderResult
+    print("[EventBridge] Successfully loaded ModuleLoader")
+end
+
 local EventBridge = {
     events = {},
-    remoteEvents = {}
+    remoteEvents = {},
+    moduleLoader = ModuleLoader -- Store ModuleLoader for other modules to use
 }
 
 -- Debug function

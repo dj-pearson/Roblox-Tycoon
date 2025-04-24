@@ -1,0 +1,91 @@
+# Roblox Issues Tracking Document
+
+Last Test Date: April 24, 2025
+Last Update: April 24, 2025
+This document categorizes issues found during testing to help track and resolve them.
+
+## Fixed Issues
+
+### Core System Issues
+- ✅ CoreRegistry loading issues fixed - Added improved error handling and path fallbacks
+- ✅ GymTycoonConnector duplicate modules issue resolved - Created a Bridge system between the two versions
+- ✅ BuyTileSystem dependency issues addressed - Added proper system integration and the missing spawnGymPart function
+- ✅ Missing GymStructureIntegration system created
+- ✅ SystemBootstrap added to ensure proper initialization order
+- ✅ NPCAnimationSystem registerSystem errors fixed - Added proper module initialization
+- ✅ Client-Server context issues fixed in UI scripts - Renamed StatsGui and RebirthUI to use .client.luau extension
+- ✅ TutorialManager and MembershipBoostEvent path references fixed - Added robust path resolution
+- ✅ FolderSetup script added to prevent infinite yield warnings
+
+## Remaining Issues (as of April 24, 2025)
+
+### 1. Module Loading/Require Errors
+- Many scripts report: "Attempted to call require with invalid argument(s)."
+  - Examples: DataThrottler, NPCAnimationSystem, StaffTrainingSystem, FeatureManager, StaffSpecializationSystem, ReputationSystem, EquipmentSetup, EquipmentSetupCommands, DataManager, AdminCommands, EventBridge, BuyTileSystem, GymTycoonConnector, DataManagerTests, TestLauncher, AchievementSystem, EventBridgeTests, RunTests, and many more.
+  - Impact: High. Most systems and UIs are affected, causing initialization failures.
+
+### 2. Missing or Invalid Members
+- "Utils is not a valid member of Folder 'ServerScriptService.Core'" (AdminCommands:9)
+- "Core is not a valid member of Folder 'ServerScriptService.Core'" (TestSuite:66)
+- "server is not a valid member of Folder 'ServerScriptService.src'" (MovementTutorial:7)
+- "server is not a valid member of ServerScriptService 'ServerScriptService'" (MigrationTest:13)
+- "EquipmentBoundingBox is not a valid member of Folder 'ServerScriptService.Server.Core'" (EquipmentUpgradeSystem:16)
+- "ClientRegistry is not a valid member of Folder ..." (multiple UI scripts)
+- "OnClientEvent is not a valid member of Folder 'ReplicatedStorage.MembershipBoostEvent'" (MembershipBoostClient:83)
+- "GothamItalic is not a valid member of 'Enum.Font'" (RebirthUI:786)
+- Impact: High. Many scripts are referencing missing or misnamed objects/folders.
+
+### 3. Data/Integration Issues
+- "Failed to load GymTycoonDataManager - data persistence will not work!" (GymTycoonInit:45)
+- "Failed to load dependency: GymRevenueSystem" (GymTycoonInit:81)
+- "Failed to load GymTycoonConnector - system integration may not work properly!" (GymTycoonInit:123)
+- "No data system found! Data operations will fail!" (DataAccessLayer:292)
+- "DataAccessLayer not found. Integration will be limited." (DataPersistenceIntegration:261)
+- "BuyTile system not available or missing spawnGymPart function" (EnhancedDataStorageSystem:413)
+- "Could not find gym part with ID: X" (GymTycoonDataManager:398)
+- "Failed to restore tile X for Xdjpearsonx" (GymTycoonDataManager:523)
+- Impact: High. Data persistence and restoration are unreliable.
+
+### 4. Infinite Yield Warnings
+- "Infinite yield possible on 'ServerScriptService.src:WaitForChild("server")'" (GymAutomation:31)
+- "Infinite yield possible on 'ReplicatedStorage:WaitForChild("ReputationEvents")'" (ReputationClient:6)
+- "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("CompetitionUI")'" (CompetitionClient:9)
+- "Infinite yield possible on 'ReplicatedStorage:WaitForChild("JoinAllianceEvent")'" (AllianceClient:8)
+- "Infinite yield possible on 'ReplicatedStorage.ReplicatedEvents:WaitForChild("TutorialEvent")'" (TutorialClient:8)
+- "Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("UIStyle")'" (UIHub:10)
+- "Infinite yield possible on 'Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui:WaitForChild("PurchaseButton")'" (BuilderBoostPurchaseGui:7)
+- Impact: Medium. Indicates missing or late-created objects, causing scripts to hang or fail.
+
+### 5. Asset/Animation/Sound Loading Issues
+- "Failed to load sound rbxassetid://9048378264: Asset type does not match requested type"
+- "Failed to load sound rbxassetid://9125601193: Asset type does not match requested type"
+- "Failed to load animation with sanitized ID rbxassetid://4479935848: Animation failed to load"
+- "Failed to load animation with sanitized ID rbxassetid://4479937122: Animation failed to load"
+- "Failed to load animation with sanitized ID rbxassetid://4571857828: Animation failed to load"
+- Impact: Low. Affects user experience and NPC visuals.
+
+### 6. UI/Client Issues
+- "PurchaseButton is not a valid member of PlayerGui 'Players.Xdjpearsonx.PlayerGui'" (DoubleMemberPurchaseGui:10)
+- "CleanGymFunction not found in ReplicatedStorage" (CleanGymController:117)
+- Impact: Medium. Some UI features are broken or missing.
+
+### 7. Miscellaneous
+- "SetPrimaryPartCFrame is not a valid member of Folder 'ServerScriptService.Server.Model Function'" (ElevatorMovement:457)
+- "Floor is not a valid member of Workspace 'Workspace'" (ElevatorMovement:46)
+- "WARNING: Xdjpearsonx's Tycoon is incorrectly set to their character!" (PlayerCharacterCheck:15)
+- "No tycoon to restore equipment to for Xdjpearsonx" (PlayerProgressRestoration:15)
+- Impact: Medium. Some systems are misconfigured or missing expected objects.
+
+---
+
+**Summary:**
+- Critical: Module loading, missing members, and data restoration issues are blocking core gameplay and persistence.
+- Medium: Infinite yield, UI, and some integration issues.
+- Low: Asset loading and sauna/steam room heater issues.
+
+**Recommended Next Steps:**
+1. Fix module loading errors and ensure all required modules exist and are referenced correctly.
+2. Audit folder and object structure for missing or misnamed members.
+3. Address data restoration and BuyTile system integration issues.
+4. Review all WaitForChild and require calls for correct paths and existence.
+5. Fix or replace missing assets and UI elements as reported.

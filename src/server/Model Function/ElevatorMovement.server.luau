@@ -41,14 +41,45 @@ local currentFloor = "1stFloor" -- Start at 1st floor
 local isMoving = false
 local buttonDebounce = false
 
--- Get floor folders
-local floorFolders = {
-	Workspace.Floor["1st Floor"],
-	Workspace.Floor["2nd Floor"],
-	Workspace.Floor["3rd Floor"],
-	Workspace.Floor["4th Floor"],
-	Workspace.Floor["5th Floor"]
-}
+-- Get floor folders - Fix for "Floor is not a valid member of Workspace" error
+local floorFolders = {}
+
+-- Safely find floor folders with error handling
+local function findFloorFolders()
+    -- First try to find the Floor folder
+    local floorFolder = Workspace:FindFirstChild("Floor")
+    
+    if floorFolder then
+        -- Traditional structure with Floor parent folder
+        floorFolders = {
+            floorFolder:FindFirstChild("1st Floor"),
+            floorFolder:FindFirstChild("2nd Floor"),
+            floorFolder:FindFirstChild("3rd Floor"),
+            floorFolder:FindFirstChild("4th Floor"),
+            floorFolder:FindFirstChild("5th Floor")
+        }
+    else
+        -- Alternative: try to find floors directly in Workspace
+        floorFolders = {
+            Workspace:FindFirstChild("1st Floor"),
+            Workspace:FindFirstChild("2nd Floor"),
+            Workspace:FindFirstChild("3rd Floor"),
+            Workspace:FindFirstChild("4th Floor"),
+            Workspace:FindFirstChild("5th Floor")
+        }
+    end
+    
+    -- Validate folders
+    for i, folder in ipairs(floorFolders) do
+        if not folder then
+            warn("Floor folder " .. i .. " not found! Using elevator model as fallback.")
+            floorFolders[i] = elevator -- Use elevator as fallback
+        end
+    end
+end
+
+-- Initialize floor folders
+findFloorFolders()
 
 -- Function to check which floors are available
 local function getAvailableFloors()
@@ -71,16 +102,18 @@ end
 local function manageFloorTransparency(startFloorIndex, endFloorIndex)
 	-- Reset all movement models to visible
 	for _, folder in ipairs(floorFolders) do
-		for _, movementModel in pairs(folder:GetChildren()) do
-			if string.find(movementModel.Name, "Movement_") then
-				for _, part in pairs(movementModel:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.Transparency = 0
-						part.CanCollide = true
-					end
-				end
-			end
-		end
+        if folder and folder:IsA("Instance") then  -- Add validation
+		    for _, movementModel in pairs(folder:GetChildren()) do
+			    if string.find(movementModel.Name, "Movement_") then
+				    for _, part in pairs(movementModel:GetDescendants()) do
+					    if part:IsA("BasePart") then
+						    part.Transparency = 0
+						    part.CanCollide = true
+					    end
+				    end
+			    end
+		    end
+        end
 	end
 
 	-- Determine which movement models need to be transparent
@@ -89,17 +122,19 @@ local function manageFloorTransparency(startFloorIndex, endFloorIndex)
 
 	-- Make necessary movement models transparent
 	for i = minFloor, maxFloor do
-		local floorFolder = floorFolders[i]
-		local movementModel = floorFolder:FindFirstChild(CONFIG.MOVEMENT_MODELS[i])
+        if floorFolders[i] and floorFolders[i]:IsA("Instance") then  -- Add validation
+		    local floorFolder = floorFolders[i]
+		    local movementModel = floorFolder:FindFirstChild(CONFIG.MOVEMENT_MODELS[i])
 
-		if movementModel then
-			for _, part in pairs(movementModel:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.Transparency = 1
-					part.CanCollide = false
-				end
-			end
-		end
+		    if movementModel then
+			    for _, part in pairs(movementModel:GetDescendants()) do
+				    if part:IsA("BasePart") then
+					    part.Transparency = 1
+					    part.CanCollide = false
+				    end
+			    end
+		    end
+        end
 	end
 end
 

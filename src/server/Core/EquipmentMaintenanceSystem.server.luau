@@ -1,4 +1,4 @@
-lua
+--lua
 --[[
     EquipmentMaintenanceSystem.server.luau
     Handles the maintenance of equipment in the gym.

@@ -1,19 +1,17 @@
-lua
+--lua
 --[[
     MemberTrainingSystem.server.luau
     Handles the training logic for gym members.
     Part of the Core systems architecture.
 ]]
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
 
 -- System Dependencies
 local CoreRegistry
 local EventBridge
-local DataManager
 local StaffManagementSystem
-local CollectionService = game:GetService("CollectionService")
+local EquipmentMaintenanceSystem
 
 -- Configuration
 local CONFIG = {
@@ -27,7 +25,7 @@ local CONFIG = {
 local MemberTrainingSystem = {
     _name = "MemberTrainingSystem",
     _version = "1.0.0",
-    _dependencies = {"CoreRegistry", "EventBridge", "DataManager","StaffManagementSystem", "EquipmentMaintenanceSystem"},
+    _dependencies = {"CoreRegistry", "EventBridge", "StaffManagementSystem", "EquipmentMaintenanceSystem"},
     _trainingData = {}, -- Table to store training data for each member
     _equipmentData = {}, -- Table to store data for each equipment
     _loops = {} -- Table to store loops
@@ -149,7 +147,6 @@ function MemberTrainingSystem:cleanEquipment(equipment, efficiency)
     -- Check if equipment is clean
     if currentDirtiness <= 0 then
         CollectionService:RemoveTag(equipment, "NeedsCleaning")
-        })
         -- Reset the timer of the equipment
         EquipmentMaintenanceSystem:resetTimer(equipment)
     end
@@ -200,7 +197,6 @@ function MemberTrainingSystem:init()
     -- Get dependencies
     CoreRegistry = self.CoreRegistry
     EventBridge = CoreRegistry:getSystem("EventBridge")
-    DataManager = CoreRegistry:getSystem("DataManager")
     StaffManagementSystem = CoreRegistry:getSystem("StaffManagementSystem")
     EquipmentMaintenanceSystem = CoreRegistry:getSystem("EquipmentMaintenanceSystem")
 
@@ -220,4 +216,4 @@ end
 
 --[[ Public API ]]--
 
-return CoreRegistry.registerSystem("MemberTrainingSystem", MemberTrainingSystem, {"CoreRegistry", "EventBridge", "DataManager","StaffManagementSystem", "EquipmentMaintenanceSystem"})
+return CoreRegistry.registerSystem("MemberTrainingSystem", MemberTrainingSystem, {"CoreRegistry", "EventBridge", "StaffManagementSystem", "EquipmentMaintenanceSystem"})

@@ -14,7 +14,7 @@
     Author: Created May 2025
 ]]
 
-local ServerStorage = game:GetService("ServerStorage")
+-- local ServerStorage = game:GetService("ServerStorage") -- Commented out as it's unused
 local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Find CoreRegistry
@@ -30,7 +30,7 @@ end
 
 -- Get system references
 local BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
-local FloorAttributeSetup = CoreRegistry and CoreRegistry:GetSystem("FloorAttributeSetup")
+-- local FloorAttributeSetup = CoreRegistry and CoreRegistry:GetSystem("FloorAttributeSetup") -- Commented out as it's unused
 
 -- Progression order constants
 local STRUCTURE_BUILD_ORDER = {
@@ -165,10 +165,8 @@ function BuyTileProgressionManager:GeneratePrerequisites(tileType, tilesInfo)
             end
         end
     end
-    
-    -- If this is equipment/amenity and floor > 1, require a "Floor" tile on this floor
+      -- If this is equipment/amenity and floor > 1, require a "Floor" tile on this floor
     if floor > 1 and (currentStructureType == "Equipment" or currentStructureType == "Amenity") then
-        local floorTileFound = false
         for _, tileInfo in ipairs(tilesInfo) do
             if tileInfo.floor == floor and tileInfo.structureType == "Floor" then
                 local found = false
@@ -180,16 +178,14 @@ function BuyTileProgressionManager:GeneratePrerequisites(tileType, tilesInfo)
                 end
                 if not found and #prerequisites < 3 then -- Limit to 3 prerequisites
                     table.insert(prerequisites, tileInfo.tileType)
-                    floorTileFound = true
                     break
                 end
             end
         end
-    end
-    -- If this is equipment/amenity, require walls on this floor
+    end-- If this is equipment/amenity, require walls on this floor
     if currentStructureType == "Equipment" or currentStructureType == "Amenity" then
         -- Find Walls tiles on this floor
-        for _, tileInfo in ipairs(sortedTiles) do
+        for _, tileInfo in ipairs(tilesInfo) do
             if tileInfo.floor == floor and tileInfo.structureType == "Walls" then
                 -- Add wall prerequisite if not already in list
                 local found = false
@@ -535,16 +531,15 @@ function BuyTileProgressionManager:IntegrateWithBuyTileSystem()
     end
     
     self:Log("Integrating with BuyTileSystem...")
-    
-    -- Add method to check if floor is completed
-    BuyTileSystem.IsFloorCompleted = function(self, player, floorNumber)
-        local playerData = self:GetPlayerData(player)
-        if not playerData or not self.requiredItems then
+      -- Add method to check if floor is completed
+    BuyTileSystem.IsFloorCompleted = function(system, player, floorNumber)
+        local playerData = system:GetPlayerData(player)
+        if not playerData or not system.requiredItems then
             return false
         end
         
         -- Check if all required items for this floor are owned
-        local requiredItems = self.requiredItems[floorNumber] or {}
+        local requiredItems = system.requiredItems[floorNumber] or {}
         for _, tileType in ipairs(requiredItems) do
             if not playerData.ownedTiles[tileType] then
                 return false
@@ -553,38 +548,36 @@ function BuyTileProgressionManager:IntegrateWithBuyTileSystem()
         
         return true
     end
-    
-    -- Add method to check if floor is available for purchase
-    BuyTileSystem.IsFloorAvailable = function(self, player, floorNumber)
+      -- Add method to check if floor is available for purchase
+    BuyTileSystem.IsFloorAvailable = function(system, player, floorNumber)
         if floorNumber == 1 then
             return true -- First floor always available
         end
         
         -- Check if previous floor is completed
-        return self:IsFloorCompleted(player, floorNumber - 1)
+        return system:IsFloorCompleted(player, floorNumber - 1)
     end
-    
-    -- Add method to get next available tiles
-    BuyTileSystem.GetNextAvailableTiles = function(self, player, maxCount)
+      -- Add method to get next available tiles
+    BuyTileSystem.GetNextAvailableTiles = function(system, player, maxCount)
         maxCount = maxCount or 5
         local availableTiles = {}
-        local playerData = self:GetPlayerData(player)
+        local playerData = system:GetPlayerData(player)
         
         if not playerData then
             return availableTiles
         end
         
         -- Make sure ordered tiles is up-to-date
-        if not self.orderedTiles or #self.orderedTiles == 0 then
-            if self.SortTilesByBuildOrder then
-                self:SortTilesByBuildOrder()
+        if not system.orderedTiles or #system.orderedTiles == 0 then
+            if system.SortTilesByBuildOrder then
+                system:SortTilesByBuildOrder()
             end
         end
         
         -- Go through all sorted tiles
-        for _, tileInfo in ipairs(self.orderedTiles) do
+        for _, tileInfo in ipairs(system.orderedTiles) do
             local tileType = tileInfo.tileType
-            local data = self.tileData[tileType]
+            local data = system.tileData[tileType]
             
             -- Skip if already owned
             if playerData.ownedTiles[tileType] then
@@ -593,12 +586,12 @@ function BuyTileProgressionManager:IntegrateWithBuyTileSystem()
             
             -- Check if floor is available
             local floor = data.floor or 1
-            if not self:IsFloorAvailable(player, floor) then
+            if not system:IsFloorAvailable(player, floor) then
                 continue
             end
             
             -- Check prerequisites
-            if self:AreRequirementsMet(player, tileType) then
+            if system:AreRequirementsMet(player, tileType) then
                 table.insert(availableTiles, {
                     tileType = tileType,
                     data = data
@@ -613,16 +606,15 @@ function BuyTileProgressionManager:IntegrateWithBuyTileSystem()
         
         return availableTiles
     end
-    
-    -- Hook into BuyTile to update floor unlocks
+      -- Hook into BuyTile to update floor unlocks
     if BuyTileSystem.BuyTile then
         local originalBuyTile = BuyTileSystem.BuyTile
-        BuyTileSystem.BuyTile = function(self, player, tileType, ...)
-            local result = originalBuyTile(self, player, tileType, ...)
+        BuyTileSystem.BuyTile = function(system, player, tileType, ...)
+            local result = originalBuyTile(system, player, tileType, ...)
             
             -- If purchase successful, check if this unlocks the next floor
-            if result and self.tileData and self.tileData[tileType] then
-                local tileData = self.tileData[tileType]
+            if result and system.tileData and system.tileData[tileType] then
+                local tileData = system.tileData[tileType]
                 
                 -- Check if this tile unlocks next floor
                 if tileData.unlockNextFloor and tileData.floor then
@@ -630,20 +622,19 @@ function BuyTileProgressionManager:IntegrateWithBuyTileSystem()
                     local nextFloor = currentFloor + 1
                     
                     -- Unlock next floor in player data
-                    local playerData = self:GetPlayerData(player)
+                    local playerData = system:GetPlayerData(player)
                     if playerData then
                         if not playerData.unlockedFloors then
                             playerData.unlockedFloors = {}
                         end
-                        
-                        playerData.unlockedFloors[nextFloor] = true
+                          playerData.unlockedFloors[nextFloor] = true
                         
                         -- Fire event for floor unlock
-                        if self.Events and self.Events.FloorUnlocked then
-                            self.Events.FloorUnlocked:Fire(player, nextFloor)
+                        if system.Events and system.Events.FloorUnlocked then
+                            system.Events.FloorUnlocked:Fire(player, nextFloor)
                         end
                         
-                        self:Log("Player " .. player.Name .. " unlocked floor " .. nextFloor)
+                        system:Log("Player " .. player.Name .. " unlocked floor " .. nextFloor)
                     end
                 end
             end

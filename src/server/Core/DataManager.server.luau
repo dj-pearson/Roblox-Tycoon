@@ -6,10 +6,63 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Get the CoreRegistry and EventBridge
-local CoreRegistry = require(script.Parent.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
+-- Try to use ModuleLoader for better dependency management
+local ModuleLoader
+local CoreRegistry
+local EventBridge
+local DataThrottler
+
+-- First try to load ModuleLoader
+local loaderSuccess, loaderResult = pcall(function()
+    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
+end)
+
+if loaderSuccess and loaderResult then
+    ModuleLoader = loaderResult
+    print("[DataManager] Using ModuleLoader for dependencies")
+    
+    -- Load dependencies using ModuleLoader
+    CoreRegistry = ModuleLoader:LoadServerModule("Core", "CoreRegistry")
+    if CoreRegistry then
+        -- If CoreRegistry is loaded, use it to get other systems
+        EventBridge = CoreRegistry.getSystem("EventBridge")
+        DataThrottler = CoreRegistry.getSystem("DataThrottler")
+    end
+    
+    -- Attempt to load dependencies directly through ModuleLoader if not found through CoreRegistry
+    if not DataThrottler then
+        DataThrottler = ModuleLoader:LoadServerModule("Core", "DataThrottler")
+    end
+else
+    print("[DataManager] ModuleLoader not found, using legacy loading")
+    
+    -- Legacy loading method
+    local success, result = pcall(function()
+        return require(script.Parent.CoreRegistry)
+    end)
+    
+    if success then
+        CoreRegistry = result
+        EventBridge = CoreRegistry.getSystem("EventBridge")
+        DataThrottler = CoreRegistry.getSystem("DataThrottler")
+    else
+        warn("[DataManager] Failed to load CoreRegistry: " .. tostring(result))
+    end
+    
+    -- If DataThrottler still not loaded, try direct require
+    if not DataThrottler then
+        pcall(function()
+            DataThrottler = require(script.Parent.DataThrottler)
+        end)
+    end
+end
+
+-- Log dependency status
+if not CoreRegistry then warn("[DataManager] WARNING: CoreRegistry not loaded") end
+if not EventBridge then warn("[DataManager] WARNING: EventBridge not loaded") end
+if not DataThrottler then warn("[DataManager] WARNING: DataThrottler not loaded") end
 
 -- Configuration
 local CONFIG = {
@@ -182,6 +235,12 @@ function DataManager:initialize()
     local storesReady = self:initDataStores()
     if not storesReady then
         log("Warning: DataStores not ready")
+    end
+    
+    -- Register with DataThrottler if available
+    if DataThrottler and DataThrottler.registerSystem then
+        DataThrottler.registerSystem("DataManager")
+        log("Registered with DataThrottler")
     end
     
     -- Set up auto-save interval
@@ -754,19 +813,76 @@ function DataManager:processSave(player, key, data)
     end
     
     local userId = player.UserId
-    local success, result
-    local attempts = 0
+    local success = false
     
     -- Get a new version key for saving
     local versionKey = self:getNewVersionKey(userId)
     
+    -- If DataThrottler is available, use it to manage DataStore requests
+    if DataThrottler then
+        log("Using DataThrottler to save data for " .. player.Name)
+        
+        -- Check if there's already a request for this key
+        if DataThrottler.hasExistingRequest and DataThrottler.hasExistingRequest("DataManager", versionKey) then
+            log("Skipping duplicate save request for " .. player.Name)
+            self.saveLocks[player.UserId] = nil
+            return true
+        end
+        
+        -- Queue save request with appropriate priority
+        local priority = DataThrottler.getPriorities and DataThrottler.getPriorities().normal
+        if not self.sessionLocks[userId] then
+            -- Higher priority for final save when player leaves
+            priority = DataThrottler.getPriorities and DataThrottler.getPriorities().high
+        end
+        
+        -- Prepare data for saving
+        local saveData = table.clone(data)
+        if self.sessionLocks[userId] then
+            saveData.sessionLock = os.time()
+        else
+            saveData.sessionLock = nil
+        end
+        
+        -- Queue the save request
+        success = DataThrottler.queueSaveRequest(
+            "DataManager",
+            versionKey,
+            saveData,
+            priority,
+            function(saveSuccess, saveResult)
+                if saveSuccess then
+                    log("Successfully saved data for " .. player.Name .. " to key " .. versionKey)
+                else
+                    log("Failed to save data for " .. player.Name .. ": " .. tostring(saveResult))
+                end
+                
+                -- Save additional data
+                self:saveAdditionalData(player, data)
+                
+                -- Release lock
+                self.saveLocks[player.UserId] = nil
+                
+                -- Check if queued for another save
+                if self.saveQueue[player.UserId] then
+                    self.saveQueue[player.UserId] = nil
+                    self:saveData(player, false) -- Not immediate
+                end
+            end
+        )
+        
+        return success
+    end
+    
+    -- Fallback to direct DataStore access if DataThrottler not available
     -- Try to save with retries
+    local attempts = 0
     while attempts < CONFIG.maxRetries do
         attempts = attempts + 1
         
         -- Try main save using UpdateAsync to prevent data overwrites
         if self.dataStores.main then
-            success, result = pcall(function()
+            local pcallSuccess, result = pcall(function()
                 return self.dataStores.main:UpdateAsync(versionKey, function(oldData)
                     -- Keep session lock if this is not a final save
                      -- Encrypt data
@@ -785,8 +901,9 @@ function DataManager:processSave(player, key, data)
                 end)
             end)
             
-            if success then
+            if pcallSuccess then
                 log("Successfully saved data for " .. player.Name .. " to key " .. versionKey)
+                success = true
                 break
             else
                 log("Failed to save data for " .. player.Name .. " (Attempt " .. attempts .. "): " .. tostring(result))
@@ -820,6 +937,96 @@ function DataManager:saveAdditionalData(player, data)
     
     local userId = player.UserId
     local key = tostring(userId)
+    
+    -- If DataThrottler available, use it for all secondary saves
+    if DataThrottler then
+        -- Use low priority for these secondary saves
+        local priority = DataThrottler.getPriorities and DataThrottler.getPriorities().low
+        
+        -- Save equipment data
+        if data.equipment then
+            DataThrottler.queueSaveRequest(
+                "DataManager", 
+                "equip_" .. key, 
+                data.equipment, 
+                priority
+            )
+        end
+        
+        -- Save milestone data
+        if data.milestones then
+            DataThrottler.queueSaveRequest(
+                "DataManager", 
+                "milestone_" .. key, 
+                data.milestones, 
+                priority
+            )
+        end
+        
+        -- Save specialization data
+        if data.specialization then
+            DataThrottler.queueSaveRequest(
+                "DataManager", 
+                "spec_" .. key, 
+                data.specialization, 
+                priority
+            )
+        end
+        
+        -- Save membership data
+        if data.members then
+            DataThrottler.queueSaveRequest(
+                "DataManager", 
+                "member_" .. key, 
+                data.members, 
+                priority
+            )
+        end
+        
+        -- Save revenue data
+        if data.revenue then
+            DataThrottler.queueSaveRequest(
+                "DataManager", 
+                "revenue_" .. key, 
+                data.revenue, 
+                priority
+            )
+        end
+        
+        -- Save staff data
+        if data.staff then
+            DataThrottler.queueSaveRequest(
+                "DataManager", 
+                "staff_" .. key, 
+                data.staff, 
+                priority
+            )
+        end
+        
+        -- Save achievements data
+        if data.achievements then
+            DataThrottler.queueSaveRequest(
+                "DataManager", 
+                "achieve_" .. key, 
+                data.achievements, 
+                priority
+            )
+        end
+        
+        -- Save seasonal data
+        if data.seasonal then
+            DataThrottler.queueSaveRequest(
+                "DataManager", 
+                "season_" .. key, 
+                data.seasonal, 
+                priority
+            )
+        end
+        
+        return
+    end
+    
+    -- Fallback to direct DataStore access
     
     -- Save equipment data
     if self.dataStores.equipment and data.equipment then

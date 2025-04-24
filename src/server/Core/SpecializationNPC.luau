@@ -1,4 +1,4 @@
-lua
+--lua
 function NPCSystem:changeStats(npc)
     local specialization = npc:GetAttribute("Specialization")
     local CoreRegistry = require(script.Parent.CoreRegistry)

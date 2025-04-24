@@ -15,15 +15,31 @@
 ]]
 
 local game = game
---local CollectionService = game:GetService("CollectionService")
+local ServerScriptService = game:GetService("ServerScriptService")
 
--- Module dependencies
+-- Get CoreRegistry safely
 local CoreRegistry
+if _G.CoreRegistry then
+    CoreRegistry = _G.CoreRegistry
+else
+    -- Try to require directly from parent
+    local success, result = pcall(function() 
+        return require(script.Parent.CoreRegistry)
+    end)
+    
+    if success then
+        CoreRegistry = result
+    else
+        -- Final fallback
+        CoreRegistry = require(ServerScriptService.Core.CoreRegistry)
+    end
+end
+
+-- Other module dependencies will be loaded during initialization
 local NPCSystem
 local NPCSystemPerformance
---local PerformanceManager
---local GymStructureIntegration
 local EventBridge
+local GymStructureIntegration
 
 -- Animation configuration
 local ANIMATIONS = {
@@ -100,10 +116,8 @@ local NPCAnimationSystem = {
     _name = "NPCAnimationSystem",
     _version = "1.0.0",
     _dependencies = {
-        "CoreRegistry", 
         "NPCSystem", 
         "NPCSystemPerformance", 
-        "PerformanceManager", 
         "EventBridge",
         "GymStructureIntegration"
     },
@@ -536,18 +550,14 @@ end
 --[[ Initialization and Cleanup ]]--
 
 -- Initialize the animation system
-function NPCAnimationSystem:init()
-    debugPrint("Initializing NPCAnimationSystem v" .. NPCAnimationSystem._version)
-    
-    -- Get dependencies from registry
-    CoreRegistry = NPCAnimationSystem.CoreRegistry
+function NPCAnimationSystem:initialize()
+    debugPrint("Initializing NPCAnimationSystem v" .. self._version)
     
     -- Get required systems
-    NPCSystem = CoreRegistry:getSystem("NPCSystem")
-    NPCSystemPerformance = CoreRegistry:getSystem("NPCSystemPerformance")
-
-    GymStructureIntegration = CoreRegistry:getSystem("GymStructureIntegration")
-    EventBridge = CoreRegistry:getSystem("EventBridge")
+    NPCSystem = CoreRegistry.getSystem("NPCSystem")
+    NPCSystemPerformance = CoreRegistry.getSystem("NPCSystemPerformance")
+    GymStructureIntegration = CoreRegistry.getSystem("GymStructureIntegration")
+    EventBridge = CoreRegistry.getSystem("EventBridge")
     
     -- Check required dependencies
     if not NPCSystem then
@@ -556,17 +566,17 @@ function NPCAnimationSystem:init()
     end
     
     -- Initialize animation pool
-    NPCAnimationSystem:initializeAnimationPool()
+    self:initializeAnimationPool()
     
     -- Preload animations
-    NPCAnimationSystem:preloadAnimations()
+    self:preloadAnimations()
     
     -- Extend NPCSystem with animation capabilities
-    NPCAnimationSystem:extendNPCSystem()
+    self:extendNPCSystem()
     
     -- Register for events if EventBridge is available
     if EventBridge then
-        EventBridge:registerEvent("DetailLevelChanged", function(level)
+        EventBridge:connectEvent("DetailLevelChanged", function(level)
             -- Adjust animation settings based on detail level
             if level == "Low" then
                 CONFIG.distanceBasedAnimQuality = true
@@ -612,7 +622,32 @@ function NPCAnimationSystem:shutdown()
     return true
 end
 
+-- Get the public API
+local PublicAPI = {
+    initialize = function()
+        return NPCAnimationSystem:initialize()
+    end,
+    
+    shutdown = function()
+        return NPCAnimationSystem:shutdown()
+    end,
+    
+    playAnimation = function(npc, animationType, options)
+        return NPCAnimationSystem:playAnimation(npc, animationType, options)
+    end,
+    
+    stopAnimation = function(npc, animationType, fadeTime)
+        return NPCAnimationSystem:stopAnimation(npc, animationType, fadeTime)
+    end,
+    
+    stopAllAnimations = function(npc, fadeTime)
+        return NPCAnimationSystem:stopAllAnimations(npc, fadeTime)
+    end,
+    
+    playAppropriateAnimation = function(npc, npcData)
+        return NPCAnimationSystem:playAppropriateAnimation(npc, npcData)
+    end
+}
+
 -- Register with CoreRegistry
-return CoreRegistry.registerSystem("NPCAnimationSystem", NPCAnimationSystem, {
-    "CoreRegistry", "NPCSystem", "NPCSystemPerformance", "PerformanceManager", "EventBridge", "GymStructureIntegration"
-})
+return CoreRegistry.registerSystem("NPCAnimationSystem", PublicAPI, NPCAnimationSystem._dependencies)

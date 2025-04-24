@@ -390,7 +390,9 @@ local NPCSystem = {
         "TycoonSystem",
         "DataManager",
         "MemberSatisfactionSystem",
-        "RevenueSystem"
+        "RevenueSystem",
+        "StaffManagementSystem",
+        "MemberTrainingSystem"
     },
 
     -- Internal state
@@ -399,8 +401,7 @@ local NPCSystem = {
     _activeNPCs = {},       -- Currently active NPCs
     _spawnTimers = {},      -- Timers for spawning NPCs, keyed by tycoon
     _models = {},           -- Cached NPC models
-    _nextUpdateGroup = 0,    -- For staggered updates
-    _dependencies = {"CoreRegistry", "EventBridge", "TycoonSystem", "DataManager", "MemberSatisfactionSystem", "RevenueSystem", "StaffManagementSystem"}
+    _nextUpdateGroup = 0    -- For staggered updates
 }
 
 --[[\n    trainMember(member, equipment)\n    Handles the training logic for a member.\n    member: The member to train.\n    equipment: The equipment being used.\n]]

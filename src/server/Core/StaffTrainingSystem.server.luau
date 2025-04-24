@@ -1,4 +1,4 @@
-lua
+--lua
 -- StaffTrainingSystem.server.luau
 -- This module handles the training and skill progression of staff members.
 

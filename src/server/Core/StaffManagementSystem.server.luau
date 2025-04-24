@@ -10,6 +10,8 @@
 local CoreRegistry = require(script.Parent.CoreRegistry)
 
 local StaffManagementSystem = {}
+-- Will be initialized in the initialize function
+local StaffSpecializationSystem = nil
 
 --[[
     _staffData:
@@ -34,11 +36,14 @@ function StaffManagementSystem:assignRole(staffId, role)
     self._staffData[staffId].role = role
     -- Set the staff efficiency to 1 by default
     self._staffData[staffId].efficiency = 1
-    local skillTree = StaffSpecializationSystem:getSkillTreeForRole(role)
-    if skillTree then
-        for _, skill in ipairs(skillTree) do
-            self._staffData[staffId].skills[skill.name] = skill.effects
-         end
+
+    if StaffSpecializationSystem then
+        local skillTree = StaffSpecializationSystem:getSkillTreeForRole(role)
+        if skillTree then
+            for _, skill in ipairs(skillTree) do
+                self._staffData[staffId].skills[skill.name] = skill.effects
+            end
+        end
     end
 
     -- Apply the skill effects
@@ -75,12 +80,6 @@ function StaffManagementSystem:setStaffEfficiency(staffId, efficiency)
         print("[StaffManagementSystem] Warning: Staff member " .. tostring(staffId) .. " not found.")
     end
 end
-
-
-
-
-
-
 
 --[[
     getStaffEfficiency(staffId)
@@ -133,14 +132,12 @@ end
     Initializes the system.
 ]]
 function StaffManagementSystem:initialize()
-    print(\"[StaffManagementSystem] Initialized\")
+    print("[StaffManagementSystem] Initialized")
+    -- Get StaffSpecializationSystem from CoreRegistry
     StaffSpecializationSystem = CoreRegistry:getSystem("StaffSpecializationSystem")
-
 end
 
-local StaffSpecializationSystem
-
---[[
+--[[ 
 Public API to register
 ]]
 local PublicAPI = {
