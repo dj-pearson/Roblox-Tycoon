@@ -1,4 +1,3 @@
--- filepath: c:\Users\dpearson\OneDrive\Documents\RobloxProject\src\server\Core\SystemBootstrap.server.luau
 -- SystemBootstrap.luau
 -- Main entry point for initializing all core systems
 -- Place in ServerScriptService/Core
@@ -22,7 +21,7 @@ local function log(...)
     end
 end
 
-local function warn(...)
+local function warnLog(...)
     if CONFIG.debugEnabled then
         warn("[SystemBootstrap]", ...)
     end
@@ -52,7 +51,7 @@ local function initializeModuleLoader()
             moduleLoader.Parent = ReplicatedStorage.shared
             log("Copied ModuleLoader to ReplicatedStorage.shared")
         else
-            warn("ModuleLoader not found in src/shared, module loading might not work correctly")
+            warnLog("ModuleLoader not found in src/shared, module loading might not work correctly")
         end
     end
     
@@ -62,7 +61,7 @@ local function initializeModuleLoader()
     end)
     
     if not success then
-        warn("Failed to run PathRegistration: " .. tostring(result))
+        warnLog("Failed to run PathRegistration: " .. tostring(result))
     else
         log("PathRegistration completed successfully")
     end
@@ -94,13 +93,10 @@ local function ensureFolderExists(parent, name)
 end
 
 -- Create necessary folders in ReplicatedStorage
--- Store references for later use in other systems if needed
-local eventsFolder = ensureFolderExists(ReplicatedStorage, "Events")
-local sharedFolder = ensureFolderExists(ReplicatedStorage, "shared")
--- Using the folders to avoid unused variable warnings
-if eventsFolder and sharedFolder then
-    log("Created or found necessary folders in ReplicatedStorage")
-end
+-- Create folders without storing references since they aren't used later
+ensureFolderExists(ReplicatedStorage, "Events")
+ensureFolderExists(ReplicatedStorage, "shared")
+log("Created or found necessary folders in ReplicatedStorage")
 
 -- Get the CoreRegistry to access all systems
 local CoreRegistry = require(CoreFolder:FindFirstChild("CoreRegistry"))
@@ -138,23 +134,20 @@ local function handlePlayerJoin(player)
     log("Setting up player: " .. player.Name)
 
     -- Create leaderstats first (if needed)
-    local LeaderstatsSystem = CoreRegistry.getSystem("LeaderstatsSystem")
-    if LeaderstatsSystem and LeaderstatsSystem.setupLeaderstats then
+    local LeaderstatsSystem = CoreRegistry.getSystem("LeaderstatsSystem")    if LeaderstatsSystem and LeaderstatsSystem.setupLeaderstats then
         LeaderstatsSystem.setupLeaderstats(player)
     else
-        warn("LeaderstatsSystem not found or setupLeaderstats function missing")
+        warnLog("LeaderstatsSystem not found or setupLeaderstats function missing")
     end
 
     -- Ensure player has a tycoon
     local TycoonSystem = CoreRegistry.getSystem("TycoonSystem")
     if TycoonSystem and TycoonSystem.ensurePlayerTycoon then
         task.spawn(function()
-            local tycoon = TycoonSystem.ensurePlayerTycoon(player)
-
-            if tycoon then
+            local tycoon = TycoonSystem.ensurePlayerTycoon(player)            if tycoon then
                 log("Tycoon ready for " .. player.Name)
             else
-                warn("Failed to create tycoon for " .. player.Name)
+                warnLog("Failed to create tycoon for " .. player.Name)
             end
         end)
     end
@@ -165,7 +158,7 @@ end
 -- Initialize connector modules
 local function initializeConnectors()
     if not ConnectorsFolder then
-        warn("Connectors folder not found in ServerScriptService")
+        warnLog("Connectors folder not found in ServerScriptService")
         return
     end
 
@@ -175,10 +168,9 @@ local function initializeConnectors()
     local initializedCount = 0
     local failedConnectors = {}
 
-    for _, connectorName in ipairs(connectorsToInitialize) do
-        local connectorScript = ConnectorsFolder:FindFirstChild(connectorName)
+    for _, connectorName in ipairs(connectorsToInitialize) do        local connectorScript = ConnectorsFolder:FindFirstChild(connectorName)
         if not connectorScript then
-            warn("Connector not found: " .. connectorName)
+            warnLog("Connector not found: " .. connectorName)
             table.insert(failedConnectors, connectorName)
             continue
         end
@@ -203,8 +195,7 @@ local function initializeConnectors()
 
                     -- Register with CoreRegistry for other systems to access
                     CoreRegistry.registerSystem(connectorName, connector)
-                else
-                    warn("Failed to initialize connector: " .. connectorName)
+                else                    warnLog("Failed to initialize connector: " .. connectorName)
                     table.insert(failedConnectors, connectorName)
                 end
             else
@@ -213,17 +204,14 @@ local function initializeConnectors()
                 CoreRegistry.registerSystem(connectorName, connector)
                 initializedCount = initializedCount + 1
             end
-        else
-            warn("Failed to load connector: " .. connectorName)
+        else            warnLog("Failed to load connector: " .. connectorName)
             table.insert(failedConnectors, connectorName)
         end
-    end
-
-    -- Final report
+    end    -- Final report
     log("Connectors initialization complete: " .. initializedCount .. " of " .. #connectorsToInitialize .. " connectors initialized")
 
     if #failedConnectors > 0 then
-        warn("Failed to initialize " .. #failedConnectors .. " connectors: " .. table.concat(failedConnectors, ", "))
+        warnLog("Failed to initialize " .. #failedConnectors .. " connectors: " .. table.concat(failedConnectors, ", "))
     end
 end
 
@@ -268,10 +256,8 @@ local function initializeSystems()
         while not success and retryCount < CONFIG.initRetryCount do
             log("Initializing " .. systemName .. (retryCount > 0 and " (retry " .. retryCount .. ")" or ""))
 
-            local system = CoreRegistry.getSystem(systemName)
-
-            if not system then
-                warn("System not found: " .. systemName)
+            local system = CoreRegistry.getSystem(systemName)            if not system then
+                warnLog("System not found: " .. systemName)
                 continue -- Continue to the next system
             end
 
@@ -311,9 +297,8 @@ local function initializeSystems()
 
             -- Wait for initialization with timeout
             local startTime = os.clock()
-            while not initializationComplete do
-                if os.clock() - startTime > CONFIG.systemInitTimeout then
-                    warn("System initialization timed out: " .. systemName)
+            while not initializationComplete do                if os.clock() - startTime > CONFIG.systemInitTimeout then
+                    warnLog("System initialization timed out: " .. systemName)
                     break
                 end
                 task.wait(0.1)
@@ -325,9 +310,8 @@ local function initializeSystems()
                 -- The CoreRegistry should already mark it as initialized if successful
                 log("Successfully initialized: " .. systemName)
                 initializedCount = initializedCount + 1
-            else
-                retryCount = retryCount + 1
-                warn("Failed to initialize: " .. systemName .. (retryCount < CONFIG.initRetryCount and ", will retry" or ""))
+            else                retryCount = retryCount + 1
+                warnLog("Failed to initialize: " .. systemName .. (retryCount < CONFIG.initRetryCount and ", will retry" or ""))
                 task.wait(1) -- Wait before retry
             end
 
@@ -340,11 +324,10 @@ local function initializeSystems()
         end
     end
 
-    -- Final report
-    log("Core systems initialization complete: " .. initializedCount .. " of " .. #systemsToInitialize .. " systems initialized")
+    -- Final report    log("Core systems initialization complete: " .. initializedCount .. " of " .. #systemsToInitialize .. " systems initialized")
 
     if #failedSystems > 0 then
-        warn("Failed to initialize " .. #failedSystems .. " systems: " .. table.concat(failedSystems, ", "))
+        warnLog("Failed to initialize " .. #failedSystems .. " systems: " .. table.concat(failedSystems, ", "))
     end
 
     -- Initialize connectors after core systems

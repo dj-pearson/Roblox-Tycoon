@@ -2,7 +2,6 @@
 -- Unified system for purchasing and managing gym equipment tiles
 -- Place in ServerScriptService/Core
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
@@ -23,32 +22,26 @@ if loaderSuccess and loaderResult then
     CoreRegistry = ModuleLoader:LoadServerModule("Core", "CoreRegistry")
 else
     print("[BuyTileSystem] ModuleLoader not found, using legacy loading")
-    
     -- Legacy loading methods in order of preference
-    if _G.CoreRegistry then
-        CoreRegistry = _G.CoreRegistry
-        print("[BuyTileSystem] Loaded CoreRegistry from _G")
+    -- Try to require directly from parent
+    local success, result = pcall(function() 
+        return require(script.Parent.CoreRegistry)
+    end)
+    
+    if success then
+        CoreRegistry = result
+        print("[BuyTileSystem] Loaded CoreRegistry from parent")
     else
-        -- Try to require directly from parent
-        local success, result = pcall(function() 
-            return require(script.Parent.CoreRegistry)
+        -- Final fallback
+        local finalSuccess, finalResult = pcall(function()
+            return require(ServerScriptService.Core.CoreRegistry)
         end)
         
-        if success then
-            CoreRegistry = result
-            print("[BuyTileSystem] Loaded CoreRegistry from parent")
+        if finalSuccess then
+            CoreRegistry = finalResult
+            print("[BuyTileSystem] Loaded CoreRegistry from ServerScriptService.Core")
         else
-            -- Final fallback
-            local finalSuccess, finalResult = pcall(function()
-                return require(ServerScriptService.Core.CoreRegistry)
-            end)
-            
-            if finalSuccess then
-                CoreRegistry = finalResult
-                print("[BuyTileSystem] Loaded CoreRegistry from ServerScriptService.Core")
-            else
-                warn("[BuyTileSystem] CRITICAL: Failed to load CoreRegistry!")
-            end
+            warn("[BuyTileSystem] CRITICAL: Failed to load CoreRegistry!")
         end
     end
 end
@@ -223,9 +216,8 @@ function BuyTileSystem:initialize()
     local GymStructureIntegration = CoreRegistry.getSystem("GymStructureIntegration")
     if not GymStructureIntegration then
         Log("GymStructureIntegration not found, creating a basic version")
-        
-        local BasicGymStructureIntegration = {
-            getArea = function(self, tycoon, areaName)
+          local BasicGymStructureIntegration = {
+            getArea = function(_, tycoon, areaName)
                 -- Simple implementation to find an area by name in the tycoon
                 return tycoon:FindFirstChild(areaName, true)
             end,
@@ -261,11 +253,7 @@ function BuyTileSystem:setupRemoteEvents()
         Log("Warning: EventBridge not found after multiple attempts")
         return
     end
-    
-    -- Get or create remote event for buy tile requests
-    local buyTileEvent = EventBridge:getOrCreateRemoteEvent("BuyTile")
-    
-    -- Connect handler
+      -- Connect handler to the buy tile event
     EventBridge:connectRemoteEvent("BuyTile", function(player, tileId) 
         self:handleBuyTileRequest(player, tileId) 
     end)
@@ -671,9 +659,6 @@ local PublicAPI = {
         return BuyTileSystem:placeEquipment(player, tileId)
     end
 }
-
--- Make BuyTileSystem globally accessible for emergency access
-_G.BuyTileSystem = BuyTileSystem
 
 -- Register with CoreRegistry
 return CoreRegistry.registerSystem("BuyTileSystem", PublicAPI, {"EventBridge"})
