@@ -16,26 +16,75 @@ local function debugPrint(...)
 	end
 end
 
--- Load required systems
+-- Load CoreRegistry if available
+local CoreRegistry
+pcall(function()
+	local coreRegistryPath = ServerScriptService:FindFirstChild("Core") and 
+							ServerScriptService.Core:FindFirstChild("CoreRegistry")
+	if coreRegistryPath then
+		CoreRegistry = require(coreRegistryPath)
+	end
+end)
+
+-- Load required systems with multiple fallback paths
+local DataAccessLayer, BuyTileSystem, TycoonSystem
+
+-- Try to load DataAccessLayer (new standardized data layer)
+pcall(function()
+	local dataLayerPath = ServerScriptService:FindFirstChild("Core") and 
+						 ServerScriptService.Core:FindFirstChild("DataAccessLayer")
+	if dataLayerPath then
+		DataAccessLayer = require(dataLayerPath)
+		debugPrint("Loaded DataAccessLayer")
+	end
+end)
+
+-- Try to load systems through CoreRegistry first
+if CoreRegistry then
+	if not DataAccessLayer then
+		DataAccessLayer = CoreRegistry:GetSystem("DataAccessLayer")
+		if DataAccessLayer then
+			debugPrint("Loaded DataAccessLayer from CoreRegistry")
+		end
+	end
+	
+	BuyTileSystem = CoreRegistry:GetSystem("BuyTileSystem")
+	if BuyTileSystem then
+		debugPrint("Loaded BuyTileSystem from CoreRegistry")
+	end
+	
+	TycoonSystem = CoreRegistry:GetSystem("TycoonSystem")
+	if TycoonSystem then
+		debugPrint("Loaded TycoonSystem from CoreRegistry")
+	end
+end
+
+-- Fallbacks for direct requires if not found in CoreRegistry
+if not BuyTileSystem then
+	pcall(function() 
+		BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile")) 
+		debugPrint("Loaded BuyTile system directly")
+	end)
+end
+
+if not TycoonSystem then
+	pcall(function() 
+		TycoonSystem = require(ServerScriptService:FindFirstChild("UnifiedTycoonSystem")) 
+		debugPrint("Loaded UnifiedTycoonSystem directly")
+	end)
+end
+
+-- Legacy fallback for data storage if DataAccessLayer not available
 local DataStorage
-local BuyTileSystem
-local TycoonSystem
-
--- Attempt to load each dependency
-pcall(function() 
-	DataStorage = require(ServerScriptService:FindFirstChild("EnhancedDataStorageSystem")) 
-	debugPrint("Loaded EnhancedDataStorageSystem")
-end)
-
-pcall(function() 
-	BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile")) 
-	debugPrint("Loaded BuyTile system")
-end)
-
-pcall(function() 
-	TycoonSystem = require(ServerScriptService:FindFirstChild("UnifiedTycoonSystem")) 
-	debugPrint("Loaded UnifiedTycoonSystem")
-end)
+if not DataAccessLayer then
+	pcall(function() 
+		DataStorage = require(ServerScriptService:FindFirstChild("Data"):FindFirstChild("EnhancedDataStorageSystem")) 
+		if not DataStorage then
+			DataStorage = require(ServerScriptService:FindFirstChild("EnhancedDataStorageSystem"))
+		end
+		debugPrint("Loaded EnhancedDataStorageSystem as fallback")
+	end)
+end
 
 -- Create failsafe module
 local ProgressRestoration = {}
@@ -100,20 +149,35 @@ function ProgressRestoration.ensurePlayerTycoon(player)
 	return tycoonValue.Value
 end
 
--- Get player data with fallback for different data stores
+-- Get player data with proper layering
 function ProgressRestoration.getPlayerData(player)
 	if not player then return nil end
 
 	local data = nil
 
-	-- Try EnhancedDataStorageSystem first
-	if DataStorage and DataStorage.loadData then
-		pcall(function()
-			data = DataStorage.loadData(player)
+	-- Try DataAccessLayer first (preferred method)
+	if DataAccessLayer then
+		local success, result = pcall(function()
+			return DataAccessLayer:GetAllPlayerData(player)
 		end)
+		
+		if success and result then
+			data = result
+		end
+	end
+	
+	-- Try EnhancedDataStorageSystem as fallback
+	if not data and DataStorage and DataStorage.loadData then
+		local success, result = pcall(function()
+			return DataStorage.loadData(player)
+		end)
+		
+		if success and result then
+			data = result
+		end
 	end
 
-	-- Check DataStore2 as fallback
+	-- Check DataStore2 as secondary fallback
 	if not data then
 		local DataStore2
 		pcall(function()
@@ -131,11 +195,18 @@ function ProgressRestoration.getPlayerData(player)
 		end
 	end
 
-	-- Try _G.GymTycoonConnector as a last resort
-	if not data and _G.GymTycoonConnector and _G.GymTycoonConnector.getPlayerData then
-		pcall(function()
-			data = _G.GymTycoonConnector.getPlayerData(player)
-		end)
+	-- Try any GymTycoonConnector from CoreRegistry as last resort
+	if not data and CoreRegistry then
+		local connector = CoreRegistry:GetSystem("GymTycoonConnector")
+		if connector and connector.getPlayerData then
+			local success, result = pcall(function()
+				return connector.getPlayerData(player)
+			end)
+			
+			if success and result then
+				data = result
+			end
+		end
 	end
 
 	if not data then
@@ -150,181 +221,119 @@ end
 -- Improved equipment restoration function
 function ProgressRestoration.restorePurchasedEquipment(player)
 	if not player then return false end
-
-	-- Ensure player has a tycoon first
+	
+	-- Ensure player has a tycoon
 	local tycoon = ProgressRestoration.ensurePlayerTycoon(player)
 	if not tycoon then
-		debugPrint("Failed to ensure tycoon for " .. player.Name)
+		debugPrint("No tycoon to restore equipment to for " .. player.Name)
 		return false
 	end
-
-	-- Get player data
+	
+	-- Get the player data
 	local data = ProgressRestoration.getPlayerData(player)
 	if not data then
 		debugPrint("No data to restore for " .. player.Name)
 		return false
 	end
-
-	-- Check for equipment data
-	if not data.equipmentPurchased or type(data.equipmentPurchased) ~= "table" then
-		debugPrint("No equipment data to restore for " .. player.Name)
+	
+	-- Extract equipment data based on available format
+	local equipment = {}
+	if data.equipmentPurchased then
+		-- Format: {tileId = true, ...}
+		for tileId, _ in pairs(data.equipmentPurchased) do
+			table.insert(equipment, tonumber(tileId))
+		end
+	elseif data.equipment then
+		-- Format: {1, 2, 3, ...}
+		equipment = data.equipment
+	end
+	
+	if #equipment == 0 then
+		debugPrint("No equipment to restore for " .. player.Name)
 		return false
 	end
-
-	-- Get the BuyTile system
-	if not BuyTileSystem or not BuyTileSystem.spawnGymPart then
-		debugPrint("BuyTile system not available or missing spawnGymPart function")
-		-- Try to get the global function as fallback
-		if _G.spawnGymPart then
-			BuyTileSystem = {
-				spawnGymPart = _G.spawnGymPart,
-				spawnBuyTile = _G.spawnBuyTile or function() end
-			}
+	
+	debugPrint("Attempting to restore " .. #equipment .. " pieces of equipment for " .. player.Name)
+	
+	-- Try to use DataAccessLayer first (preferred method)
+	if DataAccessLayer then
+		local success, result = pcall(function()
+			return DataAccessLayer:RestorePlayerEquipment(player)
+		end)
+		
+		if success and result then
+			debugPrint("Successfully restored equipment using DataAccessLayer")
+			return true
+		end
+	end
+	
+	-- Try using BuyTileSystem directly
+	if BuyTileSystem then
+		local success = false
+		
+		-- Handle different BuyTileSystem interfaces
+		if typeof(BuyTileSystem.restoreEquipment) == "function" then
+			success = BuyTileSystem.restoreEquipment(player, equipment)
+		elseif typeof(BuyTileSystem.restorePurchasedEquipment) == "function" then
+			success = BuyTileSystem.restorePurchasedEquipment(player, equipment)
 		else
-			return false
-		end
-	end
-
-	-- Get purchased tile IDs
-	local purchasedTiles = {}
-	for tileId, _ in pairs(data.equipmentPurchased) do
-		local id = tonumber(tileId) or tonumber(string.match(tileId, "%d+"))
-		if id then
-			table.insert(purchasedTiles, id)
-		end
-	end
-
-	-- Sort IDs to purchase in order
-	table.sort(purchasedTiles)
-
-	debugPrint("Restoring " .. #purchasedTiles .. " equipment pieces for " .. player.Name)
-
-	-- Track successful spawns
-	local spawnCount = 0
-
-	-- Make sure front desk exists first (tile ID 1)
-	local frontDeskSpawned = false
-
-	-- Check if front desk already exists
-	if tycoon:FindFirstChild("Front Desk") then
-		frontDeskSpawned = true
-		spawnCount = spawnCount + 1
-		debugPrint("Front desk already exists for " .. player.Name)
-	else
-		-- Try to spawn front desk (usually tile ID 1)
-		if BuyTileSystem.spawnGymPart then
-			local frontDesk = BuyTileSystem.spawnGymPart(1)
-			if frontDesk then
-				frontDeskSpawned = true
-				spawnCount = spawnCount + 1
-				debugPrint("Spawned front desk for " .. player.Name)
-
-				-- Ensure it's properly parented to tycoon
-				if frontDesk.Parent ~= tycoon then
-					frontDesk.Parent = tycoon
-				end
+			-- Manual restore as last resort
+			for _, tileId in ipairs(equipment) do
+				task.spawn(function()
+					if typeof(BuyTileSystem.spawnGymPart) == "function" then
+						local part = BuyTileSystem.spawnGymPart(tileId)
+						if part then
+							debugPrint("Restored tile " .. tileId .. " for " .. player.Name)
+						end
+					elseif typeof(BuyTileSystem.handleBuyTileRequest) == "function" then
+						BuyTileSystem.handleBuyTileRequest(player, tileId, true) -- Force restoration
+					end
+					task.wait(0.1) -- Prevent server lag from mass spawning
+				end)
 			end
+			success = true
 		end
+		
+		return success
 	end
-
-	-- Spawn each remaining tile with a delay between
-	for _, tileId in ipairs(purchasedTiles) do
-		-- Skip ID 1 if already processed
-		if tileId == 1 and frontDeskSpawned then
-			continue
-		end
-
-		task.wait(0.1) -- Slight delay to prevent issues
-
-		-- Check if the part already exists in the tycoon
-		local exists = false
-		for _, part in pairs(tycoon:GetDescendants()) do
-			if part:GetAttribute("ID") == tileId then
-				exists = true
-				spawnCount = spawnCount + 1
-				debugPrint("Equipment ID " .. tileId .. " already exists for " .. player.Name)
-				break
-			end
-		end
-
-		if not exists then
-			-- Try to spawn gym part
-			local part = BuyTileSystem.spawnGymPart(tileId)
-			if part then
-				-- Ensure it's properly parented to tycoon
-				if part.Parent ~= tycoon then
-					part.Parent = tycoon
-				end
-
-				spawnCount = spawnCount + 1
-				debugPrint("Restored gym part " .. tileId .. " for " .. player.Name)
-			else
-				debugPrint("Failed to restore gym part " .. tileId .. " for " .. player.Name)
-			end
-		end
-	end
-
-	-- Update equipment count on tycoon
-	player:FindFirstChild("Tycoon"):SetAttribute("EquipmentCount", spawnCount)
-
-	debugPrint("Successfully restored " .. spawnCount .. "/" .. #purchasedTiles .. " equipment pieces for " .. player.Name)
-
-	-- Make sure the front desk is set up properly
-	pcall(function()
-		local FrontDeskSystem = require(ServerScriptService:FindFirstChild("UnifiedFrontDeskSystem"))
-		if FrontDeskSystem and FrontDeskSystem.updateFrontDeskDisplay then
-			task.spawn(function()
-				task.wait(1) -- Wait for tycoon to be fully set up
-				FrontDeskSystem.updateFrontDeskDisplay(player)
-			end)
-		end
-	end)
-
-	return true
+	
+	return false
 end
 
--- Additional function to set up everything a player needs
-function ProgressRestoration.setupPlayer(player)
-	if not player then return false end
-
-	-- Ensure leaderstats
-	local leaderstats = player:FindFirstChild("leaderstats")
-	if not leaderstats then
-		leaderstats = Instance.new("Folder")
-		leaderstats.Name = "leaderstats"
-		leaderstats.Parent = player
-
-		local cashValue = Instance.new("IntValue")
-		cashValue.Name = "Cash"
-		cashValue.Value = 1000 -- Default starting cash
-		cashValue.Parent = leaderstats
-	end
-
-	-- Ensure tycoon
+-- Handle player joining
+function ProgressRestoration.onPlayerJoin(player)
+	if not player then return end
+	
+	-- Wait a bit for other systems to initialize
+	task.wait(3)
+	
+	-- Ensure tycoon exists
 	local tycoon = ProgressRestoration.ensurePlayerTycoon(player)
-
-	-- Restore equipment with delay
+	
+	-- Restore equipment 
 	task.spawn(function()
-		task.wait(3) -- Wait for everything to initialize
 		ProgressRestoration.restorePurchasedEquipment(player)
 	end)
-
-	return true
 end
 
 -- Connect to player events
 Players.PlayerAdded:Connect(function(player)
-	task.wait(2) -- Wait for player to fully load
-	ProgressRestoration.setupPlayer(player)
+	task.spawn(function()
+		ProgressRestoration.onPlayerJoin(player)
+	end)
 end)
 
--- Check existing players
-for _, player in ipairs(Players:GetPlayers()) do
+-- Restore for existing players (in case of script reloading)
+for _, player in pairs(Players:GetPlayers()) do
 	task.spawn(function()
-		task.wait(2) -- Wait to avoid conflicts with other initializing scripts
-		ProgressRestoration.setupPlayer(player)
+		ProgressRestoration.onPlayerJoin(player)
 	end)
 end
 
--- Export the module
+-- Register with CoreRegistry if available
+if CoreRegistry and CoreRegistry.registerSystem then
+	CoreRegistry:RegisterSystem("PlayerProgressRestoration", ProgressRestoration)
+	debugPrint("Registered with CoreRegistry")
+end
+
 return ProgressRestoration

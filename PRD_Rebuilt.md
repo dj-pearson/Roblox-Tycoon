@@ -106,7 +106,6 @@ This document serves as the central repository for all project information, guid
     - **Benefits:** Provides players with clear, short-term objectives, encourages exploration of different game mechanics, and makes progression feel more personalized and engaging.
     - **Implementation Notes:** Goals could include "Train X Bodybuilder NPCs," "Earn Y revenue from Cardio equipment," or "Achieve Z member satisfaction for 10 minutes."
 
-
 ## 1. Completed Features
 
 ## ... (previous completed features)
@@ -137,6 +136,7 @@ This document serves as the central repository for all project information, guid
         Resource types defined. Supply and demand tracking. Price adjustment logic.
         Functions to interact with the dynamic economy system (UpdateSupply, UpdateDemand,
         GetResourceData). File: `src/server/Core/DynamicEconomy.server.luau`.
+
 ## 4. Security Revisions
 
 -   **Data Security:**
@@ -258,6 +258,77 @@ This document serves as the central repository for all project information, guid
 -    **Note:** Make sure all systems are constantly reviewed, updated, and properly tested.
 - **Testing Framework**
 -    **Note:** Add proper testing framework and write tests for all implemented systems.
+
+## 9. Data Persistence Improvements
+
+-   **Consolidate Data Systems:**
+    -   **Issue:** Multiple concurrent data systems (DataManager, EnhancedDataStorageSystem) causing potential conflicts.
+    -   **Approach:**
+        -   Select one primary data system (recommend using the Core DataManager).
+        -   Route all data operations through this single system.
+        -   Deprecate or remove redundant systems to prevent race conditions.
+
+-   **Standardize Save Paths:**
+    -   **Issue:** Different systems use different save implementation methods.
+    -   **Approach:**
+        -   Create a standardized data access layer for all systems.
+        -   Ensure consistent use of the CoreRegistry for dependencies.
+        -   Implement unified error handling and retry logic.
+
+-   **Fix PlayerProgressRestoration:**
+    -   **Issue:** Progress restoration reporting "No data to restore" for players.
+    -   **Approach:**
+        -   Debug progress restoration flow to identify timing issues.
+        -   Ensure proper dependency chain in initialization.
+        -   Add comprehensive logging for the restoration process.
+
+-   **Optimize Save Operations:**
+    -   **Issue:** Multiple simultaneous save operations causing unnecessary DataStore API usage.
+    -   **Approach:**
+        -   Implement a tiered save strategy based on data importance.
+        -   Coordinate save timing between systems.
+        -   Use DataThrottler consistently across all save operations.
+
+-   **Data Validation Framework:**
+    -   **Issue:** Potential for data corruption or inconsistencies.
+    -   **Approach:**
+        -   Implement schema validation for critical data structures.
+        -   Add integrity checks before and after save operations.
+        -   Create recovery mechanisms for corrupted data.
+
+-   **Conflict Resolution Strategy:**
+    -   **Issue:** Potential conflicts between different save systems.
+    -   **Approach:**
+        -   Define clear precedence rules for data sources.
+        -   Implement data versioning and timestamps.
+        -   Create merge strategies for conflicting data.
+
+## 10. Data Persistence Implementation Plan
+
+1. **Phase 1: Analysis and Documentation**
+   - [ ] Document current data flows and dependencies
+   - [ ] Identify all systems that interact with data persistence
+   - [ ] Map out ideal data architecture
+
+2. **Phase 2: System Consolidation**
+   - [ ] Select primary data system (Core DataManager)
+   - [ ] Update dependency injection in CoreRegistry
+   - [ ] Create wrapper functions for legacy code compatibility
+
+3. **Phase 3: Standardization**
+   - [ ] Implement standardized data access layer
+   - [ ] Update all systems to use this layer
+   - [ ] Add comprehensive logging and error handling
+
+4. **Phase 4: Optimization and Validation**
+   - [ ] Implement tiered save strategy
+   - [ ] Add data validation framework
+   - [ ] Create conflict resolution mechanisms
+
+5. **Phase 5: Testing and Verification**
+   - [ ] Test data persistence across all game scenarios
+   - [ ] Verify recovery from common failure modes
+   - [ ] Document final system architecture
 
 ## Remaining Steps for Advanced NPC AI
 
