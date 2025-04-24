@@ -78,10 +78,11 @@
   - **Implementation Notes:** Staff skills impact revenue, satisfaction, cleanliness, and security
 
 - **Dynamic Goal/Quest System**
-  - **Description:** Generate personalized goals based on player progress and specialization
-  - **Implementation Notes:** Goals like "Train X Bodybuilder NPCs" or "Achieve Z member satisfaction for 10 minutes"
+  - **Description:** Generate personalized goals and quests based on player progress and specialization.
 
 ## Recently Completed Features
+- **Dynamic Goal/Quest System (Base Implementation)**
+    - Implemented a system to generate goals and quests for players, and added a core module.
 
 - **Advanced NPC AI (Initial Implementation)**
   - Implemented PathfindingService for better NPC movement
