@@ -501,8 +501,8 @@ function StaffSystem.hireStaff(player, positionId)
 	return true, "Successfully hired " .. position.name
 end
 
--- Create a new staff member when hired
-function StaffSystem:createStaffMember(player, positionId)
+-- Create a new staff member when hired (base implementation)
+function StaffSystem:_createStaffMemberBase(player, positionId)
 	if not player or not positionId then return nil end
 	
 	local userId = player.UserId
@@ -763,7 +763,7 @@ end
 
 -- Create a new staff member when hired
 function StaffSystem:createStaffMember(player, positionId)
-	local staffMember = StaffSystem.super.createStaffMember(self, player, positionId)
+	local staffMember = self:_createStaffMemberBase(player, positionId)
 	
 	if staffMember then
 		initializeStaffMemberData(staffMember)
@@ -772,20 +772,17 @@ function StaffSystem:createStaffMember(player, positionId)
 	return staffMember
 end
 
--- Load staff data
-function StaffSystem:loadStaffData(player)
-	local success = StaffSystem.super.loadStaffData(self, player)
-	
-	-- Ensure all staff members have skills initialized
-	if success and self.staffData[player.UserId] then
+-- Initialize staff member data after loading
+function StaffSystem:_initializeLoadedStaffData(player)
+	if player and self.staffData[player.UserId] then
 		for _, positionData in pairs(self.staffData[player.UserId]) do
 			for _, staffMember in ipairs(positionData.staffMembers) do
 				initializeStaffMemberData(staffMember)
 			end
 		end
+		return true
 	end
-	
-	return success
+	return false
 end
 
 -- Save staff data to DataManager or player attributes
@@ -863,10 +860,13 @@ function StaffSystem:loadStaffData(player)
 	local success, decodedData = pcall(function()
 		return game:GetService("HttpService"):JSONDecode(encodedData)
 	end)
-	
-	if success then
+		if success then
 		self.staffData[userId] = decodedData
 		debugPrint("Loaded staff data from player attributes for " .. player.Name)
+		
+		-- Initialize staff member skills after loading data
+		self:_initializeLoadedStaffData(player)
+		
 		return true
 	else
 		warn("Failed to decode staff data for " .. player.Name)
