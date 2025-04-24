@@ -118,6 +118,7 @@ local systemsToInitialize = {
     "AchievementSystem",
     "SaunaSystem",
     "RevenueSystem",
+    "QuestSystem",
     "MemoryStoreManager" -- Added MemoryStoreManager
     -- Additional systems can be added here
 }
@@ -257,7 +258,12 @@ local function initializeSystems()
             log("Initializing " .. systemName .. (retryCount > 0 and " (retry " .. retryCount .. ")" or ""))
 
             local system = CoreRegistry.getSystem(systemName)            if not system then
-                warnLog("System not found: " .. systemName)
+                -- Attempt to require the system module if not already loaded
+                local module = require(script.Parent:FindFirstChild(systemName))
+                if module then
+                    CoreRegistry.registerSystem(module) -- Register it
+                    system = CoreRegistry.getSystem(systemName)
+                end                warnLog("System not found: " .. systemName)
                 continue -- Continue to the next system
             end
 
