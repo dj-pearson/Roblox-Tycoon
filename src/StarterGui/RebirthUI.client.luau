@@ -35,15 +35,15 @@ local function createRebirthUI()
     screenGui.Name = "RebirthUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-      -- Create main frame using UIStyle
+    
+    -- Create main frame using UIStyle
     local mainFrame = UIStyle.createFrame({
         name = "RebirthFrame",
         size = UDim2.new(0, 500, 0, 400),
         position = UDim2.new(0.5, -250, 0.5, -200),
         color = UIStyle.Colors.Background,
         cornerRadius = UDim.new(0, 10),
-        transparency = 0.1,
-        zIndex = UIStyle.ZIndex.Standard
+        transparency = 0.1
     })
     mainFrame.Parent = screenGui
     
@@ -299,22 +299,16 @@ local function createRebirthUI()
     achievementsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     achievementsListLayout.Parent = achievementsScrollFrame
     
-    -- Rebirth button
-    local rebirthButton = Instance.new("TextButton")
-    rebirthButton.Name = "RebirthButton"
-    rebirthButton.Size = UDim2.new(0, 200, 0, 50)
-    rebirthButton.Position = UDim2.new(0.5, -100, 1, -70)
-    rebirthButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-    rebirthButton.Font = Enum.Font.GothamBold
-    rebirthButton.Text = "REBIRTH NOW"
-    rebirthButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    rebirthButton.TextSize = 18
-    rebirthButton.Parent = mainFrame
-    
-    -- Add corner rounding to button
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 8)
-    buttonCorner.Parent = rebirthButton
+    local rebirthButton = ButtonFactory.createButton({
+        name = "RebirthButton",
+        size = UDim2.new(0, 200, 0, 50),
+        position = UDim2.new(0.5, -100, 1, -70),
+        text = "REBIRTH NOW",
+        fontSize = 18,
+        font = Enum.Font.GothamBold, -- Add font
+        textColor = Color3.fromRGB(255, 255, 255),
+        backgroundColor = Color3.fromRGB(50, 150, 255)
+    })
     
     -- Close button
     local closeButton = Instance.new("TextButton")
@@ -362,18 +356,17 @@ local function createRebirthUI()
     fastestRebirthLabel.TextXAlignment = Enum.TextXAlignment.Left
     fastestRebirthLabel.Parent = statsContainer
     
-    -- Toggle button (to open/close the main UI)
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Name = "RebirthToggleButton"
-    toggleButton.Size = UDim2.new(0, 120, 0, 40)
-    toggleButton.Position = UDim2.new(1, -130, 0, 10)
-    toggleButton.AnchorPoint = Vector2.new(1, 0)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
-    toggleButton.Font = Enum.Font.GothamMedium
-    toggleButton.Text = "Rebirth"
-    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    toggleButton.TextSize = 16
-    toggleButton.Parent = screenGui
+    local toggleButton = ButtonFactory.createButton({
+        name = "RebirthToggleButton",
+        size = UDim2.new(0, 120, 0, 40),
+        position = UDim2.new(1, -130, 0, 10),
+        anchorPoint = Vector2.new(1, 0),
+        text = "Rebirth",
+        fontSize = 16,
+        font = Enum.Font.GothamMedium, -- Add font
+        textColor = Color3.fromRGB(255, 255, 255),
+        backgroundColor = Color3.fromRGB(60, 60, 120)
+    })
     
     -- Add corner rounding to toggle button
     local toggleCorner = Instance.new("UICorner")
@@ -451,6 +444,9 @@ local function createRebirthUI()
         end
     end)
     
+    rebirthButton.Parent = mainFrame
+    toggleButton.Parent = screenGui
+
     -- Close the UI when close button is clicked
     closeButton.MouseButton1Click:Connect(function()
         mainFrame.Visible = false
@@ -512,25 +508,25 @@ local function createRebirthUI()
         nameLabel.Parent = featureCard
         
         -- Feature description
-        local descLabel = Instance.new("TextLabel")
-        descLabel.Name = "FeatureDesc"
-        descLabel.Size = UDim2.new(1, -80, 0, 40)
-        descLabel.Position = UDim2.new(0, 70, 0, 35)
-        descLabel.BackgroundTransparency = 1
-        descLabel.Font = Enum.Font.Gotham
-        descLabel.Text = feature.info.description
-        descLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-        descLabel.TextSize = 12
-        descLabel.TextWrapped = true
-        descLabel.TextXAlignment = Enum.TextXAlignment.Left
-        descLabel.Parent = featureCard
+        local featureDescLabel = Instance.new("TextLabel")
+        featureDescLabel.Name = "FeatureDesc"
+        featureDescLabel.Size = UDim2.new(1, -80, 0, 40)
+        featureDescLabel.Position = UDim2.new(0, 70, 0, 35)
+        featureDescLabel.BackgroundTransparency = 1
+        featureDescLabel.Font = Enum.Font.Gotham
+        featureDescLabel.Text = feature.info.description
+        featureDescLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        featureDescLabel.TextSize = 12
+        featureDescLabel.TextWrapped = true
+        featureDescLabel.TextXAlignment = Enum.TextXAlignment.Left
+        featureDescLabel.Parent = featureCard
           -- Level indicator
         local levelLabel = Instance.new("TextLabel")
         levelLabel.Name = "LevelLabel"
         levelLabel.Size = UDim2.new(0, 50, 0, 20)
         levelLabel.Position = UDim2.new(1, -60, 0, 10)
         levelLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
-        levelLabel.Font = Enum.Font.GothamMedium
+        levelLabel.Font = Enum.Font.GothamMedium -- Updated font to GothamMedium
         levelLabel.Text = "Lvl " .. feature.level
         levelLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
         levelLabel.TextSize = 12
@@ -582,18 +578,18 @@ local function createRebirthUI()
         nameLabel.Parent = perkCard
         
         -- Perk description
-        local descLabel = Instance.new("TextLabel")
-        descLabel.Name = "PerkDesc"
-        descLabel.Size = UDim2.new(1, -80, 0, 40)
-        descLabel.Position = UDim2.new(0, 70, 0, 35)
-        descLabel.BackgroundTransparency = 1
-        descLabel.Font = Enum.Font.Gotham
-        descLabel.Text = perk.info.description
-        descLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-        descLabel.TextSize = 12
-        descLabel.TextWrapped = true
-        descLabel.TextXAlignment = Enum.TextXAlignment.Left
-        descLabel.Parent = perkCard
+        local perkDescLabel = Instance.new("TextLabel")
+        perkDescLabel.Name = "PerkDesc"
+        perkDescLabel.Size = UDim2.new(1, -80, 0, 40)
+        perkDescLabel.Position = UDim2.new(0, 70, 0, 35)
+        perkDescLabel.BackgroundTransparency = 1
+        perkDescLabel.Font = Enum.Font.Gotham
+        perkDescLabel.Text = perk.info.description
+        perkDescLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        perkDescLabel.TextSize = 12
+        perkDescLabel.TextWrapped = true
+        perkDescLabel.TextXAlignment = Enum.TextXAlignment.Left
+        perkDescLabel.Parent = perkCard
         
         -- Level indicator
         local levelLabel = Instance.new("TextLabel")
@@ -601,7 +597,7 @@ local function createRebirthUI()
         levelLabel.Size = UDim2.new(0, 50, 0, 20)
         levelLabel.Position = UDim2.new(1, -60, 0, 10)
         levelLabel.BackgroundColor3 = Color3.fromRGB(30, 60, 50)
-        levelLabel.Font = Enum.Font.GothamSemibold
+        levelLabel.Font = Enum.Font.GothamMedium -- Updated font to GothamMedium
         levelLabel.Text = "Lvl " .. perk.level
         levelLabel.TextColor3 = Color3.fromRGB(200, 255, 200)
         levelLabel.TextSize = 12
@@ -654,18 +650,18 @@ local function createRebirthUI()
         nameLabel.Parent = achievementCard
         
         -- Achievement description
-        local descLabel = Instance.new("TextLabel")
-        descLabel.Name = "AchievementDesc"
-        descLabel.Size = UDim2.new(1, -80, 0, 40)
-        descLabel.Position = UDim2.new(0, 70, 0, 35)
-        descLabel.BackgroundTransparency = 1
-        descLabel.Font = Enum.Font.Gotham
-        descLabel.Text = achievement.info.description
-        descLabel.TextColor3 = achievement.earned and Color3.fromRGB(220, 220, 220) or Color3.fromRGB(150, 150, 150)
-        descLabel.TextSize = 12
-        descLabel.TextWrapped = true
-        descLabel.TextXAlignment = Enum.TextXAlignment.Left
-        descLabel.Parent = achievementCard
+        local achievementDescLabel = Instance.new("TextLabel")
+        achievementDescLabel.Name = "AchievementDesc"
+        achievementDescLabel.Size = UDim2.new(1, -80, 0, 40)
+        achievementDescLabel.Position = UDim2.new(0, 70, 0, 35)
+        achievementDescLabel.BackgroundTransparency = 1
+        achievementDescLabel.Font = Enum.Font.Gotham
+        achievementDescLabel.Text = achievement.info.description
+        achievementDescLabel.TextColor3 = achievement.earned and Color3.fromRGB(220, 220, 220) or Color3.fromRGB(150, 150, 150)
+        achievementDescLabel.TextSize = 12
+        achievementDescLabel.TextWrapped = true
+        achievementDescLabel.TextXAlignment = Enum.TextXAlignment.Left
+        achievementDescLabel.Parent = achievementCard
         
         -- Status indicator
         local statusLabel = Instance.new("TextLabel")
@@ -673,7 +669,7 @@ local function createRebirthUI()
         statusLabel.Size = UDim2.new(0, 70, 0, 20)
         statusLabel.Position = UDim2.new(1, -80, 0, 10)
         statusLabel.BackgroundColor3 = achievement.earned and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-        statusLabel.Font = Enum.Font.GothamSemibold
+        statusLabel.Font = Enum.Font.GothamMedium -- Updated font to GothamMedium
         statusLabel.Text = achievement.earned and "Completed" or "Locked"
         statusLabel.TextColor3 = achievement.earned and Color3.fromRGB(200, 255, 200) or Color3.fromRGB(255, 200, 200)
         statusLabel.TextSize = 12
@@ -691,7 +687,7 @@ local function createRebirthUI()
             rewardLabel.Size = UDim2.new(0, 70, 0, 20)
             rewardLabel.Position = UDim2.new(1, -80, 0, 35)
             rewardLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 40)
-            rewardLabel.Font = Enum.Font.GothamSemibold
+            rewardLabel.Font = Enum.Font.GothamMedium -- Updated font to GothamMedium
             rewardLabel.Text = "$" .. formatNumber(achievement.info.reward)
             rewardLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
             rewardLabel.TextSize = 12
@@ -896,80 +892,22 @@ local function handleRebirthInfo(messageType, data)
         rebirthUIElements.RebirthCountLabel.Text = "Your Rebirth Level: " .. data.rebirthCount
         
         -- Show success message
-        local successMessage = Instance.new("TextLabel")
-        successMessage.Name = "SuccessMessage"
-        successMessage.Size = UDim2.new(1, -40, 0, 60)
-        successMessage.Position = UDim2.new(0.5, 0, 0.5, 0)
-        successMessage.AnchorPoint = Vector2.new(0.5, 0.5)
-        successMessage.BackgroundColor3 = Color3.fromRGB(0, 150, 50)
-        successMessage.BackgroundTransparency = 0.2
-        successMessage.Font = Enum.Font.GothamBold
-        successMessage.Text = "Rebirth Successful!\nNew Multiplier: " .. string.format("%.1f", data.newMultiplier * 100) .. "%"
-        successMessage.TextColor3 = Color3.fromRGB(255, 255, 255)
-        successMessage.TextSize = 18
-        successMessage.Parent = rebirthUIElements.ScreenGui
-        
-        -- Add corner rounding
-        local messageCorner = Instance.new("UICorner")
-        messageCorner.CornerRadius = UDim.new(0, 8)
-        messageCorner.Parent = successMessage
-        
-        -- Remove after a few seconds
-        task.delay(3, function()
-            if successMessage and successMessage.Parent then
-                -- Fade out animation
-                local tween = TweenService:Create(successMessage, TweenInfo.new(1), {
-                    BackgroundTransparency = 1,
-                    TextTransparency = 1
-                })
-                tween:Play()
-                
-                task.delay(1, function()
-                    if successMessage and successMessage.Parent then
-                        successMessage:Destroy()
-                    end
-                end)
-            end
+        DialogFactory.showMessage({
+            title = "Rebirth Successful!",
+            text = "New Multiplier: " .. string.format("%.1f", data.newMultiplier * 100) .. "%",
+            color = Color3.fromRGB(0, 150, 50),
+            parent = rebirthUIElements.ScreenGui
         end)
         
         -- Request updated info
         RebirthRemote:FireServer("GetInfo")
     elseif messageType == "NotEnoughCash" then
         -- Show not enough cash message
-        local errorMessage = Instance.new("TextLabel")
-        errorMessage.Name = "ErrorMessage"
-        errorMessage.Size = UDim2.new(1, -40, 0, 60)
-        errorMessage.Position = UDim2.new(0.5, 0, 0.5, 0)
-        errorMessage.AnchorPoint = Vector2.new(0.5, 0.5)
-        errorMessage.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
-        errorMessage.BackgroundTransparency = 0.2
-        errorMessage.Font = Enum.Font.GothamBold
-        errorMessage.Text = "Not enough cash!\nYou need $" .. formatNumber(data.required)
-        errorMessage.TextColor3 = Color3.fromRGB(255, 255, 255)
-        errorMessage.TextSize = 18
-        errorMessage.Parent = rebirthUIElements.ScreenGui
-        
-        -- Add corner rounding
-        local messageCorner = Instance.new("UICorner")
-        messageCorner.CornerRadius = UDim.new(0, 8)
-        messageCorner.Parent = errorMessage
-        
-        -- Remove after a few seconds
-        task.delay(3, function()
-            if errorMessage and errorMessage.Parent then
-                -- Fade out animation
-                local tween = TweenService:Create(errorMessage, TweenInfo.new(1), {
-                    BackgroundTransparency = 1,
-                    TextTransparency = 1
-                })
-                tween:Play()
-                
-                task.delay(1, function()
-                    if errorMessage and errorMessage.Parent then
-                        errorMessage:Destroy()
-                    end
-                end)
-            end
+        DialogFactory.showMessage({
+            title = "Not enough cash!",
+            text = "You need $" .. formatNumber(data.required),
+            color = Color3.fromRGB(150, 30, 30),
+            parent = rebirthUIElements.ScreenGui
         end)
     elseif messageType == "RebirthInfo" then
         -- Update all UI elements with the rebirth data
