@@ -17,6 +17,84 @@ This document outlines the design for the UI Module, which will serve as the pri
 
 ## UI Components
 
+### 0. Standard UI Elements
+
+For consistency across all UI components, the following patterns should be used:
+
+#### 0.1 Common Style Module
+* All UI elements will use the `UIStyle.applyStyle()` function to maintain consistent appearance.
+* The `UIStyle` module contains the following key properties:
+  * **Colors:** Primary branding colors, background colors, text colors, button colors.
+  * **Fonts:** Standard fonts for different text types (headers, body, buttons).
+  * **Animations:** Standard animation settings for consistent UI interactions.
+  * **Icons:** Access to standard icon assets via AssetIDs.
+
+#### 0.2 Standard Close Button
+* **Appearance:** 
+  * "X" symbol with `UIStyle.Colors.Danger` background.
+  * Corner radius of UDim.new(0.5, 0) for circular appearance.
+  * Position in top right corner (typically UDim2.new(1, -10, 0, 10)).
+* **Behavior:**
+  * On click: Hide parent UI container.
+  * Optional fade-out animation via TweenService.
+* **Implementation:**
+```lua
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -10, 0, 10)
+closeButton.AnchorPoint = Vector2.new(1, 0)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 18
+closeButton.Text = "X"
+closeButton.ZIndex = 12
+closeButton.Parent = parentFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0.5, 0)
+closeCorner.Parent = closeButton
+
+closeButton.MouseButton1Click:Connect(function()
+    parentFrame.Visible = false
+end)
+```
+
+#### 0.3 Outside Click Detection
+* For modal dialogs, clicking outside the dialog should close it.
+* Implementation using an invisible background frame with lower ZIndex.
+* Closes parent menu when clicked.
+
+#### 0.4 Container Templates
+* **Menu Container:**
+  * Background with UICorner (CornerRadius = UDim.new(0, 10))
+  * Title bar with text and close button
+  * Content area
+  * Standard size and position relative to screen
+* **Tab System:**
+  * Tab buttons at top
+  * Content container below
+  * Only one tab visible at once
+* **Scrolling Container:**
+  * ScrollingFrame with proper padding
+  * UIListLayout for organized content
+  * Dynamic canvas size adjustment
+
+#### 0.5 Icon Integration
+* Use standardized icon asset IDs for consistency:
+  * Alliance: 128203268160479
+  * Community Goals: 97149848004338
+  * Challenges: 120333480860384
+  * Guest Pass: 110319251186892
+  * Tutorial: 98150393120956
+  * Settings: 72876573893033
+  * Rebirth: 129409029383961
+  * Staff Management: 89834599810886
+  * Upgrades: 132635366103906
+  * Achievements: 79337595530955
+  * Admin Functions: 105112405426846
+
 ### 1. Menus
 
 #### 1.1 Main Menu

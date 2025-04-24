@@ -27,7 +27,9 @@ local CONFIG = {
 -- System initialization order and dependencies
 local SYSTEMS_TO_INITIALIZE = {
     {name = "ClientEventBridge", dependencies = {}}, -- Communication system first (no dependencies)
-    {name = "UIManager", dependencies = {"ClientEventBridge"}}, -- UI system needs event bridge
+    {name = "UIStyle", path = ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("UIStyle")}, -- UI styling (no dependencies)
+    {name = "UIUtils", path = ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("UIUtils"), dependencies = {"UIStyle"}}, -- UI utilities depend on style
+    {name = "UIManager", path = script.Parent.UI:FindFirstChild("UIManager"), dependencies = {"ClientEventBridge", "UIStyle", "UIUtils"}}, -- Updated UI system
     {name = "UIHub", dependencies = {"UIManager", "ClientEventBridge"}}, -- UI Hub needs UIManager
     -- Other systems can be added below with their dependencies
     {name = "PlayerActivityTracker", dependencies = {"ClientEventBridge"}},
@@ -98,7 +100,25 @@ local function initializeSystem(system)
         return false
     end
     
-    -- Get the system from the registry
+    -- Handle direct path systems (like our shared UI modules)
+    if system.path and system.path:IsA("ModuleScript") then
+        log("Loading module directly: " .. system.name)
+        local success, moduleInstance = pcall(function()
+            return require(system.path)
+        end)
+        
+        if success and moduleInstance then
+            log("Successfully loaded: " .. system.name)
+            ClientRegistry.registerSystem(system.name, moduleInstance)
+            systemStatus[system.name] = true
+            return true
+        else
+            log("Failed to load module: " .. system.name, true)
+            return false
+        end
+    end
+    
+    -- Get the system from the registry for standard systems
     local systemInstance = ClientRegistry.getSystem(system.name)
     if not systemInstance then
         log("System not found in registry: " .. system.name, true)
