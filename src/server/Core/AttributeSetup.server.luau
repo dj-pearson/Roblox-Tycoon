@@ -1,79 +1,111 @@
---luau
 --[[
-    This script is responsible for setting up the attributes of interactive elements
-    in the game, such as equipment and seats.
+    AttributeSetup.server.luau
+    This script provides utility functions to easily add attributes to models in the workspace.
+    Used for setting up interactive elements and other game objects.
 ]]
 
-local GymStructure = require(script.Parent.GymStructureIntegration)
-local GymPartsFinder = require(script.Parent.GymPartsFinder)
+local CollectionService = game:GetService("CollectionService")
+local InteractiveElement = require(script.Parent.InteractiveElement)
 
---[[
-    Checks if a model has a descendant named "Seat" and adds the "HasSeatLayer" attribute.
-    @param model The model to check and add the attribute to.
-]]
-local function CheckForSeatLayer(model)
-	-- Iterate through the descendants of the model.
-	for _, descendant in ipairs(model:GetDescendants()) do
-		-- Check if the descendant is named "Seat".
-		if descendant.Name == "Seat" then
-			-- Add the "HasSeatLayer" attribute and set it to true.
-			model:SetAttribute("HasSeatLayer", true)
-			return -- Exit the function early since we found a "Seat".
-		end
-	end
-	-- If no "Seat" descendant is found, don't add the attribute (it defaults to nil).
+local AttributeSetup = {}
+
+-- Setup a model as an interactive element with common configurations
+function AttributeSetup.setupInteractiveElement(model, interactionType, specializationType, maxUsers)
+    if not model:IsA("Model") then
+        warn("AttributeSetup: Attempted to setup a non-model as an interactive element:", model:GetFullName())
+        return nil
+    end
+    
+    -- Default values
+    interactionType = interactionType or "Default"
+    maxUsers = maxUsers or 1
+    
+    -- Configure the interactive element
+    return InteractiveElement.setup(model, {
+        interactionType = interactionType,
+        specializationType = specializationType,
+        maxUsers = maxUsers,
+        interactionPointOffset = Vector3.new(0, 2, 0) -- Default offset above model
+    })
 end
 
---[[
-    Adds the IsInteractive, InteractionType, and CurrentUsers attributes to a model.
-    @param model The model to which attributes will be added.
-]]
-local function SetupInteractiveAttributes(model)
-	-- Adds the IsInteractive attribute and sets it to true.
-	model:SetAttribute("IsInteractive", true)
-
-	-- Adds the InteractionType attribute and sets a default value of "Unknown".
-	model:SetAttribute("InteractionType", "Unknown")
-
-	-- Adds the CurrentUsers attribute and sets the initial count to 0.
-	model:SetAttribute("CurrentUsers", 0)
+-- Setup a seat (bench, chair, etc.)
+function AttributeSetup.setupSeat(model, specializationType, maxUsers)
+    return AttributeSetup.setupInteractiveElement(model, "Seat", specializationType, maxUsers or 1)
 end
 
---[[
-    Iterates through all equipment models and sets their interactive attributes.
-]]
-local function SetupEquipmentAttributes()
-	local equipmentAreas = {
-		GymStructure.Rooms.WeightRoom,
-		GymStructure.Rooms.CardioArea,
-		GymStructure.Rooms.FunctionalTraining,
-		GymStructure.Rooms.SpecializedTraining
-	}
-
-	for _, area in ipairs(equipmentAreas) do
-		local equipment = GymPartsFinder.GetInstancesInArea(area, "Equipment")
-		for _, model in ipairs(equipment) do
-			SetupInteractiveAttributes(model)
-			model:SetAttribute("InteractionType", "Equipment")
-		end
-	end
+-- Setup a cardio machine (treadmill, bike, etc.)
+function AttributeSetup.setupCardioEquipment(model, maxUsers)
+    local result = AttributeSetup.setupInteractiveElement(model, "Cardio", "Cardio", maxUsers or 1)
+    if result then
+        CollectionService:AddTag(model, "Cardio")
+    end
+    return result
 end
 
---[[
-    Sets up the attributes for seat models.
-]]
-local function SetupSeatAttributes()
-	for _, model in ipairs(workspace:GetDescendants()) do
-		if model:IsA("Model") then
-			CheckForSeatLayer(model)
-			if model:GetAttribute("HasSeatLayer") then
-			SetupInteractiveAttributes(model)
-			model:SetAttribute("InteractionType", "Seat")
-			end
-		end
-	end
+-- Setup a weight machine or free weights
+function AttributeSetup.setupWeightEquipment(model, maxUsers)
+    local result = AttributeSetup.setupInteractiveElement(model, "Weights", "Weights", maxUsers or 1)
+    if result then
+        CollectionService:AddTag(model, "Weights")
+    end
+    return result
 end
 
--- Call the SetupEquipmentAttributes and SetupSeatAttributes functions to initialize attributes.
-SetupEquipmentAttributes()
-SetupSeatAttributes()
+-- Setup a spa element (sauna, massage table, etc.)
+function AttributeSetup.setupSpaElement(model, maxUsers)
+    local result = AttributeSetup.setupInteractiveElement(model, "Spa", "Spa", maxUsers or 1)
+    if result then
+        CollectionService:AddTag(model, "Spa")
+    end
+    return result
+end
+
+-- Setup floor parts for NPC navigation
+function AttributeSetup.setupFloor(floorPart)
+    if not floorPart:IsA("BasePart") then
+        warn("AttributeSetup: Attempted to setup a non-BasePart as a floor:", floorPart:GetFullName())
+        return nil
+    end
+    
+    floorPart:SetAttribute("IsFloor", true)
+    return floorPart
+end
+
+-- Process models in a folder to set them up as interactive elements
+function AttributeSetup.processFolder(folder, setupFunctionName, ...)
+    if not folder:IsA("Folder") and not folder:IsA("Model") then
+        warn("AttributeSetup: processFolder expected a Folder or Model, got:", folder:GetFullName())
+        return
+    end
+    
+    local setupFunction = AttributeSetup[setupFunctionName]
+    if not setupFunction then
+        warn("AttributeSetup: Invalid setup function name:", setupFunctionName)
+        return
+    end
+    
+    -- Process all models in the folder
+    for _, child in ipairs(folder:GetChildren()) do
+        if child:IsA("Model") then
+            setupFunction(child, ...)
+        end
+    end
+end
+
+-- Main initialization function
+function AttributeSetup.init()
+    print("AttributeSetup: Initializing...")
+    
+    -- Example automatic setup - uncomment and customize as needed
+    -- local cardioFolder = workspace:FindFirstChild("CardioEquipment")
+    -- if cardioFolder then
+    --     AttributeSetup.processFolder(cardioFolder, "setupCardioEquipment", 1)
+    -- end
+    
+    -- More automatic setups can be added here
+    
+    print("AttributeSetup: Initialization complete.")
+end
+
+return AttributeSetup
