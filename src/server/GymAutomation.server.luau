@@ -28,11 +28,43 @@ print("Run _G.AutomateGym() in the Command Bar to automate the gym setup.")
 -- MODULES
 --------------------------------
 
-local EquipmentManager = require(ServerScriptService:WaitForChild("src"):WaitForChild("server"):WaitForChild("Core"):WaitForChild("EquipmentManager"))
-local BoundingBoxManager = require(ServerScriptService:WaitForChild("src"):WaitForChild("server"):WaitForChild("Core"):WaitForChild("BoundingBoxManager"))
-local FloorAttributeSetup = require(ServerScriptService:WaitForChild("src"):WaitForChild("server"):WaitForChild("Core"):WaitForChild("FloorAttributeSetup"))
-local TileDataGenerator = require(ServerScriptService:WaitForChild("src"):WaitForChild("server"):WaitForChild("Core"):WaitForChild("TileDataGenerator"))
-local BuyTileProgressionManager = require(ServerScriptService:WaitForChild("src"):WaitForChild("server"):WaitForChild("Core"):WaitForChild("BuyTileProgressionManager"))
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Import SafeWait utility
+local SafeWait
+pcall(function()
+    SafeWait = require(ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"):FindFirstChild("SafeWait"))
+end)
+
+-- If SafeWait isn't available, create a temporary version
+if not SafeWait then
+    SafeWait = {
+        waitForPath = function(parent, path, timeout)
+            local current = parent
+            for _, name in ipairs(path) do
+                current = current:WaitForChild(name, timeout or 5)
+                if not current then return nil end
+            end
+            return current
+        end
+    }
+    warn("SafeWait module not found, using fallback implementation")
+end
+
+-- Define the path components for cleaner code
+local serverCorePath = {"src", "server", "Core"}
+
+-- Use SafeWait to avoid infinite yield warnings
+local serverCore = SafeWait.waitForPath(ServerScriptService, serverCorePath, 10)
+if not serverCore then
+    warn("Failed to load server core modules - GymAutomation functionality will be limited")
+end
+
+local EquipmentManager = serverCore and require(serverCore:FindFirstChild("EquipmentManager"))
+local BoundingBoxManager = serverCore and require(serverCore:FindFirstChild("BoundingBoxManager"))
+local FloorAttributeSetup = serverCore and require(serverCore:FindFirstChild("FloorAttributeSetup"))
+local TileDataGenerator = serverCore and require(serverCore:FindFirstChild("TileDataGenerator"))
+local BuyTileProgressionManager = serverCore and require(serverCore:FindFirstChild("BuyTileProgressionManager"))
 
 --------------------------------
 -- AUTOMATION FUNCTIONS

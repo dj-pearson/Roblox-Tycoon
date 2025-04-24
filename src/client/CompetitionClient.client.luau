@@ -5,9 +5,43 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Get UI modules
-local CompetitionUI = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("CompetitionUI"))
-local UIStyle = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("UIStyle"))
+-- Import SafeWait utility
+local SafeWait
+pcall(function()
+    SafeWait = require(ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"):FindFirstChild("SafeWait"))
+end)
+
+-- If SafeWait isn't available, create a simple version
+if not SafeWait then
+    SafeWait = {
+        waitForChild = function(parent, name, timeout)
+            return parent:WaitForChild(name, timeout or 5)
+        end,
+        waitForPath = function(parent, path, timeout)
+            local current = parent
+            for _, name in ipairs(path) do
+                current = current:WaitForChild(name, timeout or 5)
+                if not current then return nil end
+            end
+            return current
+        end
+    }
+end
+
+-- Safely wait for required objects with timeouts
+local shared = SafeWait.waitForChild(ReplicatedStorage, "shared", 10)
+
+-- Get UI modules (with nil checks)
+local CompetitionUI = shared and require(shared:FindFirstChild("CompetitionUI"))
+local UIStyle = shared and require(shared:FindFirstChild("UIStyle"))
+
+-- Add warning if modules couldn't be loaded
+if not CompetitionUI then
+    warn("CompetitionClient: Failed to load CompetitionUI module")
+end
+if not UIStyle then
+    warn("CompetitionClient: Failed to load UIStyle module")
+end
 
 -- Private variables
 local player = Players.LocalPlayer

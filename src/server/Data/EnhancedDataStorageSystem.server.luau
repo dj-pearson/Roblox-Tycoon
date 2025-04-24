@@ -458,9 +458,45 @@ function DataStorage.restorePurchasedEquipment(player)
 	end
 
 	-- Check if BuyTile system is available
-	if not BuyTileSystem or not BuyTileSystem.spawnGymPart then
+	local BuyTileSystem = BuyTileSystem
+	
+	-- Try to find BuyTileSystem if not already available
+	if not BuyTileSystem then
+		local ServerScriptService = game:GetService("ServerScriptService")
+		pcall(function()
+			BuyTileSystem = require(ServerScriptService.Core.BuyTileSystem)
+			debugPrint("Found BuyTileSystem in Core folder")
+		end)
+		
+		if not BuyTileSystem then
+			pcall(function()
+				BuyTileSystem = require(ServerScriptService.Essentials.BuyTile)
+				debugPrint("Found BuyTileSystem in Essentials folder")
+			end)
+		end
+		
+		if not BuyTileSystem then
+			pcall(function()
+				BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
+				debugPrint("Found BuyTileSystem in ServerScriptService")
+			end)
+		end
+		
+		-- If found, store it globally for future use
+		if BuyTileSystem then
+			_G.BuyTileSystem = BuyTileSystem
+		end
+	end
+	
+	if not BuyTileSystem or (not BuyTileSystem.spawnGymPart and not BuyTileSystem.spawnBuyTile) then
 		warn("BuyTile system not available or missing spawnGymPart function")
 		return false
+	end
+	
+	-- Create adapter functions if needed
+	if BuyTileSystem and not BuyTileSystem.spawnGymPart and BuyTileSystem.spawnBuyTile then
+		BuyTileSystem.spawnGymPart = BuyTileSystem.spawnBuyTile
+		debugPrint("Created adapter for spawnGymPart function")
 	end
 
 	-- Get purchased tile IDs

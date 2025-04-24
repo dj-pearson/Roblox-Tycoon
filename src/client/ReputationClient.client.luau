@@ -2,9 +2,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local Events = ReplicatedStorage:WaitForChild("Events")
-local ReputationEvents = ReplicatedStorage:WaitForChild("ReputationEvents")
-local ReputationBenefitsUpdated = Events:WaitForChild("ReputationBenefitsUpdated")
+-- Import SafeWait utility
+local SafeWait
+pcall(function()
+    SafeWait = require(ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"):FindFirstChild("SafeWait"))
+end)
+
+-- If SafeWait isn't available, create a simple version
+if not SafeWait then
+    SafeWait = {
+        waitForChild = function(parent, name, timeout)
+            return parent:WaitForChild(name, timeout or 5)
+        end
+    }
+end
+
+-- Safely wait for required objects with timeouts
+local Events = SafeWait.waitForChild(ReplicatedStorage, "Events", 10)
+local ReputationEvents = SafeWait.waitForChild(ReplicatedStorage, "ReputationEvents", 10)
+local ReputationBenefitsUpdated = Events and SafeWait.waitForChild(Events, "ReputationBenefitsUpdated", 5)
 
 local ReputationUpdated = ReputationEvents:WaitForChild("ReputationUpdated")
 

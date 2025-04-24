@@ -4,14 +4,36 @@ local AllianceClient = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local CreateAllianceEvent = ReplicatedStorage:WaitForChild("CreateAllianceEvent")
-local JoinAllianceEvent = ReplicatedStorage:WaitForChild("JoinAllianceEvent")
-local LeaveAllianceEvent = ReplicatedStorage:WaitForChild("LeaveAllianceEvent")
-local RemoveFromAllianceEvent = ReplicatedStorage:WaitForChild("RemoveFromAllianceEvent")
-local InviteToAllianceEvent = ReplicatedStorage:WaitForChild("InviteToAllianceEvent")
-local AcceptAllianceInviteEvent = ReplicatedStorage:WaitForChild("AcceptAllianceInviteEvent")
-local DenyAllianceInviteEvent = ReplicatedStorage:WaitForChild("DenyAllianceInviteEvent")
-local DisbandAllianceEvent = ReplicatedStorage:WaitForChild("DisbandAllianceEvent")
+
+-- Import SafeWait utility
+local SafeWait
+pcall(function()
+    SafeWait = require(ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"):FindFirstChild("SafeWait"))
+end)
+
+-- If SafeWait isn't available, create a simple version
+if not SafeWait then
+    SafeWait = {
+        waitForChild = function(parent, name, timeout)
+            return parent:WaitForChild(name, timeout or 5)
+        end
+    }
+end
+
+-- Safely wait for required events with timeouts
+local CreateAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "CreateAllianceEvent", 5)
+local JoinAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "JoinAllianceEvent", 5)
+local LeaveAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "LeaveAllianceEvent", 5)
+local RemoveFromAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "RemoveFromAllianceEvent", 5)
+local InviteToAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "InviteToAllianceEvent", 5)
+local AcceptAllianceInviteEvent = SafeWait.waitForChild(ReplicatedStorage, "AcceptAllianceInviteEvent", 5)
+local DenyAllianceInviteEvent = SafeWait.waitForChild(ReplicatedStorage, "DenyAllianceInviteEvent", 5)
+local DisbandAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "DisbandAllianceEvent", 5)
+
+-- Add warning for any missing events
+if not JoinAllianceEvent then
+    warn("AllianceClient: Failed to load JoinAllianceEvent")
+end
 local ServerToClientEvents = ReplicatedStorage:WaitForChild("ServerToClientEvents")
 
 local AllianceCreatedEvent = ReplicatedStorage:WaitForChild("AllianceCreatedEvent")
