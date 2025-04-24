@@ -7,6 +7,23 @@ local LocalPlayer = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Import AssetValidator utility
+local AssetValidator
+pcall(function()
+    AssetValidator = require(script.Parent.AssetValidator)
+end)
+
+-- Fallback if AssetValidator not found
+if not AssetValidator then
+    -- Create minimal version
+    AssetValidator = {
+        validateSoundId = function(soundId)
+            return soundId == "rbxassetid://9125601193" and "rbxassetid://5861141581" or soundId
+        end
+    }
+end
 
 -- Configuration
 local CONFIG = {
