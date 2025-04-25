@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 -- Get the CoreRegistry and EventBridge
 local CoreRegistry = require(script.Parent.CoreRegistry)
@@ -57,6 +58,11 @@ local DataManager = {
     dataStores = {},
     orderedStores = {}
 }
+
+-- Debug function
+local function log(...)
+    print("[DataManager]", ...)
+end
 
 -- Encryption/Decryption functions
 local function encryptData(data, key)
@@ -111,7 +117,6 @@ local function decryptData(encryptedData, key)
         return nil
     end
 end
-        log("Decryption failed")
 
 local function generateEncryptionKey()
     local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -576,7 +581,7 @@ function DataManager:loadAdditionalData(player, data)
     
     -- Load equipment data
     if self.dataStores.equipment then
-        pcall(function()
+        local success, result = pcall(function()
             local equipmentData = self.dataStores.equipment:GetAsync(key)
             if equipmentData then
                 if data.encryptionKey then
@@ -589,15 +594,16 @@ function DataManager:loadAdditionalData(player, data)
                 end
                 log("Loaded equipment data for " .. player.Name)
             end
-        else
-             log("Failed to load equipment data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+             log("Failed to load equipment data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
-end
     
     -- Load milestone data
     if self.dataStores.milestones then
-        pcall(function()
+        local success, result = pcall(function()
             local milestoneData = self.dataStores.milestones:GetAsync(key)
             if milestoneData then
                  if data.encryptionKey then
@@ -607,153 +613,168 @@ end
                     data.milestones = decryptData(milestoneData, data.encryptionKey)
                  else
                     data.milestones = milestoneData
-                data.milestones = milestoneData
+                end
                 log("Loaded milestone data for " .. player.Name)
             end
-         else
-                log("Failed to load milestone data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+            log("Failed to load milestone data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
-end
 
     -- Load specialization data
     if self.dataStores.specialty then
-        pcall(function()
+        local success, result = pcall(function()
             local specialtyData = self.dataStores.specialty:GetAsync(key)
-             if specialtyData then
+            if specialtyData then
                 if data.encryptionKey then
-                     if not decryptData(specialtyData, data.encryptionKey) then
-                         log("Failed to decrypt specialty data for " .. player.Name)
+                    if not decryptData(specialtyData, data.encryptionKey) then
+                        log("Failed to decrypt specialty data for " .. player.Name)
                     end
                     data.specialization = decryptData(specialtyData, data.encryptionKey)
                 else
                     data.specialization = specialtyData
-                data.specialization = specialtyData
+                end
                 log("Loaded specialization data for " .. player.Name)
             end
-        else
-              log("Failed to load specialty data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+            log("Failed to load specialty data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
     
     -- Load membership data
     if self.dataStores.memberships then
-        pcall(function()
+        local success, result = pcall(function()
             local membershipData = self.dataStores.memberships:GetAsync(key)
-             if membershipData then
-                 if data.encryptionKey then
-                    if not decryptData(membershipData, data.encryptionKey) then
-                         log("Failed to decrypt membership data for " .. player.Name)
+            if membershipData then
                 if data.encryptionKey then
+                    if not decryptData(membershipData, data.encryptionKey) then
+                        log("Failed to decrypt membership data for " .. player.Name)
+                    end
                     data.members = decryptData(membershipData, data.encryptionKey)
                 else
                     data.members = membershipData
-                data.members = membershipData
+                end
                 log("Loaded membership data for " .. player.Name)
             end
-        else
-             log("Failed to load membership data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+            log("Failed to load membership data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
     
     -- Load VIP data
     if self.dataStores.vips then
-        pcall(function()
+        local success, result = pcall(function()
             local vipData = self.dataStores.vips:GetAsync(key)
             if vipData then
-                 if data.encryptionKey then
+                if data.encryptionKey then
                     if not decryptData(vipData, data.encryptionKey) then
-                         log("Failed to decrypt VIP data for " .. player.Name)
+                        log("Failed to decrypt VIP data for " .. player.Name)
                     end
-
-                vipData = decryptData(vipData, data.encryptionKey)
+                    vipData = decryptData(vipData, data.encryptionKey)
+                end
                 data.members.vip = vipData.vips
                 data.members.premium = vipData.premium or 0
                 log("Loaded VIP data for " .. player.Name)
             end
-        else
-             log("Failed to load VIP data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+            log("Failed to load VIP data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
-    
+
     -- Load revenue data
     if self.dataStores.revenue then
-        pcall(function()
+        local success, result = pcall(function()
             local revenueData = self.dataStores.revenue:GetAsync(key)
-           if revenueData then
-                 if data.encryptionKey then
-                    if not decryptData(revenueData, data.encryptionKey) then
-                         log("Failed to decrypt revenue data for " .. player.Name)
+            if revenueData then
                 if data.encryptionKey then
+                    if not decryptData(revenueData, data.encryptionKey) then
+                        log("Failed to decrypt revenue data for " .. player.Name)
+                    end
                     data.revenue = decryptData(revenueData, data.encryptionKey)
                 else
                     data.revenue = revenueData
-                data.revenue = revenueData
+                end
                 log("Loaded revenue data for " .. player.Name)
             end
-        else
-              log("Failed to load revenue data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+            log("Failed to load revenue data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
     
     -- Load staff data
     if self.dataStores.staff then
-        pcall(function()
+        local success, result = pcall(function()
             local staffData = self.dataStores.staff:GetAsync(key)
             if staffData then 
-                 if data.encryptionKey then
-                    if not decryptData(staffData, data.encryptionKey) then
-                         log("Failed to decrypt staff data for " .. player.Name)
                 if data.encryptionKey then
+                    if not decryptData(staffData, data.encryptionKey) then
+                        log("Failed to decrypt staff data for " .. player.Name)
+                    end
                     data.staff = decryptData(staffData, data.encryptionKey)
                 else
                     data.staff = staffData
-                data.staff = staffData
+                end
                 log("Loaded staff data for " .. player.Name)
             end
-        else
-               log("Failed to load staff data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+            log("Failed to load staff data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
     
     -- Load achievements data
     if self.dataStores.achievements then
-        pcall(function()
+        local success, result = pcall(function()
             local achievementsData = self.dataStores.achievements:GetAsync(key)
-             if achievementsData then
-                 if data.encryptionKey then
-                    if not decryptData(achievementsData, data.encryptionKey) then
-                         log("Failed to decrypt achievements data for " .. player.Name)
+            if achievementsData then
                 if data.encryptionKey then
+                    if not decryptData(achievementsData, data.encryptionKey) then
+                        log("Failed to decrypt achievements data for " .. player.Name)
+                    end
                     data.achievements = decryptData(achievementsData, data.encryptionKey)
                 else
                     data.achievements = achievementsData
-                data.achievements = achievementsData
+                end
                 log("Loaded achievements data for " .. player.Name)
             end
-        else
-               log("Failed to load achievements data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+            log("Failed to load achievements data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
     
     -- Load seasonal data
     if self.dataStores.seasonal then
-        pcall(function()
+        local success, result = pcall(function()
             local seasonalData = self.dataStores.seasonal:GetAsync(key)
-             if seasonalData then
-                 if data.encryptionKey then
-                    if not decryptData(seasonalData, data.encryptionKey) then
-                         log("Failed to decrypt seasonal data for " .. player.Name)
+            if seasonalData then
                 if data.encryptionKey then
+                    if not decryptData(seasonalData, data.encryptionKey) then
+                        log("Failed to decrypt seasonal data for " .. player.Name)
+                    end
                     data.seasonal = decryptData(seasonalData, data.encryptionKey)
                 else
                     data.seasonal = seasonalData
-                data.seasonal = seasonalData
+                end
                 log("Loaded seasonal data for " .. player.Name)
             end
-        else
-               log("Failed to load seasonal data for " .. player.Name .. ": " .. tostring(result))
         end)
+        
+        if not success then
+            log("Failed to load seasonal data for " .. player.Name .. ": " .. tostring(result))
+        end
     end
 end
 
