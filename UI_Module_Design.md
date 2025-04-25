@@ -330,11 +330,394 @@ end)
   * **Placement:** Center of the screen.
   * **Design:** Simple Yes/No style.
 
-### 5. Tutorial System UI
+### 5. Staff Management UI
 
 * **Style:** `UIStyle.applyStyle()`
 
-#### 5.1 Tutorial Popup
+#### 5.1 Staff Management Menu
+* **Layout:**
+  * **Staff Overview:** Shows all hired staff with key statistics.
+  * **Hire New Staff:** Interface for recruiting different types of staff.
+  * **Training Interface:** UI for staff skill development and upgrading.
+  * **Assignment Panel:** Controls for assigning staff to different areas.
+  * **Staff Details View:** In-depth view of individual staff member attributes.
+* **Design Direction:**
+  * Professional layout with clear staff categories and hierarchy.
+  * Color-coding for different staff types (trainers, cleaners, receptionists).
+  * Card-based UI for staff members with avatar, stats, and quick actions.
+  * Clear visual indicators for staff status (working, training, idle).
+* **Backend Connection:**
+  * `StaffSystem.getAllStaffMembers()`
+  * `StaffSystem.hireStaff(positionId)`
+  * `StaffSystem.trainStaff(staffId, skill)`
+  * `StaffSystem.assignStaff(staffId, location)`
+* **Placement:**
+  * Accessed from a dedicated "Staff" button in the main menu.
+  * Full-screen modal with tabs for different staff functions.
+
+#### 5.2 Staff Cards
+* **Layout:**
+  * **Avatar/Image:** Visual representation of the staff member.
+  * **Name & Level:** Staff member's name and current level.
+  * **Type Indicator:** Icon representing staff role/type.
+  * **Key Stats:** Efficiency, skill level, specialization.
+  * **Status Indicator:** Current activity status (working, training, idle).
+  * **Quick Actions:** Buttons for common actions (train, assign, details).
+* **Design Direction:**
+  * Compact but informative card layout.
+  * Consistent sizing and information hierarchy.
+  * Clear visual distinction between different staff types.
+  * Status indicators with appropriate colors (green for active, yellow for training, etc.).
+* **Backend Connection:**
+  * Individual staff data from `StaffSystem.getStaffInfo(staffId)`.
+  * Status updates through `StaffSystem.getStaffStatus(staffId)`.
+* **Placement:**
+  * Arranged in a grid or list within the Staff Management Menu.
+  * Scrollable container for larger staff rosters.
+
+#### 5.3 Training Facility Interface
+* **Layout:**
+  * **Available Training Options:** List of skills that can be trained.
+  * **Training Cost:** Cost for each training session.
+  * **Training Duration:** Time required for training completion.
+  * **Benefits Preview:** Preview of stats improvement after training.
+  * **Training Queue:** List of staff members currently in training.
+* **Design Direction:**
+  * Clean, educational-themed interface.
+  * Progress indicators for ongoing training sessions.
+  * Clear cost/benefit presentation for each training option.
+  * Timer displays for training completion.
+* **Backend Connection:**
+  * `StaffSystem.getTrainingOptions(staffId)`
+  * `StaffSystem.startTraining(staffId, trainingId)`
+  * `StaffSystem.getTrainingProgress(staffId)`
+* **Placement:**
+  * Dedicated tab within the Staff Management Menu.
+  * Modal dialog for confirming training actions.
+
+### 6. Equipment Management UI
+
+* **Style:** `UIStyle.applyStyle()`
+
+#### 6.1 Equipment Overview Dashboard
+* **Layout:**
+  * **Equipment Statistics:** Summary of equipment count, quality, and utilization.
+  * **Maintenance Status:** Visual indicators of overall equipment condition.
+  * **Revenue Impact:** Display of how equipment affects gym revenue.
+  * **Category Performance:** Breakdown of equipment by category and performance.
+  * **Status Indicators:** Color-coded status of equipment (Excellent, Good, Fair, Poor, Critical).
+* **Design Direction:**
+  * Clean, data-driven layout with prominent statistics and status indicators.
+  * Consistent color coding: green for excellent condition, yellow for fair, red for poor/critical.
+  * Visual charts showing equipment distribution and utilization.
+  * Easy navigation to detailed views and management options.
+* **Backend Connection:**
+  * `EquipmentSystem.getEquipmentStatistics()`
+  * `EquipmentSystem.getEquipmentDistribution()`
+  * `EquipmentSystem.getMaintenanceStatus()`
+* **Placement:**
+  * Main tab in the gym management interface.
+  * Accessible from primary UI through "Equipment" button.
+
+#### 6.2 Individual Equipment Management
+* **Layout:**
+  * **Equipment Grid/List:** Display of all equipment items with key stats.
+  * **Filtering Options:** Filter by type, status, popularity, or revenue.
+  * **Sorting Controls:** Sort by various attributes (age, condition, popularity).
+  * **Quick Actions:** One-click maintenance or upgrade options.
+  * **Equipment Cards:** Visual representation with image and key metrics.
+* **Design Direction:**
+  * Card-based interface with clear visual hierarchy.
+  * Consistent status indicators across all equipment.
+  * Hover states showing additional information and available actions.
+  * List and grid view options for different management styles.
+* **Backend Connection:**
+  * `EquipmentSystem.getAllEquipment()`
+  * `EquipmentSystem.performMaintenance(equipmentId)`
+  * `EquipmentSystem.upgradeEquipment(equipmentId, upgradeType)`
+* **Placement:**
+  * Tab or section within the Equipment Management interface.
+  * Modal dialogs for detailed equipment information.
+
+#### 6.3 Upgrade and Maintenance Interface
+* **Layout:**
+  * **Current Status:** Detailed information about selected equipment.
+  * **Upgrade Options:** Available upgrades with costs and benefits.
+  * **Maintenance Schedule:** Options for routine or emergency maintenance.
+  * **Cost Analysis:** Breakdown of costs vs. benefits for different options.
+  * **Before/After Comparison:** Visual preview of stat changes after upgrade.
+* **Design Direction:**
+  * Tabular layout for comparing multiple upgrade options.
+  * Progress bars for visualizing potential improvements.
+  * Clear cost and benefit information for each option.
+  * Confirmation dialogs for expensive upgrades or maintenance.
+* **Backend Connection:**
+  * `EquipmentSystem.getUpgradeOptions(equipmentId)`
+  * `EquipmentSystem.getMaintenanceOptions(equipmentId)`
+  * `EquipmentSystem.calculateUpgradeROI(equipmentId, upgradeType)`
+* **Placement:**
+  * Accessible from equipment cards in the management view.
+  * Full-screen modal with tabs for different upgrade categories.
+
+#### 6.4 Equipment Purchasing Interface
+* **Layout:**
+  * **Equipment Catalog:** Available equipment organized by category.
+  * **Comparison Tool:** Side-by-side comparison of similar equipment.
+  * **Space Management:** Visual indication of available gym space.
+  * **Budget Integration:** Display of current funds and purchase affordability.
+  * **Preview Option:** Visual preview of equipment in the gym space.
+* **Design Direction:**
+  * Store-like catalog layout with clear categorization.
+  * Detailed specifications for each equipment option.
+  * Visual cues for popular or recommended equipment.
+  * Integrated placement preview using gym floor plan.
+* **Backend Connection:**
+  * `EquipmentSystem.getAvailableEquipment()`
+  * `EquipmentSystem.checkPlacement(equipmentId, position)`
+  * `EquipmentSystem.purchaseEquipment(equipmentId, position)`
+* **Placement:**
+  * Dedicated "Purchase Equipment" section accessible from main menu.
+  * Integrated with the gym floor editor for placement.
+
+### 7. Member Satisfaction UI
+
+* **Style:** `UIStyle.applyStyle()`
+
+#### 7.1 Satisfaction Overview Panel
+* **Layout:**
+  * **Satisfaction Score:** Large numeric display with color-coded satisfaction level.
+  * **Status Label:** Text indicating current status (Excellent, Good, Average, Poor, Terrible).
+  * **Trend Indicator:** Icon showing if satisfaction is improving or declining.
+  * **Key Factors:** Visual breakdown of factors affecting satisfaction.
+  * **Member Retention:** Display of current retention rate and its impact.
+  * **Revenue Impact:** Display of how satisfaction affects revenue.
+* **Design Direction:**
+  * Color-coded satisfaction levels (green for excellent, yellow for average, red for poor).
+  * Clear visual indicators with icons for different satisfaction factors.
+  * Compact but informative layout showing the most important information at a glance.
+  * Animated transitions when satisfaction levels change.
+* **Backend Connection:**
+  * `MemberSatisfactionSystem.GetSatisfaction()`
+  * `MemberSatisfactionSystem.GetRevenueFactor()`
+  * `MemberSatisfactionSystem.GetRetentionFactor()`
+* **Placement:**
+  * Accessible from a dedicated button in the main menu or gym status panel.
+  * Can be displayed as an overlay during gameplay for quick reference.
+
+#### 7.2 Detailed Satisfaction Breakdown
+* **Layout:**
+  * **Satisfaction Factors:** Detailed breakdown of all factors affecting satisfaction:
+    * **Equipment Density:** Ratio of equipment to members.
+    * **Cleanliness:** Current gym cleanliness level.
+    * **Staff Ratio:** Staff to member ratio and its impact.
+    * **Equipment Quality:** Overall condition of gym equipment.
+    * **Amenities:** Level and impact of gym amenities.
+  * **Historical Data:** Graph showing satisfaction trend over time.
+  * **Member Feedback:** Representative comments from gym members.
+* **Design Direction:**
+  * Tab-based interface for organizing different aspects of satisfaction data.
+  * Bar graphs or gauge displays for visualizing each factor's contribution.
+  * Tooltips providing advice on how to improve each factor.
+  * Clean, data-focused layout that prioritizes clarity.
+* **Backend Connection:**
+  * Detailed data from `MemberSatisfactionSystem.GetSatisfactionBreakdown()`
+  * Historical data from `MemberSatisfactionSystem.GetSatisfactionHistory()`
+* **Placement:**
+  * Accessed by clicking "Details" from the Satisfaction Overview Panel.
+  * Full-screen modal with tabs for different aspects of satisfaction data.
+
+#### 7.3 Improvement Suggestions Panel
+* **Layout:**
+  * **Priority Issues:** Highlights factors most negatively affecting satisfaction.
+  * **Suggested Actions:** List of specific actions to improve satisfaction.
+  * **Cost-Benefit Analysis:** Shows estimated satisfaction improvement vs. cost.
+  * **Quick-Fix Options:** Immediate actions that can boost satisfaction.
+* **Design Direction:**
+  * Problem-solution format with clear visual connection between issues and solutions.
+  * Action buttons for immediate implementation of suggestions.
+  * Prioritized display with most impactful suggestions at the top.
+  * Visual indicators showing potential satisfaction improvement for each action.
+* **Backend Connection:**
+  * `MemberSatisfactionSystem.GetImprovementSuggestions()`
+  * Action buttons connect to appropriate systems (StaffSystem, EquipmentSystem, etc.)
+* **Placement:**
+  * Tab or section within the Satisfaction Details panel.
+  * Can be accessed directly from warning notifications about declining satisfaction.
+
+### 8. Specialized Gym Areas Visualization
+
+* **Style:** `UIStyle.applyStyle()`
+
+#### 8.1 Gym Layout Overview
+* **Layout:**
+  * **Floor Plan View:** Interactive top-down view of the entire gym.
+  * **Area Highlighting:** Color-coded zones for different specializations.
+  * **Heatmap Overlay:** Visualization of member traffic and equipment usage.
+  * **Status Summary:** At-a-glance view of each area's performance.
+  * **Quick Navigation:** Jump directly to specific areas for detailed management.
+* **Design Direction:**
+  * Clean, architect-style floor plan with clear boundaries.
+  * Intuitive color coding for different area types and status.
+  * Smooth zoom and pan controls for navigation.
+  * Responsive layout that adapts to different screen sizes.
+* **Backend Connection:**
+  * `GymLayoutSystem.getFloorPlan()`
+  * `GymLayoutSystem.getAreaStatistics()`
+  * `GymLayoutSystem.getTrafficData()`
+* **Placement:**
+  * Dedicated tab in the main management interface.
+  * Accessible from a "Gym Layout" button in the main menu.
+
+#### 8.2 Area Detail View
+* **Layout:**
+  * **Equipment List:** All equipment present in the selected area.
+  * **Area Statistics:** Usage, popularity, and revenue metrics.
+  * **Member Activity:** Timeline of member activity throughout the day.
+  * **Staff Assignment:** Current staff working in this area.
+  * **Optimization Tips:** AI-driven suggestions for improvement.
+* **Design Direction:**
+  * Detailed but clean interface focusing on the selected area.
+  * Visual representation of the area with equipment placement.
+  * Performance graphs showing historical data and trends.
+  * Action buttons for common area management tasks.
+* **Backend Connection:**
+  * `GymLayoutSystem.getAreaDetails(areaId)`
+  * `GymLayoutSystem.getAreaEquipment(areaId)`
+  * `GymLayoutSystem.getAreaActivity(areaId)`
+* **Placement:**
+  * Accessed by clicking on a specific area in the floor plan view.
+  * Modal or side panel depending on information density.
+
+#### 8.3 Specialization Configuration
+* **Layout:**
+  * **Specialization Options:** List of available gym specializations.
+  * **Requirements:** Equipment and staff needed for each specialization.
+  * **Benefits Preview:** Expected revenue and member satisfaction impact.
+  * **Progress Tracker:** Visual indication of progress toward specialization.
+  * **Cost Breakdown:** Investment required to achieve specialization.
+* **Design Direction:**
+  * Card-based interface for different specialization options.
+  * Clear visual indicators of benefits and requirements.
+  * Step-by-step configuration wizard for new specializations.
+  * Before/after comparison views for planning purposes.
+* **Backend Connection:**
+  * `SpecializationSystem.getAvailableSpecializations()`
+  * `SpecializationSystem.getRequirements(specializationId)`
+  * `SpecializationSystem.calculateBenefits(specializationId)`
+* **Placement:**
+  * Tab or section within the area detail view.
+  * Accessible from a "Specialize Area" button when viewing an area.
+
+#### 8.4 Area Planning and Expansion
+* **Layout:**
+  * **Available Space:** Visualization of unused or expandable space.
+  * **Expansion Options:** Different ways to expand the current gym.
+  * **Cost Projections:** Financial impact of different expansion options.
+  * **Phased Planning:** Tools for planning multi-stage gym development.
+  * **Template Gallery:** Pre-designed area templates for quick implementation.
+* **Design Direction:**
+  * Blueprint-style interface for planning new areas.
+  * Drag-and-drop equipment placement for easy configuration.
+  * Visual indicators of space requirements and constraints.
+  * Toggleable overlays for different planning considerations.
+* **Backend Connection:**
+  * `GymLayoutSystem.getExpansionOptions()`
+  * `GymLayoutSystem.calculateExpansionCosts(expansionType)`
+  * `GymLayoutSystem.previewExpansion(expansionConfig)`
+* **Placement:**
+  * Dedicated "Planning" tab in the gym layout interface.
+  * Modal dialog for template selection and customization.
+
+### 9. Progression Analytics Dashboard
+
+* **Style:** `UIStyle.applyStyle()`
+
+#### 9.1 Performance Overview
+* **Layout:**
+  * **Key Performance Indicators:** Revenue, member count, satisfaction, and growth rates.
+  * **Time Period Selector:** Options to view data for day, week, month, or all-time.
+  * **Comparison Tools:** Compare current performance to previous periods.
+  * **Goal Tracking:** Progress toward player-set business goals.
+  * **Milestone Timeline:** Visual representation of gym development milestones.
+* **Design Direction:**
+  * Clean, business dashboard aesthetic with emphasis on data clarity.
+  * Interactive charts and graphs that respond to time period selection.
+  * Visual indicators for growth (green) and decline (red) in metrics.
+  * Consistent numerical formatting for currency and percentages.
+* **Backend Connection:**
+  * `AnalyticsSystem.getPerformanceMetrics(timeFrame)`
+  * `AnalyticsSystem.comparePerformance(currentPeriod, previousPeriod)`
+  * `AnalyticsSystem.getGoalProgress()`
+* **Placement:**
+  * Accessible from main menu via "Analytics" or "Performance" button.
+  * Full-screen interface with multiple sections and tabs.
+
+#### 9.2 Revenue Analysis
+* **Layout:**
+  * **Revenue Breakdown:** Sources of income (memberships, VIPs, equipment, services).
+  * **Revenue Trends:** Line graphs showing revenue over time.
+  * **Revenue Forecasting:** Projected future revenue based on current trends.
+  * **Revenue Optimization:** Suggestions for increasing revenue.
+  * **Expense Tracking:** Overview of costs and profit margins.
+* **Design Direction:**
+  * Financial report style with clear data visualizations.
+  * Color-coded pie charts for revenue distribution.
+  * Interactive elements allowing drill-down into specific revenue sources.
+  * Tabular data with sorting options for detailed analysis.
+* **Backend Connection:**
+  * `RevenueSystem.getRevenueBreakdown(timeFrame)`
+  * `RevenueSystem.getExpenseData(timeFrame)`
+  * `AnalyticsSystem.forecastRevenue(days)`
+* **Placement:**
+  * Tab or section within the Analytics Dashboard.
+  * Option to export or share reports.
+
+#### 9.3 Member Analytics
+* **Layout:**
+  * **Member Demographics:** Breakdown of member types and preferences.
+  * **Membership Duration:** Average duration of memberships and churn rate.
+  * **Member Growth:** New members vs. lost members over time.
+  * **Satisfaction Analysis:** Detailed view of satisfaction factors and trends.
+  * **Member Journey Map:** Visualization of typical member progression.
+* **Design Direction:**
+  * People-focused visualizations with avatar icons and personas.
+  * Heat calendar showing busy times and peak attendance.
+  * Sentiment indicators showing member satisfaction levels.
+  * Journey mapping with milestone indicators and drop-off points.
+* **Backend Connection:**
+  * `MemberSystem.getMemberDemographics()`
+  * `MemberSystem.getMembershipStats()`
+  * `MemberSatisfactionSystem.getSatisfactionAnalysis()`
+* **Placement:**
+  * Dedicated tab within the Analytics Dashboard.
+  * Links to related management interfaces (Satisfaction, Staff, etc.).
+
+#### 9.4 Progress & Achievement Tracking
+* **Layout:**
+  * **Gym Level Progress:** Visual representation of gym level and XP.
+  * **Achievement Gallery:** All available and completed achievements.
+  * **Rebirth Timeline:** History of rebirths with key metrics for each cycle.
+  * **Competitive Rankings:** Position compared to other players (if multiplayer).
+  * **Challenge Progress:** Status of active and upcoming challenges.
+* **Design Direction:**
+  * Achievement showcase with visual rewards and badges.
+  * Timeline visualization for long-term progression.
+  * Progression bars with clear milestones and rewards.
+  * Trophy case aesthetic for competitive accomplishments.
+* **Backend Connection:**
+  * `AchievementSystem.getAllAchievements()`
+  * `ProgressionSystem.getLevelData()`
+  * `RebirthSystem.getRebirthHistory()`
+  * `CompetitionSystem.getRankings()`
+* **Placement:**
+  * Tab within Analytics Dashboard or accessible from player profile.
+  * Option to share achievements on social platforms.
+
+### 10. Tutorial System UI
+
+* **Style:** `UIStyle.applyStyle()`
+
+#### 10.1 Tutorial Popup
 * **Layout:**
   * **Title Bar:** Clear title indicating the current tutorial step.
   * **Main Content:** Tutorial instructions with supporting images.
@@ -359,7 +742,7 @@ end)
   * Support for interactive elements within tutorial content.
   * Background shadow for better readability against varied game scenes.
 
-#### 5.2 Tutorial Menu
+#### 10.2 Tutorial Menu
 * **Layout:**
   * **Tabs:** Basic Tutorials, Advanced Tutorials, Settings.
   * **Tutorial List:** Scrollable list of available tutorials.
@@ -376,7 +759,7 @@ end)
 * **Placement:**
   * Centered modal window when accessed from menu.
   
-#### 5.3 UI Highlights
+#### 10.3 UI Highlights
 * **Functionality:**
   * Highlights specific UI elements that are the focus of a tutorial.
   * Creates a pulsing border or glow effect around target elements.
@@ -497,9 +880,11 @@ end)
 
 ### Next Implementation Steps
 
-1. Update Rebirth UI to fully use modern UI components (high priority)
-2. Complete Main Menu connections to backend systems (medium priority)
-3. Add tooltips and help system throughout UI (low priority)
+1. Implement Member Satisfaction UI (highest priority)
+2. Implement Staff Management UI (high priority)
+3. Update Rebirth UI to fully use modern UI components (high priority)
+4. Complete Main Menu connections to backend systems (medium priority)
+5. Add tooltips and help system throughout UI (low priority)
 
 ## Conclusion
 
