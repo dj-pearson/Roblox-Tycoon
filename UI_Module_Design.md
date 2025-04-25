@@ -1,7 +1,6 @@
 # UI Module Design Document
 
 ## Overview
-
 This document outlines the design for the UI Module, which will serve as the primary interface for players to interact with the game. It details the necessary components, their functionality, design principles, and how they connect to the backend systems.
 
 ## Design Principles
@@ -9,9 +8,9 @@ This document outlines the design for the UI Module, which will serve as the pri
 *   **Clarity:** The UI should be clear and easy to understand, minimizing the cognitive load on the player.
 *   **Consistency:** Design elements and interactive behaviors should be consistent across the entire UI.
 *   **Responsiveness:** The UI should react dynamically to user actions, providing feedback and clear indications of state changes.
-*   **Accessibility:** The UI should be accessible to all users, including those with visual impairments.
-*   **Visual Appeal:** The UI should be visually engaging, enhancing the player's immersion in the game world.
-*   **Branding:** The UI will follow a modern, clean, and professional aesthetic, using a color scheme of blues, grays, and white.
+* **Accessibility:** The UI should be accessible to all users, including those with visual impairments.
+* **Visual Appeal:** The UI should be visually engaging, enhancing the player's immersion in the game world.
+* **Branding:** The UI will follow a modern, clean, and professional aesthetic, using a color scheme of blues, grays, and white.
 * **Animation:** Use simple but effective animations where needed to help provide context to actions.
 * **Visual Indicators:** Provide context where needed, add visual indicators to help improve overall player experience.
 
@@ -107,7 +106,7 @@ end)
     * Center: Minigames Button.
 *   **Primary Buttons:**
     *   **Play:** Starts the main gameplay. Connects to `GameSystem.startGame()`.
-    *   **Alliance:** Opens the alliance menu.
+    * **Alliance:** Opens the alliance menu.
     *   **Specialization:** Opens the specialization menu.
     *   **Seasonal Events:** Opens the seasonal events menu.
     *   **Settings:** Opens the settings menu.
@@ -117,7 +116,6 @@ end)
 
 #### 1.2 Settings Menu
 
-    *   **Main Menu UI Enhancements**:
         * Created the file `MainMenuUI.client.luau`.
         * Created the layout (Top, Center, Bottom sections).
         * Created all the buttons using `ButtonFactory`.
@@ -144,7 +142,7 @@ end)
     *   Each mini-game will have a description.
     *   Each minigame will have a image or video.
     *   A back button to return to the Main Menu.
-*   **Design Direction:**
+* **Design Direction:**
     *   Clean and well-organized.
     *   Each mini-game should have a clear button with its name.
     * The description of the minigame should be clear and detailed.
@@ -158,36 +156,29 @@ end)
 #### 1.3 Rebirth Menu
 *   **Style:** `UIStyle.applyStyle()`
 
-    *   **Layout:**
-        *   **Rebirth Count:** Display the player's current rebirth count. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a simple numerical text.
-        *   **Rebirth Cost:** Show the cost for the next rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text with a dollar icon.
-        *   **Rebirth Multiplier:** Display the current revenue multiplier. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text with a multiplier icon.
-        *   **Rebirth Progress:** Show the progress towards the next rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a progress bar with numerical completion.
-        *   **Unlocked Features:** Show the unlocked features. Connects to `RebirthSystem.getRebirthInfo()`. Display each feature with the name, description, and icon.
-        *   **Active Perks:** Show the active perks. Connects to `RebirthSystem.getRebirthInfo()`. Display each perk with the name, description, and icon.
-        *   **Achievements:** Show the achieved achievements and the requirements of the unachieved ones. Connects to `RebirthSystem.getRebirthInfo()`. Display each achievement with the name, description, icon, and if it is achieved or not. If it is not achieved, show the requirements.
-        *   **Total Rebirths:** Show the total number of rebirths the player has performed. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
-        *   **Fastest Rebirth Time:** Show the fastest time the player has performed a rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
-        *   **Current Rebirth Time:** Show the time the player has been in the current rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
-        *   **Rebirth Button:** A button to perform the rebirth. Connects to `RebirthSystem.performRebirth()`. If the player can not perform the rebirth, the button will be disabled and the reason will be shown in a tooltip.
-         * **Features toggle:** A toggle to change between showing the features by the level they are unlocked and the order they were unlocked.
-    *   **Design Direction:** Clean, well-organized design that clearly separates the different categories of information.
-    *   **User Journey:** Accessed from the Main Menu. Provides the player all information about the Rebirth System.
-
-    *   **Rebirth Menu UI Enhancements**:
-        *   All `GothamSemibold` font references were updated to `GothamMedium`.
-        *   Shadowing variable issues with `descLabel` were resolved.
-        *   The Main Frame was updated to use `UIStyle.createFrame`.
-        *   The Rebirth Button and Toggle Button were updated to use `ButtonFactory.createButton`.
-        *   The Success and Error messages were updated to use `DialogFactory.showMessage`.
-
+* **Layout:**
+* **Rebirth Count:** Display the player's current rebirth count. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a simple numerical text.
+* **Rebirth Cost:** Show the cost for the next rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text with a dollar icon.
+* **Rebirth Multiplier:** Display the current revenue multiplier. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text with a multiplier icon.
+* **Rebirth Progress:** Show the progress towards the next rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a progress bar with numerical completion.
+* **Unlocked Features:** Show the unlocked features. Connects to `RebirthSystem.getRebirthInfo()`. Display each feature with the name, description, and icon.
+* **Active Perks:** Show the active perks. Connects to `RebirthSystem.getRebirthInfo()`. Display each perk with the name, description, and icon.
+* **Achievements:** Show the achieved achievements and the requirements of the unachieved ones. Connects to `RebirthSystem.getRebirthInfo()`. Display each achievement with the name, description, icon, and if it is achieved or not. If it is not achieved, show the requirements.
+* **Total Rebirths:** Show the total number of rebirths the player has performed. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
+* **Fastest Rebirth Time:** Show the fastest time the player has performed a rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
+* **Current Rebirth Time:** Show the time the player has been in the current rebirth. Connects to `RebirthSystem.getRebirthInfo()`. Display the information using a numerical text.
+* **Rebirth Button:** A button to perform the rebirth. Connects to `RebirthSystem.performRebirth()`. If the player can not perform the rebirth, the button will be disabled and the reason will be shown in a tooltip.
+* **Features toggle:** A toggle to change between showing the features by the level they are unlocked and the order they were unlocked.
+* **Design Direction:** Clean, well-organized design that clearly separates the different categories of information.
+* **User Journey:** Accessed from the Main Menu. Provides the player all information about the Rebirth System.
 
 ### 2. Buttons
 #### 2.5 Rebirth Button
-    *   **Functionality:** Initiates the rebirth process. Checks if the player has enough cash to rebirth. If yes, triggers `RebirthSystem.performRebirth()`. If not, displays a tooltip with the reason why the player cannot rebirth.
-    *   **Backend Connection:** `RebirthSystem.performRebirth()`.
-    *   **Suggested Placement:** Rebirth Menu.
-    *   **Design:** Prominent, with a clear indication of the required cost. Should be disabled if the player cannot rebirth, displaying a tooltip with the reason why.
+* **Functionality:** Initiates the rebirth process. Checks if the player has enough cash to rebirth. If yes, triggers `RebirthSystem.performRebirth()`. If not, displays a tooltip with the reason why the player cannot rebirth.
+* **Backend Connection:** `RebirthSystem.performRebirth()`.
+* **Suggested Placement:** Rebirth Menu.
+* **Design:** Prominent, with a clear indication of the required cost. Should be disabled if the player cannot rebirth, and display a tooltip with the reason why.
+
 
 
 
@@ -245,13 +236,13 @@ end)
 * **Tutorial Button:**
   * **Functionality:** Opens the tutorial menu and steps through how to play the game.
   * **Backend Connection:** `TutorialSystem.showTutorial()`.
-  * **Placement:** Settings Menu or Main Menu.
-  * **Design:** Clear and Distinguishable.
+* **Placement:** Settings Menu or Main Menu.
+* **Design:** Clear and Distinguishable.
 * **Close Button:**
-  * **Functionality:** Closes the current menu or pop up.
-  * **Backend Connection:** None (UI only).
-  * **Placement:** Various Menus and pop ups.
-  * **Design:** simple and noticeable.
+* **Functionality:** Closes the current menu or pop up.
+* **Backend Connection:** None (UI only).
+* **Placement:** Various Menus and pop ups.
+* **Design:** simple and noticeable.
 
 ### 3. Input Fields
 
@@ -298,6 +289,7 @@ end)
   * **Backend Connection:** `AdminSystem.*`
   * **Placement:** Only accessable to admins.
   * **Design:** Clean and simple.
+  * **Design:** Clean and simple.
 *   **Pop-up Windows:**
     *   **Functionality:** Used for notifications, confirmations, and additional information.
     *   **Backend Connection:** Varies.
@@ -329,6 +321,77 @@ end)
   * **Backend Connection:** Varies.
   * **Placement:** Center of the screen.
   * **Design:** Simple Yes/No style.
+
+
+## UI Module To-Do List
+
+## Implemented
+
+### Settings Menu
+    *   **File Creation:** Created the `SettingsUI.client.luau` file to handle the Settings Menu UI logic.
+    *   **Layout:** Implemented the Main Frame and the Scrolling frame to allow scrolling.
+    *   **Sections:** Created all the sections (`Sound`, `Graphics`, `Controls`, `Accessibility`, `Language`) with their respective labels.
+    *   **Sound:** Created the `Music Volume` and `Sound Effects Volume` sliders, and implemented their functionality to update their labels.
+    *   **Graphics:** Created the `Quality Presets` dropdown, and the `Shadows` checkbox.
+    *   **Controls:** Created the `Mouse Sensitivity` slider, and implemented it's functionality to update it's label.
+    *   **Accessibility:** Created the `Colorblind Mode` checkbox.
+    *   **Language:** Created the `Language` dropdown.
+    * **Connection with Main Menu**: Connected the `Settings` button in the main menu to load this ui.
+    * **Close Button**: Added a close button.
+
+### Rebirth Button
+
+    *   **File Creation:** Created the `RebirthMenuUI.client.luau` file to handle the Rebirth Menu UI logic.
+    *   **Layout:** Implemented the Main Frame, the Rebirth Button and the Rebirth Cost label.
+    *   **Functionality:** Created a function to update the Rebirth Button state.
+    *   **Eligibility Check:** The `updateRebirthButtonState` function checks if the player has enough cash to rebirth.
+    *   **Tooltip:** Implemented a tooltip if the player cannot rebirth.
+    *   **Button State:** The Rebirth button is disabled if the player cannot rebirth, and it's enabled if the player has enough cash.
+    *   **Backend Connection:** Connected the button to `RebirthSystem.performRebirth()` to perform the rebirth.
+    *   **UI Update:** The UI is updated if the player's cash changes.
+    * **Connection with Main Menu**: Connected the `Rebirth Menu` button in the main menu to load this ui.
+    * **Close Button**: Added a close button.
+
+### Close Button
+    *   **File Creation:** Created the `CloseButtonFactory.lua` file to handle the Close Button creation.
+    *   **Functionality:** The `createCloseButton` function creates the close button and adds the functionality of closing the ui.
+    *   **Implementation:** Added the close button to the Settings Menu UI and the Rebirth Menu UI.
+
+## To-Do
+
+### Main Menu
+
+*   **Improve Layout:** Evaluate the current layout and make improvements as needed.
+*   **Add more buttons:** Add any missing button.
+
+### Tutorial System
+
+*   **UI Design:** Create the UI elements for the tutorial system (e.g., pop-ups, overlays, tooltips).
+*   **Functionality:** Implement the logic to guide the user through the game.
+*   **Backend Connection:** Connect the UI to `TutorialSystem.showTutorial()`.
+*   **Placement:** Determine the best place to start the tutorial (Settings Menu or Main Menu).
+*   **Design:** Ensure the tutorial UI is clear and distinguishable.
+
+### Admin Dashboard UI
+
+*   **Players Tab:** Fully implement player management features (e.g., kick, ban, mute, teleport, view player details).
+*   **Game Settings Tab:** Implement functionality to change game settings (e.g., modify multipliers, enable/disable features).
+*   **Server Stats Tab:** Display relevant server statistics (e.g., player count, uptime, resource usage).
+*   **Commands Tab:** Add more commands for various actions.
+* **UI Improvements:** Improve the overall UI based on our UI modules.
+
+### Rebirth Menu UI
+
+*   **Tabbed Interface:** Implement the tabbed interface (`Main`, `Features`, `Perks`, `Achievements`).
+*   **Rebirth Statistics:** Display rebirth statistics (count, cost, multiplier, progress).
+*   **Unlockable Content:** Implement the system to display unlockable content.
+*   **Card Displays:** Create card displays for features, perks, and achievements.
+*   **Animations:** Add animations and transitions.
+*   **Backend Connection:** Add more connections to the `RebirthSystem`.
+
+
+
+
 
 ## Implementation Progress (Updated April 24, 2025)
 
@@ -390,27 +453,6 @@ end)
    * ✅ Added accessibility and interface options
    * 🔄 Finalizing connections to game systems for settings application
    
-    #### 1.3 Settings Menu Implementation
-
-    *   **File Creation:** Created the `SettingsUI.client.luau` file to handle the Settings Menu UI logic.
-    *   **Layout:** Implemented the Main Frame and the Scrolling frame to allow scrolling.
-    *   **Sections:** Created all the sections (`Sound`, `Graphics`, `Controls`, `Accessibility`, `Language`) with their respective labels.
-    *   **Sound:** Created the `Music Volume` and `Sound Effects Volume` sliders, and implemented their functionality to update their labels.
-    *   **Graphics:** Created the `Quality Presets` dropdown, and the `Shadows` checkbox.
-    *   **Controls:** Created the `Mouse Sensitivity` slider, and implemented it's functionality to update it's label.
-    * **Accessibility:** Created the `Colorblind Mode` checkbox.
-    * **Language:** Created the `Language` dropdown.
-    * **Connection with Main Menu**: Connected the `Settings` button in the main menu to load this ui.
-
-
-
-3. **Rebirth Menu UI Enhancements**:
-   * ✅ Updated to fully integrate with UIStyle for consistent appearance
-   * ✅ Integrated IconSet for standardized icons
-   * ✅ Replaced UIUtils dependency with ButtonFactory and DialogFactory
-   * ✅ Improved animation and transition effects
-   * ✅ Enhanced tab system with proper styling
-   * ✅ Added notifications and feedback using DialogFactory
 
 ### Remaining Tasks
 

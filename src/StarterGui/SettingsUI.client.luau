@@ -1,6 +1,6 @@
 --lua
 --[[
-    SettingsUI.client.luau
+	SettingsUI.client.luau
     Handles the creation and functionality of the Settings Menu UI.
 
     Updated: Today
@@ -19,7 +19,9 @@ local ButtonFactory = require(ReplicatedStorage:WaitForChild("src"):WaitForChild
 local SliderFactory = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("SliderFactory"))
 local DropdownFactory = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("DropdownFactory"))
 local CheckBoxFactory = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("CheckBoxFactory"))
+local createCloseButton = require(script.Parent:WaitForChild("CloseButtonFactory"))
 
+local function updateSliderValueLabel(slider, label) label.Text = "Value: " .. string.format("%.1f", slider.Value) end
 local function updateSliderValueLabel(slider, label) label.Text = "Value: " .. slider.Value end
 
 
@@ -240,6 +242,9 @@ local function loadUI()
 	-- Create the SettingsFrame container
 	local settingsFrame = createSettingsMenuUI()
 	settingsFrame.Parent = screenGui
+
+	-- Create the close button
+	createCloseButton({size = UDim2.new(0, 30, 0, 30), position = UDim2.new(1, -40, 0, 10), target = settingsFrame})
 	
 	-- Get the scrolling frame
 	local settingsScrollingFrame = settingsFrame:WaitForChild("SettingsScrollingFrame")

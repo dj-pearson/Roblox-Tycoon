@@ -9,10 +9,10 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local LocalPlayer = Players.LocalPlayer
-
+local RebirthMenuUI = require(script.Parent:WaitForChild("RebirthMenuUI.client"))
 local SettingsUI = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("StarterGui"):WaitForChild("SettingsUI"))
 
+local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Import modern UI framework components
@@ -120,12 +120,13 @@ local function createMainMenuUI()
 	local settingsButton = ButtonFactory.createButton({name = "SettingsButton", size = UDim2.new(1, 0, 0, 40), position = UDim2.new(0, 0, 0, 200), text = "Settings", font = Enum.Font.GothamMedium, textSize = 16, textColor = Color3.fromRGB(255, 255, 255), backgroundColor = Color3.fromRGB(60, 60, 120)})
 	settingsButton.Parent = centerButtonsContainer
     -- 6. Minigames Button
-	local minigamesButton = ButtonFactory.createButton({name = "MinigamesButton", size = UDim2.new(1, 0, 0, 40), position = UDim2.new(0, 0, 0, 250), text = "Minigames", font = Enum.Font.GothamMedium, textSize = 16, textColor = Color3.fromRGB(255, 255, 255), backgroundColor = Color3.fromRGB(60, 60, 120)})
-	minigamesButton.Parent = centerButtonsContainer
+	
+	local buttons = {
+		{ name = "RebirthMenuButton", text = "Rebirth Menu"},
+	}
 
     -- Bottom Section Container
-	local bottomSectionContainer = Instance.new("Frame")
-	bottomSectionContainer.Name = "BottomSectionContainer"
+	local bottomSectionContainer = Instance.new("Frame")	bottomSectionContainer.Name = "BottomSectionContainer"
 	bottomSectionContainer.Size = UDim2.new(1, -20, 0, 50)
 	bottomSectionContainer.Position = UDim2.new(0, 10, 1, -60)
 	bottomSectionContainer.BackgroundTransparency = 1
@@ -140,6 +141,22 @@ local function createMainMenuUI()
 	socialLinksLabel.Font = Enum.Font.Gotham
 	socialLinksLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	socialLinksLabel.TextSize = 14
+	socialLinksLabel.Parent = bottomSectionContainer
+	
+	local buttonWidth = 150
+	local padding = 10
+	local totalWidth = (buttonWidth * #buttons) + (padding * (#buttons - 1))
+	local startX = 0.5 - (totalWidth / 2 / bottomSectionContainer.AbsoluteSize.X)
+	
+	for i, buttonInfo in ipairs(buttons) do
+		local button = ButtonFactory.createButton({
+			name = buttonInfo.name,
+			size = UDim2.new(0, buttonWidth, 0, 50),
+			position = UDim2.new(startX + ((buttonWidth + padding) * (i - 1) / bottomSectionContainer.AbsoluteSize.X), 0, 0.5, -25),
+			text = buttonInfo.text,
+		})
+		button.Parent = bottomSectionContainer
+	end
 	socialLinksLabel.Parent = bottomSectionContainer
     return mainFrame
 end
@@ -169,6 +186,7 @@ local function loadUI()
 	-- Get the buttons
 	local settingsButton = centerButtonsContainer:WaitForChild("SettingsButton")
 	local allianceButton = centerButtonsContainer:WaitForChild("AllianceButton")
+	local rebirthMenuButton = mainFrame:WaitForChild("BottomSectionContainer"):WaitForChild("RebirthMenuButton")
 	local minigamesButton = centerButtonsContainer:WaitForChild("MinigamesButton")
 	local seasonalEventsButton = centerButtonsContainer:WaitForChild("SeasonalEventsButton")
 	
@@ -184,6 +202,9 @@ local function loadUI()
 	minigamesButton.Activated:Connect(function()
 		print("Minigames Button Clicked")
 	end)
+	
+	local function loadRebirthMenu()
+		RebirthMenuUI.loadUI()	end	rebirthMenuButton.MouseButton1Click:Connect(loadRebirthMenu)
 end
 
 return {
