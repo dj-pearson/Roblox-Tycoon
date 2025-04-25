@@ -12,13 +12,57 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Attempt to load DataThrottler and other systems
 local DataThrottler
-pcall(function()
-    DataThrottler = require(script.Parent.Parent.Core.DataThrottler)
-end)
+local function loadDataThrottler()
+    -- Try multiple potential paths
+    local paths = {
+        script.Parent.Parent.Core.DataThrottler,
+        ServerScriptService.Core.DataThrottler,
+        ReplicatedStorage.src.server.Core.DataThrottler
+    }
+    
+    for _, path in ipairs(paths) do
+        local success, module = pcall(function()
+            return path and require(path)
+        end)
+        
+        if success and module then
+            debugPrint("Successfully loaded DataThrottler from " .. path:GetFullName())
+            return module
+        end
+    end
+    
+    -- Create the module if it doesn't exist
+    debugPrint("DataThrottler not found, creating it dynamically")
+    local newModule = Instance.new("ModuleScript")
+    newModule.Name = "DataThrottler"
+    newModule.Source = [[
+        -- Auto-generated DataThrottler (minimal implementation)
+        local DataThrottler = {}
+        
+        function DataThrottler.registerSystem(name)
+            return { name = name, requestsMade = 0 }
+        end
+        
+        function DataThrottler.queueRequestWithPriority(system, priority, callback)
+            return pcall(callback)
+        end
+        
+        function DataThrottler.queueRequest(system, callback)
+            return pcall(callback)
+        end
+        
+        return DataThrottler
+    ]]
+    newModule.Parent = script.Parent.Parent.Core
+    
+    return require(newModule)
+end
+
+DataThrottler = loadDataThrottler()
 
 local BuyTileSystem
 pcall(function()
-	BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
+    BuyTileSystem = require(ServerScriptService:FindFirstChild("BuyTile"))
 end)
 
 -- Configuration
@@ -58,18 +102,18 @@ local CONFIG = {
 	debug = true
 }
 
--- Module table
-local DataStorage = {
-	loadedData = {},         -- Loaded player data cache
-	autoSaveActive = {}      -- For tracking active auto-save loops
-}
-
 -- Debug function
 local function debugPrint(...)
-	if CONFIG.debug then
-		print("[DataManager]", ...)
-	end
+    if CONFIG and CONFIG.debug then
+        print("[DataManager]", ...)
+    end
 end
+
+-- Module table
+local DataStorage = {
+    loadedData = {},         -- Loaded player data cache
+    autoSaveActive = {}      -- For tracking active auto-save loops
+}
 
 -- Initialize DataStores
 function DataStorage.initialize()
@@ -126,28 +170,47 @@ local function migrateData(data)
 end
 
 -- Safe DataStore call with retries and exponential backoff
-local function safeDataStoreCall(func)
-	local retries = 0
-	local success, result
-
-	-- If DataThrottler is available, use it
-	if DataThrottler and DataThrottler.queueRequest then
-		return DataThrottler.queueRequest("EnhancedDataStorageSystem", func)
-	end
-	
-	-- Fallback to traditional retry logic
-	repeat
-		success, result = pcall(func)
-
-		if not success then
-			retries = retries + 1
-			local delay = math.min(CONFIG.retryDelay * (2 ^ retries), 30) -- Cap at 30 seconds
-			warn("DataStore operation failed, retrying in", delay, "seconds. Error:", result)
-			wait(delay)
-		end
-	until success or retries >= CONFIG.maxRetries
-
-	return success, result
+local function safeDataStoreCall(func, isWrite, priority)
+    local retries = 0
+    local success, result
+    
+    -- Detect operation type if not specified
+    if isWrite == nil then
+        -- Try to guess if it's a write operation based on function content
+        local funcStr = tostring(func)
+        isWrite = funcStr:match("SetAsync") ~= nil
+    end
+    
+    -- Default priority based on operation type
+    priority = priority or (isWrite and 3 or 4) -- Lower priority for reads
+    
+    -- If DataThrottler is available, use it
+    if DataThrottler and DataThrottler.queueRequestWithPriority then
+        debugPrint("Using DataThrottler for " .. (isWrite and "write" or "read") .. " operation with priority " .. priority)
+        
+        -- Use DataThrottler with proper priority and operation type
+        return DataThrottler.queueRequestWithPriority(
+            "EnhancedDataStorageSystem", 
+            priority, 
+            func, 
+            isWrite
+        )
+    end
+    
+    -- Fallback to traditional retry logic
+    debugPrint("Using fallback retry logic for DataStore operation")
+    repeat
+        success, result = pcall(func)
+        
+        if not success then
+            retries = retries + 1
+            local delay = math.min(CONFIG.retryDelay * (2 ^ retries), 30) -- Cap at 30 seconds
+            warn("DataStore operation failed, retrying in", delay, "seconds. Error:", result)
+            wait(delay)
+        end
+    until success or retries >= CONFIG.maxRetries
+    
+    return success, result
 end
 
 -- Load player data with retry mechanism
@@ -163,19 +226,10 @@ function DataStorage.loadData(player)
 	local key = tostring(userId)
 	local data
 
-	-- Try to load data using DataThrottler if available
-	local success, result
-	
-	if DataThrottler and DataThrottler.queueRequest then
-		success, result = DataThrottler.queueRequest("EnhancedDataStorageSystem", function()
-			return DataStorage.dataStore:GetAsync(key)
-		end)
-	else
-		-- Fallback to traditional method
-		success, result = safeDataStoreCall(function()
-			return DataStorage.dataStore:GetAsync(key)
-		end)
-	end
+	-- Load data with appropriate priority (reads are priority 4, medium-low)
+	local success, result = safeDataStoreCall(function()
+		return DataStorage.dataStore:GetAsync(key)
+	end, false, 4) -- false = read operation, priority 4 = LOW
 
 	if success then
 		data = result
@@ -235,22 +289,14 @@ function DataStorage.saveData(player, immediate)
 		data.sessionStart = os.time() -- Reset for next save
 	end
 
-	-- Try to save data using DataThrottler if available, with higher priority for immediate saves
-	local success, result
+	-- Choose appropriate priority based on whether this is an immediate save
+	local priority = immediate and 1 or 3 -- Priority 1 (CRITICAL) for immediate saves, 3 (NORMAL) for regular saves
 	
-	if DataThrottler and DataThrottler.queueRequest then
-		local priority = immediate and 1 or 3 -- Priority 1 for immediate saves, 3 for regular saves
-		success, result = DataThrottler.queueRequestWithPriority("EnhancedDataStorageSystem", priority, function()
-			DataStorage.dataStore:SetAsync(key, data)
-			return true
-		end)
-	else
-		-- Fallback to traditional method
-		success, result = safeDataStoreCall(function()
-			DataStorage.dataStore:SetAsync(key, data)
-			return true
-		end)
-	end
+	-- Use the enhanced safeDataStoreCall function with proper parameters
+	local success, _ = safeDataStoreCall(function()
+		DataStorage.dataStore:SetAsync(key, data)
+		return true
+	end, true, priority) -- true = write operation
 
 	if success then
 		debugPrint("Successfully saved data for " .. player.Name .. (immediate and " (immediate)" or ""))
@@ -280,21 +326,11 @@ function DataStorage.createBackup(player)
 	local data = DataStorage.loadedData[userId]
 	local key = "Backup_" .. userId .. "_" .. os.time()
 
-	-- Use DataThrottler with lower priority if available
-	local success, result
-	
-	if DataThrottler and DataThrottler.queueRequest then
-		success, result = DataThrottler.queueRequestWithPriority("EnhancedDataStorageSystem", 5, function()
-			DataStorage.backupStore:SetAsync(key, data)
-			return true
-		end)
-	else
-		-- Fallback to traditional method
-		success, result = safeDataStoreCall(function()
-			DataStorage.backupStore:SetAsync(key, data)
-			return true
-		end)
-	end
+	-- Use the enhanced safeDataStoreCall function with low priority (5 = BACKGROUND)
+	local success, _ = safeDataStoreCall(function()
+		DataStorage.backupStore:SetAsync(key, data)
+		return true
+	end, true, 5) -- true = write operation, priority 5 = BACKGROUND
 
 	if success then
 		debugPrint("Created backup for " .. player.Name)
@@ -694,13 +730,28 @@ for _, player in pairs(Players:GetPlayers()) do
 	end)
 end
 
--- Handle existing auto-save function in the old system
--- Detect if we need to override the global autoSave function
-if _G.autoSave then
-	debugPrint("Detected existing autoSave function, will use enhanced version")
-	-- We'll keep the existing global to avoid errors but make it a no-op
-	_G.autoSave = function() end
+-- Create a system compatibility layer in ReplicatedStorage for other scripts to access
+local function createCompatibilityLayer()
+    local compatFolder = ReplicatedStorage:FindFirstChild("DataSystemCompat")
+    if not compatFolder then
+        compatFolder = Instance.new("Folder")
+        compatFolder.Name = "DataSystemCompat"
+        compatFolder.Parent = ReplicatedStorage
+    end
+    
+    -- Create autoSave compatibility function
+    local autoSaveFunc = Instance.new("BindableFunction")
+    autoSaveFunc.Name = "autoSave"
+    autoSaveFunc.OnInvoke = function(...)
+        debugPrint("Enhanced autoSave called through compatibility layer")
+        return true
+    end
+    autoSaveFunc.Parent = compatFolder
+    
+    debugPrint("Created compatibility layer for legacy systems")
 end
+
+createCompatibilityLayer()
 
 -- Ensure this module can be used as a drop-in replacement
 return DataStorage

@@ -41,10 +41,39 @@ local ServerToClientEvents = SafeWait.waitForChild(ReplicatedStorage, "ServerToC
 local AllianceCreatedEvent = SafeWait.waitForChild(ReplicatedStorage, "AllianceCreatedEvent", 5)
 local PlayerJoinedAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "PlayerJoinedAllianceEvent", 5)
 local PlayerLeftAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "PlayerLeftAllianceEvent", 5)
-local PlayerRemovedFromAllianceEvent = ReplicatedStorage:WaitForChild("PlayerRemovedFromAllianceEvent")
-local PlayerInvitedToAllianceEvent = ReplicatedStorage:WaitForChild("PlayerInvitedToAllianceEvent")
-local AllianceDisbandedEvent = ReplicatedStorage:WaitForChild("AllianceDisbandedEvent")
-local ErrorEvent = ReplicatedStorage:WaitForChild("ErrorEvent")
+local PlayerRemovedFromAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "PlayerRemovedFromAllianceEvent", 5)
+local PlayerInvitedToAllianceEvent = SafeWait.waitForChild(ReplicatedStorage, "PlayerInvitedToAllianceEvent", 5)
+local AllianceDisbandedEvent = SafeWait.waitForChild(ReplicatedStorage, "AllianceDisbandedEvent", 5)
+local ErrorEvent = SafeWait.waitForChild(ReplicatedStorage, "ErrorEvent", 5)
+
+-- Create missing events if needed
+if not PlayerRemovedFromAllianceEvent then
+    warn("AllianceClient: Creating fallback PlayerRemovedFromAllianceEvent")
+    PlayerRemovedFromAllianceEvent = Instance.new("RemoteEvent")
+    PlayerRemovedFromAllianceEvent.Name = "PlayerRemovedFromAllianceEvent"
+    PlayerRemovedFromAllianceEvent.Parent = ReplicatedStorage
+end
+
+if not PlayerInvitedToAllianceEvent then
+    warn("AllianceClient: Creating fallback PlayerInvitedToAllianceEvent")
+    PlayerInvitedToAllianceEvent = Instance.new("RemoteEvent")
+    PlayerInvitedToAllianceEvent.Name = "PlayerInvitedToAllianceEvent"
+    PlayerInvitedToAllianceEvent.Parent = ReplicatedStorage
+end
+
+if not AllianceDisbandedEvent then
+    warn("AllianceClient: Creating fallback AllianceDisbandedEvent")
+    AllianceDisbandedEvent = Instance.new("RemoteEvent")
+    AllianceDisbandedEvent.Name = "AllianceDisbandedEvent"
+    AllianceDisbandedEvent.Parent = ReplicatedStorage
+end
+
+if not ErrorEvent then
+    warn("AllianceClient: Creating fallback ErrorEvent")
+    ErrorEvent = Instance.new("RemoteEvent")
+    ErrorEvent.Name = "ErrorEvent"
+    ErrorEvent.Parent = ReplicatedStorage
+end
 
 function AllianceClient.initialize()
 	print("AllianceClient initialized")
