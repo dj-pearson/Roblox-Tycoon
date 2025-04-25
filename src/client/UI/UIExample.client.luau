@@ -331,8 +331,8 @@ function UIExample:createSettingsMenu()
                 musicLabel.Parent = musicCard
                 
                 local musicToggle = ButtonFactory.createToggleButton("Music", true, UDim2.new(0, 60, 0, 30), UDim2.new(1, -75, 0.5, -15), function(isOn)
-                    UIRegistry:showNotification("Music " .. (isOn and "enabled" : "disabled"), "info")
-                end)
+                    UIRegistry:showNotification("Music " .. (isOn and "enabled" or "disabled"), "info")
+                end) -- Fixed closing parenthesis and ternary operator
                 musicToggle.instance.Parent = musicCard
                 
                 -- Sound settings
@@ -348,8 +348,8 @@ function UIExample:createSettingsMenu()
                 soundLabel.Parent = soundCard
                 
                 local soundToggle = ButtonFactory.createToggleButton("Sound", true, UDim2.new(0, 60, 0, 30), UDim2.new(1, -75, 0.5, -15), function(isOn)
-                    UIRegistry:showNotification("Sound effects " .. (isOn and "enabled" : "disabled"), "info")
-                end)
+                    UIRegistry:showNotification("Sound effects " .. (isOn and "enabled" or "disabled"), "info")
+                end) -- Fixed closing parenthesis and ternary operator
                 soundToggle.instance.Parent = soundCard
                 
                 -- Quality settings
