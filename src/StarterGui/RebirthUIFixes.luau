@@ -15,7 +15,7 @@ local function fixFonts(parent)
     for _, obj in pairs(parent:GetDescendants()) do
         if obj:IsA("TextLabel") or obj:IsA("TextButton") then
             -- Fix GothamItalic references
-            if obj.Font == Enum.Font.GothamItalic then
+            if obj.Font == Enum.Font.GothamMedium then
                 print("Fixing GothamItalic font reference in: " .. obj:GetFullName())
                 obj.Font = Enum.Font.Gotham
             end

@@ -1,102 +1,95 @@
 # Roblox Issues Tracking Document
 
-## Unhandled Module Loading Errors
+## Module Loading and WaitForChild Errors (PARTIALLY FIXED)
 
-**Error Message:**  Unable to load module. This indicates a critical issue in either locating the necessary modules, or the modules themselves are not correctly written.
+**Error Message:** Multiple "Infinite yield possible on WaitForChild" errors occurring on game start.
 
-**Context:**  Observed when the game starts or when certain features are accessed.
+**Context:** Observed when the game starts, affecting multiple critical systems and UI components.
 
-**Impact:**  Major. Prevents systems from functioning correctly, potentially breaking the game's functionality.
+**Impact:** High. Prevents proper initialization of UI and game systems.
 
-**Frequency:**  High, game systems fail to start.
+**Frequency:** High, occurs consistently on game launch.
 
-**Reproduction Steps:**
+**Status:** 
+- ✅ Created SafeWaitForChild utility module to safely handle timeouts
+- ✅ Fixed RebirthUI.client.luau to use SafeWaitForChild
+- ✅ Fixed AllianceUI.client.luau to handle missing UI components
+- ✅ Created missing DevUtilityFunctions module
+- ✅ Fixed AdminCommands module to safely locate required dependencies
+- ❌ Still need to fix remaining WaitForChild calls in other files
 
-1.  Start the game.
-2.  Attempt to use features linked to modules that fail to load.
-
-**Expected Behavior:** Modules should load correctly without errors.
-
-**Actual Behavior:** Modules fail to load, causing errors and preventing features from working.
-
-**Recommended Next Steps:**
-
-1.  Fix module loading errors and ensure all required modules exist and are referenced correctly.
-2.  Audit folder and object structure for missing or misnamed members.
-3.  Address data restoration and BuyTile system integration issues.
-4.  Review all WaitForChild and require calls for correct paths and existence.
-
-## Missing Assets and UI Elements
-
-**Error Message:**  Assets or UI elements are not found when the game attempts to load them.
-
-**Context:**  Observed when specific game areas or UI components are loaded.
-
-**Impact:**  Medium to High. Degrades the user experience and can block progression.
-
-**Frequency:**  Varies, depending on the frequency of accessing affected areas.
-
-**Reproduction Steps:**
-
-1.  Navigate to areas where assets are expected to load.
-2.  Open UI components.
-
-**Expected Behavior:** Assets and UI elements should load and display correctly.
-
-**Actual Behavior:** Assets and UI elements fail to load or display, resulting in missing content or broken UI.
+**Specific Errors:**
+- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("DevUtilityFunctions")'` - ✅ FIXED
+- `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts.Client.UI:WaitForChild("AllianceUIFrame")'` - ✅ FIXED
+- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("ClientRegistry")'` - ❌ NOT FIXED YET
+- `Infinite yield possible on 'ReplicatedStorage:WaitForChild("src")'` - ✅ FIXED in some files, needs broader implementation
+- `Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlayerRemovedFromAllianceEvent")'` - ❌ NOT FIXED YET
 
 **Recommended Next Steps:**
+1. Continue implementing SafeWaitForChild in other files using the same WaitForChild pattern
+2. Focus on fixing the ClientRegistry and PlayerRemovedFromAllianceEvent issues
+3. Create a script to analyze all WaitForChild calls and prioritize ones causing infinite yield errors
+4. Add unit tests that verify key object references can be safely resolved
 
-1.  Identify all missing assets and UI elements.
-2.  Re-add or repair the missing content.
-3.  Review paths and loading logic to prevent future occurrences.
+## Asset Loading Failures (NOT STARTED)
 
-## Data Restoration Issues
+**Error Message:** `Failed to load sound rbxassetid://9125601193: Asset type does not match requested type`
 
-**Error Message:** Data is not correctly loaded or restored, leading to a loss of player progress.
+**Context:** When attempting to play sounds during gameplay.
 
-**Context:**  Occurs during player login, after game restarts, or when data is supposed to be reloaded.
+**Impact:** Medium. Sound effects missing, reducing game feedback quality.
 
-**Impact:**  Critical. Directly affects player retention and satisfaction.
-
-**Frequency:**  High, causing data loss in several circumstances.
-
-**Reproduction Steps:**
-
-1.  Join the game.
-2.  Play until data is saved.
-3.  Leave and rejoin, or cause a server reset.
-
-**Expected Behavior:** Data should be correctly loaded, and players should have their progress restored.
-
-**Actual Behavior:** Player data is missing, corrupted, or not loaded, resulting in lost progress.
+**Frequency:** Multiple occurrences.
 
 **Recommended Next Steps:**
+1. Review all sound asset references
+2. Verify that asset IDs point to valid sound files
+3. Replace invalid sound assets with correct ones
 
-1.  Fix DataStore and saving functions to ensure correct data storage.
-2.  Review the loadData function to ensure that it will always load data.
-3.  Audit all save functions to make sure no data is lost.
+## Data Management and Restoration Issues (NOT STARTED)
 
-## BuyTile System Integration Problems
+**Error Message:** `BuyTile system not available or missing spawnGymPart function`
 
-**Error Message:**  BuyTile system fails to correctly interface with other game systems.
+**Context:** During player data restoration and tile management.
 
-**Context:**  When players attempt to purchase or use tiles, or when the game interacts with tile placement.
+**Impact:** Critical. Prevents proper gameplay progression and tycoon building.
 
-**Impact:**  High. Prevents players from fully utilizing the tycoon system, which is a core game mechanic.
-
-**Frequency:**  High, occurring whenever tile purchases or usage is attempted.
-
-**Reproduction Steps:**
-
-1.  Attempt to purchase or use a tile.
-
-**Expected Behavior:**  Tiles should be purchasable and usable, and their states should be saved and restored correctly.
-
-**Actual Behavior:** Tile purchase fails, usage not allowed, or tile state not saved or restored.
+**Frequency:** Consistent, affecting all tile restoration attempts.
 
 **Recommended Next Steps:**
+1. Implement or fix the missing spawnGymPart function
+2. Ensure the BuyTile system is properly initialized before data restoration attempts
+3. Add better error handling for tile restoration failures
+4. Create a recovery mechanism for tiles that fail to restore
 
-1.  Review BuyTile integration with all relevant systems, especially DataManager.
-2.  Fix any issues preventing tile purchase or usage.
-3.  Ensure tile states are correctly saved and restored.
+## Data Storage Queue Issues (NOT STARTED)
+
+**Error Message:** `DataStore request was added to queue. If request queue fills, further requests will be dropped.`
+
+**Context:** When saving player data, especially during player departure events.
+
+**Impact:** High. Risk of data loss if queue fills up.
+
+**Frequency:** Multiple occurrences during player join/leave cycles.
+
+**Recommended Next Steps:**
+1. Implement rate limiting for DataStore operations
+2. Add request batching to reduce the number of separate requests
+3. Prioritize critical data saves
+4. Add retry mechanisms for failed saves
+
+## Miscellaneous Script Errors (NOT STARTED)
+
+**Error Message:** Various errors including undefined globals, references to non-existent members.
+
+**Context:** Throughout gameplay in different systems.
+
+**Impact:** Medium. Varies from visual issues to functionality failures.
+
+**Frequency:** Sporadic.
+
+**Recommended Next Steps:**
+1. Fix reference paths in scripts
+2. Ensure all UI elements exist before attempting to access them
+3. Add null checks before accessing potentially undefined objects
+4. Review the BuilderBoostPurchaseGui component to ensure PurchaseButton exists

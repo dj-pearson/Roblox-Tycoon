@@ -1,12 +1,9 @@
-lua
 --[[
     CloseButtonFactory.lua
     Factory for creating close buttons.
 
     Updated: Today
 ]]
-
-
 
 local function createCloseButton(args)
 	local size = args.size

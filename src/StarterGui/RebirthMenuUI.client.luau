@@ -1,4 +1,3 @@
-flua
 --[[
     RebirthMenuUI.client.luau
     Handles the creation and functionality of the Rebirth Menu UI.
@@ -18,7 +17,6 @@ local CloseButtonFactory = require(script.Parent:WaitForChild("CloseButtonFactor
 local UIStyle = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("UIStyle"))
 local ButtonFactory = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("ButtonFactory"))
 local TooltipFactory = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("shared"):WaitForChild("TooltipFactory"))
-local Players = game:GetService("Players")
 local RebirthSystem = require(ReplicatedStorage:WaitForChild("src"):WaitForChild("RebirthSystem"))
 
 local function updateRebirthButtonState(rebirthButton)
@@ -43,17 +41,9 @@ local function updateRebirthButtonState(rebirthButton)
 	end
 end
 local function createRebirthMenuUI()
-	local function updateUI()
-		updateRebirthButtonState(rebirthButton)
-	end
-	
 	local function rebirth()
 		RebirthSystem.performRebirth()
 	end
-	
-
-
-local function createRebirthMenuUI()
 	-- Create the main container for the rebirth menu
 	local rebirthFrame = UIStyle.createFrame({
 		name = "RebirthFrame",
@@ -75,16 +65,13 @@ local function createRebirthMenuUI()
 	rebirthCostLabel.Parent = rebirthFrame
 
 	--Create the rebirth button
-	local rebirthButton = ButtonFactory.createButton({
-		name = "RebirthButton",
+	local rebirthButton = ButtonFactory.createButton({		name = "RebirthButton",
 		text = "Rebirth",
 		size = UDim2.new(1, -20, 0, 50),
 		position = UDim2.new(0, 10, 0, 100),
 	})
 	rebirthButton.Parent = rebirthFrame
 	rebirthButton.MouseButton1Click:Connect(rebirth)
-	
-	updateUI()
 	
 	updateRebirthButtonState(rebirthButton)
 	
@@ -111,8 +98,7 @@ local function loadUI()
 		position = UDim2.new(1, -40, 0, 10),
 		target = rebirthFrame,
 	})
-	
-	--Update the UI on cash change
+		--Update the UI on cash change
 	local player = Players.LocalPlayer
 	local cash = player:WaitForChild("Cash")
 	cash.Changed:Connect(function()
