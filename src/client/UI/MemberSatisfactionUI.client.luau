@@ -1,4 +1,4 @@
-lua
+-- filepath: c:\Users\pears\OneDrive\Documents\RobloxProject\src\client\UI\MemberSatisfactionUI.client.luau
 -- This script manages the Member Satisfaction UI
 
 local MemberSatisfactionUI = {}
@@ -7,91 +7,36 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Variables to store UI references
+local mainFrame
+local overviewPanel
+local keyFactorsContainer
+local statusLabel -- Define the statusLabel at module level
+
+-- Local helper function for icon creation
+local function createIcon(iconId)
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(1, 0, 1, 0)
+    icon.BackgroundTransparency = 1
+    icon.Image = "rbxassetid://" .. iconId
+    return icon
+end
+
 function MemberSatisfactionUI.init()
-    local function createIcon(iconId)
-        local icon = Instance.new("ImageLabel")
-        icon.Size = UDim2.new(1, 0, 1, 0)
-        icon.BackgroundTransparency = 1
-        icon.Image = "rbxassetid://" .. iconId
-        return icon
-    end
-    
-    function MemberSatisfactionUI.clearKeyFactors()
-        for _, child in ipairs(keyFactorsContainer:GetChildren()) do
-            if child:IsA("Frame") then
-                child:Destroy()
-            end
-        end
-    end
-
-
-    local function updateSatisfactionScore(score)
-        local scoreLabel = overviewPanel:FindFirstChild("SatisfactionScore")
-        if scoreLabel and scoreLabel:IsA("TextLabel") then
-            scoreLabel.Text = tostring(score)
-        end
-    end
-
-    local function updateStatusLabel(status)
-        local statusLabel = overviewPanel:FindFirstChild("StatusLabel")
-        if statusLabel and statusLabel:IsA("TextLabel") then
-            statusLabel.Text = status
-        end
-    end
-
-    local function updateTrendIndicator(isImproving)
-        local trendIndicator = overviewPanel:FindFirstChild("TrendIndicator")
-        if trendIndicator and trendIndicator:IsA("ImageLabel") then
-            if isImproving then
-                trendIndicator.Image = "rbxassetid://13337321193"
-            else
-                trendIndicator.Image = "rbxassetid://13337324635"
-            end
-        end
-    end
-
-    local function updateMemberRetention(retention)
-        local memberRetentionLabel = overviewPanel:FindFirstChild("MemberRetentionLabel")
-        if memberRetentionLabel and memberRetentionLabel:IsA("TextLabel") then
-            memberRetentionLabel.Text = "Member Retention: " .. tostring(retention) .. "%"
-        end
-    end
-
-    local function updateRevenueImpact(impact)
-        local revenueImpactLabel = overviewPanel:FindFirstChild("RevenueImpactLabel")
-        if revenueImpactLabel and revenueImpactLabel:IsA("TextLabel") then
-            revenueImpactLabel.Text = "Revenue Impact: " .. tostring(impact) .. "%"
-        end
-    end
-
-    local function addKeyFactor(iconId, factorName, value)
-        local keyFactorFrame = Instance.new("Frame")
-        keyFactorFrame.Size = UDim2.new(0, 50, 0, 50)
-        keyFactorFrame.BackgroundTransparency = 1
-        local icon = createIcon(iconId)
-        icon.Parent = keyFactorFrame
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Size = UDim2.new(1,0,0.2,0)
-        textLabel.Text = factorName .. " : " .. value
-        keyFactorFrame.Parent = keyFactorsContainer
-    end
-
-
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "MemberSatisfactionGUI"
 	gui.Parent = PlayerGui
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	local mainFrame = Instance.new("Frame")
+	mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
 	mainFrame.Size = UDim2.new(1, 0, 1, 0)
 	mainFrame.Position = UDim2.new(0, 0, 0, 0)
 	mainFrame.BackgroundTransparency = 1
 	mainFrame.ZIndex = 10
-	
 	mainFrame.Parent = gui
 	
-	local overviewPanel = Instance.new("Frame")
+	overviewPanel = Instance.new("Frame")
 	overviewPanel.Name = "OverviewPanel"
 	overviewPanel.Size = UDim2.new(0.8, 0, 0.4, 0)
 	overviewPanel.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -101,8 +46,6 @@ function MemberSatisfactionUI.init()
 	overviewCorner.CornerRadius = UDim.new(0, 10)
 	overviewCorner.Parent = overviewPanel
 	
-    local keyFactorsContainer = Instance.new("Frame")
-    
 	-- Title
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
@@ -129,7 +72,7 @@ function MemberSatisfactionUI.init()
 	satisfactionScore.Parent = overviewPanel
 	
 	-- Status Label
-	local statusLabel = Instance.new("TextLabel")
+	statusLabel = Instance.new("TextLabel") -- Assign to the module-level variable
 	statusLabel.Name = "StatusLabel"
     statusLabel.Size = UDim2.new(0.5, 0, 0.1, 0)
     statusLabel.Position = UDim2.new(0.25, 0, 0.6, 0)
@@ -141,7 +84,7 @@ function MemberSatisfactionUI.init()
 	statusLabel.Parent = overviewPanel
 
     -- Key Factors Container    
-    
+    keyFactorsContainer = Instance.new("Frame")
     keyFactorsContainer.Name = "KeyFactorsContainer"
     keyFactorsContainer.Size = UDim2.fromScale(1, 0.3)
     keyFactorsContainer.Position = UDim2.new(0, 0, 0.8, 0)
@@ -185,33 +128,81 @@ function MemberSatisfactionUI.init()
     trendIndicator.Position = UDim2.new(0.75,0,0.4,0)
     trendIndicator.AnchorPoint = Vector2.new(0.5,0)
     trendIndicator.BackgroundTransparency = 1
-    
-
 	trendIndicator.Parent = overviewPanel
 	
 	overviewPanel.Parent = mainFrame
-	
 	mainFrame.Visible = false
-
 	MemberSatisfactionUI.MainFrame = mainFrame
-    
-    function MemberSatisfactionUI.clearKeyFactors()
-       MemberSatisfactionUI.clearKeyFactors()
+end
+
+-- Functions to update the UI elements
+function MemberSatisfactionUI.updateSatisfactionScore(score)
+    local scoreLabel = overviewPanel:FindFirstChild("SatisfactionScore")
+    if scoreLabel and scoreLabel:IsA("TextLabel") then
+        scoreLabel.Text = tostring(score)
     end
-    
+end
+
+function MemberSatisfactionUI.updateStatusLabel(status)
+    -- Use the module-level statusLabel variable or find it in the panel
+    if statusLabel then
+        statusLabel.Text = status
+    else
+        local label = overviewPanel:FindFirstChild("StatusLabel")
+        if label and label:IsA("TextLabel") then
+            label.Text = status
+        end
+    end
+end
+
+function MemberSatisfactionUI.updateTrendIndicator(isImproving)
+    local trendIndicator = overviewPanel:FindFirstChild("TrendIndicator")
+    if trendIndicator and trendIndicator:IsA("ImageLabel") then
+        if isImproving then
+            trendIndicator.Image = "rbxassetid://13337321193"
+        else
+            trendIndicator.Image = "rbxassetid://13337324635"
+        end
+    end
+end
+
+function MemberSatisfactionUI.updateMemberRetention(retention)
+    local memberRetentionLabel = overviewPanel:FindFirstChild("MemberRetentionLabel")
+    if memberRetentionLabel and memberRetentionLabel:IsA("TextLabel") then
+        memberRetentionLabel.Text = "Member Retention: " .. tostring(retention) .. "%"
+    end
+end
+
+function MemberSatisfactionUI.updateRevenueImpact(impact)
+    local revenueImpactLabel = overviewPanel:FindFirstChild("RevenueImpactLabel")
+    if revenueImpactLabel and revenueImpactLabel:IsA("TextLabel") then
+        revenueImpactLabel.Text = "Revenue Impact: " .. tostring(impact) .. "%"
+    end
 end
 
 function MemberSatisfactionUI.addKeyFactor(iconId, factorName, value)
-    addKeyFactor(iconId,factorName,value)
+    local keyFactorFrame = Instance.new("Frame")
+    keyFactorFrame.Size = UDim2.new(0, 50, 0, 50)
+    keyFactorFrame.BackgroundTransparency = 1
+    local icon = createIcon(iconId)
+    icon.Parent = keyFactorFrame
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1,0,0.2,0)
+    textLabel.Text = factorName .. " : " .. value
+    textLabel.Parent = keyFactorFrame
+    
+    keyFactorFrame.Parent = keyFactorsContainer
 end
-function MemberSatisfactionUI.updateRevenueImpact(value)
-    updateRevenueImpact(value)
-end
-function MemberSatisfactionUI.updateMemberRetention(value)
-    updateMemberRetention(value)
-end
-function MemberSatisfactionUI.updateTrendIndicator(isImproving)
-    updateTrendIndicator(isImproving)
+
+function MemberSatisfactionUI.clearKeyFactors()
+    if not keyFactorsContainer then return end
+    
+    for _, child in ipairs(keyFactorsContainer:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
 end
 
 function MemberSatisfactionUI.openUI()
@@ -220,15 +211,23 @@ function MemberSatisfactionUI.openUI()
 	end
 end
 
+function MemberSatisfactionUI.closeUI()
+	if MemberSatisfactionUI.MainFrame then
+		MemberSatisfactionUI.MainFrame.Visible = false
+	end
+end
 
+-- Display test data for visualization
+function MemberSatisfactionUI.showTestData()
+    MemberSatisfactionUI.clearKeyFactors()
+    MemberSatisfactionUI.addKeyFactor(13337321193, "Facilities", "95%")
+    MemberSatisfactionUI.addKeyFactor(13337324635, "Staff", "88%")
+    MemberSatisfactionUI.addKeyFactor(13337321193, "Value", "92%")
+    MemberSatisfactionUI.updateRevenueImpact("+15%")
+    MemberSatisfactionUI.updateMemberRetention("93")
+    MemberSatisfactionUI.updateTrendIndicator(true)
+    MemberSatisfactionUI.updateStatusLabel("Excellent")
+    MemberSatisfactionUI.updateSatisfactionScore("94")
+end
 
-
-
-
-
-
-
-return {
-	init = MemberSatisfactionUI.init,
-	openUI = MemberSatisfactionUI.openUI,
-}
+return MemberSatisfactionUI

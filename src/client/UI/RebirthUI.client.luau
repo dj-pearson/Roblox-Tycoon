@@ -145,7 +145,7 @@ function RebirthUI:CreateRebirthMenu()
             container = container,
             tabSystem = tabSystem
         }
-    }
+    end
     
     -- Store reference to menu elements
     uiState.uiElements.menuElements = menuElements
@@ -817,6 +817,7 @@ function RebirthUI:UpdateFeaturesTab(unlockedFeatures)
                 card.Size = UDim2.new(1, -20, 0, 80)
                 card.BackgroundColor3 = feature.info.model and Color3.fromRGB(80, 50, 100) or Color3.fromRGB(60, 60, 90)
                 card.BorderSizePixel = 0
+                card.Parent = featuresScroll.scrollFrame
                 
                 local cardCorner = Instance.new("UICorner")
                 cardCorner.CornerRadius = UDim.new(0, 8)
@@ -837,7 +838,7 @@ function RebirthUI:UpdateFeaturesTab(unlockedFeatures)
                 icon.Parent = card
             end
             
-            -- Feature name
+            -- Feature name and description would be added here
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Name = "FeatureName"
             nameLabel.Size = UDim2.new(1, -80, 0, 25)
@@ -922,6 +923,7 @@ function RebirthUI:UpdatePerksTab(activePerks)
                 card.Size = UDim2.new(1, -20, 0, 80)
                 card.BackgroundColor3 = Color3.fromRGB(40, 80, 60)
                 card.BorderSizePixel = 0
+                card.Parent = perksScroll.scrollFrame
                 
                 local cardCorner = Instance.new("UICorner")
                 cardCorner.CornerRadius = UDim.new(0, 8)
@@ -1027,6 +1029,7 @@ function RebirthUI:UpdateAchievementsTab(achievements)
                 card.Size = UDim2.new(1, -20, 0, 80)
                 card.BackgroundColor3 = achievement.earned and Color3.fromRGB(60, 80, 40) or Color3.fromRGB(70, 70, 70)
                 card.BorderSizePixel = 0
+                card.Parent = achievementsScroll.scrollFrame
                 
                 local cardCorner = Instance.new("UICorner")
                 cardCorner.CornerRadius = UDim.new(0, 8)

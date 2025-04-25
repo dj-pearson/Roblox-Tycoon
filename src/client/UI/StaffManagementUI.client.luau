@@ -487,9 +487,9 @@ return {
     addStaffCard = StaffManagementUI.addStaffCard,
     clearStaffCards = StaffManagementUI.clearStaffCards,
 	addHireStaffOption = StaffManagementUI.addHireStaffOption,
-	clearHireStaffOptions = StaffManagementUI.clearHireStaffOptions
+	clearHireStaffOptions = StaffManagementUI.clearHireStaffOptions,
 	addAssignmentOption = StaffManagementUI.addAssignmentOption,
-	clearAssignmentOptions = StaffManagementUI.clearAssignmentOptions
+	clearAssignmentOptions = StaffManagementUI.clearAssignmentOptions,
 	addTrainingOption = StaffManagementUI.addTrainingOption,
 	clearTrainingOptions = StaffManagementUI.clearTrainingOptions
 	

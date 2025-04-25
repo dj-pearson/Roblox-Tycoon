@@ -8,8 +8,9 @@ local AllianceClient
 local UI = script.Parent:WaitForChild("AllianceUIFrame") -- Replace with your actual UI path
 local allianceMenu 
 
-local joinAllianceButton,disbandAllianceButton
-
+-- UI elements
+local joinAllianceButton, joinAllianceButton2
+local disbandAllianceButton
 local allianceFrame = UI:WaitForChild("AllianceFrame")
 local leaveAllianceButton = allianceFrame:WaitForChild("LeaveAllianceButton")
 local viewAllianceButton
@@ -18,6 +19,12 @@ local removePlayerInput = allianceFrame:WaitForChild("RemovePlayerInput")
 local invitePlayerButton = allianceFrame:WaitForChild("InvitePlayerButton")
 local invitePlayerInput = allianceFrame:WaitForChild("InvitePlayerInput")
 local disbandAllianceButton = allianceFrame:WaitForChild("DisbandAllianceButton")
+local noAllianceFrame = UI:FindFirstChild("NoAllianceFrame") or Instance.new("Frame")
+local createAllianceName, createAllianceButton
+local joinAllianceName
+local removePlayerName
+local invitePlayerName
+local playerToRemove = ""
 
 local invitationsFrame = UI:WaitForChild("InvitationsFrame")
 local invitationsContainer = invitationsFrame:WaitForChild("InvitationsContainer")
@@ -34,13 +41,9 @@ local function createMemberUI(playerName)
 end
 
 function AllianceUI.initialize(clientModule)
-	local memberListContainer 
-	local createAllianceName, createAllianceButton 
-	local joinAllianceName, joinAllianceButton2
-    local invitePlayerName
-
-	local viewAllianceButton
-	local leaveAllianceButton
+	local memberListContainer
+	-- Assigning AllianceClient from the passed module
+	AllianceClient = clientModule
 	-- Create the AllianceMenu frame
 	allianceMenu = Instance.new("Frame")
 	allianceMenu.Name = "AllianceMenu"
@@ -141,8 +144,7 @@ function AllianceUI.initialize(clientModule)
 
 	viewAllianceButton.MouseButton1Click:Connect(function()
 			AllianceUI.displayError("Please enter an alliance ID.")
-		end
-	end)
+		end)
 
 	leaveAllianceButton.MouseButton1Click:Connect(function()
 		AllianceClient.sendLeaveAllianceRequest() 
@@ -196,11 +198,9 @@ function AllianceUI.initialize(clientModule)
 		AllianceClient.sendDisbandAllianceRequest()
 	end)
 	
-	viewAllianceButton.MouseButton1Click:Connect(function()
-		AllianceUI.displayAllianceInfo()
-	disbandAllianceButton.MouseButton1Click:Connect(function()
-		AllianceClient.sendDisbandAllianceRequest()
-	end)
+	-- This is a duplicate viewAllianceButton connection - removing duplicate to fix syntax error
+	
+	-- This is a duplicate disbandAllianceButton connection - removing duplicate to fix syntax error
 	removePlayerButton.Parent = allianceMenu
 	
 	joinAllianceButton.Size = UDim2.fromScale(0.3,0.1)
@@ -311,18 +311,12 @@ return {
 	displayNoAlliance = AllianceUI.displayNoAlliance,
 	displayAllianceInfo = AllianceUI.displayAllianceInfo,
 	displayError = AllianceUI.displayError,
-	sendCreateAllianceRequest = AllianceUI.sendCreateAllianceRequest,
-	sendJoinAllianceRequest = AllianceUI.sendJoinAllianceRequest,
-	sendRemoveFromAllianceRequest = AllianceUI.sendRemoveFromAllianceRequest,
-	sendInviteToAllianceRequest = AllianceUI.sendInviteToAllianceRequest,
-    sendLeaveAllianceRequest = AllianceUI.sendLeaveAllianceRequest,
-	sendDisbandAllianceRequest = AllianceUI.sendDisbandAllianceRequest,
+	displayAllianceInvitations = AllianceUI.displayAllianceInvitations,
 	showAllianceMenu = AllianceUI.showAllianceMenu,
 	hideAllianceMenu = AllianceUI.hideAllianceMenu,
 	joinAllianceButton = joinAllianceButton,
 	viewAllianceButton = viewAllianceButton,
 	leaveAllianceButton = leaveAllianceButton,
 	removePlayerButton = removePlayerButton,
-	joinAllianceButton2 = joinAllianceButton2,
-	
+	joinAllianceButton2 = joinAllianceButton2
 }

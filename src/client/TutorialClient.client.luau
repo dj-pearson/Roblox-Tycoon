@@ -875,7 +875,7 @@ end
 function TutorialClient.completeTutorial(tutorialName)
     -- Similar animation to skip, but might have different behavior
     TutorialClient.skipTutorial(tutorialName)
-}
+end
 
 -- Populate tutorial menu with available tutorials
 function TutorialClient.populateTutorialMenu(tutorialList, completedTutorials)
@@ -898,10 +898,9 @@ function TutorialClient.populateTutorialMenu(tutorialList, completedTutorials)
             description = tutorial.description,
             longDescription = tutorial.longDescription,
             completed = isCompleted,
-            category = tutorial.category
-        })
+            category = tutorial.category        })
     end
-}
+end
 
 --[[ Event Handling ]]--
 
@@ -932,15 +931,14 @@ function TutorialClient.setupEventHandlers()
             -- Redundant as skip is initiated from client, but included for completeness
         end)
     end
-    
-    -- Listen for direct UI commands
+      -- Listen for direct UI commands
     local showTutorialUI = EventBridge:FindFirstChild("ShowTutorialUI")
     if showTutorialUI then
         showTutorialUI.OnClientEvent:Connect(function(tutorialData)
             TutorialClient.showTutorial(tutorialData)
         end)
     end
-}
+end
 
 --[[ Initialization ]]--
 
