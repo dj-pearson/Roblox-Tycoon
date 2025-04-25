@@ -116,6 +116,15 @@ end)
 *   **User Journey:** The Main Menu is the first screen users will see. It should facilitate quick entry into the game or other features.
 
 #### 1.2 Settings Menu
+
+    *   **Main Menu UI Enhancements**:
+        * Created the file `MainMenuUI.client.luau`.
+        * Created the layout (Top, Center, Bottom sections).
+        * Created all the buttons using `ButtonFactory`.
+        * Connected the button click events. Each button prints a message in the output, except for the play button, that triggers the `GameSystem.startGame()` function.
+
+#### 1.2 Settings Menu
+
 *   **Style:** `UIStyle.applyStyle()`
 
 *   **Layout:** A clear, vertically scrolling list of settings.
@@ -164,6 +173,14 @@ end)
          * **Features toggle:** A toggle to change between showing the features by the level they are unlocked and the order they were unlocked.
     *   **Design Direction:** Clean, well-organized design that clearly separates the different categories of information.
     *   **User Journey:** Accessed from the Main Menu. Provides the player all information about the Rebirth System.
+
+    *   **Rebirth Menu UI Enhancements**:
+        *   All `GothamSemibold` font references were updated to `GothamMedium`.
+        *   Shadowing variable issues with `descLabel` were resolved.
+        *   The Main Frame was updated to use `UIStyle.createFrame`.
+        *   The Rebirth Button and Toggle Button were updated to use `ButtonFactory.createButton`.
+        *   The Success and Error messages were updated to use `DialogFactory.showMessage`.
+
 
 ### 2. Buttons
 #### 2.5 Rebirth Button
@@ -432,6 +449,20 @@ end)
    * ✅ Implemented settings persistence using Player attributes
    * ✅ Added accessibility and interface options
    * 🔄 Finalizing connections to game systems for settings application
+   
+    #### 1.3 Settings Menu Implementation
+
+    *   **File Creation:** Created the `SettingsUI.client.luau` file to handle the Settings Menu UI logic.
+    *   **Layout:** Implemented the Main Frame and the Scrolling frame to allow scrolling.
+    *   **Sections:** Created all the sections (`Sound`, `Graphics`, `Controls`, `Accessibility`, `Language`) with their respective labels.
+    *   **Sound:** Created the `Music Volume` and `Sound Effects Volume` sliders, and implemented their functionality to update their labels.
+    *   **Graphics:** Created the `Quality Presets` dropdown, and the `Shadows` checkbox.
+    *   **Controls:** Created the `Mouse Sensitivity` slider, and implemented it's functionality to update it's label.
+    * **Accessibility:** Created the `Colorblind Mode` checkbox.
+    * **Language:** Created the `Language` dropdown.
+    * **Connection with Main Menu**: Connected the `Settings` button in the main menu to load this ui.
+
+
 
 3. **Rebirth Menu UI Enhancements**:
    * ✅ Updated to fully integrate with UIStyle for consistent appearance
