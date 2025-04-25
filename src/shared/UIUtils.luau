@@ -12,8 +12,8 @@ local Players = game:GetService("Players")
 
 -- Load required modules if available
 local sharedFolder = script.Parent
-local UIStyle = sharedFolder and sharedFolder:FindFirstChild("UIStyle")
-local UIStyle = UIStyle and require(UIStyle) or {
+local UIStyleModule = sharedFolder and sharedFolder:FindFirstChild("UIStyle")
+local UIStyle = UIStyleModule and require(UIStyleModule) or {
     -- Default styling if UIStyle module is not available
     colors = {
         background = Color3.fromRGB(40, 40, 60),
@@ -490,7 +490,6 @@ end
     @return (table): Button objects
 ]]
 function UIUtils.createToggleButton(text, iconName, position, callback)
-    local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local LocalPlayer = Players.LocalPlayer
     
@@ -567,13 +566,12 @@ function UIUtils.createToggleButton(text, iconName, position, callback)
     
     return {
         screenGui = screenGui,
-        button = button,
-        setText = function(newText)
+        button = button,        setText = function(newText)
             button.Text = "    " .. newText
         end,
         setPosition = function(newPosition)
             button.Position = newPosition
-        }
+        end
     }
 end
 
@@ -741,13 +739,12 @@ function UIUtils.createInputField(parent, labelText, defaultValue, inputType, po
     return {
         container = container,
         label = label,
-        input = input,
-        getValue = function()
+        input = input,        getValue = function()
             return input.Text
         end,
         setValue = function(newValue)
             input.Text = newValue or ""
-        }
+        end
     }
 end
 
@@ -767,17 +764,12 @@ function UIUtils.createButton(parent, text, size, position, callback, style)
         warn("Cannot create button: missing parent")
         return nil
     end
-    
-    -- Determine button color based on style
-    local buttonColor
-    if style == "primary" then
-        buttonColor = UIStyle.colors.accent
-    elseif style == "secondary" then
+      -- Determine button color based on style
+    local buttonColor = UIStyle.colors.accent -- Default color (for primary or unspecified style)
+    if style == "secondary" then
         buttonColor = UIStyle.colors.backgroundLight
     elseif style == "danger" then
         buttonColor = Color3.fromRGB(200, 50, 50)
-    else
-        buttonColor = UIStyle.colors.accent
     end
     
     -- Create the button
