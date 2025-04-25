@@ -229,12 +229,12 @@ end)
   * **Functionality:** Opens the tutorial menu and steps through how to play the game.
   * **Backend Connection:** `TutorialSystem.showTutorial()`.
   * **Placement:** Settings Menu or Main Menu.
-  * **Design:** Clear and Distinguishable.
+  * **Design:** Clear and distinguishable with a question mark or tutorial icon.
 * **Close Button:**
   * **Functionality:** Closes the current menu or pop up.
   * **Backend Connection:** None (UI only).
   * **Placement:** Various Menus and pop ups.
-  * **Design:** simple and noticeable.
+  * **Design:** Simple and noticeable.
 
 ### 3. Input Fields
 
@@ -313,6 +313,66 @@ end)
   * **Placement:** Center of the screen.
   * **Design:** Simple Yes/No style.
 
+### 5. Tutorial System UI
+
+* **Style:** `UIStyle.applyStyle()`
+
+#### 5.1 Tutorial Popup
+* **Layout:**
+  * **Title Bar:** Clear title indicating the current tutorial step.
+  * **Main Content:** Tutorial instructions with supporting images.
+  * **Skip Button:** Allows players to skip the current tutorial step.
+  * **Navigation:** Next/Previous buttons when applicable.
+  * **Progress Indicator:** Shows which step the player is on and how many remain.
+  * **Visual Example:** Visual reference showing the tutorial concept in action.
+* **Design Direction:**
+  * Clean, non-intrusive overlay that doesn't obstruct gameplay.
+  * Semi-transparent background to keep game visible.
+  * Animated highlighting for UI elements being explained.
+  * Smooth entrance and exit animations using TweenService.
+  * Slide-in from top with Back easing.
+* **Backend Connection:**
+  * `TutorialManager.triggerTutorialStep()`
+  * `TutorialManager.skipStep()`
+  * `TutorialManager.completeStep()`
+* **Placement:**
+  * Top center of screen, appearing with smooth animation.
+* **Implementation Notes:**
+  * Dynamic sizing based on content (text and images).
+  * Support for interactive elements within tutorial content.
+  * Background shadow for better readability against varied game scenes.
+
+#### 5.2 Tutorial Menu
+* **Layout:**
+  * **Tabs:** Basic Tutorials, Advanced Tutorials, Settings.
+  * **Tutorial List:** Scrollable list of available tutorials.
+  * **Tutorial Cards:** Name, description, completion status, and start button.
+  * **Settings Panel:** Toggle options for tutorial features.
+* **Design Direction:**
+  * Modern, organized layout with clear hierarchy.
+  * Visual indicators for completed vs. available tutorials.
+  * Interactive elements to start specific tutorials.
+* **Backend Connection:**
+  * `TutorialManager.getAvailableTutorialSteps()`
+  * `TutorialManager.isStepCompleted()`
+  * `TutorialManager.updatePlayerSettings()`
+* **Placement:**
+  * Centered modal window when accessed from menu.
+  
+#### 5.3 UI Highlights
+* **Functionality:**
+  * Highlights specific UI elements that are the focus of a tutorial.
+  * Creates a pulsing border or glow effect around target elements.
+  * Can highlight 3D objects in the game world (equipment, NPCs, etc.).
+* **Design Direction:**
+  * Non-intrusive but clearly visible highlights.
+  * Animated effects (pulsing, glowing) to draw attention.
+  * Color-coded based on action type (interaction, information, etc.).
+* **Backend Connection:**
+  * Connected to active tutorial steps via `highlightSelector` property.
+* **Placement:**
+  * Dynamically positioned based on target UI element or 3D object.
+
 ## Implementation Progress (Updated April 24, 2025)
 
 ### Completed Components
@@ -381,6 +441,17 @@ end)
    * ✅ Enhanced tab system with proper styling
    * ✅ Added notifications and feedback using DialogFactory
 
+4. **Tutorial System UI**:
+   * ✅ Created comprehensive TutorialManager server implementation
+   * ✅ Implemented TutorialClient with responsive UI components
+   * ✅ Designed tutorial popup system with animations and highlighting
+   * ✅ Added tutorial menu with browsable tutorial catalog
+   * ✅ Implemented UI highlighting system for interactive guidance
+   * ✅ Created settings panel for tutorial customization
+   * ✅ Integrated with CoreRegistry and EventBridge systems
+   * 🔄 Adding additional tutorial content for advanced game features
+   * 🔄 Enhancing progression-based tutorial unlocking
+
 ### Remaining Tasks
 
 1. **UI Components**:
@@ -391,7 +462,6 @@ end)
 2. **Functionality Improvements**:
    * Add tooltips to explain various game features
    * Implement proper notifications for game events
-   * Create comprehensive tutorial UI elements
    * Add visual feedback for player actions
 
 ### Next Implementation Steps
