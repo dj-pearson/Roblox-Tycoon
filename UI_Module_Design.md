@@ -218,7 +218,7 @@ end)
 
 #### 2.4 General Buttons
 
-* **Reset Button:**
+* **Reset Button:** - Should go with Admin UI
   * **Functionality:** Allows player to reset their game and start over. Confirmation box should appear before reset occurs.
   * **Backend Connection:** `GameSystem.reset()`.
   * **Placement:** Settings Menu.
@@ -237,12 +237,25 @@ end)
   * **Functionality:** Opens the tutorial menu and steps through how to play the game.
   * **Backend Connection:** `TutorialSystem.showTutorial()`.
   * **Placement:** Settings Menu or Main Menu.
+  * **Note:** We need to add the Tutorial button in the `SettingsMenuUI` or the `MainMenuUI`.
+
+  * **Note:** We need to use the `createIcon` function to create icons for the buttons.
+
   * **Design:** Clear and distinguishable with a question mark or tutorial icon.
 * **Close Button:**
   * **Functionality:** Closes the current menu or pop up.
   * **Backend Connection:** None (UI only).
   * **Placement:** Various Menus and pop ups.
   * **Design:** Simple and noticeable.
+
+  * **Note:** We need to make sure all the UIs have a close button.
+### 1.5 AdminControlsUI
+*  **Reset Button**
+   * **Functionality:** Allows player to reset their game and start over. Confirmation box should appear before reset occurs.
+    * **Backend Connection:** `GameSystem.reset()`.
+    * **Placement:** Admin UI.
+    * **Design:** Clear and distinguishable.
+
 
 ### 3. Input Fields
 
@@ -829,6 +842,8 @@ end)
    * ✅ Implemented settings persistence using Player attributes
    * ✅ **Staff Management UI** - The Staff Management UI is now completed
    * ✅ Added accessibility and interface options
+
+    * **Note:** We need to improve the design of the Confirm and Cancel buttons.
    * 🔄 Finalizing connections to game systems for settings application
    
     #### 1.3 Settings Menu Implementation
@@ -873,13 +888,50 @@ end)
    * 🔄 Adding additional tutorial content for advanced game features
    * 🔄 Enhancing progression-based tutorial unlocking
 
+6. **Alliance UI**:
+   * ✅ Implemented the `AllianceMenu` frame.
+   * ✅ Created `Join Alliance`, `Leave Alliance` and `View Alliance` buttons.
+   * ✅ Added the proper functions to show and hide the buttons depending on if the player is in an alliance or not.
+   * ✅ Implemented the `Join`, `Leave` and `View` actions.
+   * ✅ Implemented the UI to create an alliance.
+   * ✅ Implemented the UI to join an alliance.
+   * ✅ Implemented the UI to remove a player from an alliance.
+   * ✅ Implemented the UI to invite a player to an alliance.
+   * ✅ Implemented the UI to disband an alliance.
+   * ✅ Added a button in the `MainMenu` to open this UI.
+   * The Alliance UI is now completed.
+   * Implemented the `AllianceMenu` frame.
+   * Created the `Join Alliance`, `Leave Alliance`, and `View Alliance` buttons.
+   * Implemented the `Disband Alliance` functionality (UI and logic).
+
+
+
+
+## Completed UIs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Pending UIs
 
 ### Unaddressed UI Files:
 
 *   `src/client/UI/AchievementsTab.client.luau`
-*   `src/client/UI/AdminControlsUI.client.luau`
-*   `src/client/UI/AllianceUI.client.luau`
 *   `src/client/UI/CentralMenuUI.client.luau`
 *   `src/client/UI/FeaturesTab.client.luau`
 *   `src/client/UI/MainMenuUI.client.luau`
@@ -897,12 +949,19 @@ end)
 *   `src/client/UI/UIExample.client.luau`
 *   `src/client/UI/UIHub.client.luau`
 *   `src/client/UI/UIManager.client.luau`
-*   `src/client/UI/UIRegistry.client.luau`
+
+
+
 
 ### Potential UI Files:
 * `src/client/EquipmentUpgradeUI.client.luau`
 * `src/client/DataManagementUI.client.luau`
 ### Remaining Tasks
+
+* We will leave the `Pop-up Windows`, the `Confirmation Boxes` and the `In-Game Overlay` unimplemented and we will return to implement them later.
+
+
+
 1. **UI Components**:
    * Implement remaining standard UI components
    * Complete the Main Menu integration
@@ -915,6 +974,7 @@ end)
 
 ### Next Implementation Steps
 
+
 1. Implement Staff Management UI (highest priority)
 2. Implement Member Satisfaction UI (high priority)
 3. Create Equipment Management UI (high priority)
@@ -924,5 +984,31 @@ end)
 7. Add tooltips and help system throughout UI (low priority) 
 
 ## Conclusion
+
+### Fully Completed UIs
+
+*   `src/client/UI/AllianceUI.client.luau`
+    *   Implemented the `AllianceMenu` frame.
+    *   Created the `Join Alliance`, `Leave Alliance`, and `View Alliance` buttons.
+    *   Implemented the logic to show/hide these buttons based on whether the player is in an alliance.
+    *   Implemented the `Create Alliance` functionality (UI and logic).
+    *   Implemented the `Join Alliance` functionality (UI and logic).
+    *   Implemented the `Remove Player` functionality (UI and logic).
+    *   Implemented the `Invite Player` functionality (UI and logic).
+    *   Implemented the `Disband Alliance` functionality (UI and logic).
+*   `src/client/UI/AdminControlsUI.client.luau`
+    *   Implemented the `AdminDashboard` frame.
+    *   Added a `Reset` button.
+    *   Added a confirmation box to the `Reset` button.
+    *   Added a `Close` button to the UI.
+    *   Added a button in the `MainMenu` to open the `AdminDashboard`.
+    *   The Admin UI is now completed.
+    *   The Admin UI is only available for Admin Players.
+    *   The `AdminDashboardSystem` was also implemented.
+    * We have finished updating the `AdminDashboardSystem.server.luau` file.
+
+
+
+
 
 This document serves as a guide for the UI development team. It covers the essential UI components, their interactions, and the necessary backend connections. By adhering to these guidelines and the stated design principles, the team can create a cohesive, intuitive, and visually appealing user interface that enhances the overall player experience.

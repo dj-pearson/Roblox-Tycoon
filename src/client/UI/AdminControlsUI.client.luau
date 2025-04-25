@@ -1,251 +1,152 @@
 --[[
     AdminControlsUI.client.luau
-    
-    Administrator control panel UI implementation that leverages the new UI modules:
-    - UIStyle: For consistent styling
-    - IconSet: For standardized icons
-    - ButtonFactory: For consistent button creation
-    - DialogFactory: For confirmations, notifications, and tooltips
-    
-    Updated: April 24, 2025
 ]]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GameSystem = require(game.ReplicatedStorage.GameSystem)
+
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
-
--- Load required modules
-local sharedFolder = ReplicatedStorage:FindFirstChild("shared") or ReplicatedStorage:FindFirstChild("Shared")
-
--- Safe require helper
-local function requireSafely(moduleScript)
-    if moduleScript and moduleScript:IsA("ModuleScript") then
-        local success, result = pcall(function()
-            return require(moduleScript)
-        end)
-        
-        if success then
-            return result
-        else
-            warn("Failed to load module: " .. moduleScript.Name)
-            return nil
-        end
-    end
-    return nil
-end
-
--- Import UI modules
-local UIStyle = requireSafely(sharedFolder:FindFirstChild("UIStyle"))
-local IconSet = requireSafely(sharedFolder:FindFirstChild("IconSet"))
-local ButtonFactory = requireSafely(sharedFolder:FindFirstChild("ButtonFactory"))
-local DialogFactory = requireSafely(sharedFolder:FindFirstChild("DialogFactory"))
-
--- Check if modules loaded correctly
-if not UIStyle then
-    warn("UIStyle module not found, AdminControlsUI will have limited functionality")
-end
-
-if not IconSet then
-    warn("IconSet module not found, AdminControlsUI will have limited functionality")
-end
-
-if not ButtonFactory then
-    warn("ButtonFactory module not found, AdminControlsUI will have limited functionality")
-end
-
-if not DialogFactory then
-    warn("DialogFactory module not found, AdminControlsUI will have limited functionality")
-end
+local playerGui = player:WaitForChild("PlayerGui")
 
 -- Admin Controls UI Module
-local AdminControlsUI = {}
-AdminControlsUI.__index = AdminControlsUI
+local AdminControlsUI = {} 
 
--- State tracking
-local uiState = {
-    isInitialized = false,
-    adminPanelVisible = false,
-    menuElements = {},
-    currentTab = "Players",
-    selectedPlayer = nil
-}
+function AdminControlsUI.initialize()
+	-- Create the main panel frame
+	local AdminDashboard = Instance.new("Frame")
+	AdminDashboard.Name = "AdminDashboard"
+	AdminDashboard.Size = UDim2.fromScale(0.8, 0.8)
+	AdminDashboard.Position = UDim2.fromScale(0.1, 0.1)
+	AdminDashboard.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	AdminDashboard.BorderSizePixel = 0
+	AdminDashboard.ZIndex = 15
+	AdminDashboard.Visible = false
+	AdminDashboard.Parent = playerGui
 
--- Initialize the admin UI
-function AdminControlsUI:Initialize()
-    if uiState.isInitialized then
-        return self
-    end
-    
-    -- Create toggle button
-    self:CreateAdminToggleButton()
-    
-    -- Create the admin panel (initially hidden)
-    self:CreateAdminPanel()
-    
-    uiState.isInitialized = true
-    return self
+	-- Apply corner rounding
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = AdminDashboard
+	
+	-- Add title
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.Size = UDim2.new(1, 0, 0.1, 0)
+	title.Position = UDim2.new(0, 0, 0, 0)
+	title.BackgroundTransparency = 1
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 30
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.Text = "Admin Dashboard"
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextYAlignment = Enum.TextYAlignment.Center
+	title.Parent = AdminDashboard
+
+	-- Add close button
+	local closeButton = Instance.new("TextButton")
+	closeButton.Name = "CloseButton"
+	closeButton.Text = "Close"
+	closeButton.Size = UDim2.fromScale(0.1, 0.1)
+	closeButton.Position = UDim2.fromScale(0.85, 0.05)
+	closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeButton.Parent = AdminDashboard
+	closeButton.MouseButton1Click:Connect(function()
+		AdminControlsUI.hideAdminDashboard()	
+	end)
+
+	-- Create Confirmation Box
+	local confirmationBox = Instance.new("Frame")
+	confirmationBox.Name = "ConfirmationBox"
+	confirmationBox.Size = UDim2.fromScale(0.4, 0.3)
+	confirmationBox.Position = UDim2.fromScale(0.3, 0.35)
+	confirmationBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	confirmationBox.BorderSizePixel = 0
+	confirmationBox.ZIndex = 20
+	confirmationBox.Visible = false
+	confirmationBox.Parent = AdminDashboard
+
+	-- Apply corner rounding
+	local corner2 = Instance.new("UICorner")
+	corner2.CornerRadius = UDim.new(0, 10)
+	corner2.Parent = confirmationBox
+
+	--Confirmation Message
+	local message = Instance.new("TextLabel")
+	message.Name = "Message"
+	message.Size = UDim2.new(1, 0, 0.5, 0)
+	message.Position = UDim2.new(0, 0, 0.1, 0)
+	message.BackgroundTransparency = 1
+	message.Font = Enum.Font.Gotham
+	message.TextSize = 20
+	message.TextColor3 = Color3.fromRGB(255, 255, 255)
+	message.Text = "Are you sure you want to reset the game?"
+	message.TextWrapped = true
+	message.TextXAlignment = Enum.TextXAlignment.Center
+	message.TextYAlignment = Enum.TextYAlignment.Center
+	message.Parent = confirmationBox
+	
+
+	local function hideConfirmationBox()
+		confirmationBox.Visible = false
+	end
+
+	local function resetAction()
+		confirmationBox.Visible = true
+	end
+	
+
+	-- Add reset button
+	local resetButton = Instance.new("TextButton")
+	resetButton.Name = "ResetButton"
+	resetButton.Text = "Reset"
+	resetButton.Size = UDim2.fromScale(0.2, 0.1)
+	resetButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	resetButton.Parent = AdminDashboard
+	resetButton.MouseButton1Click:Connect(function()
+		resetAction()	
+	end)
+
+	-- Confirmation Title
+	local confirmationTitle = Instance.new("TextLabel")
+	confirmationTitle.Name = "ConfirmationTitle"
+	confirmationTitle.Size = UDim2.new(1, 0, 0.2, 0)
+	confirmationTitle.BackgroundTransparency = 1
+	confirmationTitle.Font = Enum.Font.GothamBold
+	confirmationTitle.TextSize = 24
+	confirmationTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	confirmationTitle.Text = "Confirm Reset"
+	confirmationTitle.TextXAlignment = Enum.TextXAlignment.Center
+	confirmationTitle.TextYAlignment = Enum.TextYAlignment.Center
+	confirmationTitle.Parent = confirmationBox
+
+	-- Confirmation Button
+	local confirmButton = Instance.new("TextButton")
+	confirmButton.Name = "Confirm"
+	confirmButton.Text = "Confirm"
+	confirmButton.Size = UDim2.fromScale(0.4, 0.2)
+	confirmButton.Position = UDim2.fromScale(0.1, 0.7)
+	confirmButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+	confirmButton.Parent = confirmationBox
+	confirmButton.MouseButton1Click:Connect(GameSystem.reset)
+
+	local cancelButton = confirmButton:Clone()
+	cancelButton.Text = "Cancel"
+	cancelButton.Position = UDim2.fromScale(0.55, 0.7)
+	cancelButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	cancelButton.MouseButton1Click:Connect(hideConfirmationBox)
+	cancelButton.Parent = confirmationBox
+
+	AdminControlsUI.AdminDashboard = AdminDashboard
+end
+function AdminControlsUI.showAdminDashboard()
+	AdminControlsUI.AdminDashboard.Visible = true
 end
 
--- Create the admin toggle button
-function AdminControlsUI:CreateAdminToggleButton()
-    local adminToggle = ButtonFactory.createIconButton(
-        "AdminFunctions", 
-        "Admin", 
-        UDim2.new(0, 120, 0, 40), 
-        UDim2.new(1, -130, 0, 10), 
-        function()
-            self:ToggleAdminPanel()
-        end
-    )
-    
-    -- Add to player's GUI
-    adminToggle.Parent = player:FindFirstChild("PlayerGui") or Instance.new("ScreenGui", player)
-    
-    -- Store for later reference
-    uiState.menuElements.adminToggle = adminToggle
-    return adminToggle
+function AdminControlsUI.hideAdminDashboard()
+	AdminControlsUI.AdminDashboard.Visible = false
 end
 
--- Create the admin panel
-function AdminControlsUI:CreateAdminPanel()
-    -- Create the container GUI
-    local screenGui = player:FindFirstChild("AdminPanelGui")
-    if not screenGui then
-        screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "AdminPanelGui"
-        screenGui.ResetOnSpawn = false
-        screenGui.Parent = player:FindFirstChild("PlayerGui")
-    end
-    
-    -- Create the main panel frame
-    local adminFrame = Instance.new("Frame")
-    adminFrame.Name = "AdminPanel"
-    adminFrame.Size = UDim2.new(0, 600, 0, 450)
-    adminFrame.Position = UDim2.new(0.5, -300, 0.5, -225)
-    adminFrame.BackgroundColor3 = UIStyle.Colors.Background
-    adminFrame.BorderSizePixel = 0
-    adminFrame.Visible = false
-    adminFrame.Parent = screenGui
-    
-    -- Apply corner rounding
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UIStyle.Sizes.CornerRadius
-    corner.Parent = adminFrame
-    
-    -- Create header
-    local header = Instance.new("Frame")
-    header.Name = "Header"
-    header.Size = UDim2.new(1, 0, 0, 50)
-    header.BackgroundColor3 = UIStyle.Colors.HeaderBackground
-    header.BorderSizePixel = 0
-    header.Parent = adminFrame
-    
-    -- Add corner rounding to header (top corners only)
-    local headerCorner = Instance.new("UICorner")
-    headerCorner.CornerRadius = UIStyle.Sizes.CornerRadius
-    headerCorner.Parent = header
-    
-    -- Fix header bottom corners (make them straight)
-    local bottomFrame = Instance.new("Frame")
-    bottomFrame.Size = UDim2.new(1, 0, 0, 10)
-    bottomFrame.Position = UDim2.new(0, 0, 1, -10)
-    bottomFrame.BackgroundColor3 = UIStyle.Colors.HeaderBackground
-    bottomFrame.BorderSizePixel = 0
-    bottomFrame.Parent = header
-    
-    -- Add title
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, -60, 1, 0)
-    title.Position = UDim2.new(0, 20, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Font = UIStyle.Fonts.Bold
-    title.TextSize = UIStyle.TextSizes.Title
-    title.TextColor3 = UIStyle.Colors.Text
-    title.Text = "Admin Control Panel"
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = header
-    
-    -- Add icon
-    local icon = IconSet.createIcon("AdminFunctions", UDim2.new(0, 30, 0, 30), UDim2.new(1, -90, 0.5, -15))
-    icon.Parent = header
-    
-    -- Add close button
-    local closeButton = ButtonFactory.createCloseButton(header, UDim2.new(1, -10, 0.5, 0), function()
-        self:ToggleAdminPanel()
-    end)
-    closeButton.AnchorPoint = Vector2.new(1, 0.5)
-    
-    -- Create tab container
-    local tabContainer = Instance.new("Frame")
-    tabContainer.Name = "TabContainer"
-    tabContainer.Size = UDim2.new(1, 0, 0, 40)
-    tabContainer.Position = UDim2.new(0, 0, 0, 50)
-    tabContainer.BackgroundColor3 = UIStyle.Colors.BackgroundDark
-    tabContainer.BorderSizePixel = 0
-    tabContainer.Parent = adminFrame
-    
-    -- Create tab buttons
-    local tabs = {
-        { id = "Players", label = "Players", icon = "User" },
-        { id = "GameSettings", label = "Game Settings", icon = "Gear" },
-        { id = "ServerStats", label = "Server Stats", icon = "Info" },
-        { id = "Commands", label = "Commands", icon = "Close" }
-    }
-    
-    -- Create tab buttons
-    for i, tab in ipairs(tabs) do
-        local tabButton = ButtonFactory.createIconButton(
-            tab.icon,
-            tab.label,
-            UDim2.new(0, 145, 1, 0),
-            UDim2.new(0, (i-1)*150, 0, 0),
-            function()
-                self:SwitchTab(tab.id)
-            end
-        )
-        tabButton.Name = tab.id .. "Tab"
-        tabButton.Parent = tabContainer
-        tabButton.BackgroundColor3 = tab.id == uiState.currentTab and UIStyle.Colors.TabActive or UIStyle.Colors.TabInactive
-        
-        -- Store reference
-        uiState.menuElements[tab.id .. "Tab"] = tabButton
-    end
-    
-    -- Create content container
-    local contentContainer = Instance.new("Frame")
-    contentContainer.Name = "ContentContainer"
-    contentContainer.Size = UDim2.new(1, 0, 1, -90)
-    contentContainer.Position = UDim2.new(0, 0, 0, 90)
-    contentContainer.BackgroundTransparency = 1
-    contentContainer.Parent = adminFrame
-    
-    -- Create tab content frames
-    for _, tab in ipairs(tabs) do
-        local contentFrame = Instance.new("Frame")
-        contentFrame.Name = tab.id .. "Content"
-        contentFrame.Size = UDim2.new(1, 0, 1, 0)
-        contentFrame.BackgroundTransparency = 1
-        contentFrame.Visible = tab.id == uiState.currentTab
-        contentFrame.Parent = contentContainer
-        
-        -- Store reference
-        uiState.menuElements[tab.id .. "Content"] = contentFrame
-    end
-    
-    -- Populate tabs
-    self:CreatePlayersTab(uiState.menuElements.PlayersContent)
-    self:CreateGameSettingsTab(uiState.menuElements.GameSettingsContent)
-    self:CreateServerStatsTab(uiState.menuElements.ServerStatsContent)
-    self:CreateCommandsTab(uiState.menuElements.CommandsContent)
-    
-    -- Store admin panel reference
-    uiState.menuElements.adminPanel = adminFrame
-    uiState.menuElements.screenGui = screenGui
-    
-    return adminFrame
-end
 
 -- Switch between tabs
 function AdminControlsUI:SwitchTab(tabId)
@@ -1030,5 +931,5 @@ function AdminControlsUI:ToggleAdminPanel()
     end
 end
 
--- Initialize the module when required
-return AdminControlsUI:Initialize()
+
+return AdminControlsUI

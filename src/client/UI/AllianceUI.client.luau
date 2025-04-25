@@ -6,20 +6,14 @@ local AllianceUI = {}
 local AllianceClient 
 
 local UI = script.Parent:WaitForChild("AllianceUIFrame") -- Replace with your actual UI path
+local allianceMenu 
 
-local allianceNameLabel = UI:WaitForChild("AllianceNameLabel")
-local memberListContainer = UI:WaitForChild("MemberListContainer")
-
-local noAllianceFrame = UI:WaitForChild("NoAllianceFrame")
-local createAllianceButton = noAllianceFrame:WaitForChild("CreateAllianceButton")
-local createAllianceInput = noAllianceFrame:WaitForChild("CreateAllianceInput")
-local joinAllianceButton = noAllianceFrame:WaitForChild("JoinAllianceButton")
-local joinAllianceInput = noAllianceFrame:WaitForChild("JoinAllianceInput")
-local noAllianceMessage = noAllianceFrame:WaitForChild("NoAllianceMessage")
+local joinAllianceButton,disbandAllianceButton
 
 local allianceFrame = UI:WaitForChild("AllianceFrame")
 local leaveAllianceButton = allianceFrame:WaitForChild("LeaveAllianceButton")
-local removePlayerButton = allianceFrame:WaitForChild("RemovePlayerButton")
+local viewAllianceButton
+local removePlayerButton
 local removePlayerInput = allianceFrame:WaitForChild("RemovePlayerInput")
 local invitePlayerButton = allianceFrame:WaitForChild("InvitePlayerButton")
 local invitePlayerInput = allianceFrame:WaitForChild("InvitePlayerInput")
@@ -40,34 +34,137 @@ local function createMemberUI(playerName)
 end
 
 function AllianceUI.initialize(clientModule)
-	AllianceClient = clientModule
+	local memberListContainer 
+	local createAllianceName, createAllianceButton 
+	local joinAllianceName, joinAllianceButton2
+    local invitePlayerName
 
-	-- Connect UI events to AllianceClient functions
-	createAllianceButton.MouseButton1Click:Connect(function()
-		local allianceName = createAllianceInput.Text
-		if allianceName ~= "" then
-			AllianceClient.sendCreateAllianceRequest(allianceName)
-			AllianceUI.hideCreateAllianceUI()
-		else
-			AllianceUI.displayError("Please enter an alliance name.")
-		end
-	end)
+	local viewAllianceButton
+	local leaveAllianceButton
+	-- Create the AllianceMenu frame
+	allianceMenu = Instance.new("Frame")
+	allianceMenu.Name = "AllianceMenu"
+	allianceMenu.Size = UDim2.fromScale(0.8, 0.8)
+	allianceMenu.Position = UDim2.fromScale(0.1, 0.1)
+	allianceMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	allianceMenu.ZIndex = 15
+	allianceMenu.Visible = false 
+	local uiCorner = Instance.new("UICorner")
+	uiCorner.CornerRadius = UDim.new(0, 10)
+	uiCorner.Parent = allianceMenu
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Text = "Alliance Menu"
+	titleLabel.Parent = allianceMenu
+	titleLabel.Size = UDim2.fromScale(1,0.1)
+	titleLabel.Position = UDim2.fromScale(0,0)
+	titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+	titleLabel.TextSize = 24
+	titleLabel.Font = Enum.Font.SourceSansBold
+	titleLabel.TextScaled = true
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-	joinAllianceButton.MouseButton1Click:Connect(function()
-		local allianceId = joinAllianceInput.Text
-		if allianceId ~= "" then
-			AllianceClient.sendJoinAllianceRequest(allianceId)
-		else
+	--Create the text box to receive the name of the alliance
+	createAllianceName = Instance.new("TextBox")
+	createAllianceName.Name = "CreateAllianceName"
+	createAllianceName.PlaceholderText = "Alliance Name"
+	createAllianceName.Size = UDim2.fromScale(0.4,0.1)
+	createAllianceName.Position = UDim2.fromScale(0.1,0.4)
+	createAllianceName.Visible = false
+	createAllianceName.Parent = allianceMenu
+
+	createAllianceButton = Instance.new("TextButton")
+	createAllianceButton.Name = "CreateAllianceButton"
+	createAllianceButton.Text = "Create Alliance"
+	createAllianceButton.Visible = false
+	createAllianceButton.TextColor3 = Color3.new(1, 1, 1)
+	createAllianceButton.Parent = allianceMenu
+
+	--Create the text box to receive the name of the alliance to join
+	joinAllianceName = Instance.new("TextBox")
+	joinAllianceName.Name = "JoinAllianceName"
+	joinAllianceName.PlaceholderText = "Alliance Name"
+	joinAllianceName.Size = UDim2.fromScale(0.4,0.1)
+	joinAllianceName.Position = UDim2.fromScale(0.1,0.55)
+	joinAllianceName.Visible = false
+	joinAllianceName.Parent = allianceMenu
+	joinAllianceButton2 = Instance.new("TextButton")
+	joinAllianceButton2.Name = "JoinAllianceButton2"
+	joinAllianceButton2.Text = "Join Alliance"
+	joinAllianceButton2.Visible = false
+	-- Create the Join Alliance button
+	joinAllianceButton = Instance.new("TextButton")
+	joinAllianceButton.Text = "Join Alliance"
+	joinAllianceButton.TextColor3 = Color3.new(1, 1, 1)
+
+	--Create the text box to receive the name of the player to remove
+	local removePlayerName = Instance.new("TextBox")
+	removePlayerName.Name = "RemovePlayerName"
+	removePlayerName.PlaceholderText = "Player Name"
+	removePlayerName.Size = UDim2.fromScale(0.4,0.1)
+	removePlayerName.Position = UDim2.fromScale(0.1,0.7)
+	removePlayerName.Visible = false
+	joinAllianceButton.TextColor3 = Color3.new(1, 1, 1)
+	joinAllianceButton.Parent = allianceMenu
+	
+	--Create the text box to receive the name of the player to invite
+	invitePlayerName = Instance.new("TextBox")
+	invitePlayerName.Name = "InvitePlayerName"
+	invitePlayerName.PlaceholderText = "Player Name"
+	invitePlayerName.Size = UDim2.fromScale(0.4,0.1)
+	invitePlayerName.Position = UDim2.fromScale(0.1,0.85)
+	invitePlayerName.Visible = false
+	invitePlayerName.Parent = allianceMenu
+	
+	-- Create the Leave Alliance button
+	leaveAllianceButton = Instance.new("TextButton")
+	leaveAllianceButton.Name = "LeaveAllianceButton"
+
+	leaveAllianceButton.Text = "Leave Alliance"
+	leaveAllianceButton.TextColor3 = Color3.new(1, 1, 1)
+	leaveAllianceButton.Parent = allianceMenu
+
+	-- Create the View Alliance button
+	viewAllianceButton = Instance.new("TextButton")
+	viewAllianceButton.Name = "ViewAllianceButton"
+	viewAllianceButton.Text = "View Alliance"
+	viewAllianceButton.TextColor3 = Color3.new(1, 1, 1)
+	viewAllianceButton.Parent = allianceMenu
+	
+	removePlayerButton = Instance.new("TextButton")
+	removePlayerButton.TextColor3 = Color3.new(1, 1, 1)
+	removePlayerButton.Name = "RemovePlayerButton"
+	removePlayerButton.Text = "Remove Player"
+	removePlayerButton.Visible = false
+	removePlayerButton.Parent = allianceMenu
+	allianceMenu.Parent = UI
+
+	viewAllianceButton.MouseButton1Click:Connect(function()
 			AllianceUI.displayError("Please enter an alliance ID.")
 		end
 	end)
 
 	leaveAllianceButton.MouseButton1Click:Connect(function()
-		AllianceClient.sendLeaveAllianceRequest()
-	end)
+		AllianceClient.sendLeaveAllianceRequest() 
+	end)	
 
+	leaveAllianceButton.MouseButton1Click:Connect(function()
+		AllianceUI.displayNoAlliance()
+	end)
+	
+	createAllianceButton.MouseButton1Click:Connect(function()
+		AllianceClient.sendCreateAllianceRequest(createAllianceName.Text)
+	end)
+	
+	joinAllianceButton.MouseButton1Click:Connect(function()
+			AllianceUI.displayAllianceInfo()
+	end)
+	
+	joinAllianceButton2.MouseButton1Click:Connect(function()
+		AllianceClient.sendJoinAllianceRequest(joinAllianceName.Text)
+	end)
+	
 	removePlayerButton.MouseButton1Click:Connect(function()
-		local playerToRemove = removePlayerInput.Text
 		if playerToRemove ~= "" then
 			AllianceClient.sendRemoveFromAllianceRequest(playerToRemove)
 		else
@@ -75,36 +172,60 @@ function AllianceUI.initialize(clientModule)
 		end
 	end)
 
+	local invitePlayerButton = Instance.new("TextButton")
+	invitePlayerButton.Name = "InvitePlayerButton"
+	invitePlayerButton.Text = "Invite Player"
+	invitePlayerButton.TextColor3 = Color3.new(1, 1, 1)
+	invitePlayerButton.Visible = false
+	invitePlayerButton.Parent = allianceMenu
 	invitePlayerButton.MouseButton1Click:Connect(function()
-		local playerToInvite = invitePlayerInput.Text
-		if playerToInvite ~= "" then
-			AllianceClient.sendInviteToAllianceRequest(playerToInvite)
-		else
-			AllianceUI.displayError("Please enter a player to invite.")
-		end
+		AllianceClient.sendInviteToAllianceRequest(invitePlayerName.Text)
 	end)
+	disbandAllianceButton = Instance.new("TextButton")
+	disbandAllianceButton.Name = "DisbandAllianceButton"
+	disbandAllianceButton.Text = "Disband Alliance"
+	disbandAllianceButton.TextColor3 = Color3.new(1, 1, 1)
+	disbandAllianceButton.Visible = false
+	disbandAllianceButton.Parent = allianceMenu
+	
 
+	removePlayerButton.MouseButton1Click:Connect(function()
+		AllianceClient.sendRemoveFromAllianceRequest(removePlayerName.Text)
+	end)
 	disbandAllianceButton.MouseButton1Click:Connect(function()
 		AllianceClient.sendDisbandAllianceRequest()
 	end)
+	
+	viewAllianceButton.MouseButton1Click:Connect(function()
+		AllianceUI.displayAllianceInfo()
+	disbandAllianceButton.MouseButton1Click:Connect(function()
+		AllianceClient.sendDisbandAllianceRequest()
+	end)
+	removePlayerButton.Parent = allianceMenu
+	
+	joinAllianceButton.Size = UDim2.fromScale(0.3,0.1)
+	disbandAllianceButton.Size = UDim2.fromScale(0.3,0.1)
+	joinAllianceButton.Position = UDim2.fromScale(0.1,0.2)
+	leaveAllianceButton.Size = UDim2.fromScale(0.3,0.1)
+	leaveAllianceButton.Position = UDim2.fromScale(0.1,0.2)
+	viewAllianceButton.Size = UDim2.fromScale(0.3,0.1)
+	viewAllianceButton.Position = UDim2.fromScale(0.5,0.2)
+	AllianceUI.displayNoAlliance()	
 
-	AllianceUI.displayNoAlliance()
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 end
 
 function AllianceUI.displayAllianceInfo(allianceName, memberList)
-	allianceNameLabel.Text = allianceName
-
-	-- Clear previous member list
-	for _, child in ipairs(memberListContainer:GetChildren()) do
-		if child:IsA("GuiObject") then
-			child:Destroy()
-		end
+	removePlayerName.Visible = true
+	removePlayerButton.Visible = true
+	invitePlayerName.Visible = true
+	disbandAllianceButton.Visible = true
+	invitePlayerButton.Visible = true
+	if joinAllianceButton then
+		joinAllianceButton.Visible = false
 	end
-
-	-- Display member list
-	for _, playerName in ipairs(memberList) do
-		local memberUI = createMemberUI(playerName)
-		memberUI.Parent = memberListContainer
+	if joinAllianceButton2 then
+		joinAllianceButton2.Visible = false
 	end
 
 	allianceFrame.Visible = true
@@ -128,7 +249,6 @@ function AllianceUI.displayAllianceInvitations(invitations)
 	for allianceName, _ in pairs(invitations) do
 		local textButton = Instance.new("TextButton")
 		textButton.Text = "Join " .. allianceName
-		textButton.Size = UDim2.new(1, 0, 0, 30)
 		textButton.BackgroundColor3 = Color3.new(0.2, 0.6, 1)
 		textButton.TextColor3 = Color3.new(1, 1, 1)
 		textButton.Font = Enum.Font.SourceSansBold
@@ -141,20 +261,31 @@ function AllianceUI.displayAllianceInvitations(invitations)
 end
 
 function AllianceUI.displayNoAlliance()
-	allianceFrame.Visible = false
-	noAllianceFrame.Visible = true
-	invitationsFrame.Visible = false
-	noAllianceMessage.Text = "You are not in an alliance."
-end
-
-function AllianceUI.showCreateAllianceUI()
-	createAllianceInput.Visible = true
+	if joinAllianceButton then
+		joinAllianceButton.Visible = true
+	end
+	if leaveAllianceButton then
+		leaveAllianceButton.Visible = false
+	end
+	if viewAllianceButton then
+		viewAllianceButton.Visible = false
+	end	
+	if createAllianceName then
+		createAllianceName.Visible = true
+	end
+	if joinAllianceName then
+		joinAllianceName.Visible = true
+	end
+	joinAllianceButton2.Visible = true
 	createAllianceButton.Visible = true
-end
+	removePlayerName.Visible = false
+	invitePlayerName.Visible = false
+	invitePlayerButton.Visible = false
+	removePlayerButton.Visible = false
 
-function AllianceUI.hideCreateAllianceUI()
-	createAllianceInput.Visible = false
-	createAllianceButton.Visible = false
+	if disbandAllianceButton then
+		disbandAllianceButton.Visible = false
+	end
 end
 
 function AllianceUI.displayError(message)
@@ -167,4 +298,31 @@ function AllianceUI.displayError(message)
 	end
 end
 
-return AllianceUI
+function AllianceUI.showAllianceMenu()
+	allianceMenu.Visible = true
+end
+
+function AllianceUI.hideAllianceMenu()
+	allianceMenu.Visible = false
+end
+
+return {
+	initialize = AllianceUI.initialize,
+	displayNoAlliance = AllianceUI.displayNoAlliance,
+	displayAllianceInfo = AllianceUI.displayAllianceInfo,
+	displayError = AllianceUI.displayError,
+	sendCreateAllianceRequest = AllianceUI.sendCreateAllianceRequest,
+	sendJoinAllianceRequest = AllianceUI.sendJoinAllianceRequest,
+	sendRemoveFromAllianceRequest = AllianceUI.sendRemoveFromAllianceRequest,
+	sendInviteToAllianceRequest = AllianceUI.sendInviteToAllianceRequest,
+    sendLeaveAllianceRequest = AllianceUI.sendLeaveAllianceRequest,
+	sendDisbandAllianceRequest = AllianceUI.sendDisbandAllianceRequest,
+	showAllianceMenu = AllianceUI.showAllianceMenu,
+	hideAllianceMenu = AllianceUI.hideAllianceMenu,
+	joinAllianceButton = joinAllianceButton,
+	viewAllianceButton = viewAllianceButton,
+	leaveAllianceButton = leaveAllianceButton,
+	removePlayerButton = removePlayerButton,
+	joinAllianceButton2 = joinAllianceButton2,
+	
+}

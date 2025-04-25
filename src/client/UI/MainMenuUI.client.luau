@@ -9,6 +9,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
@@ -37,6 +38,10 @@ local UIStyle = requireSafely(sharedFolder:FindFirstChild("UIStyle"))
 local IconSet = requireSafely(sharedFolder:FindFirstChild("IconSet"))
 local ButtonFactory = requireSafely(sharedFolder:FindFirstChild("ButtonFactory"))
 local DialogFactory = requireSafely(sharedFolder:FindFirstChild("DialogFactory"))
+local AllianceUI = requireSafely(script.Parent:FindFirstChild("AllianceUI"))
+local AdminControlsUI = requireSafely(script.Parent:FindFirstChild("AdminControlsUI"))
+local AdminDashboardSystem = requireSafely(ReplicatedStorage:FindFirstChild("AdminDashboardSystem"))
+
 
 -- Check if modules loaded correctly
 if not UIStyle then
@@ -193,6 +198,21 @@ function MainMenuUI:CreateMainMenu()
     -- Create main menu buttons
     self:CreateMainButtons(buttonsContainer)
     
+    --Create close button
+    local closeButton = ButtonFactory.createStandardButton("Close", UDim2.fromScale(0.15,0.1), UDim2.new(0, 0, -0.1, 0),function()
+        self:ToggleMenu()
+    end)
+    closeButton.Parent = background
+    
+    --Create Alliance Button
+    self:CreateAllianceButton(background, closeButton)
+    
+    -- Create Admin Button if the player is an admin
+    if AdminDashboardSystem and AdminDashboardSystem.isAdmin and AdminDashboardSystem.isAdmin(player) then
+        --Create Admin Button
+        self:CreateAdminButton(background, closeButton)
+    end
+
     -- Create social links at the bottom
     local socialContainer = Instance.new("Frame")
     socialContainer.Name = "SocialContainer"
@@ -218,6 +238,35 @@ function MainMenuUI:CreateMainMenu()
     return screenGui
 end
 
+function MainMenuUI:CreateAdminButton(parent, closeButton)
+        local AdminButton = Instance.new("TextButton")
+    AdminButton.Name = "AdminButton"
+    AdminButton.Size = UDim2.fromScale(0.15, 0.1)
+    AdminButton.Position = UDim2.new(0, closeButton.Position.X.Offset, 0, closeButton.Position.Y.Offset + closeButton.Size.Y.Offset + 110)
+    AdminButton.Text = "Admin"
+    AdminButton.TextColor3 = UIStyle.Colors.Text
+    AdminButton.BackgroundColor3 = UIStyle.Colors.Button
+    AdminButton.Parent = parent
+    AdminButton.MouseButton1Click:Connect(function()
+        AdminControlsUI.showAdminDashboard()
+    end)
+end
+
+function MainMenuUI:CreateAllianceButton(parent,closeButton)
+    local AllianceButton = Instance.new("TextButton")
+    AllianceButton.Name = "AllianceButton"
+    AllianceButton.Size = UDim2.fromScale(0.15,0.1)
+    AllianceButton.Position = UDim2.new(0, closeButton.Position.X.Offset, 0, closeButton.Position.Y.Offset + closeButton.Size.Y.Offset + 10)
+    AllianceButton.Text = "Alliance"
+    AllianceButton.TextColor3 = UIStyle.Colors.Text
+    AllianceButton.BackgroundColor3 = UIStyle.Colors.Button
+    AllianceButton.Parent = parent
+    AllianceButton.MouseButton1Click:Connect(function()
+        AllianceUI.showAllianceMenu()
+    end)
+    
+end
+
 -- Create the main buttons of the menu
 function MainMenuUI:CreateMainButtons(parent)
     local buttonHeight = 70
@@ -236,18 +285,6 @@ function MainMenuUI:CreateMainButtons(parent)
         end)
     end)
     playButton.Parent = parent
-    
-    yOffset = yOffset + buttonHeight + buttonSpacing
-    
-    -- Create alliance button
-    local allianceButton = ButtonFactory.createFeatureButton("Alliance", UDim2.new(1, 0, 0, buttonHeight), UDim2.new(0, 0, 0, yOffset), function()
-        -- Connect to AllianceSystem.getAllianceInfo()
-        self:ConnectToBackend("AllianceSystem", "GetAllianceInfo", function()
-            DialogFactory.createNotification("Opening Alliance menu...", 2, "info")
-            -- This would normally open the AllianceUI
-        end)
-    end)
-    allianceButton.Parent = parent
     
     yOffset = yOffset + buttonHeight + buttonSpacing
     
@@ -355,7 +392,6 @@ function MainMenuUI:ShowMainMenu(visible)
         
         -- Animate in buttons
         for i, buttonName in ipairs({"playButton", "allianceButton", "specializationButton", "eventsButton", "minigamesButton", "settingsButton"}) do
-            local button = uiState.menuElements[buttonName]
             if button then
                 button.Position = UDim2.new(-1, 0, button.Position.Y.Scale, button.Position.Y.Offset)
                 button.Visible = true
