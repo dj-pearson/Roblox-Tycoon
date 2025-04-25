@@ -1,7 +1,6 @@
 -- Elevator System Script
 -- Handles elevator movement between 5 floors with proper floor transparency and GUI elements
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
@@ -169,6 +168,21 @@ local function moveElevator(targetFloor)
 		Enum.EasingDirection.InOut
 	)
 
+	-- Check if elevator model is valid for tweening
+	if not elevator.PrimaryPart then
+		-- Try to find a suitable part to use as primary part
+		local suitablePart = elevator:FindFirstChildWhichIsA("BasePart")
+		if suitablePart then
+			-- Set as primary part
+			elevator.PrimaryPart = suitablePart
+			print("ElevatorMovement: Set " .. suitablePart.Name .. " as primary part for movement")
+		else
+			warn("ElevatorMovement: Cannot move elevator - no primary part found")
+			isMoving = false
+			return
+		end
+	end
+
 	local tween = TweenService:Create(
 		elevator,
 		tweenInfo,
@@ -198,7 +212,40 @@ local function moveElevator(targetFloor)
 	isMoving = false
 
 	-- Update buttons to show current floor
-	updateButtonDisplays()
+	-- Use updateButtonDisplays function defined below to update all UI elements
+	for _, player in pairs(Players:GetPlayers()) do
+		local gui = player.PlayerGui:FindFirstChild("ElevatorControl")
+		if gui then
+			-- Update floor display
+			local floorDisplay = gui.ElevatorPanel:FindFirstChild("FloorDisplay")
+			if floorDisplay then
+				local floorNumber = currentFloor:sub(1, 1)
+				floorDisplay.Text = "Current Floor: " .. floorNumber
+			end
+
+			-- Update button colors
+			local buttonContainer = gui.ElevatorPanel:FindFirstChild("ButtonContainer")
+			if buttonContainer then
+				for _, button in pairs(buttonContainer:GetChildren()) do
+					local buttonFloorNumber = button.Text
+					local buttonFloorName = buttonFloorNumber .. "thFloor"
+					if buttonFloorNumber == "1" then
+						buttonFloorName = "1stFloor"
+					elseif buttonFloorNumber == "2" then
+						buttonFloorName = "2ndFloor"
+					elseif buttonFloorNumber == "3" then
+						buttonFloorName = "3rdFloor"
+					end
+
+					if buttonFloorName == currentFloor then
+						button.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+					else
+						button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+					end
+				end
+			end
+		end
+	end
 end
 
 -- Function to create and configure the GUI
@@ -239,7 +286,7 @@ local function createElevatorGUI(player)
 	floorDisplay.Position = UDim2.new(0, 10, 0, 40)
 	floorDisplay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	floorDisplay.BorderColor3 = Color3.fromRGB(100, 100, 100)
-	floorDisplay.Font = Enum.Font.GothamSemibold
+	floorDisplay.Font = Enum.Font.GothamMedium -- Updated from GothamSemibold which was deprecated
 	floorDisplay.Text = "Current Floor: 1"
 	floorDisplay.TextColor3 = Color3.fromRGB(0, 255, 0)
 	floorDisplay.TextSize = 16
@@ -320,49 +367,14 @@ function updateFloorButtons(container)
 	end
 end
 
--- Function to update floor indicators on all controls
-function updateButtonDisplays()
-	for _, player in pairs(Players:GetPlayers()) do
-		local gui = player.PlayerGui:FindFirstChild("ElevatorControl")
-		if gui then
-			-- Update floor display
-			local floorDisplay = gui.ElevatorPanel:FindFirstChild("FloorDisplay")
-			if floorDisplay then
-				local floorNumber = currentFloor:sub(1, 1)
-				floorDisplay.Text = "Current Floor: " .. floorNumber
-			end
-
-			-- Update button colors
-			local buttonContainer = gui.ElevatorPanel:FindFirstChild("ButtonContainer")
-			if buttonContainer then
-				for _, button in pairs(buttonContainer:GetChildren()) do
-					local buttonFloorNumber = button.Text
-					local buttonFloorName = buttonFloorNumber .. "thFloor"
-					if buttonFloorNumber == "1" then
-						buttonFloorName = "1stFloor"
-					elseif buttonFloorNumber == "2" then
-						buttonFloorName = "2ndFloor"
-					elseif buttonFloorNumber == "3" then
-						buttonFloorName = "3rdFloor"
-					end
-
-					if buttonFloorName == currentFloor then
-						button.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-					else
-						button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-					end
-				end
-			end
-		end
-	end
-end
+-- Update floor indicators is handled directly in the moveElevator function
 
 -- Create call button for each floor
 local function createCallButtons()
-	for i, floorTag in ipairs(CONFIG.FLOOR_TAGS) do
+	for _, floorTag in ipairs(CONFIG.FLOOR_TAGS) do
 		local taggedModels = Workspace:GetTagged(floorTag)
 
-		for _, model in ipairs(taggedModels) do
+		for _ in ipairs(taggedModels) do
 			-- Create call button
 			local callButton = Instance.new("Part")
 			callButton.Name = "ElevatorCallButton_" .. floorTag
@@ -398,7 +410,7 @@ local function createCallButtons()
 			clickDetector.Parent = callButton
 
 			-- Connect call button functionality
-			clickDetector.MouseClick:Connect(function(player)
+			clickDetector.MouseClick:Connect(function(_player)
 				if isMoving then return end
 				moveElevator(floorTag)
 			end)
@@ -416,8 +428,8 @@ local function setupElevatorTrigger()
 	trigger.Anchored = true
 	trigger.Parent = elevator
 
-	local touchConnection
-	touchConnection = trigger.Touched:Connect(function(hit)
+	-- Connect touch event without assigning to a variable since we don't disconnect it
+	trigger.Touched:Connect(function(hit)
 		local humanoid = hit.Parent:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			local player = Players:GetPlayerFromCharacter(humanoid.Parent)
@@ -453,8 +465,21 @@ local function initialize()
 	dingSound.Volume = 0.8
 	dingSound.Parent = elevator
 
-	-- Set initial position
-	elevator:SetPrimaryPartCFrame(CFrame.new(CONFIG.FLOOR_POSITIONS[currentFloor]))
+	-- Set initial position - ensure primary part exists
+	if elevator.PrimaryPart then
+		elevator:SetPrimaryPartCFrame(CFrame.new(CONFIG.FLOOR_POSITIONS[currentFloor]))
+	else
+		-- Find a suitable part to use as primary part
+		local suitablePart = elevator:FindFirstChildWhichIsA("BasePart")
+		if suitablePart then
+			-- Set as primary part
+			elevator.PrimaryPart = suitablePart
+			print("ElevatorMovement: Set " .. suitablePart.Name .. " as primary part")
+			elevator:SetPrimaryPartCFrame(CFrame.new(CONFIG.FLOOR_POSITIONS[currentFloor]))
+		else
+			warn("ElevatorMovement: Elevator model has no primary part and no suitable parts found")
+		end
+	end
 
 	-- Create call buttons for each floor
 	createCallButtons()
@@ -464,7 +489,7 @@ local function initialize()
 
 	-- Connect player joining to create GUI
 	Players.PlayerAdded:Connect(function(player)
-		player.CharacterAdded:Connect(function(character)
+		player.CharacterAdded:Connect(function(_character)
 			-- Optionally create GUI when character spawns
 			-- createElevatorGUI(player)
 		end)

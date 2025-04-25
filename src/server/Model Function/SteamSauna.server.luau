@@ -37,7 +37,7 @@ local STEAM_CONFIG = {
 
 	-- Sound
 	enableSound = true,
-	soundId = AssetValidator.validateSoundId("rbxassetid://9048378264") -- Validated sound ID
+	soundId = "rbxassetid://130949361" -- Using known working fallback sound directly
 }
 
 -- Heater Configuration
@@ -70,7 +70,7 @@ local HEATER_CONFIG = {
 
 	-- Sound
 	enableSound = true,
-	soundId = AssetValidator.validateSoundId("rbxassetid://9048378264"), -- Validated sound ID
+	soundId = "rbxassetid://130949361", -- Using known working fallback sound directly
 	soundVolume = 0.5
 }
 
