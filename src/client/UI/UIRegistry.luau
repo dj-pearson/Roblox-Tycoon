@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Constants
 local LocalPlayer = Players.LocalPlayer
@@ -651,7 +652,6 @@ function UIRegistry:initialize()
     log("Initializing UIRegistry")
     
     -- Connect escape key for closing modal UIs
-    UserInputService = game:GetService("UserInputService")
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
             handleKeyboard(input)

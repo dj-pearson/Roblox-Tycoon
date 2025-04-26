@@ -9,7 +9,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
@@ -33,32 +32,48 @@ local function requireSafely(moduleScript)
     return nil
 end
 
--- Import UI modules
-local UIStyle = requireSafely(sharedFolder:FindFirstChild("UIStyle"))
-local IconSet = requireSafely(sharedFolder:FindFirstChild("IconSet"))
-local ButtonFactory = requireSafely(sharedFolder:FindFirstChild("ButtonFactory"))
-local DialogFactory = requireSafely(sharedFolder:FindFirstChild("DialogFactory"))
+-- Try to load UI Components first
+local UIComponents = requireSafely(sharedFolder:FindFirstChild("UIComponents"))
+
+-- Import UI modules with fallbacks
+local UIStyle, IconSet, ButtonFactory, DialogFactory
+
+if UIComponents then
+    -- Use consolidated UI components if available
+    UIStyle = UIComponents.UIStyle
+    IconSet = UIComponents.IconSet
+    ButtonFactory = UIComponents.ButtonFactory
+    DialogFactory = UIComponents.DialogFactory
+    print("MainMenuUI loaded UI components from UIComponents module")
+else
+    -- Legacy loading as fallback
+    UIStyle = requireSafely(sharedFolder:FindFirstChild("UIStyle"))
+    IconSet = requireSafely(sharedFolder:FindFirstChild("IconSet"))
+    ButtonFactory = requireSafely(sharedFolder:FindFirstChild("ButtonFactory"))
+    DialogFactory = requireSafely(sharedFolder:FindFirstChild("DialogFactory"))
+    
+    -- Check if modules loaded correctly
+    if not UIStyle then
+        warn("UIStyle module not found, MainMenuUI will have limited functionality")
+    end
+    
+    if not IconSet then
+        warn("IconSet module not found, MainMenuUI will have limited functionality")
+    end
+    
+    if not ButtonFactory then
+        warn("ButtonFactory module not found, MainMenuUI will have limited functionality")
+    end
+    
+    if not DialogFactory then
+        warn("DialogFactory module not found, MainMenuUI will have limited functionality")
+    end
+end
+
+-- Load other game modules
 local AllianceUI = requireSafely(script.Parent:FindFirstChild("AllianceUI"))
 local AdminControlsUI = requireSafely(script.Parent:FindFirstChild("AdminControlsUI"))
 local AdminDashboardSystem = requireSafely(ReplicatedStorage:FindFirstChild("AdminDashboardSystem"))
-
-
--- Check if modules loaded correctly
-if not UIStyle then
-    warn("UIStyle module not found, MainMenuUI will have limited functionality")
-end
-
-if not IconSet then
-    warn("IconSet module not found, MainMenuUI will have limited functionality")
-end
-
-if not ButtonFactory then
-    warn("ButtonFactory module not found, MainMenuUI will have limited functionality")
-end
-
-if not DialogFactory then
-    warn("DialogFactory module not found, MainMenuUI will have limited functionality")
-end
 
 -- Main Menu UI Module
 local MainMenuUI = {}
@@ -203,9 +218,9 @@ function MainMenuUI:CreateMainMenu()
         self:ToggleMenu()
     end)
     closeButton.Parent = background
-    
-    --Create Alliance Button
-    self:CreateAllianceButton(background, closeButton)
+      --Create Alliance Button
+    local allianceButton = self:CreateAllianceButton(background, closeButton)
+    uiState.menuElements.allianceButton = allianceButton
     
     -- Create Admin Button if the player is an admin
     if AdminDashboardSystem and AdminDashboardSystem.isAdmin and AdminDashboardSystem.isAdmin(player) then
@@ -253,18 +268,19 @@ function MainMenuUI:CreateAdminButton(parent, closeButton)
 end
 
 function MainMenuUI:CreateAllianceButton(parent,closeButton)
-    local AllianceButton = Instance.new("TextButton")
-    AllianceButton.Name = "AllianceButton"
-    AllianceButton.Size = UDim2.fromScale(0.15,0.1)
-    AllianceButton.Position = UDim2.new(0, closeButton.Position.X.Offset, 0, closeButton.Position.Y.Offset + closeButton.Size.Y.Offset + 10)
-    AllianceButton.Text = "Alliance"
-    AllianceButton.TextColor3 = UIStyle.Colors.Text
-    AllianceButton.BackgroundColor3 = UIStyle.Colors.Button
-    AllianceButton.Parent = parent
-    AllianceButton.MouseButton1Click:Connect(function()
+    local allianceButton = Instance.new("TextButton")
+    allianceButton.Name = "AllianceButton"
+    allianceButton.Size = UDim2.fromScale(0.15,0.1)
+    allianceButton.Position = UDim2.new(0, closeButton.Position.X.Offset, 0, closeButton.Position.Y.Offset + closeButton.Size.Y.Offset + 10)
+    allianceButton.Text = "Alliance"
+    allianceButton.TextColor3 = UIStyle.Colors.Text
+    allianceButton.BackgroundColor3 = UIStyle.Colors.Button
+    allianceButton.Parent = parent
+    allianceButton.MouseButton1Click:Connect(function()
         AllianceUI.showAllianceMenu()
     end)
     
+    return allianceButton
 end
 
 -- Create the main buttons of the menu
@@ -330,10 +346,9 @@ function MainMenuUI:CreateMainButtons(parent)
         -- This would normally open the SettingsUI
     end)
     settingsButton.Parent = parent
-    
-    -- Store buttons for later reference
+      -- Store buttons for later reference
     uiState.menuElements.playButton = playButton
-    uiState.menuElements.allianceButton = allianceButton
+    -- Alliance button is stored when it's created
     uiState.menuElements.specializationButton = specializationButton
     uiState.menuElements.eventsButton = eventsButton
     uiState.menuElements.minigamesButton = minigamesButton
@@ -377,8 +392,7 @@ function MainMenuUI:ShowMainMenu(visible)
     if not background then return end
     
     uiState.menuVisible = visible
-    
-    if visible then
+      if visible then
         -- Show menu with animation
         background.Visible = true
         background.BackgroundTransparency = 1
@@ -392,6 +406,7 @@ function MainMenuUI:ShowMainMenu(visible)
         
         -- Animate in buttons
         for i, buttonName in ipairs({"playButton", "allianceButton", "specializationButton", "eventsButton", "minigamesButton", "settingsButton"}) do
+            local button = uiState.menuElements[buttonName]
             if button then
                 button.Position = UDim2.new(-1, 0, button.Position.Y.Scale, button.Position.Y.Offset)
                 button.Visible = true

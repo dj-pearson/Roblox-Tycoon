@@ -1,4 +1,4 @@
-lua
+--lua
 --[[
     QuestSystem.luau
     Handles the dynamic goal and quest system based on player progress and specialization.

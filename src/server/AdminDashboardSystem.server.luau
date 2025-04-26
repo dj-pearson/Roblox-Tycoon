@@ -1,11 +1,11 @@
-lua
+--lua
 local GameSystem = require(script.Parent.GameSystem)
 local Players = game:GetService("Players")
 local AdminDashboardSystem = {}
 
 local CONFIG = {
 	ADMIN_IDS = {
-		[288646837] = true, -- Example User ID
+		[7768610061] = true, 
 	},
 }
 

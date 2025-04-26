@@ -275,7 +275,7 @@ local function testUIRegistry()
     else
         recordTestResult("UIRegistry.showNotification Method", false)
     end
-}
+end
 
 -- Test UIComponents
 local function testUIComponents()
@@ -342,7 +342,7 @@ local function testUIComponents()
     else
         recordTestResult("UIComponents Dialog Creation", false)
     end
-}
+end
 
 -- Test AssetValidator
 local function testAssetValidator()
@@ -395,7 +395,7 @@ local function testAssetValidator()
         local invalidResult = AssetValidator.validateAsset("rbxassetid://999999999999", "Image")
         recordTestResult("AssetValidator Can Detect Invalid Asset", invalidResult == false)
     end
-}
+end
 
 -- Create test UI to verify components work
 local function createTestUI()
@@ -583,7 +583,7 @@ local function createTestUI()
     
     recordTestResult("Test UI Created", true)
     return screenGui
-}
+end
 
 -- Generate full report
 local function generateReport()
@@ -660,7 +660,7 @@ local function generateReport()
         categories = categories,
         details = testResults.testDetails
     }
-}
+end
 
 -- Initialize the tester
 local function initialize()
