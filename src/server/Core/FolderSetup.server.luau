@@ -1,90 +1,95 @@
--- FolderSetup.server.luau
--- Creates necessary folders to prevent infinite yield warnings
--- Should run before other scripts that rely on these folders
+--[[
+    FolderSetup.server.luau
+    
+    Creates all necessary folders for the game to work properly.
+    Runs early in the game lifecycle to ensure folder paths exist before any scripts try to access them.
+    
+    This helps prevent "Infinite yield possible on WaitForChild" errors.
+    
+    Created: April 25, 2025
+]]
 
+local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 
--- Debug function
-local function log(...)
-    print("[FolderSetup]", ...)
+-- Debug logging
+local function log(message)
+    print("[FolderSetup] " .. message)
 end
 
-log("Setting up necessary folders...")
-
--- Create folders in ReplicatedStorage
+-- Create a folder if it doesn't exist
 local function ensureFolderExists(parent, name)
+    if not parent then
+        warn("[FolderSetup] Cannot create folder '" .. name .. "' in nil parent")
+        return nil
+    end
+    
     local folder = parent:FindFirstChild(name)
     if not folder then
         folder = Instance.new("Folder")
         folder.Name = name
         folder.Parent = parent
-        log("Created folder: " .. parent.Name .. "/" .. name)
+        log("Created folder: " .. name .. " in " .. parent:GetFullName())
+    else
+        log("Found existing folder: " .. name .. " in " .. parent:GetFullName())
     end
+    
     return folder
 end
 
--- Create standard folders in ReplicatedStorage
-local replicatedFolders = {
-    "shared",
-    "Events",
-    "ReplicatedEvents",
-    "MembershipBoostEvent",
-    "CreateAllianceEvent"
-}
-
-for _, folderName in ipairs(replicatedFolders) do
-    ensureFolderExists(ReplicatedStorage, folderName)
-end
-
--- Create standard folders in ServerStorage
-local serverStorageFolders = {
-    "MemberSatisfactionSystem"
-}
-
-for _, folderName in ipairs(serverStorageFolders) do
-    ensureFolderExists(ServerStorage, folderName)
-end
-
--- Create standard folders in ServerScriptService
-local serverScriptFolders = {
-    "src"
-}
-
-for _, folderName in ipairs(serverScriptFolders) do
-    ensureFolderExists(ServerScriptService, folderName)
-end
-
--- Create event instances in Events folder
-local eventNames = {
-    "MembershipUpdated",
-    "EquipmentPurchased",
-    "RevenueCollected",
-    "MemberJoined",
-    "MemberLeft",
-    "TycoonCreated",
-    "MembershipTierChanged"
-}
-
-local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
-if eventsFolder then
-    for _, eventName in ipairs(eventNames) do
-        if not eventsFolder:FindFirstChild(eventName) then
-            local event = Instance.new("RemoteEvent")
-            event.Name = eventName
-            event.Parent = eventsFolder
-            log("Created RemoteEvent: Events/" .. eventName)
-        end
+-- Create hierarchy of folders from a path string like "a/b/c"
+local function createFolderPath(parent, path)
+    local pathParts = string.split(path, "/")
+    local currentParent = parent
+    
+    for _, part in ipairs(pathParts) do
+        currentParent = ensureFolderExists(currentParent, part)
     end
+    
+    return currentParent
 end
 
-log("Folder setup complete!")
+-- Main folder setup function
+local function setupFolders()
+    log("Starting folder setup...")
+    
+    -- ReplicatedStorage structure
+    local replicatedShared = ensureFolderExists(ReplicatedStorage, "shared")
+    ensureFolderExists(ReplicatedStorage, "Events")
+    ensureFolderExists(ReplicatedStorage, "src")
+    
+    -- Inside shared folder
+    createFolderPath(replicatedShared, "UI")
+    createFolderPath(replicatedShared, "Constants")
+    createFolderPath(replicatedShared, "Utils")
+    
+    -- ServerScriptService structure
+    ensureFolderExists(ServerScriptService, "Core")
+    ensureFolderExists(ServerScriptService, "Data")
+    ensureFolderExists(ServerScriptService, "Systems")
+    ensureFolderExists(ServerScriptService, "Connectors")
+    ensureFolderExists(ServerScriptService, "Essentials")
+    ensureFolderExists(ServerScriptService, "Enhancements")
+    
+    -- Inside Core folder
+    local core = ServerScriptService.Core
+    ensureFolderExists(core, "ModelValidation")
+    ensureFolderExists(core, "Systems")
+    
+    -- ServerStorage structure
+    ensureFolderExists(ServerStorage, "Models")
+    ensureFolderExists(ServerStorage, "BuyTiles")
+    ensureFolderExists(ServerStorage, "EquipmentModels")
+    ensureFolderExists(ServerStorage, "NPC_Models")
+    
+    log("Folder setup complete")
+end
 
--- Mark setup as complete for other scripts to check
-local setupComplete = Instance.new("BoolValue")
-setupComplete.Name = "FolderSetupComplete"
-setupComplete.Value = true
-setupComplete.Parent = ReplicatedStorage
+-- Run the setup
+setupFolders()
 
-return true
+return {
+    ensureFolderExists = ensureFolderExists,
+    createFolderPath = createFolderPath
+}

@@ -1,6 +1,6 @@
 # Roblox Issues Tracking Document
 
-## Module Loading and WaitForChild Errors (✅ FIXED)
+## Module Loading and WaitForChild Errors (✅ PARTIALLY FIXED)
 
 **Error Message:** Multiple "Infinite yield possible on WaitForChild" errors occurring on game start.
 
@@ -19,19 +19,27 @@
 - ✅ Created shared/ClientRegistry.lua to fix the ClientRegistry reference issue
 - ✅ Fixed AllianceClient.client.luau to safely handle Alliance events
 - ✅ Added AllianceEventSetup.server.luau to ensure all Alliance events exist
+- ⚠️ Still seeing Infinite yield on many modules, particularly in PlayerScripts and CoreRegistry references
 
 **Specific Errors:**
 - `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("DevUtilityFunctions")'` - ✅ FIXED
 - `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts.Client.UI:WaitForChild("AllianceUIFrame")'` - ✅ FIXED
-- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("ClientRegistry")'` - ✅ FIXED
-- `Infinite yield possible on 'ReplicatedStorage:WaitForChild("src")'` - ✅ FIXED in some files, needs broader implementation
+- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("ClientRegistry")'` - ⚠️ PARTIALLY FIXED
+- `Infinite yield possible on 'ReplicatedStorage:WaitForChild("src")'` - ⚠️ PARTIALLY FIXED
 - `Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlayerRemovedFromAllianceEvent")'` - ✅ FIXED
+- `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'` - ⚠️ NEW
+- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'` - ⚠️ NEW
+- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("TutorialManager")'` - ⚠️ NEW
+- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("MigrationUtils")'` - ⚠️ NEW
+- `Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlaySoundEvent")'` - ⚠️ NEW
 
 **Recommended Next Steps:**
-1. Continue implementing SafeWaitForChild in all files using WaitForChild pattern
-2. Focus on fixing remaining ClientRegistry issues in UI scripts
-3. Create a script to analyze all WaitForChild calls and prioritize ones causing infinite yield errors
-4. Add unit tests that verify key object references can be safely resolved
+1. Implement SafeWaitForChild in ALL remaining files using WaitForChild pattern
+2. Create a utility script that creates all common paths and objects at game start
+3. Set up a proper dependency management system with fallbacks for missing modules
+4. Focus on ensuring CoreRegistry is available early in the initialization process
+5. Add detailed logging to track which WaitForChild calls are causing delays
+6. Create a diagnostic tool to proactively identify and report WaitForChild issues
 
 ## Asset Loading Failures (🔧 IN PROGRESS)
 
@@ -51,12 +59,14 @@
 - ✅ Fixed SteamSauna sound asset references
 - ✅ Fixed AchievementNotification sound asset references
 - ✅ Added fallback mechanism for animation assets
+- ⚠️ Still seeing multiple asset loading failures in latest output
 
 **Recommended Next Steps:**
 1. Continue auditing all asset references
 2. Update all UI scripts to use AssetValidator for image assets
 3. Create a comprehensive asset validation report
 4. Consider implementing asset preloading for critical assets
+5. Implement automatic retry mechanism for failed asset loads
 
 ## CoreRegistry Access Issues (⚠️ HIGH PRIORITY)
 
@@ -64,6 +74,9 @@
 - `attempt to index nil with 'registerSystem'`
 - `CoreRegistry not found. Cannot run tests without it.`
 - `[CoreRegistry] ModuleLoader not found, using legacy loading`
+- `CoreRegistry is not a valid member of Folder "ServerScriptService.Core"`
+- `[BuyTileSystem] CRITICAL: Failed to load CoreRegistry!`
+- `[SystemBootstrap] Initializing ModuleLoader and registering paths...`
 
 **Context:** Many systems fail to initialize properly because they can't find or access the CoreRegistry.
 
@@ -71,15 +84,21 @@
 
 **Frequency:** Consistent on every game start.
 
+**Status:**
+- ⚠️ CRITICAL: CoreRegistry is still not loading properly
+- ⚠️ SystemBootstrap appears to fail early in initialization
+- ⚠️ Multiple systems attempting to register but failing
+
 **Recommended Next Steps:**
 1. Create a robust CoreRegistry initialization system that:
    - Loads early in the game lifecycle
    - Provides clear logging when it initializes
    - Has fallback mechanisms when core modules aren't found
    - Can be accessed consistently from both server and client
-2. Add a diagnostic tool to check CoreRegistry health on startup
-3. Create a universal system finder that can gracefully handle missing CoreRegistry
-4. Implement registry auto-repair utilities to fix common issues
+2. Restructure initialization sequence to ensure CoreRegistry is available before dependent modules
+3. Add a diagnostic tool to check CoreRegistry health on startup
+4. Create a universal system finder that can gracefully handle missing CoreRegistry
+5. Implement registry auto-repair utilities to fix common issues
 
 ## UI Module Loading Issues (🔧 IN PROGRESS)
 
@@ -88,6 +107,8 @@
 - `IconSet module not found, MainMenuUI will have limited functionality`
 - `ButtonFactory module not found, will have limited functionality`
 - `attempt to index nil with 'createIconButton'`
+- `UIUtils not available - cannot create Rebirth menu`
+- `Failed to create rebirth menu`
 
 **Context:** Many UI components failing to load due to missing dependencies.
 
@@ -99,165 +120,175 @@
 - ✅ Added robust fallback system for UI modules in AdminControlsUI.client.luau
 - ✅ Implemented safe module loading with multiple search paths
 - ✅ Added local UI state management to AdminControlsUI.client.luau
-- ✅ Fixed undefined globals in AdminControlsUI.client.luau
-- ✅ Updated MainMenuUI.client.luau to use UIComponents with fallbacks
-- ✅ Fixed variable naming consistency issues in MainMenuUI.client.luau
-- ✅ Fixed UserInputService reference in UIRegistry.luau
-- ✅ Created comprehensive UIComponents.luau module combining all UI modules
+- ⚠️ UISystemTester shows failures in multiple UI systems
+- ⚠️ ClientRegistry still not available to UI modules
+
+**Specific Test Results:**
+```
+======= UI SYSTEM TEST REPORT =======
+Tests Run: 13
+Tests Passed: 5
+Tests Failed: 8
+Warnings: 0
+Pass Rate: 38%
+------------------------------------
+ModuleLoader Exists: 0/1 tests passed (0%)
+UIRegistry Exists: 1/1 tests passed (100%)
+AssetValidator Exists: 0/1 tests passed (0%)
+UIComponents Exists: 0/1 tests passed (0%)
+UIRegistry: 3/7 tests passed (42%)
+UIRegistry Can Show Notifications: 1/1 tests passed (100%)
+ClientRegistry Exists: 0/1 tests passed (0%)
+
+Failed Tests:
+✗ ModuleLoader Exists: ModuleLoader module not found
+✗ ClientRegistry Exists: ClientRegistry not found through any method
+✗ UIRegistry.UIStyle:  
+✗ UIRegistry.IconSet:  
+✗ UIRegistry.ButtonFactory:  
+✗ UIRegistry.DialogFactory:  
+✗ UIComponents Exists: UIComponents not found through any method
+✗ AssetValidator Exists: AssetValidator not found through any method
+```
 
 **Recommended Next Steps:**
-1. Fix syntax issues in UISystemTester.client.luau
-2. Address _G global variable usage in UIRegistry.luau
-3. Create a UI diagnostic tool that can validate UI module health
-4. Apply the same UI module loading fixes to other UI scripts as needed
-5. Add centralized error handling for UI modules
+1. Focus on fixing ClientRegistry module to make it available early in game initialization
+2. Create missing UIStyle, IconSet, ButtonFactory and DialogFactory modules
+3. Implement a shared UIComponents module
+4. Add detailed error reporting to UI component loading
+5. Create an AssetValidator module for UI assets
+6. Review ClientRegistryFixer syntax error: `Expected 'end' (to close 'function' at line 198), got ']'`
 
-## Client Registry Issues (⚠️ HIGH PRIORITY)
+## Client Bootstrap System Failures (⚠️ NEW)
 
 **Error Message:**
-- `ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"`
-- `ClientRegistryFixer: Found ClientRegistry, creating global reference`
-- `The current thread cannot write 'Source' (lacking capability PluginOrOpenCloud)`
+- `[ClientBootstrap] ModuleLoader not found, some modules may fail to load`
+- `[ClientBootstrap] Stage 2 failed: false`
+- `[ClientBootstrap] Critical stage failed, bootstrap incomplete`
+- `[ClientBootstrap] Bootstrap complete: 1/5 stages successful`
 
-**Context:** ClientRegistry is not being properly initialized or accessed across the client scripts.
+**Context:** Client bootstrap process failing at Stage 2, preventing proper initialization of client systems.
 
-**Impact:** High. Many client systems fail to initialize properly.
+**Impact:** Critical. Most client functionality is broken or limited due to bootstrap failure.
+
+**Frequency:** Every client connection.
+
+**Status:** 
+- ⚠️ ClientBootstrap only completes 1 of 5 initialization stages
+- ⚠️ ModuleLoader not found by ClientBootstrap
+- ⚠️ ClientRegistryFixer not found or contains syntax errors
+
+**Recommended Next Steps:**
+1. Fix ClientBootstrap to properly locate or create ModuleLoader
+2. Review and fix syntax errors in ClientRegistryFixer
+3. Create a minimal fallback implementation for ModuleLoader
+4. Add better error recovery to ClientBootstrap stages
+5. Implement a stage skipping mechanism when non-critical stages fail
+
+## Require Call Failures (⚠️ NEW)
+
+**Error Message:**
+- `Attempted to call require with invalid argument(s).`
+
+**Context:** Appears across many scripts trying to require various modules.
+
+**Impact:** High. Many systems can't load their dependencies, causing cascading failures.
+
+**Frequency:** High, affects most systems.
+
+**Status:**
+- ⚠️ Multiple scripts attempting to require non-existent modules
+- ⚠️ Path structure may be inconsistent between different systems
+
+**Recommended Next Steps:**
+1. Audit all require calls to ensure consistent path usage
+2. Create a module path registry to standardize module access
+3. Implement a centralized module loader with proper error handling
+4. Add fallback implementations for commonly required modules
+5. Create a dependency graph to identify critical module dependencies
+
+## Data System Issues (⚠️ NEW)
+
+**Error Message:**
+- `[DataSystemIntegration] Enhanced data storage system not found!`
+- `No data system found! Data operations will fail!`
+- `[DataSystemBridge] Unable to locate any data management system`
+- `[DataAccessLayer] Warning: Session lock acquisition failed for Xdjpearsonx`
+- `Failed to load data for Xdjpearsonx`
+
+**Context:** Data storage and retrieval system not functioning properly.
+
+**Impact:** High. Player data may not be saved or loaded correctly.
 
 **Frequency:** Consistent on every game session.
 
-**Recommended Next Steps:**
-1. Create a robust ClientRegistry initialization system that:
-   - Loads at the earliest possible moment in the client lifecycle
-   - Properly registers itself in the correct location
-   - Has fallback mechanisms when expected modules aren't found
-   - Can be accessed consistently from all client scripts
-2. Implement a diagnostic tool to verify ClientRegistry initialization
-3. Update all client scripts to use a consistent ClientRegistry access pattern
-4. Add a ClientRegistryFixer that properly handles Studio permissions
-
-## Data Management and Restoration Issues (✅ FIXED)
-
-**Error Message:** `BuyTile system not available or missing spawnGymPart function`
-
-**Context:** During player data restoration and tile management.
-
-**Impact:** Critical. Prevents proper gameplay progression and tycoon building.
-
-**Frequency:** Consistent, affecting all tile restoration attempts.
-
 **Status:**
-- ✅ Created BuyTileHelper module to provide a robust interface to the BuyTile system
-- ✅ Implemented fallback spawnGymPart function when the original is missing
-- ✅ Added fallback tycoon initialization for new players
-- ✅ Created recovery mechanisms for failed tile restoration
-- ✅ Implemented proper error handling throughout the tile management process
-
-**Implementation Details:**
-1. Created a BuyTileHelper module that:
-   - Safely locates and interfaces with the existing BuyTile system
-   - Provides fallback implementations for critical functions
-   - Creates missing parts if they don't exist
-   - Handles errors gracefully without crashing
-
-2. Enhanced the system to:
-   - First try the original BuyTile system functions
-   - Fall back to custom implementations if that fails
-   - Provide detailed debug information for tracking issues
-   - Create placeholder parts to ensure gameplay can continue
-
-## Data Storage Queue Issues (✅ FIXED)
-
-**Error Message:** `DataStore request was added to queue. If request queue fills, further requests will be dropped.`
-
-**Context:** When saving player data, especially during player departure events.
-
-**Impact:** High. Risk of data loss if queue fills up.
-
-**Frequency:** Multiple occurrences during player join/leave cycles.
-
-**Status:**
-- ✅ Created DataThrottler module to manage and rate-limit DataStore requests
-- ✅ Enhanced EnhancedDataStorageSystem to use the DataThrottler
-- ✅ Implemented request prioritization (critical saves have priority)
-- ✅ Added request batching and queueing
-- ✅ Added robust retry mechanisms with exponential backoff
-- ✅ Added proper error handling for failed saves
-
-**Implementation Details:**
-1. Created a robust DataThrottler module with:
-   - Priority-based request queue (critical saves processed first)
-   - Rate limiting to avoid hitting Roblox DataStore limits
-   - Automatic retry with exponential backoff
-   - System registration and metrics tracking
-
-2. Enhanced EnhancedDataStorageSystem to:
-   - Use DataThrottler for all DataStore operations
-   - Prioritize immediate saves (player leaving, game closing)
-   - Use background priority for non-essential operations like backups
-   - Implement more robust error handling
-
-## GUI Element Missing Issues (🔧 IN PROGRESS)
-
-**Error Message:** 
-- `Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui:45: Expected <eof>, got 'end'`
-- `PurchaseButton is not a valid member of PlayerGui "Players.Xdjpearsonx.PlayerGui"`
-- `Players.Xdjpearsonx.PlayerGui.SatisfactionButton:28: attempt to index nil with 'WaitForChild'`
-
-**Context:** Various GUI elements missing or failing to load properly.
-
-**Impact:** Medium to High. UI elements not appearing or functioning correctly.
-
-**Frequency:** Multiple instances with different UI components.
-
-**Status:**
-- ✅ Fixed BuilderBoostPurchaseGui to properly create its button if missing
-- ✅ Added error handling for missing UI elements
+- ⚠️ Multiple data systems attempting to initialize but failing
+- ⚠️ Session lock acquisition failing
+- ⚠️ Core data components missing or not found
 
 **Recommended Next Steps:**
-1. Create a UI diagnostic tool to verify all essential UI elements exist
-2. Implement a UI cleanup/repair utility to fix common issues
-3. Add safety checks before accessing UI elements
-4. Create a standardized approach for UI element creation and access
+1. Resolve CoreRegistry issues as this appears to be a dependency for data systems
+2. Implement robust fallback mechanisms for data operations
+3. Add comprehensive data validation and error recovery
+4. Create a data integrity verification tool
+5. Ensure proper cleanup and handling of session locks
 
-## Miscellaneous Script Errors (🔧 IN PROGRESS)
+## ResetButtonHandler Error (⚠️ NEW)
 
-**Error Message:** Various errors including undefined globals, references to non-existent members.
+**Error Message:**
+- `invalid argument #1 to 'find' (string expected, got boolean)`
 
-**Context:** Throughout gameplay in different systems.
+**Context:** When player tries to reset their data.
 
-**Impact:** Medium. Varies from visual issues to functionality failures.
+**Impact:** Medium. Players cannot reset data properly.
 
-**Frequency:** Sporadic.
+**Frequency:** Occurs when reset button is used.
 
 **Status:**
-- ✅ Fixed ElevatorMovement script errors related to PrimaryPart
-- ✅ Updated font references from deprecated GothamSemibold to GothamMedium
-- ✅ Added proper error handling for missing or invalid arguments
+- ⚠️ Bug in ResetButtonHandler function, passing incorrect argument type
 
 **Recommended Next Steps:**
-1. Implement a more comprehensive error handling system
-2. Create a diagnostic tool to systematically check for and report common errors
-3. Add more robust null/nil checks before accessing potentially undefined objects
-4. Replace all deprecated API usage with updated alternatives
+1. Fix the type error in ResetButtonHandler:72
+2. Add type checking before calling the find function
+3. Add proper error handling to prevent crashes
 
-## Path Module Loading Issues (⚠️ HIGH PRIORITY)
+## Tile Restoration Issues (⚠️ NEW)
 
-**Error Message:** 
-- `Attempted to call require with invalid argument(s)`
-- `Core is not a valid member of PlayerScripts "Players.Xdjpearsonx.PlayerScripts"`
+**Error Message:**
+- `Could not find gym part with ID: 0`
+- `Failed to restore tile 0 for Xdjpearsonx`
+- `[DataManager] Restored 1 of 8 tiles for Xdjpearsonx`
 
-**Context:** Many scripts are failing to properly require modules due to incorrect path references.
+**Context:** When attempting to restore player's purchased tiles.
 
-**Impact:** Critical. Many systems fail to initialize, causing cascading failures.
+**Impact:** High. Players lose purchased content upon rejoining.
 
-**Frequency:** Very high, affecting most module requires.
+**Frequency:** Consistent on player join.
+
+**Status:**
+- ⚠️ Only 1 of 8 tiles being restored successfully
+- ⚠️ Missing gym part references
 
 **Recommended Next Steps:**
-1. Create a robust ModuleLoader system that:
-   - Provides standardized access to modules regardless of their location
-   - Supports multiple search paths for modules
-   - Has fallback mechanisms when modules aren't found
-   - Provides helpful error messages when modules can't be loaded
-2. Update all scripts to use ModuleLoader instead of direct require
-3. Implement script analysis to find and fix common module path issues
-4. Create a module dependency graph to better understand the loading order
+1. Update BuyTileSystem to properly handle missing gym parts
+2. Create a recovery system for corrupted tile data
+3. Implement better logging for tile restoration process
+4. Add safety checks before attempting to spawn tiles
+
+## Integration Priority
+
+1. **CoreRegistry Fix** - Most critical as many systems depend on it
+2. **ClientBootstrap Repair** - Fix client initialization process
+3. **Module Loading System** - Create consistent module access pattern
+4. **WaitForChild Safety** - Implement SafeWaitForChild everywhere
+5. **Data System Repair** - Ensure data is properly loaded/saved
+
+## Daily Testing Checklist
+
+- [ ] Run UISystemTester to check UI component availability
+- [ ] Test data saving/loading with multiple players
+- [ ] Verify tile purchase and restoration
+- [ ] Check for infinite yield errors in output
+- [ ] Verify sound and animation assets load correctly
+- [ ] Test reset button functionality

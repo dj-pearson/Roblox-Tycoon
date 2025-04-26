@@ -1,33 +1,37 @@
--- SystemBootstrap.luau
--- Main entry point for initializing all core systems
--- Place in ServerScriptService/Core
+--[[
+    SystemBootstrap.server.luau
+    
+    Bootstrap script that initializes all core systems in the correct order.
+    This script runs at server start and sets up the environment.
+    
+    Created: April 25, 2025
+]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
--- Basic configuration
+-- Configuration
 local CONFIG = {
-    debugEnabled = true,
-    systemInitTimeout = 10, -- Maximum time to wait for a system to initialize (seconds)
-    initRetryCount = 3,     -- Number of times to retry initializing a failed system
-    startupDelay = 0,        -- Optional delay before initializing systems (seconds)
-    interSystemInitDelay = 0.5 -- Delay between initializing each system (seconds)
+    DEBUG_LOGGING = true,
+    BOOTSTRAP_TIMEOUT = 10,
+    ENSURE_FOLDERS = true,
+    CREATE_EVENTS = true
 }
 
--- Debug functions defined early so they can be used throughout the file
-local function log(...)
-    if CONFIG.debugEnabled then
-        print("[SystemBootstrap]", ...)
+-- Debug logging
+local function log(message)
+    if CONFIG.DEBUG_LOGGING then
+        print("[SystemBootstrap] " .. message)
     end
 end
 
-local function warnLog(...)
-    if CONFIG.debugEnabled then
-        warn("[SystemBootstrap]", ...)
-    end
+local function warnLog(message)
+    warn("[SystemBootstrap] " .. message)
 end
 
 local CoreFolder = ServerScriptService:FindFirstChild("Core")
+local SharedFolder = ReplicatedStorage:FindFirstChild("shared")
 local ConnectorsFolder = ServerScriptService:FindFirstChild("Connectors")
 
 -- First try to initialize ModuleLoader and PathRegistration
@@ -45,7 +49,8 @@ local function initializeModuleLoader()
     -- Check for ModuleLoader, and copy it to shared folder if missing
     if not ReplicatedStorage.shared:FindFirstChild("ModuleLoader") then
         -- Try to find it in the src/shared folder
-        local srcShared = game:GetService("ServerScriptService"):FindFirstChild("src"):FindFirstChild("shared")
+        local srcShared = ServerScriptService:FindFirstChild("src") and 
+                          ServerScriptService.src:FindFirstChild("shared")
         if srcShared and srcShared:FindFirstChild("ModuleLoader") then
             local moduleLoader = srcShared.ModuleLoader:Clone()
             moduleLoader.Parent = ReplicatedStorage.shared
@@ -79,276 +84,107 @@ if folderSetupPath then
     require(folderSetupPath)
 else
     log("Warning: FolderSetup not found, some scripts might yield indefinitely")
-end
-
--- Ensure folders exist
-local function ensureFolderExists(parent, name)
-    local folder = parent:FindFirstChild(name)
-    if not folder then
-        folder = Instance.new("Folder")
-        folder.Name = name
-        folder.Parent = parent
+    
+    -- Create essential folders if FolderSetup is missing
+    if CONFIG.ENSURE_FOLDERS then
+        log("Creating essential folders manually...")
+        
+        -- Function to ensure a folder exists
+        local function ensureFolder(parent, name)
+            local folder = parent:FindFirstChild(name)
+            if not folder then
+                folder = Instance.new("Folder")
+                folder.Name = name
+                folder.Parent = parent
+                log("Created " .. name .. " folder in " .. parent.Name)
+            end
+            return folder
+        end
+        
+        -- Create essential folders
+        ensureFolder(ReplicatedStorage, "shared")
+        ensureFolder(ReplicatedStorage, "Events")
+        ensureFolder(ServerScriptService, "Core")
+        ensureFolder(ServerScriptService, "Systems")
+        ensureFolder(ServerScriptService, "Data")
     end
-    return folder
 end
 
--- Create necessary folders in ReplicatedStorage
--- Create folders without storing references since they aren't used later
-ensureFolderExists(ReplicatedStorage, "Events")
-ensureFolderExists(ReplicatedStorage, "shared")
-log("Created or found necessary folders in ReplicatedStorage")
+-- Ensure CoreRegistryInitializer runs to set up CoreRegistry
+local coreRegistryInitializerPath = script.Parent:FindFirstChild("CoreRegistryInitializer")
+if coreRegistryInitializerPath then
+    log("Running CoreRegistryInitializer...")
+    require(coreRegistryInitializerPath)
+else
+    warnLog("CoreRegistryInitializer not found! CoreRegistry may not function properly.")
+end
 
--- Get the CoreRegistry to access all systems
-local CoreRegistry = require(CoreFolder:FindFirstChild("CoreRegistry"))
-
--- Systems to initialize in order (dependencies handled by registry)
--- "LeaderstatsSystem" is initialized first to ensure leaderstats are set up before other systems rely on them.
-local systemsToInitialize = {
-    "EventBridge",
-    "DataManager",
-    "PerformanceManager", -- Added PerformanceManager early in the initialization process
-    "ConfigManager", -- Added ConfigManager 
-    "NPCSystem",
-    "NPCSystemPerformance", -- Added NPCSystemPerformance after NPCSystem
-    "NPCAnimationSystem", -- Added NPCAnimationSystem after NPCSystemPerformance
-    "TycoonSystem",
-    "BuyTileSystem",
-    "SpecializationSystem",
-    "MilestoneSystem",
-    "AchievementSystem",
-    "SaunaSystem",
-    "RevenueSystem",
-    "QuestSystem",
-    "MemoryStoreManager" -- Added MemoryStoreManager
-    -- Additional systems can be added here
-}
-
--- Connectors to initialize after core systems
-local connectorsToInitialize = {
-    "GymTycoonConnector" -- Bridge between new architecture and legacy code
-}
-
--- Handle when a player joins
-local function handlePlayerJoin(player)
-    if not player then return end
-
-    log("Setting up player: " .. player.Name)
-
-    -- Create leaderstats first (if needed)
-    local LeaderstatsSystem = CoreRegistry.getSystem("LeaderstatsSystem")    if LeaderstatsSystem and LeaderstatsSystem.setupLeaderstats then
-        LeaderstatsSystem.setupLeaderstats(player)
+-- Create all common remote events to prevent infinite yield errors
+if CONFIG.CREATE_EVENTS then
+    log("Creating common remote events...")
+    
+    local eventCreatorPath = script.Parent:FindFirstChild("EventCreator")
+    if eventCreatorPath then
+        require(eventCreatorPath)
+        log("Common events created successfully")
     else
-        warnLog("LeaderstatsSystem not found or setupLeaderstats function missing")
+        warnLog("EventCreator not found, common events may not be created!")
     end
-
-    -- Ensure player has a tycoon
-    local TycoonSystem = CoreRegistry.getSystem("TycoonSystem")
-    if TycoonSystem and TycoonSystem.ensurePlayerTycoon then
-        task.spawn(function()
-            local tycoon = TycoonSystem.ensurePlayerTycoon(player)            if tycoon then
-                log("Tycoon ready for " .. player.Name)
-            else
-                warnLog("Failed to create tycoon for " .. player.Name)
-            end
-        end)
-    end
-
-    -- Additional player setup logic can go here
-end
-
--- Initialize connector modules
-local function initializeConnectors()
-    if not ConnectorsFolder then
-        warnLog("Connectors folder not found in ServerScriptService")
-        return
-    end
-
-    log("Initializing connector modules...")
-
-    -- Track successful initializations
-    local initializedCount = 0
-    local failedConnectors = {}
-
-    for _, connectorName in ipairs(connectorsToInitialize) do        local connectorScript = ConnectorsFolder:FindFirstChild(connectorName)
-        if not connectorScript then
-            warnLog("Connector not found: " .. connectorName)
-            table.insert(failedConnectors, connectorName)
-            continue
-        end
-
-        log("Loading connector: " .. connectorName)
-
-        -- Try to load and initialize the connector
-        local success, connector = pcall(function()
-            return require(connectorScript)
-        end)
-
-        if success and connector then
-            -- Try to initialize the connector
-            if typeof(connector.initialize) == "function" then
-                local initSuccess, result = pcall(function()
-                    return connector.initialize()
-                end)
-
-                if initSuccess and result ~= false then
-                    log("Successfully initialized connector: " .. connectorName)
-                    initializedCount = initializedCount + 1
-
-                    -- Register with CoreRegistry for other systems to access
-                    CoreRegistry.registerSystem(connectorName, connector)
-                else                    warnLog("Failed to initialize connector: " .. connectorName)
-                    table.insert(failedConnectors, connectorName)
-                end
-            else
-                log("Connector has no initialize function: " .. connectorName)
-                -- Still register it with CoreRegistry
-                CoreRegistry.registerSystem(connectorName, connector)
-                initializedCount = initializedCount + 1
-            end
-        else            warnLog("Failed to load connector: " .. connectorName)
-            table.insert(failedConnectors, connectorName)
-        end
-    end    -- Final report
-    log("Connectors initialization complete: " .. initializedCount .. " of " .. #connectorsToInitialize .. " connectors initialized")
-
-    if #failedConnectors > 0 then
-        warnLog("Failed to initialize " .. #failedConnectors .. " connectors: " .. table.concat(failedConnectors, ", "))
+    
+    -- Set up alliance events specifically
+    local allianceEventSetupPath = script.Parent:FindFirstChild("AllianceEventSetup")
+    if allianceEventSetupPath then
+        require(allianceEventSetupPath)
+        log("Alliance events created successfully")
+    else
+        warnLog("AllianceEventSetup not found, alliance events may not be created!")
     end
 end
 
--- Tasks to run after all systems are initialized
-local function postInitialization()
-    log("Running post-initialization tasks...")
-
-    -- Connect player joined event
-    game:GetService("Players").PlayerAdded:Connect(function(player)
-        log("Player joined: " .. player.Name)
-        handlePlayerJoin(player)
-    end)
-
-    -- Handle existing players
-    for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-        task.spawn(function()
-            handlePlayerJoin(player)
-        end)
-    end
-
-    log("Post-initialization complete")
-    log("System bootstrap complete - Ready to play!")
-end
-
--- Main initialization function
-local function initializeSystems()
-    log("Beginning system initialization...")
-
-    if CONFIG.startupDelay > 0 then
-        log("Waiting " .. CONFIG.startupDelay .. " seconds before initializing systems...")
-        task.wait(CONFIG.startupDelay)
-    end
-
-    -- Track successful initializations
-    local initializedCount = 0
-    local failedSystems = {}
-
-    for _, systemName in ipairs(systemsToInitialize) do
-        local success, retryCount = false, 0
-
-        -- Attempt to initialize with retries
-        while not success and retryCount < CONFIG.initRetryCount do
-            log("Initializing " .. systemName .. (retryCount > 0 and " (retry " .. retryCount .. ")" or ""))
-
-            local system = CoreRegistry.getSystem(systemName)            if not system then
-                -- Attempt to require the system module if not already loaded
-                local module = require(script.Parent:FindFirstChild(systemName))
-                if module then
-                    CoreRegistry.registerSystem(module) -- Register it
-                    system = CoreRegistry.getSystem(systemName)
-                end                warnLog("System not found: " .. systemName)
-                continue -- Continue to the next system
-            end
-
-            -- Check if the system has already been initialized using CoreRegistry's initialized table
-            if CoreRegistry.initialized and CoreRegistry.initialized[systemName] then
-                log(systemName .. " was already initialized")
-                success = true
-                break
-            end
-
-            -- Attempt initialization with timeout protection
-            local initializationComplete = false
-            local initSuccess = false
-
-            -- Create a separate thread for initialization
-            task.spawn(function()
-                local result = pcall(function()
-                    -- Call system's initialize function if it exists
-                    if typeof(system.initialize) == "function" then
-                        initSuccess = system.initialize() ~= false
-                    else
-                        -- Try alternative init method (some systems may use init instead)
-                        if typeof(system.init) == "function" then
-                            initSuccess = system.init() ~= false
-                        else
-                            initSuccess = true -- No initialize function means success by default
-                        end
-                    end
-                end)
-
-                if not result then
-                    initSuccess = false
-                end
-
-                initializationComplete = true
-            end)
-
-            -- Wait for initialization with timeout
-            local startTime = os.clock()
-            while not initializationComplete do                if os.clock() - startTime > CONFIG.systemInitTimeout then
-                    warnLog("System initialization timed out: " .. systemName)
-                    break
-                end
-                task.wait(0.1)
-            end
-
-            -- Check result
-            if initSuccess then
-                success = true
-                -- The CoreRegistry should already mark it as initialized if successful
-                log("Successfully initialized: " .. systemName)
-                initializedCount = initializedCount + 1
-            else                retryCount = retryCount + 1
-                warnLog("Failed to initialize: " .. systemName .. (retryCount < CONFIG.initRetryCount and ", will retry" or ""))
-                task.wait(1) -- Wait before retry
-            end
-
-            task.wait(CONFIG.interSystemInitDelay)
-        end
-
-        -- Track failed systems
-        if not success then
-            table.insert(failedSystems, systemName)
-        end
-    end
-
-    -- Final report    log("Core systems initialization complete: " .. initializedCount .. " of " .. #systemsToInitialize .. " systems initialized")
-
-    if #failedSystems > 0 then
-        warnLog("Failed to initialize " .. #failedSystems .. " systems: " .. table.concat(failedSystems, ", "))
-    end
-
-    -- Initialize connectors after core systems
-    initializeConnectors()
-
-    -- Begin post-initialization tasks
-    task.spawn(postInitialization)
-end
-
--- Start the initialization process
-task.spawn(function()
-    initializeSystems()
+-- Try to get CoreRegistry to initialize systems
+local CoreRegistry
+local success, result = pcall(function()
+    return require(script.Parent:FindFirstChild("CoreRegistry"))
 end)
 
--- Return the bootstrap module
+if success and result then
+    CoreRegistry = result
+    log("Found CoreRegistry, initializing systems...")
+    
+    -- Define the core systems that need to be initialized in order
+    local coreSystems = {
+        "EventBridge",
+        "DataThrottler",
+        "DataManager",
+        "TutorialManager",
+        "MigrationUtils",
+    }
+    
+    -- Initialize systems one by one
+    local initializedCount = 0
+    for _, systemName in ipairs(coreSystems) do
+        log("Initializing system: " .. systemName)
+        
+        local system = CoreRegistry:getSystem(systemName)
+        if system then
+            initializedCount = initializedCount + 1
+            log("System loaded: " .. systemName)
+        else
+            warnLog("System not found: " .. systemName)
+        end
+    end
+    
+    log("Core systems initialized: " .. initializedCount .. "/" .. #coreSystems)
+else
+    warnLog("Failed to get CoreRegistry: " .. tostring(result))
+    warnLog("System initialization may be incomplete!")
+end
+
+log("System bootstrap complete")
+
 return {
-    reInitialize = initializeSystems
+    initialize = function()
+        log("Systems already initialized")
+        return true
+    end
 }

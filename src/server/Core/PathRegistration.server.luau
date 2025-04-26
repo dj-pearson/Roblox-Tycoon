@@ -8,9 +8,153 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
--- Wait for the shared folder to be available
-local shared = ReplicatedStorage:WaitForChild("shared")
-local ModuleLoader = require(shared:WaitForChild("ModuleLoader"))
+-- Setup shared folder if it doesn't exist
+local shared = ReplicatedStorage:FindFirstChild("shared")
+if not shared then
+    shared = Instance.new("Folder")
+    shared.Name = "shared"
+    shared.Parent = ReplicatedStorage
+    print("[PathRegistration] Created shared folder in ReplicatedStorage")
+end
+
+-- Wait for ModuleLoader to be available
+local function waitForModuleLoader()
+    local ModuleLoader = shared:FindFirstChild("ModuleLoader")
+    
+    if not ModuleLoader then
+        print("[PathRegistration] ModuleLoader not found, waiting...")
+          -- Wait briefly for it to be created
+        local attempts = 0
+        while attempts < 10 do
+            ModuleLoader = shared:FindFirstChild("ModuleLoader")
+            if ModuleLoader then
+                print("[PathRegistration] ModuleLoader found")
+                break
+            end
+            attempts += 1
+            task.wait(0.5)
+        end
+        
+        -- If still not found, check if we need to create it
+        if not ModuleLoader then
+            -- Look in src/shared
+            local srcShared = ServerScriptService:FindFirstChild("src") and
+                             ServerScriptService.src:FindFirstChild("shared")
+                             
+            if srcShared and srcShared:FindFirstChild("ModuleLoader") then
+                -- Copy to shared folder
+                ModuleLoader = srcShared.ModuleLoader:Clone()
+                ModuleLoader.Parent = shared
+                print("[PathRegistration] Copied ModuleLoader from src/shared")
+            else
+                -- Create a minimal ModuleLoader
+                ModuleLoader = Instance.new("ModuleScript")
+                ModuleLoader.Name = "ModuleLoader"
+                ModuleLoader.Source = [[
+--!strict
+-- Minimal ModuleLoader implementation
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local searchPaths = {}
+local loadedModules = {}
+
+local ModuleLoader = {
+    searchPaths = searchPaths,
+    loadedModules = loadedModules
+}
+
+function ModuleLoader.addSearchPath(path)
+    if typeof(path) == "Instance" then
+        table.insert(searchPaths, 1, path)
+        return true
+    end
+    return false
+end
+
+function ModuleLoader.RegisterPath(category, group, path)
+    if typeof(path) == "Instance" then
+        table.insert(searchPaths, 1, path)
+        return true
+    end
+    return false
+end
+
+function ModuleLoader.findModule(moduleName)
+    for _, path in ipairs(searchPaths) do
+        local module = path:FindFirstChild(moduleName)
+        if module and module:IsA("ModuleScript") then
+            return module
+        end
+    end
+    return nil
+end
+
+function ModuleLoader.tryRequire(moduleName)
+    if loadedModules[moduleName] then
+        return loadedModules[moduleName]
+    end
+    
+    local moduleScript = ModuleLoader.findModule(moduleName)
+    if not moduleScript then
+        return nil
+    end
+    
+    local success, result = pcall(function()
+        return require(moduleScript)
+    end)
+    
+    if success then
+        loadedModules[moduleName] = result
+        return result
+    end
+    
+    return nil
+end
+
+function ModuleLoader.initialize()
+    -- Add core paths
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared then ModuleLoader.addSearchPath(shared) end
+    
+    return ModuleLoader
+end
+
+ModuleLoader.require = ModuleLoader.tryRequire
+ModuleLoader.LoadServerModule = function(_, _, name)
+    return ModuleLoader.tryRequire(name)
+end
+
+return ModuleLoader
+]]
+                ModuleLoader.Parent = shared
+                print("[PathRegistration] Created minimal ModuleLoader in shared folder")
+            end
+        end
+    end
+    
+    -- Require the ModuleLoader
+    local success, result = pcall(function()
+        return require(ModuleLoader)
+    end)
+    
+    if success then
+        if typeof(result.initialize) == "function" then
+            result.initialize()
+        end
+        return result
+    else
+        warn("[PathRegistration] Error loading ModuleLoader: " .. tostring(result))
+        return nil
+    end
+end
+
+-- Get ModuleLoader
+local ModuleLoader = waitForModuleLoader()
+if not ModuleLoader then
+    error("[PathRegistration] Failed to get ModuleLoader after multiple attempts")
+    return
+end
 
 -- Print function to show registration progress
 local function logRegistration(category, group, path)
@@ -33,16 +177,8 @@ local function safeFindPath(parent, childName)
         child = parent:FindFirstChild("Client")
     end
     
-    if childName == "Core" and not child then
-        child = parent:FindFirstChild("core")
-    end
-    
-    -- Try creating the path if it doesn't exist
-    if not child then
-        print(string.format("[PathRegistration] WARNING: Path %s not found in %s. Creating it.", childName, parent:GetFullName()))
-        child = Instance.new("Folder")
-        child.Name = childName
-        child.Parent = parent
+    if childName == "shared" and not child then
+        child = parent:FindFirstChild("Shared")
     end
     
     return child
@@ -50,16 +186,34 @@ end
 
 -- Register Server paths
 local function registerServerPaths()
-    local src = safeFindPath(ServerScriptService, "src")
+    local src = safeFindPath(ServerScriptService, "src") 
+    if not src then
+        src = safeFindPath(ServerScriptService, "source")
+    end
+    
     local server = safeFindPath(src, "server")
     
-    -- Core paths
+    -- Core path registrations
     local core = safeFindPath(server, "Core")
     ModuleLoader:RegisterPath("Server", "Core", core)
     logRegistration("Server", "Core", core)
     
-    -- Connectors
-    local connectors = safeFindPath(server, "Connectors")
+    -- Systems path registrations
+    local systems = safeFindPath(core, "Systems") or safeFindPath(server, "Systems") or safeFindPath(ServerScriptService, "Systems")
+    if systems then
+        ModuleLoader:RegisterPath("Server", "Systems", systems)
+        logRegistration("Server", "Systems", systems)
+    end
+    
+    -- Data path registrations
+    local data = safeFindPath(server, "Data") or safeFindPath(ServerScriptService, "Data")
+    if data then
+        ModuleLoader:RegisterPath("Server", "Data", data)
+        logRegistration("Server", "Data", data)
+    end
+    
+    -- Connectors path registrations
+    local connectors = safeFindPath(server, "Connectors") or safeFindPath(ServerScriptService, "Connectors")
     ModuleLoader:RegisterPath("Server", "Connectors", connectors)
     logRegistration("Server", "Connectors", connectors)
     
@@ -114,6 +268,11 @@ local function registerClientPaths()
     ModuleLoader:RegisterPath("Client", "Core", clientCore)
     logRegistration("Client", "Core", clientCore)
     
+    -- Client Utilities
+    local clientUtilities = safeFindPath(client, "Utilities")
+    ModuleLoader:RegisterPath("Client", "Utilities", clientUtilities)
+    logRegistration("Client", "Utilities", clientUtilities)
+    
     -- Register direct client folder for compatibility
     ModuleLoader:RegisterPath("Client", "client", client)
     logRegistration("Client", "client", client)
@@ -121,19 +280,19 @@ end
 
 -- Register Shared paths
 local function registerSharedPaths()
-    local shared = safeFindPath(ReplicatedStorage, "shared")
-    ModuleLoader:RegisterPath("Shared", "Shared", shared)
-    logRegistration("Shared", "Shared", shared)
+    local sharedFolder = safeFindPath(ReplicatedStorage, "shared")
+    ModuleLoader:RegisterPath("Shared", "Shared", sharedFolder)
+    logRegistration("Shared", "Shared", sharedFolder)
     
     -- Constants
-    local constants = safeFindPath(shared, "Constants") 
+    local constants = safeFindPath(sharedFolder, "Constants") 
     if constants then
         ModuleLoader:RegisterPath("Shared", "Constants", constants)
         logRegistration("Shared", "Constants", constants)
     end
     
     -- Utils
-    local utils = safeFindPath(shared, "Utils")
+    local utils = safeFindPath(sharedFolder, "Utils")
     if utils then
         ModuleLoader:RegisterPath("Shared", "Utils", utils)
         logRegistration("Shared", "Utils", utils)
@@ -162,6 +321,13 @@ local function registerSpecialPaths()
             logRegistration("Server", "LegacyServerCore", legacyServerCore)
         end
     end
+      -- Try to find on-device CoreRegistry for BuyTile compatibility
+    local ServerStorage = game:GetService("ServerStorage")
+    local serverStorageSystems = safeFindPath(ServerStorage, "Systems")
+    if serverStorageSystems then
+        ModuleLoader:RegisterPath("Server", "ServerStorageSystems", serverStorageSystems)
+        logRegistration("Server", "ServerStorageSystems", serverStorageSystems)
+    end
 end
 
 -- Run all registrations
@@ -176,5 +342,9 @@ local function init()
     print("[PathRegistration] Path registration complete.")
 end
 
--- Execute the initialization
+-- Run the module
 init()
+
+return {
+    reload = init  -- Allow manual reloading if needed
+}

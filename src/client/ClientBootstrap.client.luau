@@ -1,10 +1,10 @@
---!strict
 --[[
     ClientBootstrap.client.luau
     
     Initializes the client environment and loads essential modules.
     
     Created: April 25, 2025
+    Updated: April 25, 2025 - Enhanced with SafeWaitForChild and robust error handling
     
     This script:
     1. Loads early in the client lifecycle
@@ -21,11 +21,69 @@ local RunService = game:GetService("RunService")
 -- Constants
 local LocalPlayer = Players.LocalPlayer
 local DEBUG_ENABLED = true
+local WAIT_TIMEOUT = 5  -- Seconds to wait for modules before timeout
 
 -- Debug logging
 local function log(message)
     if DEBUG_ENABLED then
         print("[ClientBootstrap] " .. message)
+    end
+end
+
+local function warn_log(message)
+    warn("[ClientBootstrap] " .. message)
+end
+
+-- First, get SafeWaitForChild to help prevent infinite yield errors
+local SafeWaitForChild
+do
+    -- Try to find in shared folder
+    local sharedFolderWait = ReplicatedStorage:FindFirstChild("shared")
+    if not sharedFolderWait then
+        sharedFolderWait = Instance.new("Folder")
+        sharedFolderWait.Name = "shared"
+        sharedFolderWait.Parent = ReplicatedStorage
+        log("Created shared folder in ReplicatedStorage")
+    end
+    
+    local safeWaitModule = sharedFolderWait:FindFirstChild("SafeWaitForChild")
+    if safeWaitModule and safeWaitModule:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(safeWaitModule)
+        end)
+        
+        if success then
+            SafeWaitForChild = result
+            log("Found and loaded SafeWaitForChild module")
+        else
+            warn_log("Error loading SafeWaitForChild: " .. tostring(result))
+        end
+    end
+    
+    -- If not found, create a minimal version
+    if not SafeWaitForChild then
+        log("SafeWaitForChild not found, creating minimal version")
+        
+        SafeWaitForChild = {
+            waitForChild = function(parent, childName, timeout)
+                timeout = timeout or WAIT_TIMEOUT
+                
+                -- Check if child already exists
+                local child = parent:FindFirstChild(childName)
+                if child then return child, false end
+                
+                -- Wait with timeout
+                local startTime = os.clock()
+                while os.clock() - startTime < timeout do
+                    child = parent:FindFirstChild(childName)
+                    if child then return child, false end
+                    task.wait(0.1)
+                end
+                
+                warn_log("Timed out waiting for " .. childName .. " in " .. parent:GetFullName())
+                return nil, false
+            end
+        }
     end
 end
 
@@ -40,7 +98,7 @@ local function requireSafely(module)
     end)
     
     if not success then
-        warn("[ClientBootstrap] Failed to require module: ", module:GetFullName(), " Error: ", result)
+        warn_log("Failed to require module: " .. (typeof(module) == "Instance" and module:GetFullName() or tostring(module)))
         return nil
     end
     
@@ -59,207 +117,244 @@ local function ensureFolderExists(parent, folderName)
     return folder
 end
 
--- Bootstrap stages for step-by-step initialization
-local bootstrapStages = {
-    -- Stage 1: Setup Essential Folders
-    function()
-        log("Stage 1: Setting up essential folders")
-        
-        -- Ensure shared folder exists
-        local sharedFolder = ensureFolderExists(ReplicatedStorage, "shared")
-        
-        -- Ensure client folder exists in PlayerScripts
-        local clientFolder = ensureFolderExists(LocalPlayer.PlayerScripts, "Client")
-        
-        -- Ensure Core folder exists in client folder
-        local coreFolder = ensureFolderExists(clientFolder, "Core")
-        
-        -- Ensure UI folder exists in client folder
-        local uiFolder = ensureFolderExists(clientFolder, "UI")
-        
-        return true
-    end,
-    
-    -- Stage 2: Load ModuleLoader
-    function()
-        log("Stage 2: Loading ModuleLoader")
-        
-        local sharedFolder = ReplicatedStorage.shared
-        local ModuleLoader = requireSafely(sharedFolder:FindFirstChild("ModuleLoader"))
-        
-        if not ModuleLoader then
-            warn("[ClientBootstrap] ModuleLoader not found, some modules may fail to load")
-            return false
-        end
-        
-        -- Initialize ModuleLoader
-        ModuleLoader.initialize()
-        log("ModuleLoader initialized")
-        
-        -- Add to global context for easier access
-        if _G then
-            _G.ModuleLoader = ModuleLoader
-        end
-        
-        return true
-    end,
-    
-    -- Stage 3: Load ClientRegistry
-    function()
-        log("Stage 3: Loading ClientRegistry")
-        
-        local clientFolder = LocalPlayer.PlayerScripts.Client
-        local coreFolder = clientFolder.Core
-        
-        -- Try to load ClientRegistry
-        local ClientRegistry
-        
-        -- First try direct require
-        ClientRegistry = requireSafely(coreFolder:FindFirstChild("ClientRegistry"))
-        
-        -- If that failed, try to load from shared folder
-        if not ClientRegistry then
-            ClientRegistry = requireSafely(ReplicatedStorage.shared:FindFirstChild("ClientRegistry"))
-        end
-        
-        -- If still not found, try to use ModuleLoader
-        if not ClientRegistry and _G.ModuleLoader then
-            ClientRegistry = _G.ModuleLoader.tryRequire("ClientRegistry")
-        end
-        
-        if not ClientRegistry then
-            warn("[ClientBootstrap] ClientRegistry not found, UI systems may not function correctly")
-            return false
-        end
-        
-        -- Initialize ClientRegistry
-        if typeof(ClientRegistry.initialize) == "function" and not ClientRegistry.initialized then
-            ClientRegistry.initialize()
-            log("ClientRegistry initialized")
-        end
-        
-        -- Add to global context for easier access
-        if _G then
-            _G.ClientRegistry = ClientRegistry
-        end
-        
-        return true
-    end,
-    
-    -- Stage 4: Load UI Components
-    function()
-        log("Stage 4: Loading UI Components")
-        
-        local UIComponents = requireSafely(ReplicatedStorage.shared:FindFirstChild("UIComponents"))
-        
-        if not UIComponents then
-            warn("[ClientBootstrap] UIComponents not found, UI may not display correctly")
-            return false
-        end
-        
-        -- Try to register with ClientRegistry
-        if _G.ClientRegistry and typeof(UIComponents.registerWithClientRegistry) == "function" then
-            UIComponents.registerWithClientRegistry(_G.ClientRegistry)
-            log("UIComponents registered with ClientRegistry")
-        end
-        
-        return true
-    end,
-    
-    -- Stage 5: Initialize Core Systems
-    function()
-        log("Stage 5: Initializing Core Systems")
-        
-        if not _G.ClientRegistry then
-            warn("[ClientBootstrap] ClientRegistry not available for system initialization")
-            return false
-        end
-        
-        -- Initialize core systems with proper dependency order
-        local coreSystems = {
-            "UIManager",
-            "NotificationManager",
-            "DataManager",
-            "InputManager"
-        }
-        
-        local initializedCount = 0
-        for _, systemName in ipairs(coreSystems) do
-            if _G.ClientRegistry:initializeSystem(systemName) then
-                initializedCount += 1
-            end
-        end
-        
-        log("Core systems initialized: " .. initializedCount .. "/" .. #coreSystems)
-        
-        return initializedCount > 0
-    end
-}
+-- Storage for module references
+local modules = {}
 
--- Run bootstrap stages
+-- Stage 1: Setup Essential Folders
+local function setupFolders()
+    log("Setting up essential folders")
+    
+    -- Ensure shared folder exists in ReplicatedStorage
+    local sharedFolder = ensureFolderExists(ReplicatedStorage, "shared")
+    
+    -- Ensure client folder exists in PlayerScripts
+    local clientFolder = ensureFolderExists(LocalPlayer.PlayerScripts, "Client")
+    
+    -- Ensure Core folder exists in client folder
+    local coreFolder = ensureFolderExists(clientFolder, "Core")
+    
+    -- Ensure UI folder exists in client folder
+    local uiFolder = ensureFolderExists(clientFolder, "UI")
+    
+    return true
+end
+
+-- Stage 2: Load ModuleLoader
+local function loadModuleLoader()
+    log("Loading ModuleLoader")
+    
+    local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+    if not sharedFolder then
+        warn_log("Shared folder not found, cannot load ModuleLoader")
+        return false
+    end
+    
+    -- Try to find ModuleLoader in shared folder
+    local moduleLoader = sharedFolder:FindFirstChild("ModuleLoader")
+    if moduleLoader and moduleLoader:IsA("ModuleScript") then
+        local loaderModule = requireSafely(moduleLoader)
+        if loaderModule then
+            -- Initialize ModuleLoader
+            if typeof(loaderModule.initialize) == "function" then
+                loaderModule.initialize()
+            end
+            
+            modules.ModuleLoader = loaderModule
+            log("ModuleLoader initialized")
+            return true
+        end
+    end
+    
+    warn_log("ModuleLoader not found, some modules may fail to load")
+    return false
+end
+
+-- Stage 3: Load ClientRegistry
+local function loadClientRegistry()
+    log("Loading ClientRegistry")
+    
+    local clientRegistry
+    
+    -- Try multiple ways to get ClientRegistry
+    local attempts = {
+        -- First try path in client folder
+        function()
+            local clientFolder = LocalPlayer.PlayerScripts:FindFirstChild("Client")
+            if clientFolder and clientFolder:FindFirstChild("Core") then
+                local registryModule = clientFolder.Core:FindFirstChild("ClientRegistry")
+                if registryModule then
+                    return requireSafely(registryModule)
+                end
+            end
+            return nil
+        end,
+        
+        -- Then try in shared folder
+        function()
+            local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+            if sharedFolder and sharedFolder:FindFirstChild("ClientRegistry") then
+                return requireSafely(sharedFolder.ClientRegistry)
+            end
+            return nil
+        end,
+        
+        -- Then try using ModuleLoader
+        function()
+            if modules.ModuleLoader and typeof(modules.ModuleLoader.tryRequire) == "function" then
+                return modules.ModuleLoader.tryRequire("ClientRegistry")
+            end
+            return nil
+        end
+    }
+    
+    -- Try each method
+    for i, attemptFunc in ipairs(attempts) do
+        clientRegistry = attemptFunc()
+        if clientRegistry then
+            log("Found ClientRegistry using method #" .. i)
+            break
+        end
+    end
+    
+    if not clientRegistry then
+        warn_log("ClientRegistry not found, UI systems may not function correctly")
+        return false
+    end
+    
+    -- Initialize ClientRegistry
+    if typeof(clientRegistry.initialize) == "function" and not clientRegistry.initialized then
+        clientRegistry.initialize()
+    end
+    
+    modules.ClientRegistry = clientRegistry
+    log("ClientRegistry initialized")
+    return true
+end
+
+-- Stage 4: Load UI Components
+local function loadUIComponents()
+    log("Loading UI Components")
+    
+    local uiComponents
+    
+    -- Try to find UIComponents in shared folder
+    local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+    if sharedFolder and sharedFolder:FindFirstChild("UIComponents") then
+        uiComponents = requireSafely(sharedFolder.UIComponents)
+    end
+    
+    -- Try using ModuleLoader if available
+    if not uiComponents and modules.ModuleLoader then
+        uiComponents = modules.ModuleLoader.tryRequire("UIComponents")
+    end
+    
+    if not uiComponents then
+        warn_log("UIComponents not found, UI may not display correctly")
+        return false
+    end
+    
+    -- Register with ClientRegistry if available
+    if modules.ClientRegistry and typeof(uiComponents.registerWithClientRegistry) == "function" then
+        uiComponents.registerWithClientRegistry(modules.ClientRegistry)
+    end
+    
+    modules.UIComponents = uiComponents
+    log("UIComponents loaded")
+    return true
+end
+
+-- Stage 5: Initialize Core Systems
+local function initializeCoreSystems()
+    log("Initializing Core Systems")
+    
+    if not modules.ClientRegistry then
+        warn_log("ClientRegistry not available for system initialization")
+        return false
+    end
+    
+    -- Core systems to initialize in order
+    local coreSystems = {
+        "UIManager",
+        "NotificationManager",
+        "DataManager",
+        "InputManager"
+    }
+    
+    local initializedCount = 0
+    for _, systemName in ipairs(coreSystems) do
+        if modules.ClientRegistry.initializeSystem and 
+           modules.ClientRegistry:initializeSystem(systemName) then
+            initializedCount = initializedCount + 1
+        end
+    end
+    
+    log("Core systems initialized: " .. initializedCount .. "/" .. #coreSystems)
+    return initializedCount > 0
+end
+
+-- Run bootstrap process
 local function runBootstrap()
     log("Starting client bootstrap")
     
-    local stages = #bootstrapStages
+    local stages = {
+        {name = "Setup Folders", func = setupFolders},
+        {name = "Load ModuleLoader", func = loadModuleLoader},
+        {name = "Load ClientRegistry", func = loadClientRegistry},
+        {name = "Load UI Components", func = loadUIComponents},
+        {name = "Initialize Core Systems", func = initializeCoreSystems}
+    }
+    
     local successfulStages = 0
     
-    for i, stageFunc in ipairs(bootstrapStages) do
-        log("Running bootstrap stage " .. i .. "/" .. stages)
+    for i, stage in ipairs(stages) do
+        log("Running bootstrap stage " .. i .. "/" .. #stages .. ": " .. stage.name)
         
-        local success, result = pcall(stageFunc)
+        local success, result = pcall(function()
+            return stage.func()
+        end)
         
         if success and result then
             log("Stage " .. i .. " completed successfully")
-            successfulStages += 1
+            successfulStages = successfulStages + 1
         else
-            warn("[ClientBootstrap] Stage " .. i .. " failed: " .. tostring(result))
+            warn_log("Stage " .. i .. " failed: " .. tostring(result))
             
-            -- Try to continue despite failure
-            if i < 3 then
-                -- If critical early stages fail, break
-                warn("[ClientBootstrap] Critical stage failed, bootstrap incomplete")
+            -- Critical early stages
+            if i <= 2 then
+                warn_log("Critical stage failed, bootstrap incomplete")
                 break
             end
         end
     end
     
-    log("Bootstrap complete: " .. successfulStages .. "/" .. stages .. " stages successful")
-    
-    -- Signal that bootstrap is complete
-    if _G then
-        _G.ClientBootstrapComplete = true
-    end
-    
-    return successfulStages == stages
+    log("Bootstrap complete: " .. successfulStages .. "/" .. #stages .. " stages successful")
+    return successfulStages == #stages
 end
 
--- Run the bootstrap process in a protected call
+-- Export any critical modules to the shared environment safely
+local function exportModules()
+    -- Create a safe reference accessor
+    local ClientBootstrap = {
+        getModuleLoader = function() return modules.ModuleLoader end,
+        getClientRegistry = function() return modules.ClientRegistry end,
+        getUIComponents = function() return modules.UIComponents end
+    }
+    
+    return ClientBootstrap
+end
+
+-- Run the bootstrap process and return the interface
 local success, result = pcall(runBootstrap)
 
 if not success then
-    warn("[ClientBootstrap] Critical error during bootstrap: " .. tostring(result))
+    warn_log("Critical error during bootstrap: " .. tostring(result))
     
-    -- Attempt recovery of critical systems
+    -- Attempt recovery
     pcall(function()
         log("Attempting recovery of critical systems")
-        
-        -- Try to ensure ClientRegistry exists in some form
-        if not _G.ClientRegistry then
-            local ClientRegistry = requireSafely(LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("ClientRegistry"))
-            if ClientRegistry then
-                ClientRegistry.initialize()
-                _G.ClientRegistry = ClientRegistry
-                log("Recovered ClientRegistry")
-            end
-        end
-        
-        -- Try to ensure UIComponents are loaded
-        if _G.ClientRegistry then
-            local UIComponents = requireSafely(ReplicatedStorage.shared:FindFirstChild("UIComponents"))
-            if UIComponents and typeof(UIComponents.registerWithClientRegistry) == "function" then
-                UIComponents.registerWithClientRegistry(_G.ClientRegistry)
-                log("Recovered UIComponents")
-            end
-        end
+        loadClientRegistry()
+        loadUIComponents()
     end)
 end
+
+return exportModules()
