@@ -170,7 +170,7 @@ local function ensureCriticalPaths()
         srcShared.Parent = src
         log("Created shared folder in src")
     end
-}
+end
 
 -- Scan the entire codebase for WaitForChild issues
 function WaitForChildScanner.scanCodebase()

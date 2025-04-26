@@ -1,1280 +1,796 @@
--- DataManager.luau
--- Unified system for player data storage with redundancy and automatic retries
--- Place in ServerScriptService/Core
+--!strict
+--[[
+    DataManager.server.luau
+    
+    A robust data management system with built-in validation, redundancy,
+    and recovery features to address the data system issues identified.
+    
+    Created: April 26, 2025
+]]
 
+-- Services
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
+local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
--- Get the CoreRegistry and EventBridge
-local CoreRegistry = require(script.Parent.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
+-- Find CoreRegistry
+local CoreRegistry
+pcall(function()
+    CoreRegistry = require(ServerScriptService.Core.CoreRegistry)
+end)
 
--- Require DataThrottler to manage DataStore requests
-local DataThrottler = CoreRegistry.getSystem("DataThrottler")
-if not DataThrottler then
-    -- If not registered yet, try requiring it directly
-    pcall(function()
-        DataThrottler = require(script.Parent.DataThrottler)
-    end)
-end
+-- Module imports
+local SafeRequire = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("SafeRequire"))
+local DataValidator = SafeRequire(ReplicatedStorage.shared.DataValidator)
+local SafeWaitForChild = SafeRequire(ReplicatedStorage.shared.SafeWaitForChild)
 
 -- Configuration
 local CONFIG = {
-    dataStoreEnabled = true,      -- Set to false for testing to avoid API limits
-    autoSaveInterval = 120,       -- How often to auto-save player data (seconds)
-    backupInterval = 600,         -- How often to save backup data (seconds)
-    maxRetries = 5,               -- Max retries for data operations
-    retryDelay = 5,               -- Seconds between retries
-    sessionLockTime = 600,        -- Time in seconds for session locks
-    maxDataStoreVersions = 3,     -- How many versions of player data to store
+    -- DataStore config
+    mainDataStoreName = "GymTycoonDatav3",       -- Primary data
+    backupDataStoreName = "GymTycoonBackupv3",   -- Backup copies
+    sessionStoreName = "GymTycoonSessionv3",     -- Session tracking
+    versionedStoreName = "GymTycoonVersionedv3", -- Historical versions
     
-    -- Keys
-    mainDataKey = "GymTycoonData",
-    backupDataKey = "GymTycoonBackupData",
-    keyVersionKey = "GymTycoonVersionKeys",
-    equipmentKey = "GymEquipment",
-    milestonesKey = "GymMilestones",
-    specialtyKey = "GymSpecialty",
-    membershipKey = "GymMemberships",
-    vipKey = "GymVIPs",
-    revenueKey = "GymRevenue",
-    staffKey = "GymStaff",
-    achievementsKey = "GymAchievements",
-    seasonalKey = "GymSeasonal",
+    -- Timing config
+    saveInterval = 120,                          -- Auto-save every 2 minutes
+    backupInterval = 600,                        -- Create backup every 10 minutes
+    sessionTimeout = 1800,                       -- Session lock times out after 30 minutes
+    shutdownTimeout = 10,                        -- Max seconds to wait during shutdown
     
-    -- Data structure version - increment this when you make breaking changes
-    dataVersion = 2
+    -- Retry config
+    maxRetries = 5,                              -- Max retry attempts
+    retryBaseDelay = 1,                          -- Base delay between retries
+    
+    -- Version control
+    currentDataVersion = 1,                      -- Current data schema version
+    maxVersionsToKeep = 5,                       -- Number of historical versions to keep
+    
+    -- Recovery options
+    attemptDataRecovery = true,                  -- Try to recover corrupted data
+    validateOnLoad = true,                       -- Validate data when loading
+    validateOnSave = true,                       -- Validate data before saving
+    createChecksums = true,                      -- Create checksums for data integrity
+    
+    -- Debug options
+    debug = true,                                -- Enable debug logging
+    trackOperations = true,                      -- Track data operation counts
+    telemetry = true                             -- Gather performance telemetry
 }
 
--- Create the DataManager
-local DataManager = {
-    playerData = {},
-    dataCache = {},
-    saveQueue = {},
-    saveLocks = {},
-    sessionLocks = {},
-    dataStores = {},
-    orderedStores = {}
-}
-
--- Debug function
-local function log(...)
-    print("[DataManager]", ...)
-end
-
--- Encryption/Decryption functions
-local function encryptData(data, key)
-    if type(data) ~= "table" then
-        log("Cannot encrypt data, it's not a table")
-        return nil
-    end
-    
-    if type(key) ~= "string" or #key ~= 32 then
-        log("Invalid encryption key")
-        return nil
-    end
-    
-    local dataString = HttpService:JSONEncode(data)
-    local encrypted = HttpService:Encrypt(dataString, key)
-    
-    if encrypted then
-        return encrypted
-    else
-        log("Encryption failed")
-        return nil
+-- Debug logging
+local function log(message)
+    if CONFIG.debug then
+        print("[DataManager] " .. message)
     end
 end
 
-local function decryptData(encryptedData, key)
-    if type(encryptedData) ~= "string" then
-        log("Cannot decrypt data, it's not a string")
-        return nil
+-- Deep copy function
+local function deepCopy(original)
+    if type(original) ~= "table" then
+        return original
     end
     
-    if type(key) ~= "string" or #key ~= 32 then
-        log("Invalid decryption key")
-        return nil
-    end
-    
-    local decrypted = HttpService:Decrypt(encryptedData, key)
-    
-    if decrypted then
-        local success, result = pcall(function()
-            return HttpService:JSONDecode(decrypted)
-        end)
-        
-        if success then
-            return result
+    local copy = {}
+    for key, value in pairs(original) do
+        if type(value) == "table" then
+            copy[key] = deepCopy(value)
         else
-            log("Decryption succeeded but failed to decode: " .. tostring(result))
-            log("Failed to decode decrypted data:", tostring(result), encryptedData, key)
-            return nil
-        end
-    else
-        log("Decryption failed")
-        return nil
-    end
-end
-
-local function generateEncryptionKey()
-    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    local key = ""
-    for _ = 1, 32 do
-        key = key .. chars:sub(math.random(1, #chars), math.random(1, #chars))
-    end
-    return key
-end
-
-
--- Debug function
-local function log(...)
-    print("[DataManager]", ...)
-end
-
--- Check if a value should be considered corrupted data
-local function isCorruptedData(value)
-    -- Check if it's a typical error code from data store corruption
-    if type(value) == "string" then
-        if string.match(value, "501") or string.match(value, "504") then
-            return true
+            copy[key] = value
         end
     end
     
-    -- We expect a table for player data
-    if type(value) ~= "table" then
+    return copy
+end
+
+-- Default data structure
+local DEFAULT_DATA = {
+    -- Economy
+    cash = 1000,
+    totalEarned = 0,
+    
+    -- Progression
+    equipmentPurchased = {},
+    equipmentCount = 0,
+    gymLevel = 1,
+    memberCount = 0,
+    vipCount = 0,
+    
+    -- Stats
+    playTime = 0,
+    lastPlayed = 0,
+    
+    -- Version control
+    dataVersion = CONFIG.currentDataVersion,
+    
+    -- Metadata
+    __lastModified = 0,
+    __checksum = nil
+}
+
+-- Operation tracking
+local operationStats = {
+    loads = { total = 0, success = 0, failed = 0, recovered = 0 },
+    saves = { total = 0, success = 0, failed = 0 },
+    autoSaves = { total = 0, success = 0, failed = 0 },
+    backups = { total = 0, success = 0, failed = 0 },
+    sessions = { acquired = 0, released = 0, timeouts = 0 }
+}
+
+-- Module table
+local DataManager = {
+    initialized = false,
+    loadedData = {},        -- Player data cache (userId -> data)
+    activeSessions = {},    -- Track active player sessions (userId -> timestamp)
+    saveQueue = {},         -- Queue of pending saves (userId -> { data = data, priority = 1-5 })
+    backupQueue = {},       -- Queue of pending backups (userId -> data)
+    autoSaveTimers = {},    -- Active auto-save timers (userId -> thread)
+    isSaving = {},          -- Tracks active save operations (userId -> true)
+    dataVersion = CONFIG.currentDataVersion
+}
+
+-- Initialize DataStores
+function DataManager:Initialize()
+    if self.initialized then
         return true
     end
     
-    return false
-end
-
--- Initialize data stores
-function DataManager:initDataStores()
-    if CONFIG.dataStoreEnabled then
-        local success, result = pcall(function()
-            self.dataStores = {
-                main = DataStoreService:GetDataStore(CONFIG.mainDataKey),
-                backup = DataStoreService:GetDataStore(CONFIG.backupDataKey),
-                equipment = DataStoreService:GetDataStore(CONFIG.equipmentKey),
-                milestones = DataStoreService:GetDataStore(CONFIG.milestonesKey),
-                specialty = DataStoreService:GetDataStore(CONFIG.specialtyKey),
-                memberships = DataStoreService:GetDataStore(CONFIG.membershipKey),
-                vips = DataStoreService:GetDataStore(CONFIG.vipKey),
-                revenue = DataStoreService:GetDataStore(CONFIG.revenueKey),
-                staff = DataStoreService:GetDataStore(CONFIG.staffKey),
-                achievements = DataStoreService:GetDataStore(CONFIG.achievementsKey),
-                seasonal = DataStoreService:GetDataStore(CONFIG.seasonalKey)
-            }
-            
-            -- Initialize ordered data stores for versioning (Berezaa's method)
-            self.orderedStores = {
-                versionKeys = DataStoreService:GetOrderedDataStore(CONFIG.keyVersionKey)
-            }
-        end)
-        
-        if not success then
-            log("Failed to initialize DataStores: " .. tostring(result))
-            self.dataStores = {}
-            self.orderedStores = {}
-            return false
-        end
-        
-        log("DataStores initialized successfully")
-        return true
-    else
-        log("DataStore disabled in configuration")
-        return true
-    end
-end
-
--- Initialize the module
-function DataManager:initialize()
     log("Initializing DataManager...")
-
-    if not CoreRegistry then
-        log("[DataManager] Error: CoreRegistry is not loaded")
+    
+    local success, result = pcall(function()
+        -- Initialize main datastores
+        self.dataStore = DataStoreService:GetDataStore(CONFIG.mainDataStoreName)
+        self.backupStore = DataStoreService:GetDataStore(CONFIG.backupDataStoreName)
+        self.sessionStore = DataStoreService:GetDataStore(CONFIG.sessionStoreName)
+        self.versionedStore = DataStoreService:GetOrderedDataStore(CONFIG.versionedStoreName)
+        
+        -- Register with CoreRegistry if available
+        if CoreRegistry and CoreRegistry.registerSystem then
+            CoreRegistry:registerSystem("DataManager", self)
+            log("Registered with CoreRegistry")
+        end
+        
+        -- Set up event handlers
+        self:SetupEvents()
+        
+        -- Start save queue processor
+        self:StartSaveQueueProcessor()
+        
+        return true
+    end)
+    
+    if success then
+        log("DataManager initialized successfully")
+        self.initialized = true
+        return true
+    else
+        warn("Failed to initialize DataManager: " .. tostring(result))
         return false
     end
+end
+
+-- Set up event handlers
+function DataManager:SetupEvents()
+    log("Setting up event handlers")
     
-    -- Initialize data stores
-    local storesReady = self:initDataStores()
-    if not storesReady then
-        log("Warning: DataStores not ready")
-    end
-    
-    if not storesReady then
-        log("[DataManager] Error: Failed to initialize DataStores.")
-        return false -- Abort initialization
-    end
-    
-    -- Register with DataThrottler if available
-    if DataThrottler and DataThrottler.registerSystem then
-        DataThrottler.registerSystem("DataManager")
-        log("Registered with DataThrottler")
-    end
-    
-    -- Set up auto-save interval
-    task.spawn(function()
-        while task.wait(CONFIG.autoSaveInterval) do
-            self:saveAllPlayerData(false) -- Not immediate
-        end
-    end)
-    
-    -- Set up backup interval
-    task.spawn(function()
-        while task.wait(CONFIG.backupInterval) do
-            self:backupAllPlayerData()
-        end
-    end)
-    
-    -- Set up player join/leave handling
+    -- Player Added
     Players.PlayerAdded:Connect(function(player)
-        self:onPlayerJoin(player)
+        task.spawn(function()
+            log("Player joined: " .. player.Name)
+            
+            -- Wait a short time for player to fully load
+            task.wait(1)
+            
+            -- Acquire session lock
+            local lockAcquired = self:AcquireSessionLock(player)
+            if not lockAcquired then
+                log("Warning: Session lock acquisition failed for " .. player.Name .. ". May be active in another server.")
+            end
+            
+            -- Load player data
+            local data, source = self:LoadPlayerData(player)
+            
+            if data then
+                log("Loaded data for " .. player.Name .. " from " .. source)
+                
+                -- Apply data to player
+                self:ApplyDataToPlayer(player, data)
+                
+                -- Start auto-save timer
+                self:StartAutoSave(player)
+                
+                -- Wait a bit for the tycoon to initialize
+                task.wait(3)
+                
+                -- Restore equipment
+                self:RestorePlayerEquipment(player)
+                
+                -- Fire event through CoreRegistry if available
+                if CoreRegistry and CoreRegistry.fireEvent then
+                    CoreRegistry:fireEvent("PlayerDataLoaded", player, data)
+                end
+            else
+                warn("Failed to load data for " .. player.Name)
+                
+                -- Create default data as fallback
+                data = deepCopy(DEFAULT_DATA)
+                self.loadedData[player.UserId] = data
+                
+                -- Apply default data
+                self:ApplyDataToPlayer(player, data)
+                
+                -- Start auto-save timer
+                self:StartAutoSave(player)
+            end
+        end)
     end)
     
+    -- Player Removing
     Players.PlayerRemoving:Connect(function(player)
-        self:onPlayerLeave(player)
+        task.spawn(function()
+            log("Player leaving: " .. player.Name)
+            
+            -- Stop auto-save
+            self:StopAutoSave(player)
+            
+            -- Save data immediately
+            local success = self:SavePlayerData(player, true)
+            
+            if success then
+                log("Successfully saved data for " .. player.Name .. " on disconnect")
+            else
+                warn("Failed to save data for " .. player.Name .. " on disconnect")
+            end
+            
+            -- Create backup
+            self:CreateBackup(player)
+            
+            -- Release session lock
+            self:ReleaseSessionLock(player)
+            
+            -- Clear cache
+            self.loadedData[player.UserId] = nil
+            self.isSaving[player.UserId] = nil
+            
+            -- Fire event through CoreRegistry if available
+            if CoreRegistry and CoreRegistry.fireEvent then
+                CoreRegistry:fireEvent("PlayerDataSaved", player)
+            end
+        end)
     end)
     
-    -- Handle server shutdown
+    -- Game Close
     game:BindToClose(function()
-        self:onServerShutdown()
+        self:HandleShutdown()
     end)
     
-    log("DataManager initialized")
+    log("Event handlers set up")
+end
+
+-- Execute DataStore operation with retry logic
+function DataManager:SafeDataStoreOperation(operationType, storeMethod, ...)
+    local retriesRemaining = CONFIG.maxRetries
+    local args = {...}
+    local success, result
+    local operationName = operationType .. " operation"
+    
+    -- Track operation
+    if operationStats[operationType] then
+        operationStats[operationType].total = operationStats[operationType].total + 1
+    end
+    
+    repeat
+        -- Execute the operation
+        local startTime = os.clock()
+        success, result = pcall(storeMethod, unpack(args))
+        local elapsed = os.clock() - startTime
+        
+        if success then
+            -- Operation succeeded
+            if CONFIG.telemetry and elapsed > 0.1 then
+                log(operationName .. " took " .. string.format("%.2f", elapsed) .. "s")
+            end
+            
+            -- Track success
+            if operationStats[operationType] then
+                operationStats[operationType].success = operationStats[operationType].success + 1
+            end
+            
+            return true, result
+        else
+            -- Operation failed
+            retriesRemaining = retriesRemaining - 1
+            local errorMessage = tostring(result)
+            
+            -- Check error type
+            if errorMessage:match("404") then
+                -- Data not found, don't retry
+                log(operationName .. " failed: Data not found")
+                return false, nil
+            end
+            
+            local delay = CONFIG.retryBaseDelay * (2 ^ (CONFIG.maxRetries - retriesRemaining))
+            delay = math.min(delay, 30) -- Cap at 30 seconds
+            
+            warn(operationName .. " failed. Retrying in " .. delay .. "s. Error: " .. errorMessage)
+            task.wait(delay)
+        end
+    until retriesRemaining <= 0
+    
+    -- Track failure
+    if operationStats[operationType] then
+        operationStats[operationType].failed = operationStats[operationType].failed + 1
+    end
+    
+    warn(operationName .. " failed after " .. CONFIG.maxRetries .. " attempts")
+    return false, nil
+end
+
+-- Migrate data between versions if needed
+function DataManager:MigrateData(data)
+    if not data then
+        return deepCopy(DEFAULT_DATA)
+    end
+    
+    local currentVersion = data.dataVersion or 0
+    
+    -- Add missing fields from default data
+    for key, defaultValue in pairs(DEFAULT_DATA) do
+        if data[key] == nil then
+            data[key] = deepCopy(defaultValue)
+        end
+    end
+    
+    -- Version 0 to 1
+    if currentVersion < 1 then
+        data.dataVersion = 1
+        data.totalEarned = data.totalEarned or 0
+        data.playTime = data.playTime or 0
+        log("Migrated data from version 0 to 1")
+    end
+    
+    -- Add timestamp
+    data.__lastModified = os.time()
+    
+    return data
+end
+
+-- Load player data with cascading fallbacks
+function DataManager:LoadPlayerData(player)
+    if not player then
+        return nil, "Invalid player"
+    end
+    
+    local userId = player.UserId
+    local key = "Player_" .. userId
+    
+    -- Check if already cached
+    if self.loadedData[userId] then
+        return self.loadedData[userId], "cache"
+    end
+    
+    local data, source
+    
+    -- Try primary datastore
+    local success, result = self:SafeDataStoreOperation("loads", function()
+        return self.dataStore:GetAsync(key)
+    end)
+    
+    if success and result then
+        data = result
+        source = "primary"
+        log("Loaded data from primary store for " .. player.Name)
+    end
+    
+    -- Try versioned store if primary fails
+    if not data then
+        log("Primary data not found for " .. player.Name .. ", trying versioned store")
+        
+        local vSuccess, versionData = self:SafeDataStoreOperation("loads", function()
+            -- Get the latest version number
+            local latestVersionKey = "LatestVersion_" .. userId
+            local version = self.versionedStore:GetAsync(latestVersionKey)
+            
+            if version then
+                local versionedKey = "Player_" .. userId .. "_V" .. version
+                return self.dataStore:GetAsync(versionedKey)
+            end
+            return nil
+        end)
+        
+        if vSuccess and versionData then
+            data = versionData
+            source = "versioned"
+            log("Loaded data from versioned store for " .. player.Name)
+        end
+    end
+    
+    -- Try backup store if all else fails
+    if not data and CONFIG.attemptDataRecovery then
+        log("No data found for " .. player.Name .. ", trying backup store")
+        
+        local bSuccess, backupData = self:SafeDataStoreOperation("loads", function()
+            return self.backupStore:GetAsync(key)
+        end)
+        
+        if bSuccess and backupData then
+            data = backupData
+            source = "backup"
+            log("Loaded data from backup store for " .. player.Name)
+            operationStats.loads.recovered = operationStats.loads.recovered + 1
+        end
+    end
+    
+    -- If still no data, create default
+    if not data then
+        log("No saved data found for " .. player.Name .. ", creating new data")
+        data = deepCopy(DEFAULT_DATA)
+        source = "default"
+    end
+    
+    -- Validate and repair if needed
+    if CONFIG.validateOnLoad and DataValidator then
+        local isValid, validatedData = DataValidator.validatePlayerData(data)
+        
+        if not isValid then
+            warn("Data validation failed for " .. player.Name .. ", using repaired data")
+            data = validatedData
+            source = source .. " (repaired)"
+        end
+    end
+    
+    -- Migrate data if needed
+    data = self:MigrateData(data)
+    
+    -- Add timestamp
+    data.__lastModified = os.time()
+    
+    -- Add session start time
+    data.sessionStart = os.time()
+    
+    -- Cache the data
+    self.loadedData[userId] = data
+    
+    return data, source
+end
+
+-- Save player data
+function DataManager:SavePlayerData(player, immediate)
+    if not player then
+        return false, "Invalid player"
+    end
+    
+    local userId = player.UserId
+    
+    -- Check if data is loaded
+    if not self.loadedData[userId] then
+        return false, "No loaded data"
+    end
+    
+    -- Get the current data
+    local data = self.loadedData[userId]
+    
+    -- Update from player state
+    self:UpdateDataFromPlayer(player)
+    
+    -- Validate data if enabled
+    if CONFIG.validateOnSave and DataValidator then
+        local isValid, validatedData = DataValidator.validatePlayerData(data)
+        
+        if not isValid then
+            warn("Data validation failed before save for " .. player.Name)
+            
+            if validatedData then
+                data = validatedData
+                self.loadedData[userId] = data
+            else
+                return false, "Data validation failed"
+            end
+        end
+    end
+    
+    -- Calculate play time
+    if data.sessionStart then
+        local sessionDuration = os.time() - data.sessionStart
+        data.playTime = (data.playTime or 0) + sessionDuration
+        data.sessionStart = os.time() -- Reset for next calculation
+    end
+    
+    -- Update last modified timestamp
+    data.__lastModified = os.time()
+    
+    -- Add checksum if enabled
+    if CONFIG.createChecksums and DataValidator and DataValidator.generateChecksum then
+        data.__checksum = DataValidator.generateChecksum(data)
+    end
+    
+    -- If immediate, save directly
+    if immediate then
+        local key = "Player_" .. userId
+        
+        -- Mark as saving
+        self.isSaving[userId] = true
+        
+        -- Execute save
+        local success, _ = self:SafeDataStoreOperation("saves", function()
+            self.dataStore:SetAsync(key, data)
+            return true
+        end)
+        
+        -- Clear saving flag
+        self.isSaving[userId] = nil
+        
+        -- Save to versioned store
+        if success then
+            self:SaveToVersionedStore(userId, data)
+        end
+        
+        return success
+    else
+        -- Add to save queue with normal priority (3)
+        self:QueueSave(userId, data, 3)
+        return true
+    end
+end
+
+-- Queue a save operation
+function DataManager:QueueSave(userId, data, priority)
+    priority = priority or 3 -- Default: 3=normal, 1=highest, 5=lowest
+    
+    -- Remove any existing save requests for this user
+    self.saveQueue[userId] = {
+        data = data,
+        priority = priority,
+        timestamp = os.time()
+    }
+    
     return true
 end
 
--- Get default data structure for a new player
-function DataManager:getDefaultData()
-    return {
-        cash = 1000,
-        lastJoin = os.time(),
-        gymTier = 1,
-        equipmentCount = 0,
-        milestones = {},
-        specialization = "none",
-        equipment = {},
-        achievements = {},
-        
-        -- New fields for improved data storage
-        members = {
-            regular = 0,
-            vip = 0,
-            premium = 0,
-            total = 0
-        },
-        
-        revenue = {
-            daily = 0,
-            weekly = 0,
-            total = 0,
-            history = {}
-        },
-        
-        staff = {
-            trainers = {},
-            cleaners = {},
-            receptionists = {}
-        },
-        
-        gym = {
-            satisfaction = 100,
-            cleanliness = 100,
-            reputation = 0
-        },
-        
-        competitions = {
-            participated = 0,
-            won = 0,
-            lastParticipation = 0
-        },
-        
-        rebirth = {
-            level = 0,
-            points = 0
-        },
-        
-        seasonal = {
-            eventParticipation = {},
-            rewards = {}
-        },
-        
-        settings = {
-            musicVolume = 0.5,
-            sfxVolume = 0.5,
-            notifications = true
-        },
-        
-        -- Important metadata
-        sessionLock = nil,
-        lastSave = os.time(),
-        dataVersion = CONFIG.dataVersion
-    }
-end
-
--- Check and handle session lock
-function DataManager:checkSessionLock(player, data)
-    if not player or not data then return true end
-    
-    -- If no session lock exists, we're good to go
-    if not data.sessionLock then
-        return true
-    end
-    
-    -- If session lock exists but is very old (over 30 minutes), we can override it
-    local currentTime = os.time()
-    local lockTime = data.sessionLock
-    
-    if type(lockTime) == "number" and (currentTime - lockTime) > 1800 then -- 30 minutes
-        log("Session lock for " .. player.Name .. " is stale (over 30 minutes old), overriding it")
-        return true
-    end
-    
-    -- Active session lock exists, retry until it's gone
-    log("Session lock detected for " .. player.Name .. ", waiting for it to clear...")
-    
-    -- Return false to indicate the session is locked
-    return false
-end
-
--- Get the latest version key for a player
-function DataManager:getLatestVersionKey(userId)
-    if not self.orderedStores.versionKeys or not CONFIG.dataStoreEnabled then
-        return tostring(userId)
-    end
-    
-    local key = tostring(userId)
-    local success, result = pcall(function()
-        -- Get the latest version number
-        return self.orderedStores.versionKeys:GetAsync(key) or 1
-    end)
-    
-    if success then
-        return key .. "_v" .. tostring(result)
-    else
-        log("Failed to get version key for " .. key .. ": " .. tostring(result))
-        return key
-    end
-end
-
--- Increment and get a new version key for a player
-function DataManager:getNewVersionKey(userId)
-    if not self.orderedStores.versionKeys or not CONFIG.dataStoreEnabled then
-        return tostring(userId)
-    end
-    
-    local key = tostring(userId)
-    local success, result = pcall(function()
-        -- Get and increment the version number
-        local currentVersion = self.orderedStores.versionKeys:GetAsync(key) or 1
-        local newVersion = currentVersion + 1
-        
-        -- Limit to max versions by cycling back to 1 if needed
-        if newVersion > CONFIG.maxDataStoreVersions then
-            newVersion = 1
-        end
-        
-        -- Update the version number
-        self.orderedStores.versionKeys:SetAsync(key, newVersion)
-        
-        return key .. "_v" .. tostring(newVersion)
-    end)
-    
-    if success then
-        return result
-    else
-        log("Failed to create new version key for " .. key .. ": " .. tostring(result))
-        return key
-    end
-end
-
--- Try to load data from multiple versions
-function DataManager:loadVersionedData(userId)
-    if not CONFIG.dataStoreEnabled or not self.dataStores.main then
-        return nil
-    end
-    
-    local key = tostring(userId)
-    local baseKey = key
-    
-    -- Try the latest version first
-    local latestKey = self:getLatestVersionKey(userId)
-    local success, data = pcall(function()
-        return self.dataStores.main:GetAsync(latestKey)
-    end)
-    
-    -- If successful and not corrupted, return this data
-    if success and data and not isCorruptedData(data) then
-        log("Successfully loaded latest version data with key: " .. latestKey)
-        return data
-    end
-    
-    log("Latest version failed or corrupted, trying older versions...")
-    
-    -- Try older versions
-    for i = 1, CONFIG.maxDataStoreVersions do
-        local versionKey = key .. "_v" .. tostring(i)
-        
-        success, data = pcall(function()
-            return self.dataStores.main:GetAsync(versionKey)
-        end)
-        
-        if success and data and not isCorruptedData(data) then
-            log("Successfully loaded from older version: " .. versionKey)
-            return data
-        end
-    end
-    
-    -- Try the base key without version as a last resort
-    success, data = pcall(function()
-        return self.dataStores.main:GetAsync(baseKey)
-    end)
-    
-    if success and data and not isCorruptedData(data) then
-        log("Successfully loaded from base key without version")
-        return data
-    end
-    
-    log("All versioned loads failed")
-    return nil
-end
-
--- Load player data with retries
-function DataManager:loadData(player)
-    if not player then return nil end
-    
-    local userId = player.UserId
-    local key = tostring(userId)
-    
-    -- Check if data already loaded in memory
-    if self.playerData[userId] then
-        return self.playerData[userId]
-    end
-    
-    -- Default data
-    local data = self:getDefaultData()
-    
-    -- Load from DataStore if enabled
-    if CONFIG.dataStoreEnabled and self.dataStores.main then
-        local attempts = 0
-        local sessionLocked = true
-        
-        -- Keep trying until we can unlock the session or hit max retries
-        while sessionLocked and attempts < CONFIG.maxRetries do
-            attempts = attempts + 1
+-- Process save queue
+function DataManager:StartSaveQueueProcessor()
+    task.spawn(function()
+        while true do
+            task.wait(1) -- Process queue every second
             
-            -- Try to load versioned data
-            local versionedData = self:loadVersionedData(userId)
+            -- Process save queue
+            self:ProcessSaveQueue()
             
-            -- If we got data, check session lock
-            if versionedData then
-                sessionLocked = not self:checkSessionLock(player, versionedData)
-                
-                if not sessionLocked then
-                    -- We have unlocked data, use it
-                    data = versionedData
-                    log("Successfully loaded unlocked data for " .. player.Name)
-                    break
-                end
-            else                
-                 log("Failed to load data for player: " .. player.Name .. " after retries, no data found")
-                 return nil
-            end
-
-            -- If still locked, wait before retry
-            if sessionLocked then
-
-
-
-                log("Session still locked for " .. player.Name .. ", retry in " .. CONFIG.retryDelay .. "s")
-                task.wait(CONFIG.retryDelay)
-            end
+            -- Process backup queue
+            self:ProcessBackupQueue()
         end
-        
-        -- If all attempts failed due to session lock
-        if sessionLocked then
-            log("Failed to unlock session for " .. player.Name .. " after " .. attempts .. " attempts")
-            -- Here we could kick the player with a message
-            player:Kick("Your data is being used in another server. Please try again in a few minutes.")
-            return nil
-        end
-        
-         if not data then
-            log("Failed to load data for " .. player.Name .. ", returning nil")
-            return nil
-        end
-
-        -- Migrate data structure if needed
-        data = self:migrateDataIfNeeded(data)
-        
-        -- Set session lock
-        data.sessionLock = os.time()
-        
-        -- Try to load additional data stores
-        self:loadAdditionalData(player, data)
-    else
-        log("Using default data for " .. player.Name)
-    end
+    end)
     
-    -- Store in memory
-    self.playerData[userId] = data
-    
-    -- Apply to player
-    self:applyDataToPlayer(player, data)
-    
-    log("Loaded data for " .. player.Name)
-    return data
+    log("Save queue processor started")
 end
 
--- Update data structure if version changes
-function DataManager:migrateDataIfNeeded(data)
-    if not data then return self:getDefaultData() end
-
+-- Process saves in the queue
+function DataManager:ProcessSaveQueue()
+    -- Find the highest priority save
+    local nextSaveUserId = nil
+    local highestPriority = 6 -- Higher than any valid priority
+    local oldestTimestamp = os.time()
     
-    -- Check if migration is needed
-    if not data.dataVersion or data.dataVersion < CONFIG.dataVersion then
-        log("Migrating data from version " .. (data.dataVersion or "unknown") .. " to " .. CONFIG.dataVersion)
-        
-        local newData = self:getDefaultData()
-        
-        -- Copy all existing fields that match
-        for key, value in pairs(data) do
-            if newData[key] ~= nil then
-                -- Copy existing data for fields that already exist
-                newData[key] = value
-            end
+    for userId, saveInfo in pairs(self.saveQueue) do
+        -- Skip if already saving
+        if self.isSaving[userId] then
+            continue
         end
         
-        -- Manual migrations for changed structures
-        if data.dataVersion == 1 then
-            -- Example of migrating from v1 to v2
-            -- Convert old members count to new structure if it exists
-            if data.memberCount then
-                newData.members.regular = data.memberCount
-                newData.members.total = data.memberCount
-            end
+        -- Find highest priority or oldest request at same priority
+        if saveInfo.priority < highestPriority or 
+           (saveInfo.priority == highestPriority and saveInfo.timestamp < oldestTimestamp) then
+            highestPriority = saveInfo.priority
+            oldestTimestamp = saveInfo.timestamp
+            nextSaveUserId = userId
+        end
+    end
+    
+    -- If we found a save to process
+    if nextSaveUserId then
+        local saveInfo = self.saveQueue[nextSaveUserId]
+        self.saveQueue[nextSaveUserId] = nil
+        
+        -- Mark as saving
+        self.isSaving[nextSaveUserId] = true
+        
+        -- Execute the save
+        task.spawn(function()
+            local key = "Player_" .. nextSaveUserId
             
-            -- Convert old revenue to new structure if it exists
-            if data.totalRevenue then
-                newData.revenue.total = data.totalRevenue
-            end
-        end
-        
-        -- Set the new version
-        newData.dataVersion = CONFIG.dataVersion
-        
-        return newData
-    end
-    
-    return data
-end
-
--- Load additional data from secondary data stores
-function DataManager:loadAdditionalData(player, data)
-    if not player or not data then return end
-    
-    local userId = player.UserId
-    local key = tostring(userId)
-    
-    -- Load equipment data
-    if self.dataStores.equipment then
-        local success, result = pcall(function()
-            local equipmentData = self.dataStores.equipment:GetAsync(key)
-            if equipmentData then
-                if data.encryptionKey then
-                    if not decryptData(equipmentData, data.encryptionKey) then
-                         log("Failed to decrypt equipment data for " .. player.Name)
-                    end
-                    data.equipment = decryptData(equipmentData, data.encryptionKey)
-                else
-                    data.equipment = equipmentData
-                end
-                log("Loaded equipment data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-             log("Failed to load equipment data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-    
-    -- Load milestone data
-    if self.dataStores.milestones then
-        local success, result = pcall(function()
-            local milestoneData = self.dataStores.milestones:GetAsync(key)
-            if milestoneData then
-                 if data.encryptionKey then
-                    if not decryptData(milestoneData, data.encryptionKey) then
-                         log("Failed to decrypt milestone data for " .. player.Name)
-                    end
-                    data.milestones = decryptData(milestoneData, data.encryptionKey)
-                 else
-                    data.milestones = milestoneData
-                end
-                log("Loaded milestone data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-            log("Failed to load milestone data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-
-    -- Load specialization data
-    if self.dataStores.specialty then
-        local success, result = pcall(function()
-            local specialtyData = self.dataStores.specialty:GetAsync(key)
-            if specialtyData then
-                if data.encryptionKey then
-                    if not decryptData(specialtyData, data.encryptionKey) then
-                        log("Failed to decrypt specialty data for " .. player.Name)
-                    end
-                    data.specialization = decryptData(specialtyData, data.encryptionKey)
-                else
-                    data.specialization = specialtyData
-                end
-                log("Loaded specialization data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-            log("Failed to load specialty data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-    
-    -- Load membership data
-    if self.dataStores.memberships then
-        local success, result = pcall(function()
-            local membershipData = self.dataStores.memberships:GetAsync(key)
-            if membershipData then
-                if data.encryptionKey then
-                    if not decryptData(membershipData, data.encryptionKey) then
-                        log("Failed to decrypt membership data for " .. player.Name)
-                    end
-                    data.members = decryptData(membershipData, data.encryptionKey)
-                else
-                    data.members = membershipData
-                end
-                log("Loaded membership data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-            log("Failed to load membership data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-    
-    -- Load VIP data
-    if self.dataStores.vips then
-        local success, result = pcall(function()
-            local vipData = self.dataStores.vips:GetAsync(key)
-            if vipData then
-                if data.encryptionKey then
-                    if not decryptData(vipData, data.encryptionKey) then
-                        log("Failed to decrypt VIP data for " .. player.Name)
-                    end
-                    vipData = decryptData(vipData, data.encryptionKey)
-                end
-                data.members.vip = vipData.vips
-                data.members.premium = vipData.premium or 0
-                log("Loaded VIP data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-            log("Failed to load VIP data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-
-    -- Load revenue data
-    if self.dataStores.revenue then
-        local success, result = pcall(function()
-            local revenueData = self.dataStores.revenue:GetAsync(key)
-            if revenueData then
-                if data.encryptionKey then
-                    if not decryptData(revenueData, data.encryptionKey) then
-                        log("Failed to decrypt revenue data for " .. player.Name)
-                    end
-                    data.revenue = decryptData(revenueData, data.encryptionKey)
-                else
-                    data.revenue = revenueData
-                end
-                log("Loaded revenue data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-            log("Failed to load revenue data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-    
-    -- Load staff data
-    if self.dataStores.staff then
-        local success, result = pcall(function()
-            local staffData = self.dataStores.staff:GetAsync(key)
-            if staffData then 
-                if data.encryptionKey then
-                    if not decryptData(staffData, data.encryptionKey) then
-                        log("Failed to decrypt staff data for " .. player.Name)
-                    end
-                    data.staff = decryptData(staffData, data.encryptionKey)
-                else
-                    data.staff = staffData
-                end
-                log("Loaded staff data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-            log("Failed to load staff data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-    
-    -- Load achievements data
-    if self.dataStores.achievements then
-        local success, result = pcall(function()
-            local achievementsData = self.dataStores.achievements:GetAsync(key)
-            if achievementsData then
-                if data.encryptionKey then
-                    if not decryptData(achievementsData, data.encryptionKey) then
-                        log("Failed to decrypt achievements data for " .. player.Name)
-                    end
-                    data.achievements = decryptData(achievementsData, data.encryptionKey)
-                else
-                    data.achievements = achievementsData
-                end
-                log("Loaded achievements data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-            log("Failed to load achievements data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-    
-    -- Load seasonal data
-    if self.dataStores.seasonal then
-        local success, result = pcall(function()
-            local seasonalData = self.dataStores.seasonal:GetAsync(key)
-            if seasonalData then
-                if data.encryptionKey then
-                    if not decryptData(seasonalData, data.encryptionKey) then
-                        log("Failed to decrypt seasonal data for " .. player.Name)
-                    end
-                    data.seasonal = decryptData(seasonalData, data.encryptionKey)
-                else
-                    data.seasonal = seasonalData
-                end
-                log("Loaded seasonal data for " .. player.Name)
-            end
-        end)
-        
-        if not success then
-            log("Failed to load seasonal data for " .. player.Name .. ": " .. tostring(result))
-        end
-    end
-end
-
--- Save player data with retries
-function DataManager:saveData(player, immediate)
-    if not player then return false end
-    
-    local userId = player.UserId
-    local key = tostring(userId)
-    
-    -- If already saving, add to queue instead
-    if self.saveLocks[userId] then
-        self.saveQueue[userId] = true
-        return false
-    end
-    
-    -- Get data
-    local data = self.playerData[userId]
-    if not data then
-        log("No data to save for " .. player.Name)
-        return false
-    end
-    
-    -- Update timestamp
-    data.lastSave = os.time()
-    
-    -- Create save lock
-    self.saveLocks[userId] = true
-    
-    -- If not immediate, defer save to prevent API throttling
-    if not immediate then
-        task.delay(math.random(1, 10), function()
-            self:processSave(player, key, data)
-        end)
-        return true
-    end
-    
-    -- Process save immediately
-    return self:processSave(player, key, data)
-end
-
--- Process the actual save operation with retries
-function DataManager:processSave(player, key, data)
-    if not player or not CONFIG.dataStoreEnabled then 
-        self.saveLocks[player.UserId] = nil
-        return false
-    end
-    
-    local userId = player.UserId
-    local success = false
-    
-    -- Get a new version key for saving
-    local versionKey = self:getNewVersionKey(userId)
-    
-    -- If DataThrottler is available, use it to manage DataStore requests
-    if DataThrottler then
-        log("Using DataThrottler to save data for " .. player.Name)
-        
-        -- Check if there's already a request for this key
-        if DataThrottler.hasExistingRequest and DataThrottler.hasExistingRequest("DataManager", versionKey) then
-            log("Skipping duplicate save request for " .. player.Name)
-            self.saveLocks[player.UserId] = nil
-            return true
-        end
-        
-        -- Queue save request with appropriate priority
-        local priority = DataThrottler.getPriorities and DataThrottler.getPriorities().normal
-        if not self.sessionLocks[userId] then
-            -- Higher priority for final save when player leaves
-            priority = DataThrottler.getPriorities and DataThrottler.getPriorities().high
-        end
-        
-        -- Prepare data for saving
-        local saveData = table.clone(data)
-        if self.sessionLocks[userId] then
-            saveData.sessionLock = os.time()
-        else
-            saveData.sessionLock = nil
-        end
-        
-        -- Queue the save request
-        success = DataThrottler.queueSaveRequest(
-            "DataManager",
-            versionKey,
-            saveData,
-            priority,
-            function(saveSuccess, saveResult)
-                if saveSuccess then
-                    log("Successfully saved data for " .. player.Name .. " to key " .. versionKey)
-                else
-                    log("Failed to save data for " .. player.Name .. ": " .. tostring(saveResult))
-                end
-                
-                -- Save additional data
-                self:saveAdditionalData(player, data)
-                
-                -- Release lock
-                self.saveLocks[player.UserId] = nil
-                
-                -- Check if queued for another save
-                if self.saveQueue[player.UserId] then
-                    self.saveQueue[player.UserId] = nil
-                    self:saveData(player, false) -- Not immediate
-                end
-            end
-        )
-        
-        return success
-    end
-    
-    -- Fallback to direct DataStore access if DataThrottler not available
-    -- Try to save with retries
-    local attempts = 0
-    while attempts < CONFIG.maxRetries do
-        attempts = attempts + 1
-        
-        -- Try main save using UpdateAsync to prevent data overwrites
-        if self.dataStores.main then
-            local pcallSuccess, result = pcall(function()
-                return self.dataStores.main:UpdateAsync(versionKey, function(oldData)
-                    -- Keep session lock if this is not a final save
-                    if self.sessionLocks[userId] then
-                        data.sessionLock = os.time()
-                    else
-                        data.sessionLock = nil
-                    end
+            -- Track operation
+            operationStats.autoSaves.total = operationStats.autoSaves.total + 1
+            
+            local success, _ = self:SafeDataStoreOperation("autoSaves", function()
+                self.dataStore:SetAsync(key, saveInfo.data)
+                return true
+            end)
+            
+            -- Update session last active time
+            pcall(function()
+                if success then
+                    self.sessionStore:SetAsync("Session_" .. nextSaveUserId, os.time())
+                    operationStats.autoSaves.success = operationStats.autoSaves.success + 1
                     
-                    return data
-                end)
+                    -- Save to versioned store
+                    self:SaveToVersionedStore(nextSaveUserId, saveInfo.data)
+                    
+                    -- Queue backup every 5 saves (random)
+                    if math.random(1, 5) == 1 then
+                        self:QueueBackup(nextSaveUserId, saveInfo.data)
+                    end
+                else
+                    operationStats.autoSaves.failed = operationStats.autoSaves.failed + 1
+                    
+                    -- Requeue with higher priority if failed
+                    local newPriority = math.max(1, saveInfo.priority - 1)
+                    self:QueueSave(nextSaveUserId, saveInfo.data, newPriority)
+                end
             end)
             
-            if pcallSuccess then
-                log("Successfully saved data for " .. player.Name .. " to key " .. versionKey)
-                success = true
-                break
-            else
-                log("Failed to save data for " .. player.Name .. " (Attempt " .. attempts .. "): " .. tostring(result))
-            end
-        end
-        
-        -- Wait before retry
-        if attempts < CONFIG.maxRetries then
-            task.wait(CONFIG.retryDelay)
-        end
+            -- Clear saving flag
+            self.isSaving[nextSaveUserId] = nil
+        end)
     end
-    
-    -- Save additional data
-    self:saveAdditionalData(player, data)
-    
-    -- Release lock
-    self.saveLocks[player.UserId] = nil
-    
-    -- Check if queued for another save
-    if self.saveQueue[player.UserId] then
-        self.saveQueue[player.UserId] = nil
-        self:saveData(player, false) -- Not immediate
-    end
-    
-    return success
 end
 
--- Save additional data to secondary DataStores
-function DataManager:saveAdditionalData(player, data)
-    if not player or not data or not CONFIG.dataStoreEnabled then return end
+-- Queue a backup creation
+function DataManager:QueueBackup(userId, data)
+    self.backupQueue[userId] = {
+        data = data,
+        timestamp = os.time()
+    }
     
-    local userId = player.UserId
-    local key = tostring(userId)
-    
-    -- If DataThrottler available, use it for all secondary saves
-    if DataThrottler then
-        -- Use low priority for these secondary saves
-        local priority = DataThrottler.getPriorities and DataThrottler.getPriorities().low
-        
-        -- Save equipment data
-        if data.equipment then
-            DataThrottler.queueSaveRequest(
-                "DataManager", 
-                "equip_" .. key, 
-                data.equipment, 
-                priority
-            )
-        end
-        
-        -- Save milestone data
-        if data.milestones then
-            DataThrottler.queueSaveRequest(
-                "DataManager", 
-                "milestone_" .. key, 
-                data.milestones, 
-                priority
-            )
-        end
-        
-        -- Save specialization data
-        if data.specialization then
-            DataThrottler.queueSaveRequest(
-                "DataManager", 
-                "spec_" .. key, 
-                data.specialization, 
-                priority
-            )
-        end
-        
-        -- Save membership data
-        if data.members then
-            DataThrottler.queueSaveRequest(
-                "DataManager", 
-                "member_" .. key, 
-                data.members, 
-                priority
-            )
-        end
-        
-        -- Save revenue data
-        if data.revenue then
-            DataThrottler.queueSaveRequest(
-                "DataManager", 
-                "revenue_" .. key, 
-                data.revenue, 
-                priority
-            )
-        end
-        
-        -- Save staff data
-        if data.staff then
-            DataThrottler.queueSaveRequest(
-                "DataManager", 
-                "staff_" .. key, 
-                data.staff, 
-                priority
-            )
-        end
-        
-        -- Save achievements data
-        if data.achievements then
-            DataThrottler.queueSaveRequest(
-                "DataManager", 
-                "achieve_" .. key, 
-                data.achievements, 
-                priority
-            )
-        end
-        
-        -- Save seasonal data
-        if data.seasonal then
-            DataThrottler.queueSaveRequest(
-                "DataManager", 
-                "season_" .. key, 
-                data.seasonal, 
-                priority
-            )
-        end
-        
-        return
-    end
-    
-    -- Fallback to direct DataStore access
-    
-    -- Save equipment data
-    if self.dataStores.equipment and data.equipment then
-        pcall(function()
-            self.dataStores.equipment:UpdateAsync(key, function()
-                return data.equipment
+    return true
+end
+
+-- Process backup queue
+function DataManager:ProcessBackupQueue()
+    -- Process one backup at a time
+    for userId, backupInfo in pairs(self.backupQueue) do
+        -- Execute the backup
+        task.spawn(function()
+            local key = "Backup_" .. userId .. "_" .. os.time()
+            local data = backupInfo.data
+            
+            -- Remove from queue immediately
+            self.backupQueue[userId] = nil
+            
+            -- Track operation
+            operationStats.backups.total = operationStats.backups.total + 1
+            
+            local success, _ = self:SafeDataStoreOperation("backups", function()
+                self.backupStore:SetAsync(key, data)
+                
+                -- Also update the latest backup key
+                self.backupStore:SetAsync("Latest_" .. userId, key)
+                
+                return true
             end)
+            
+            if success then
+                operationStats.backups.success = operationStats.backups.success + 1
+            else
+                operationStats.backups.failed = operationStats.backups.failed + 1
+            end
         end)
-    end
-    
-    -- Save milestone data
-    if self.dataStores.milestones and data.milestones then
-        pcall(function()
-            self.dataStores.milestones:UpdateAsync(key, function()
-                return data.milestones
-            end)
-        end)
-    end
-    
-    -- Save specialization data
-    if self.dataStores.specialty and data.specialization then
-        pcall(function()
-            self.dataStores.specialty:UpdateAsync(key, function()
-                return data.specialization
-            end)
-        end)
-    end
-    
-    -- Save membership data
-    if self.dataStores.memberships and data.members then
-        pcall(function()
-            self.dataStores.memberships:UpdateAsync(key, function()
-                return data.members
-            end)
-        end)
-    end
-    
-    -- Save VIP data
-    if self.dataStores.vips and data.members then
-        pcall(function()
-            self.dataStores.vips:UpdateAsync(key, function()
-                return {
-                    vips = data.members.vip or 0,
-                    premium = data.members.premium or 0
-                }
-            end)
-        end)
-    end
-    
-    -- Save revenue data
-    if self.dataStores.revenue and data.revenue then
-        pcall(function()
-            self.dataStores.revenue:UpdateAsync(key, function()
-                return data.revenue
-            end)
-        end)
-    end
-    
-    -- Save staff data
-    if self.dataStores.staff and data.staff then
-        pcall(function()
-            self.dataStores.staff:UpdateAsync(key, function()
-                return data.staff
-            end)
-        end)
-    end
-    
-    -- Save achievements data
-    if self.dataStores.achievements and data.achievements then
-        pcall(function()
-            self.dataStores.achievements:UpdateAsync(key, function()
-                return data.achievements
-            end)
-        end)
-    end
-    
-    -- Save seasonal data
-    if self.dataStores.seasonal and data.seasonal then
-        pcall(function()
-            self.dataStores.seasonal:UpdateAsync(key, function()
-                return data.seasonal
-            end)
-        end)
+        
+        -- Only process one backup per cycle
+        break
     end
 end
 
 -- Create a backup of player data
-function DataManager:backupPlayerData(player)
-    if not player or not CONFIG.dataStoreEnabled then return false end
+function DataManager:CreateBackup(player)
+    if not player then
+        return false, "Invalid player"
+    end
     
     local userId = player.UserId
-    local key = tostring(userId)
     
-    -- Get data
-    local data = self.playerData[userId]
-    if not data then
+    -- Check if data is loaded
+    if not self.loadedData[userId] then
+        return false, "No loaded data"
+    end
+    
+    -- Queue backup
+    return self:QueueBackup(userId, deepCopy(self.loadedData[userId]))
+end
+
+-- Save data to versioned store
+function DataManager:SaveToVersionedStore(userId, data)
+    -- First get the latest version
+    local latestVersionKey = "LatestVersion_" .. userId
+    
+    local success, currentVersion = self:SafeDataStoreOperation("loads", function()
+        return self.versionedStore:GetAsync(latestVersionKey) or 0
+    end)
+    
+    if not success then
+        currentVersion = 0
+    end
+    
+    -- Increment version number
+    local newVersion = currentVersion + 1
+    
+    -- Save with version number
+    local versionedKey = "Player_" .. userId .. "_V" .. newVersion
+    
+    local saveSuccess, _ = self:SafeDataStoreOperation("saves", function()
+        -- Save the new version
+        self.dataStore:SetAsync(versionedKey, data)
+        
+        -- Update latest version pointer
+        self.versionedStore:SetAsync(latestVersionKey, newVersion)
+        
+        -- Clean up old versions if we have too many
+        if newVersion > CONFIG.maxVersionsToKeep then
+            local oldVersionKey = "Player_" .. userId .. "_V" .. (newVersion - CONFIG.maxVersionsToKeep)
+            -- Remove old version (not critical if this fails)
+            pcall(function()
+                self.dataStore:RemoveAsync(oldVersionKey)
+            end)
+        end
+        
+        return true
+    end)
+    
+    return saveSuccess
+end
+
+-- Update data from player state
+function DataManager:UpdateDataFromPlayer(player)
+    if not player then
         return false
     end
     
-    -- Save to backup DataStore
-    if self.dataStores.backup then
-        local success, result = pcall(function()
-            self.dataStores.backup:UpdateAsync(key, function()
-                return data
-            end)
-        end)
-        
-        if success then
-            log("Created backup for " .. player.Name)
-            return true
-        else
-            log("Failed to create backup for " .. player.Name .. ": " .. tostring(result))
-            return false
-        end
-    end
-    
-    return false
-end
-
--- Save all player data
-function DataManager:saveAllPlayerData(immediate)
-    log("Saving all player data...")
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        task.spawn(function()
-            self:saveData(player, immediate)
-        end)
-    end
-end
-
--- Backup all player data
-function DataManager:backupAllPlayerData()
-    log("Creating backups for all players...")
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        task.spawn(function()
-            self:backupPlayerData(player)
-        end)
-    end
-end
-
--- Handle player joining
-function DataManager:onPlayerJoin(player)
-    if not player then return end
-    
-    -- Set session lock
-    self.sessionLocks[player.UserId] = true
-    
-    -- Load player data
-    task.spawn(function()
-        self:setupPlayer(player)
-    end)
-end
-
--- Handle player leaving
-function DataManager:onPlayerLeave(player)
-    if not player then return end
-    
     local userId = player.UserId
     
-    -- Save data immediately
-    self:saveData(player, true)
-    
-    -- Clear session lock upon successful save
-    self.sessionLocks[userId] = false
-    
-    -- Clean up memory
-    task.delay(30, function()
-        self.playerData[userId] = nil
-        self.saveLocks[userId] = nil
-        self.saveQueue[userId] = nil
-        self.sessionLocks[userId] = nil
-    end)
-end
-
--- Handle server shutdown
-function DataManager:onServerShutdown()
-    log("Server shutting down, saving all data...")
-    
-    -- Save all player data immediately
-    local allPlayers = Players:GetPlayers()
-    local savedCount = 0
-    local totalPlayers = #allPlayers
-    
-    -- Create a BindableEvent to wait for all saves to complete
-    local saveCompleted = Instance.new("BindableEvent")
-    
-    for _, player in ipairs(allPlayers) do
-        task.spawn(function()
-            self:saveData(player, true)
-            
-            -- Track saves completed
-            savedCount = savedCount + 1
-            
-            -- If all saved, fire completed event
-            if savedCount >= totalPlayers then
-                saveCompleted:Fire()
-            end
-        end)
+    if not self.loadedData[userId] then
+        return false
     end
     
-    -- If in Studio, wait a short time
-    if RunService:IsStudio() then
-        task.wait(2)
-    else
-        -- In production, wait for all saves or timeout after 25 seconds
-        -- Roblox gives 30 seconds for BindToClose, so we need to finish before that
-        local saveSuccess = false
-        
-        task.spawn(function()
-            saveCompleted.Event:Wait()
-            saveSuccess = true
-        end)
-        
-        -- Wait up to 25 seconds
-        local startTime = os.clock()
-        while not saveSuccess and (os.clock() - startTime) < 25 do
-            task.wait(0.1)
-        end
-        
-        log("Shutdown save completed for " .. savedCount .. " out of " .. totalPlayers .. " players")
+    local data = self.loadedData[userId]
+    
+    -- Get leaderstats
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if leaderstats and leaderstats:FindFirstChild("Cash") then
+        data.cash = leaderstats.Cash.Value
     end
     
-    -- Clear session locks for all players
-    for userId, _ in pairs(self.sessionLocks) do
-        local key = tostring(userId)
-        pcall(function()
-            self.dataStores.main:UpdateAsync(key, function(oldData)
-                if oldData and type(oldData) == "table" then
-                    oldData.sessionLock = nil
-                    return oldData
+    -- Get tycoon data
+    local tycoon = player:FindFirstChild("Tycoon")
+    if tycoon then
+        -- Get core attributes
+        data.equipmentCount = tycoon:GetAttribute("EquipmentCount") or data.equipmentCount
+        data.gymLevel = tycoon:GetAttribute("GymTier") or tycoon:GetAttribute("GymLevel") or data.gymLevel
+        data.memberCount = tycoon:GetAttribute("MemberCount") or tycoon:GetAttribute("MembershipCount") or data.memberCount
+        data.vipCount = tycoon:GetAttribute("VIPCount") or tycoon:GetAttribute("VIPMembershipCount") or data.vipCount
+        
+        -- Record purchased equipment by equipment ID
+        if tycoon.Value then
+            for _, item in pairs(tycoon.Value:GetDescendants()) do
+                local id = item:GetAttribute("ID")
+                if id then
+                    data.equipmentPurchased[tostring(id)] = true
                 end
-                return nil
-            end)
-        end)
+            end
+        end
     end
+    
+    return true
 end
 
--- Apply data values to player
-function DataManager:applyDataToPlayer(player, data)
-    if not player or not data then return false end
+-- Apply data to player
+function DataManager:ApplyDataToPlayer(player, data)
+    if not player or not data then
+        return false
+    end
     
-    -- Update leaderstats
+    -- Create leaderstats
     local leaderstats = player:FindFirstChild("leaderstats")
     if not leaderstats then
         leaderstats = Instance.new("Folder")
@@ -1282,389 +798,403 @@ function DataManager:applyDataToPlayer(player, data)
         leaderstats.Parent = player
     end
     
-    -- Set cash
+    -- Set Cash value
     local cashValue = leaderstats:FindFirstChild("Cash")
     if not cashValue then
         cashValue = Instance.new("IntValue")
         cashValue.Name = "Cash"
         cashValue.Parent = leaderstats
     end
-    cashValue.Value = data.cash or 1000
+    cashValue.Value = data.cash or DEFAULT_DATA.cash
     
-    -- Set gym tier
-    local tierValue = leaderstats:FindFirstChild("GymTier")
-    if not tierValue then
-        tierValue = Instance.new("IntValue")
-        tierValue.Name = "GymTier"
-        tierValue.Parent = leaderstats
-    end
-    tierValue.Value = data.gymTier or 1
-    
-    -- Set members count
-    local membersValue = leaderstats:FindFirstChild("Members")
-    if not membersValue then
-        membersValue = Instance.new("IntValue")
-        membersValue.Name = "Members"
-        membersValue.Parent = leaderstats
-    end
-    membersValue.Value = (data.members and data.members.total) or 0
-    
-    -- Set tycoon attributes
+    -- Ensure Tycoon value exists
     local tycoon = player:FindFirstChild("Tycoon")
-    if tycoon then
-        tycoon:SetAttribute("GymTier", data.gymTier or 1)
-        tycoon:SetAttribute("EquipmentCount", data.equipmentCount or 0)
-        tycoon:SetAttribute("Specialization", data.specialization or "none")
-        tycoon:SetAttribute("MemberCount", (data.members and data.members.total) or 0)
-        tycoon:SetAttribute("VIPCount", (data.members and data.members.vip) or 0)
-        tycoon:SetAttribute("PremiumCount", (data.members and data.members.premium) or 0)
-        tycoon:SetAttribute("Satisfaction", (data.gym and data.gym.satisfaction) or 100)
-        tycoon:SetAttribute("TotalRevenue", (data.revenue and data.revenue.total) or 0)
+    if not tycoon then
+        tycoon = Instance.new("ObjectValue")
+        tycoon.Name = "Tycoon"
+        tycoon.Parent = player
     end
     
-    log("Applied data to " .. player.Name)
+    -- Set attributes from saved data
+    tycoon:SetAttribute("EquipmentCount", data.equipmentCount or DEFAULT_DATA.equipmentCount)
+    tycoon:SetAttribute("GymTier", data.gymLevel or DEFAULT_DATA.gymLevel)
+    tycoon:SetAttribute("MemberCount", data.memberCount or DEFAULT_DATA.memberCount)
+    tycoon:SetAttribute("VIPCount", data.vipCount or DEFAULT_DATA.vipCount)
+    
+    -- Start session time tracking
+    data.sessionStart = os.time()
+    
     return true
 end
 
 -- Restore purchased equipment
-function DataManager:restorePurchasedEquipment(player)
-    if not player then return false end
-    
-    local userId = player.UserId
-    local data = self.playerData[userId]
-    
-    -- Check if we have equipment data
-    if not data or not data.equipment or #data.equipment == 0 then
-        log("No equipment to restore for " .. player.Name)
+function DataManager:RestorePlayerEquipment(player)
+    if not player then
         return false
     end
     
-    log("Restoring " .. #data.equipment .. " pieces of equipment for " .. player.Name)
+    local userId = player.UserId
     
-    -- Get BuyTileSystem
-    local BuyTileSystem = CoreRegistry.getSystem("BuyTileSystem")
-    if BuyTileSystem and BuyTileSystem.restoreEquipment then
-        return BuyTileSystem.restoreEquipment(player, data.equipment)
+    -- Check if data is loaded
+    if not self.loadedData[userId] then
+        return false
     end
     
-    -- Manual restore if BuyTileSystem not available
-    local GymTycoonConnector = CoreRegistry.getSystem("GymTycoonConnector")
-    if GymTycoonConnector then
-        for _, tileId in ipairs(data.equipment) do
-            GymTycoonConnector:onTilePurchased(player, tileId)
+    local data = self.loadedData[userId]
+    
+    -- Check if player has any purchased equipment
+    if not data.equipmentPurchased or next(data.equipmentPurchased) == nil then
+        log("No purchased equipment to restore for " .. player.Name)
+        return true
+    end
+    
+    -- Get tycoon reference
+    local tycoon = player:FindFirstChild("Tycoon")
+    if not tycoon or not tycoon.Value then
+        warn("No valid tycoon for " .. player.Name)
+        return false
+    end
+    
+    -- Try to find BuyTile system
+    local BuyTileSystem
+    pcall(function()
+        -- Try different possible paths
+        local paths = {
+            ServerScriptService.BuyTile,
+            ServerScriptService.Systems and ServerScriptService.Systems.BuyTile,
+            ServerScriptService.Core and ServerScriptService.Core.BuyTile,
+            ReplicatedStorage.Systems and ReplicatedStorage.Systems.BuyTile
+        }
+        
+        for _, path in ipairs(paths) do
+            local success, result = pcall(function()
+                if path then
+                    return require(path)
+                end
+                return nil
+            end)
+            
+            if success and result then
+                BuyTileSystem = result
+                break
+            end
         end
+        
+        -- If still not found, try CoreRegistry
+        if not BuyTileSystem and CoreRegistry then
+            BuyTileSystem = CoreRegistry.getSystem("BuyTileSystem")
+        end
+    end)
+    
+    if not BuyTileSystem or not BuyTileSystem.spawnGymPart then
+        warn("BuyTile system not available")
+        return false
+    end
+    
+    -- Get purchased tile IDs
+    local purchasedTiles = {}
+    for tileId, _ in pairs(data.equipmentPurchased) do
+        table.insert(purchasedTiles, tonumber(tileId) or tonumber(string.match(tileId, "%d+")))
+    end
+    
+    -- Sort IDs to purchase in order
+    table.sort(purchasedTiles)
+    
+    -- Allow time for tycoon to fully initialize
+    task.wait(2)
+    
+    log("Restoring " .. #purchasedTiles .. " equipment pieces for " .. player.Name)
+    
+    -- Track successful spawns
+    local spawnCount = 0
+    
+    -- Spawn each tile with a small delay between them
+    for i, tileId in ipairs(purchasedTiles) do
+        task.wait(0.2) -- Slight delay to prevent issues
+        
+        local success = false
+        
+        if i == 1 then
+            -- Spawn initial tile
+            local tile = BuyTileSystem.spawnBuyTile and BuyTileSystem.spawnBuyTile(1)
+            if tile then
+                spawnCount = spawnCount + 1
+                log("Restored initial tile for " .. player.Name)
+                success = true
+            end
+        else
+            -- Try to spawn gym part
+            local part = BuyTileSystem.spawnGymPart(tileId)
+            if part then
+                spawnCount = spawnCount + 1
+                log("Restored gym part " .. tileId .. " for " .. player.Name)
+                success = true
+            else
+                warn("Failed to restore gym part " .. tileId .. " for " .. player.Name)
+            end
+        end
+    end
+    
+    log("Successfully restored " .. spawnCount .. "/" .. #purchasedTiles .. " equipment pieces for " .. player.Name)
+    
+    -- Update equipment count on tycoon
+    tycoon:SetAttribute("EquipmentCount", spawnCount)
+    data.equipmentCount = spawnCount
+    
+    return true
+end
+
+-- Start auto-save for a player
+function DataManager:StartAutoSave(player)
+    if not player then
+        return false
+    end
+    
+    local userId = player.UserId
+    
+    -- Clear existing timer if it exists
+    if self.autoSaveTimers[userId] then
+        task.cancel(self.autoSaveTimers[userId])
+        self.autoSaveTimers[userId] = nil
+    end
+    
+    -- Create new auto-save loop
+    self.autoSaveTimers[userId] = task.spawn(function()
+        while true do
+            task.wait(CONFIG.saveInterval)
+            
+            -- Check if player is still connected
+            if not player or not player.Parent then
+                break
+            end
+            
+            pcall(function()
+                -- Save data (non-immediate)
+                self:SavePlayerData(player, false)
+                
+                -- Create backup occasionally
+                if CONFIG.backupInterval > 0 and (os.time() % CONFIG.backupInterval) < CONFIG.saveInterval then
+                    self:CreateBackup(player)
+                end
+            end)
+        end
+        
+        self.autoSaveTimers[userId] = nil
+    end)
+    
+    log("Started auto-save for " .. player.Name)
+    return true
+end
+
+-- Stop auto-save for a player
+function DataManager:StopAutoSave(player)
+    if not player then
+        return false
+    end
+    
+    local userId = player.UserId
+    
+    if self.autoSaveTimers[userId] then
+        task.cancel(self.autoSaveTimers[userId])
+        self.autoSaveTimers[userId] = nil
+        
+        log("Stopped auto-save for " .. player.Name)
         return true
     end
     
     return false
 end
 
--- Record equipment purchase
-function DataManager:recordEquipmentPurchase(player, tileId, tileInfo)
-    if not player or not tileId then return false end
-    
-    local userId = player.UserId
-    local data = self.playerData[userId]
-    
-    -- Check if we have the data
-    if not data then
-        log("No data found for " .. player.Name)
+-- Session management
+function DataManager:AcquireSessionLock(player)
+    if not player then
         return false
     end
     
-    -- Initialize equipment array if needed
-    if not data.equipment then
-        data.equipment = {}
-    end
+    local userId = player.UserId
+    local sessionKey = "Session_" .. userId
     
-    -- Add equipment
-    table.insert(data.equipment, tileId)
+    -- Track operation
+    operationStats.sessions.acquired = operationStats.sessions.acquired + 1
     
-    -- Update equipment count
-    data.equipmentCount = (data.equipmentCount or 0) + 1
-    
-    -- Update gym tier
-    data.gymTier = math.floor(data.equipmentCount / 5) + 1
-    
-    -- If tile info provided, store extra details
-    if tileInfo then
-        -- Store additional equipment details if needed
-        if not data.equipmentDetails then
-            data.equipmentDetails = {}
-        end
-        
-        data.equipmentDetails[tileId] = {
-            name = tileInfo.name,
-            type = tileInfo.type,
-            cost = tileInfo.cost,
-            purchasedAt = os.time()
-        }
-    end
-    
-    -- Apply to player
-    self:applyDataToPlayer(player, data)
-    
-    -- Save data later
-    task.delay(5, function()
-        self:saveData(player, false) -- Not immediate
+    -- Try to acquire session lock
+    local success, currentSession = self:SafeDataStoreOperation("sessions", function()
+        return self.sessionStore:GetAsync(sessionKey)
     end)
     
-    return true
-end
-
--- Update player cash
-function DataManager:updateCash(player, amount)
-    if not player then return false end
-    
-    local userId = player.UserId
-    local data = self.playerData[userId]
-    
-    -- Check if we have the data
-    if not data then
-        log("No data found for " .. player.Name)
-        return false
+    if success and currentSession then
+        -- Check if session is expired
+        local sessionAge = os.time() - currentSession
+        if sessionAge < CONFIG.sessionTimeout then
+            log("Session exists for " .. player.Name .. " and is " .. sessionAge .. "s old")
+            return false
+        else
+            log("Session exists for " .. player.Name .. " but expired " .. (sessionAge - CONFIG.sessionTimeout) .. "s ago")
+            operationStats.sessions.timeouts = operationStats.sessions.timeouts + 1
+        end
     end
     
-    -- Update cash
-    data.cash = data.cash + amount
+    -- Set our session
+    local setSuccess, _ = self:SafeDataStoreOperation("sessions", function()
+        self.sessionStore:SetAsync(sessionKey, os.time())
+        return true
+    end)
     
-    -- Ensure cash doesn't go below 0
-    if data.cash < 0 then
-        data.cash = 0
-    end
-    
-    -- Apply to player
-    self:applyDataToPlayer(player, data)
-    
-    -- Only save immediately for large amounts
-    if math.abs(amount) > 1000 then
-        self:saveData(player, false) -- Not immediate but soon
-    end
-    
-    return true
-end
-
--- Update member counts
-function DataManager:updateMembers(player, regularDelta, vipDelta, premiumDelta)
-    if not player then return false end
-    
-    local userId = player.UserId
-    local data = self.playerData[userId]
-    
-    -- Check if we have the data
-    if not data then
-        log("No data found for " .. player.Name)
-        return false
-    end
-    
-    -- Ensure members table exists
-    if not data.members then
-        data.members = {
-            regular = 0,
-            vip = 0,
-            premium = 0,
-            total = 0
-        }
-    end
-    
-    -- Update counts
-    data.members.regular = (data.members.regular or 0) + (regularDelta or 0)
-    data.members.vip = (data.members.vip or 0) + (vipDelta or 0)
-    data.members.premium = (data.members.premium or 0) + (premiumDelta or 0)
-    
-    -- Calculate total
-    data.members.total = data.members.regular + data.members.vip + data.members.premium
-    
-    -- Apply to player
-    self:applyDataToPlayer(player, data)
-    
-    -- Schedule save
-    self:saveData(player, false) -- Not immediate
-    
-    return true
-end
-
--- Update revenue statistics
-function DataManager:updateRevenue(player, amount)
-    if not player then return false end
-    
-    local userId = player.UserId
-    local data = self.playerData[userId]
-    
-    -- Check if we have the data
-    if not data then
-        log("No data found for " .. player.Name)
-        return false
-    end
-    
-    -- Ensure revenue table exists
-    if not data.revenue then
-        data.revenue = {
-            daily = 0,
-            weekly = 0,
-            total = 0,
-            history = {}
-        }
-    end
-    
-    -- Update revenue
-    data.revenue.daily = (data.revenue.daily or 0) + amount
-    data.revenue.weekly = (data.revenue.weekly or 0) + amount
-    data.revenue.total = (data.revenue.total or 0) + amount
-    
-    -- Keep track of revenue history
-    local today = os.date("%Y-%m-%d")
-    if not data.revenue.history[today] then
-        data.revenue.history[today] = amount
+    if setSuccess then
+        -- Mark session as active
+        self.activeSessions[userId] = os.time()
+        log("Acquired session lock for " .. player.Name)
+        return true
     else
-        data.revenue.history[today] = data.revenue.history[today] + amount
+        warn("Failed to acquire session lock for " .. player.Name)
+        return false
     end
-    
-    -- Trim history to keep only last 30 days
-    local days = {}
-    for day, _ in pairs(data.revenue.history) do
-        table.insert(days, day)
-    end
-    
-    table.sort(days)
-    if #days > 30 then
-        for i = 1, #days - 30 do
-            data.revenue.history[days[i]] = nil
-        end
-    end
-    
-    -- Apply to player
-    self:applyDataToPlayer(player, data)
-    
-    return true
 end
 
--- Update specialization
-function DataManager:updateSpecialization(player, specialization)
-    if not player then return false end
-    
-    local userId = player.UserId
-    local data = self.playerData[userId]
-    
-    -- Check if we have the data
-    if not data then
-        log("No data found for " .. player.Name)
+-- Release session lock
+function DataManager:ReleaseSessionLock(player)
+    if not player then
         return false
     end
     
-    -- Update specialization
-    data.specialization = specialization
+    local userId = player.UserId
+    local sessionKey = "Session_" .. userId
     
-    -- Apply to player
-    self:applyDataToPlayer(player, data)
+    -- Track operation
+    operationStats.sessions.released = operationStats.sessions.released + 1
     
-    -- Save data
-    self:saveData(player, false) -- Not immediate
-    
-    return true
-end
-
--- Set up a player's initial data
-function DataManager:setupPlayer(player)
-    if not player then return false end
-    
-    task.spawn(function()
-        -- Load data
-        local data = self:loadData(player)
-        
-        -- If we have equipment, restore it
-        if data and data.equipment and #data.equipment > 0 then
-            task.wait(3) -- Wait for tycoon to be fully set up
-            self:restorePurchasedEquipment(player)
-        end
-        
-        -- Notify systems that player data is ready
-        EventBridge:fireServer("PlayerDataReady", player)
+    -- Release the session
+    local success, _ = self:SafeDataStoreOperation("sessions", function()
+        self.sessionStore:RemoveAsync(sessionKey)
+        return true
     end)
     
-    return true
-end
-
--- Check if player has started their tycoon
-function DataManager:hasPlayerStartedTycoon(player)
-    if not player then return false end
-    
-    local tycoon = player:FindFirstChild("Tycoon")
-    if not tycoon or not tycoon.Value then return false end
-    
-    return tycoon:GetAttribute("TycoonStarted") == true
-end
-
--- Get player data for external systems
-function DataManager:getPlayerData(player)
-    if not player then return nil end
-    
-    local userId = player.UserId
-    return self.playerData[userId]
-end
-
--- Public API
-local PublicAPI = {
-    initialize = function()
-        return DataManager:initialize()
-    end,
-    
-    loadData = function(player)
-        return DataManager:loadData(player)
-    end,
-    
-    saveData = function(player, immediate)
-        return DataManager:saveData(player, immediate)
-    end,
-    
-    applyDataToPlayer = function(player, data)
-        return DataManager:applyDataToPlayer(player, data or DataManager.playerData[player.UserId])
-    end,
-    
-    restorePurchasedEquipment = function(player)
-        return DataManager:restorePurchasedEquipment(player)
-    end,
-    
-    recordEquipmentPurchase = function(player, tileId, tileInfo)
-        return DataManager:recordEquipmentPurchase(player, tileId, tileInfo)
-    end,
-    
-    updateCash = function(player, amount)
-        return DataManager:updateCash(player, amount)
-    end,
-    
-    updateMembers = function(player, regularDelta, vipDelta, premiumDelta)
-        return DataManager:updateMembers(player, regularDelta, vipDelta, premiumDelta)
-    end,
-    
-    updateRevenue = function(player, amount)
-        return DataManager:updateRevenue(player, amount)
-    end,
-    
-    updateSpecialization = function(player, specialization)
-        return DataManager:updateSpecialization(player, specialization)
-    end,
-    
-    setupPlayer = function(player)
-        return DataManager:setupPlayer(player)
-    end,
-    
-    hasPlayerStartedTycoon = function(player)
-        return DataManager:hasPlayerStartedTycoon(player)
-    end,
-    
-    getPlayerData = function(player)
-        return DataManager:getPlayerData(player)
-    end,
-    
-    getDefaultData = function()
-        return DataManager:getDefaultData()
-    end,
-    
-    backupPlayerData = function(player)
-        return DataManager:backupPlayerData(player)
+    if success then
+        -- Clear local tracking
+        self.activeSessions[userId] = nil
+        log("Released session lock for " .. player.Name)
+        return true
+    else
+        warn("Failed to release session lock for " .. player.Name)
+        return false
     end
-}
+end
 
--- Register with CoreRegistry
-return CoreRegistry.registerSystem("DataManager", PublicAPI, {"EventBridge"})
+-- Handle game shutdown
+function DataManager:HandleShutdown()
+    log("Game shutdown initiated, saving all player data...")
+    
+    -- Save data for all players
+    local players = Players:GetPlayers()
+    local saveCount = 0
+    local saveTasks = {}
+    
+    for _, player in pairs(players) do
+        table.insert(saveTasks, task.spawn(function()
+            -- Stop auto-save
+            self:StopAutoSave(player)
+            
+            -- Save data immediately
+            local success = self:SavePlayerData(player, true)
+            if success then
+                saveCount = saveCount + 1
+            end
+            
+            -- Create backup
+            self:CreateBackup(player)
+            
+            -- Release session lock
+            self:ReleaseSessionLock(player)
+        end))
+    end
+    
+    -- Wait for saves to complete, up to shutdown timeout
+    local start = os.time()
+    while (os.time() - start) < CONFIG.shutdownTimeout do
+        local remaining = 0
+        for _, task in pairs(saveTasks) do
+            if coroutine.status(task) ~= "dead" then
+                remaining = remaining + 1
+            end
+        end
+        
+        if remaining == 0 then
+            break
+        end
+        
+        task.wait(0.1)
+    end
+    
+    log("Shutdown complete. Saved " .. saveCount .. "/" .. #players .. " players.")
+end
+
+-- Get operation statistics
+function DataManager:GetStats()
+    return {
+        operations = operationStats,
+        activeData = {
+            loadedPlayers = #table.keys(self.loadedData),
+            activeSessions = #table.keys(self.activeSessions),
+            queuedSaves = #table.keys(self.saveQueue),
+            activeSaves = #table.keys(self.isSaving),
+            queuedBackups = #table.keys(self.backupQueue),
+            autoSaveTimers = #table.keys(self.autoSaveTimers)
+        }
+    }
+end
+
+-- Compatibility layer for older systems
+function DataManager:CreateCompatibilityLayer()
+    -- Create enhanced methods with fallback to legacy-style calls
+    
+    -- Legacy method: getPlayerData
+    self.getPlayerData = function(player)
+        return self.loadedData[player.UserId]
+    end
+    
+    -- Legacy method: updatePlayerData
+    self.updatePlayerData = function(player, path, value)
+        local userId = player.UserId
+        if not self.loadedData[userId] then
+            return false
+        end
+        
+        local data = self.loadedData[userId]
+        
+        -- Handle dot notation paths
+        if type(path) == "string" and path:find("%.") then
+            local currentTable = data
+            local parts = string.split(path, ".")
+            
+            -- Navigate to the correct location
+            for i = 1, #parts - 1 do
+                local part = parts[i]
+                if currentTable[part] == nil then
+                    currentTable[part] = {}
+                elseif type(currentTable[part]) ~= "table" then
+                    currentTable[part] = {}
+                end
+                currentTable = currentTable[part]
+            end
+            
+            -- Set the value
+            currentTable[parts[#parts]] = value
+        else
+            -- Direct property
+            data[path] = value
+        end
+        
+        -- Queue a save
+        self:QueueSave(userId, data, 3)
+        
+        return true
+    end
+    
+    log("Compatibility layer created")
+end
+
+-- Initialize on module load
+DataManager:Initialize()
+DataManager:CreateCompatibilityLayer()
+
+return DataManager
