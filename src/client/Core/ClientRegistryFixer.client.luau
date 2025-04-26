@@ -1,52 +1,48 @@
---!strict
 --[[
     ClientRegistryFixer.client.luau
     
-    A client-side utility for ensuring ClientRegistry exists and is properly initialized.
+    A utility to fix common ClientRegistry issues and ensure it's properly
+    initialized and accessible to all client scripts.
     
     Created: April 25, 2025
-    
-    This module:
-    1. Loads early in the client lifecycle
-    2. Ensures ClientRegistry exists in the correct locations
-    3. Creates global references when needed
-    4. Properly handles permissions in Studio mode
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
 local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer then
-    error("[ClientRegistryFixer] No LocalPlayer found")
-    return
-end
-
--- Configuration
-local CONFIG = {
-    DEBUG_LOGGING = true,
-    CREATE_MISSING_FOLDERS = true,
-    ALLOW_GLOBAL_REGISTRY = true,
-    FALLBACK_REGISTRY_CREATION = true
-}
 
 -- Constants
-local IsStudio = RunService:IsStudio()
+local DEBUG_ENABLED = true
+local MAX_RETRIES = 5
+local RETRY_DELAY = 0.5
 
--- Registry paths
-local REGISTRY_PATHS = {
-    SharedFolder = ReplicatedStorage:FindFirstChild("shared"),
-    ClientFolder = LocalPlayer.PlayerScripts:FindFirstChild("Client"),
-    CoreFolder = LocalPlayer.PlayerScripts:FindFirstChild("Client") and 
-                 LocalPlayer.PlayerScripts.Client:FindFirstChild("Core")
-}
-
--- Logging function
+-- Debug logging
 local function log(message)
-    if CONFIG.DEBUG_LOGGING then
+    if DEBUG_ENABLED then
         print("[ClientRegistryFixer] " .. message)
     end
+end
+
+local function warn_log(message)
+    warn("[ClientRegistryFixer] " .. message)
+end
+
+-- Ensure a folder exists
+local function ensureFolderExists(parent, name)
+    if not parent then
+        warn_log("Cannot create folder in nil parent")
+        return nil
+    end
+    
+    local folder = parent:FindFirstChild(name)
+    if not folder then
+        folder = Instance.new("Folder")
+        folder.Name = name
+        folder.Parent = parent
+        log("Created folder: " .. name .. " in " .. parent:GetFullName())
+    end
+    
+    return folder
 end
 
 -- Safe require utility
@@ -60,218 +56,120 @@ local function requireSafely(module)
     end)
     
     if not success then
-        warn("[ClientRegistryFixer] Failed to require module: ", module:GetFullName())
+        warn_log("Failed to require " .. tostring(module:GetFullName()) .. ": " .. tostring(result))
         return nil
     end
     
     return result
 end
 
--- Create missing folder hierarchies
-local function ensureFolderHierarchy()
-    -- Ensure shared folder exists
-    if not REGISTRY_PATHS.SharedFolder then
-        if CONFIG.CREATE_MISSING_FOLDERS then
-            log("Creating missing shared folder in ReplicatedStorage")
-            local newFolder = Instance.new("Folder")
-            newFolder.Name = "shared"
-            newFolder.Parent = ReplicatedStorage
-            REGISTRY_PATHS.SharedFolder = newFolder
-        else
-            warn("[ClientRegistryFixer] Shared folder missing in ReplicatedStorage")
-        end
-    end
-    
-    -- Ensure Client folder exists
-    if not REGISTRY_PATHS.ClientFolder then
-        if CONFIG.CREATE_MISSING_FOLDERS then
-            log("Creating missing Client folder in PlayerScripts")
-            local newFolder = Instance.new("Folder")
-            newFolder.Name = "Client"
-            newFolder.Parent = LocalPlayer.PlayerScripts
-            REGISTRY_PATHS.ClientFolder = newFolder
-        else
-            warn("[ClientRegistryFixer] Client folder missing in PlayerScripts")
-        end
-    end
-    
-    -- Ensure Core folder exists
-    if REGISTRY_PATHS.ClientFolder and not REGISTRY_PATHS.CoreFolder then
-        if CONFIG.CREATE_MISSING_FOLDERS then
-            log("Creating missing Core folder in Client")
-            local newFolder = Instance.new("Folder")
-            newFolder.Name = "Core"
-            newFolder.Parent = REGISTRY_PATHS.ClientFolder
-            REGISTRY_PATHS.CoreFolder = newFolder
-        else
-            warn("[ClientRegistryFixer] Core folder missing in Client folder")
-        end
-    end
-end
-
--- Locate ClientRegistry in various possible locations
+-- Try to get ClientRegistry from various locations
 local function findClientRegistry()
-    local registryLocations = {}
+    log("Looking for ClientRegistry...")
     
-    -- Check in shared folder
-    if REGISTRY_PATHS.SharedFolder then
-        local sharedRegistry = REGISTRY_PATHS.SharedFolder:FindFirstChild("ClientRegistry")
-        if sharedRegistry then
-            table.insert(registryLocations, {
-                instance = sharedRegistry,
-                path = "ReplicatedStorage.shared.ClientRegistry",
-                module = requireSafely(sharedRegistry)
-            })
+    -- Try various search paths
+    local searchPaths = {
+        -- In ReplicatedStorage.shared
+        function()
+            local shared = ReplicatedStorage:FindFirstChild("shared")
+            if shared and shared:FindFirstChild("ClientRegistry") then
+                log("Found in ReplicatedStorage.shared")
+                return requireSafely(shared.ClientRegistry)
+            end
+            return nil
+        end,
+        
+        -- In LocalPlayer.PlayerScripts.Client.Core
+        function()
+            if LocalPlayer and 
+               LocalPlayer.PlayerScripts:FindFirstChild("Client") and
+               LocalPlayer.PlayerScripts.Client:FindFirstChild("Core") and
+               LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("ClientRegistry") then
+                log("Found in PlayerScripts.Client.Core")
+                return requireSafely(LocalPlayer.PlayerScripts.Client.Core.ClientRegistry)
+            end
+            return nil
+        end,
+        
+        -- In LocalPlayer.PlayerGui
+        function()
+            if LocalPlayer and 
+               LocalPlayer.PlayerGui:FindFirstChild("UIScripts") and
+               LocalPlayer.PlayerGui.UIScripts:FindFirstChild("ClientRegistry") then
+                log("Found in PlayerGui.UIScripts")
+                return requireSafely(LocalPlayer.PlayerGui.UIScripts.ClientRegistry)
+            end
+            return nil
         end
-    end
-    
-    -- Check in Core folder
-    if REGISTRY_PATHS.CoreFolder then
-        local coreRegistry = REGISTRY_PATHS.CoreFolder:FindFirstChild("ClientRegistry")
-        if coreRegistry then
-            table.insert(registryLocations, {
-                instance = coreRegistry,
-                path = "PlayerScripts.Client.Core.ClientRegistry",
-                module = requireSafely(coreRegistry)
-            })
-        end
-    end
-    
-    return registryLocations
-end
-
--- Create a basic ClientRegistry if none exists
-local function createBasicClientRegistry()
-    log("Creating basic ClientRegistry")
-    
-    local ClientRegistry = {
-        systems = {},
-        uiComponents = {},
-        initialized = false
     }
     
-    -- Core ClientRegistry functionality
-    function ClientRegistry:registerSystem(systemName, systemInstance)
-        if not systemName or not systemInstance then
-            warn("[ClientRegistry] Cannot register nil system")
-            return false
+    -- Try each search path
+    for i, searchFn in ipairs(searchPaths) do
+        local registry = searchFn()
+        if registry then
+            log("Successfully found ClientRegistry using method " .. i)
+            return registry
         end
-        
-        self.systems[systemName] = systemInstance
-        log("Registered system: " .. systemName)
-        return true
     end
     
-    function ClientRegistry:getSystem(systemName)
-        return self.systems[systemName]
-    end
-    
-    function ClientRegistry:registerUIComponent(componentName, component)
-        if not componentName or not component then
-            warn("[ClientRegistry] Cannot register nil UI component")
-            return false
-        end
-        
-        self.uiComponents[componentName] = component
-        log("Registered UI component: " .. componentName)
-        return true
-    end
-    
-    function ClientRegistry:getUIComponent(componentName)
-        return self.uiComponents[componentName]
-    end
-    
-    function ClientRegistry:initialize()
-        if self.initialized then
-            return true
-        end
-        
-        log("Initializing ClientRegistry")
-        self.initialized = true
-        return true
-    end
-    
-    return ClientRegistry
+    log("ClientRegistry not found in any known location")
+    return nil
 end
 
--- Save ClientRegistry module to file
-local function saveClientRegistryToFile(clientRegistry, targetFolder)
-    if not IsStudio then
-        log("Cannot save ClientRegistry to file outside Studio")
-        return false
+-- Create a minimal ClientRegistry when none is found
+local function createMinimalClientRegistry()
+    log("Creating minimal ClientRegistry...")
+    
+    -- Ensure shared folder exists
+    local shared = ensureFolderExists(ReplicatedStorage, "shared")
+    if not shared then
+        warn_log("Failed to create shared folder")
+        return nil
     end
     
-    if not targetFolder then
-        log("No target folder specified for saving ClientRegistry")
-        return false
+    -- Check if one already exists
+    if shared:FindFirstChild("ClientRegistry") then
+        log("ClientRegistry already exists in shared folder")
+        return requireSafely(shared.ClientRegistry)
     end
     
-    log("Creating ClientRegistry ModuleScript in " .. targetFolder:GetFullName())
-    
-    local moduleScript = Instance.new("ModuleScript")
-    moduleScript.Name = "ClientRegistry"
-    
-    -- Basic ClientRegistry script template
-    moduleScript.Source = [[--!strict
+    -- Create a new ClientRegistry
+    local clientRegistryModule = Instance.new("ModuleScript")
+    clientRegistryModule.Name = "ClientRegistry"
+    clientRegistryModule.Source = [[
 --[[
-    ClientRegistry.luau
-    
-    A registry for client-side systems.
-    
-    Created: April 25, 2025 (Auto-generated by ClientRegistryFixer)
-    
-    This module:
-    1. Provides a central registration point for client systems
-    2. Manages access to UI components
-    3. Handles cross-system dependencies
+    ClientRegistry (Minimal Version)
+    A central registry for client-side systems and UI components
+    Created by ClientRegistryFixer
 ]]
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
--- Registry state
+    
 local ClientRegistry = {
     systems = {},
     uiComponents = {},
-    initialized = false
+    initialized = false,
+    createdByFixer = true
 }
 
--- Debug logging
-local function log(message)
-    print("[ClientRegistry] " .. message)
-end
-
--- Register a system with the registry
-function ClientRegistry:registerSystem(systemName, systemInstance)
-    if not systemName or not systemInstance then
-        warn("[ClientRegistry] Cannot register nil system")
-        return false
-    end
-    
-    self.systems[systemName] = systemInstance
-    log("Registered system: " .. systemName)
-    return true
-end
-
--- Get a system from the registry
-function ClientRegistry:getSystem(systemName)
-    return self.systems[systemName]
+-- Register a client-side system
+function ClientRegistry:registerSystem(systemName, system)
+    self.systems[systemName] = system
+    print("[ClientRegistry] Registered system: " .. systemName)
+    return system
 end
 
 -- Register a UI component
 function ClientRegistry:registerUIComponent(componentName, component)
-    if not componentName or not component then
-        warn("[ClientRegistry] Cannot register nil UI component")
-        return false
-    end
-    
     self.uiComponents[componentName] = component
-    log("Registered UI component: " .. componentName)
-    return true
+    print("[ClientRegistry] Registered UI component: " .. componentName)
+    return component
 end
 
--- Get a UI component
+-- Get a system by name
+function ClientRegistry:getSystem(systemName)
+    return self.systems[systemName]
+end
+
+-- Get a UI component by name
 function ClientRegistry:getUIComponent(componentName)
     return self.uiComponents[componentName]
 end
@@ -279,85 +177,242 @@ end
 -- Initialize the registry
 function ClientRegistry:initialize()
     if self.initialized then
-        return true
+        return
     end
     
-    log("Initializing ClientRegistry")
+    print("[ClientRegistry] Initializing minimal ClientRegistry")
+    
+    -- Set up basic UI style for fallback
+    self:registerUIComponent("UIStyle", {
+        colors = {
+            background = Color3.fromRGB(40, 40, 60),
+            text = Color3.fromRGB(240, 240, 240),
+            accent = Color3.fromRGB(80, 160, 240)
+        },
+        fonts = {
+            header = Enum.Font.GothamBold,
+            body = Enum.Font.Gotham
+        },
+        padding = UDim.new(0, 8)
+    })
+    
+    -- Set up basic icon references for fallback
+    self:registerUIComponent("IconSet", {
+        close = "rbxassetid://8093755787",
+        settings = "rbxassetid://8093754726",
+        info = "rbxassetid://8093754900"
+    })
+    
     self.initialized = true
+    print("[ClientRegistry] Initialization complete")
+end
+
+-- Helper to check if a module exists/function
+function ClientRegistry:testRegistry()
+    print("[ClientRegistry] Registry test: OK")
     return true
 end
 
--- Auto-initialize
-ClientRegistry:initialize()
-
-return ClientRegistry]]
+return ClientRegistry
+]]
+    clientRegistryModule.Parent = shared
     
-    moduleScript.Parent = targetFolder
-    return moduleScript
+    log("Created minimal ClientRegistry in ReplicatedStorage.shared")
+    return requireSafely(clientRegistryModule)
 end
 
--- MAIN FUNCTIONALITY: Get or create ClientRegistry
-local function ensureClientRegistry()
-    -- First, ensure folder structure exists
-    ensureFolderHierarchy()
+-- Ensure the ClientRegistry is initialized
+local function ensureClientRegistryInitialized(registry)
+    if not registry then
+        return false
+    end
     
-    -- Try to find existing ClientRegistry
-    local registryLocations = findClientRegistry()
+    -- If it has an initialize function and isn't initialized, call it
+    if typeof(registry.initialize) == "function" and not registry.initialized then
+        log("Initializing ClientRegistry...")
+        
+        local success = pcall(function()
+            registry:initialize()
+        end)
+        
+        if not success then
+            warn_log("Failed to initialize ClientRegistry")
+            return false
+        end
+        
+        log("Successfully initialized ClientRegistry")
+    end
     
-    -- If found, use the first valid one
-    for _, location in ipairs(registryLocations) do
-        if location.module then
-            log("Found valid ClientRegistry at " .. location.path)
-            
-            -- Store global reference if allowed
-            if CONFIG.ALLOW_GLOBAL_REGISTRY then
-                log("Creating global ClientRegistry reference")
-            end
-            
-            -- Return the found module
-            return location.module
-        else
-            warn("[ClientRegistryFixer] Found ClientRegistry at " .. location.path .. " but it failed to load")
+    return true
+end
+
+-- Fix common issues with ClientRegistry
+local function fixClientRegistryIssues(registry)
+    if not registry then
+        return false
+    end
+    
+    -- Fix missing systems field
+    if not registry.systems then
+        log("Adding missing systems table to ClientRegistry")
+        registry.systems = {}
+    end
+    
+    -- Fix missing uiComponents field
+    if not registry.uiComponents then
+        log("Adding missing uiComponents table to ClientRegistry")
+        registry.uiComponents = {}
+    end
+    
+    -- Fix missing registerSystem method
+    if typeof(registry.registerSystem) ~= "function" then
+        log("Adding missing registerSystem function to ClientRegistry")
+        registry.registerSystem = function(self, systemName, system)
+            self.systems[systemName] = system
+            return system
         end
     end
     
-    -- If we get here, no working ClientRegistry was found
-    warn("[ClientRegistryFixer] No working ClientRegistry found, action required")
+    -- Fix missing registerUIComponent method
+    if typeof(registry.registerUIComponent) ~= "function" then
+        log("Adding missing registerUIComponent function to ClientRegistry")
+        registry.registerUIComponent = function(self, componentName, component)
+            self.uiComponents[componentName] = component
+            return component
+        end
+    end
     
-    -- Create a fallback if allowed
-    if CONFIG.FALLBACK_REGISTRY_CREATION then
-        log("Creating fallback ClientRegistry")
-        local fallbackRegistry = createBasicClientRegistry()
+    -- Fix missing getSystem method
+    if typeof(registry.getSystem) ~= "function" then
+        log("Adding missing getSystem function to ClientRegistry")
+        registry.getSystem = function(self, systemName)
+            return self.systems[systemName]
+        end
+    end
+    
+    -- Fix missing getUIComponent method
+    if typeof(registry.getUIComponent) ~= "function" then
+        log("Adding missing getUIComponent function to ClientRegistry")
+        registry.getUIComponent = function(self, componentName)
+            return self.uiComponents[componentName]
+        end
+    end
+    
+    -- Add a testRegistry method for diagnostics
+    if typeof(registry.testRegistry) ~= "function" then
+        log("Adding testRegistry function to ClientRegistry")
+        registry.testRegistry = function()
+            return true
+        end
+    end
+    
+    return true
+end
+
+-- Main function to fix ClientRegistry
+local function fixClientRegistry()
+    log("Starting ClientRegistry fix process...")
+    
+    -- Step 1: Try to find an existing ClientRegistry
+    local registry = findClientRegistry()
+    local attempts = 0
+    
+    -- Step 2: If not found, retry a few times (in case it's being created elsewhere)
+    while not registry and attempts < MAX_RETRIES do
+        attempts += 1
+        log("Attempt " .. attempts .. "/" .. MAX_RETRIES .. " to find ClientRegistry...")
+        task.wait(RETRY_DELAY)
+        registry = findClientRegistry()
+    end
+    
+    -- Step 3: If still not found, create a minimal version
+    if not registry then
+        log("ClientRegistry not found after " .. attempts .. " attempts, creating minimal version")
+        registry = createMinimalClientRegistry()
+    end
+    
+    -- Step 4: Ensure it's initialized and fix common issues
+    if registry then
+        fixClientRegistryIssues(registry)
+        ensureClientRegistryInitialized(registry)
         
-        -- Try to save it to file in Studio
-        if IsStudio then
-            if REGISTRY_PATHS.CoreFolder then
-                saveClientRegistryToFile(fallbackRegistry, REGISTRY_PATHS.CoreFolder)
-            elseif REGISTRY_PATHS.SharedFolder then
-                saveClientRegistryToFile(fallbackRegistry, REGISTRY_PATHS.SharedFolder)
+        -- Add to shared folder for easy access
+        local shared = ensureFolderExists(ReplicatedStorage, "shared")
+        if shared and not shared:FindFirstChild("ClientRegistry") then
+            local clientRegistryModule = Instance.new("ModuleScript")
+            clientRegistryModule.Name = "ClientRegistry"
+            clientRegistryModule.Source = "return require(script.ClientRegistryImpl)"
+            
+            local clientRegistryImplModule = Instance.new("ModuleScript")
+            clientRegistryImplModule.Name = "ClientRegistryImpl"
+            clientRegistryImplModule.Parent = clientRegistryModule
+            
+            -- Copy registry to a string representation
+            local success, source = pcall(function()
+                local source = "--[[Generated by ClientRegistryFixer]]\n\n"
+                source = source .. "local ClientRegistry = {\n"
+                source = source .. "    systems = {},\n"
+                source = source .. "    uiComponents = {},\n"
+                source = source .. "    initialized = false\n"
+                source = source .. "}\n\n"
+                
+                -- Add core methods
+                source = source .. "function ClientRegistry:registerSystem(systemName, system)\n"
+                source = source .. "    self.systems[systemName] = system\n"
+                source = source .. "    return system\n"
+                source = source .. "end\n\n"
+                
+                source = source .. "function ClientRegistry:registerUIComponent(componentName, component)\n"
+                source = source .. "    self.uiComponents[componentName] = component\n"
+                source = source .. "    return component\n"
+                source = source .. "end\n\n"
+                
+                source = source .. "function ClientRegistry:getSystem(systemName)\n"
+                source = source .. "    return self.systems[systemName]\n"
+                source = source .. "end\n\n"
+                
+                source = source .. "function ClientRegistry:getUIComponent(componentName)\n"
+                source = source .. "    return self.uiComponents[componentName]\n"
+                source = source .. "end\n\n"
+                
+                source = source .. "function ClientRegistry:initialize()\n"
+                source = source .. "    if self.initialized then return end\n"
+                source = source .. "    print(\"[ClientRegistry] Initializing\")\n"
+                source = source .. "    self.initialized = true\n"
+                source = source .. "end\n\n"
+                
+                source = source .. "function ClientRegistry:testRegistry()\n"
+                source = source .. "    return true\n"
+                source = source .. "end\n\n"
+                
+                source = source .. "return ClientRegistry"
+                
+                return source
+            end)
+            
+            if success then
+                clientRegistryImplModule.Source = source
+                clientRegistryModule.Parent = shared
+                log("Created ClientRegistry proxy in ReplicatedStorage.shared")
+            else
+                warn_log("Failed to generate ClientRegistry source: " .. tostring(source))
             end
         end
         
-        -- Store global reference if allowed
-        if CONFIG.ALLOW_GLOBAL_REGISTRY then
-            log("Creating global ClientRegistry reference")
-        end
-        
-        -- Return the fallback
-        return fallbackRegistry
+        log("ClientRegistry fix process completed successfully")
+        return registry
     else
-        error("[ClientRegistryFixer] No working ClientRegistry found and fallback creation is disabled")
+        warn_log("Failed to fix ClientRegistry")
         return nil
     end
 end
 
--- ClientRegistryFixer Module
-local ClientRegistryFixer = {
-    findClientRegistry = findClientRegistry,
-    ensureClientRegistry = ensureClientRegistry,
-    createBasicClientRegistry = createBasicClientRegistry,
-    saveClientRegistryToFile = saveClientRegistryToFile,
-    CONFIG = CONFIG
-}
+-- Run the fixer with error handling
+local success, result = pcall(fixClientRegistry)
 
-return ClientRegistryFixer
+if not success then
+    warn_log("Error while fixing ClientRegistry: " .. tostring(result))
+end
+
+-- Return the fixed ClientRegistry or nil if failed
+return success and result or nil
