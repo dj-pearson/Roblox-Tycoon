@@ -28,25 +28,105 @@
 - `Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlayerRemovedFromAllianceEvent")'` - ✅ FIXED
 
 **Recommended Next Steps:**
-1. Continue implementing SafeWaitForChild in other files using the same WaitForChild pattern
-2. Focus on fixing the ClientRegistry and PlayerRemovedFromAllianceEvent issues
+1. Continue implementing SafeWaitForChild in all files using WaitForChild pattern
+2. Focus on fixing remaining ClientRegistry issues in UI scripts
 3. Create a script to analyze all WaitForChild calls and prioritize ones causing infinite yield errors
 4. Add unit tests that verify key object references can be safely resolved
 
-## Asset Loading Failures (NOT STARTED)
+## Asset Loading Failures (🔧 IN PROGRESS)
 
-**Error Message:** `Failed to load sound rbxassetid://9125601193: Asset type does not match requested type`
+**Error Message:** 
+- `Failed to load sound rbxassetid://9125601193: Asset type does not match requested type`
+- `Failed to load sound rbxassetid://9048378264: Asset type does not match requested type`
+- `Failed to load animation with sanitized ID rbxassetid://4479935848: Animation failed to load`
 
-**Context:** When attempting to play sounds during gameplay.
+**Context:** When attempting to play sounds and animations during gameplay.
 
-**Impact:** Medium. Sound effects missing, reducing game feedback quality.
+**Impact:** Medium. Sound effects and animations missing, reducing game feedback quality.
 
 **Frequency:** Multiple occurrences.
 
+**Status:**
+- ✅ Created enhanced AssetValidator module to validate and provide fallbacks for problematic assets
+- ✅ Fixed SteamSauna sound asset references
+- ✅ Fixed AchievementNotification sound asset references
+- ✅ Added fallback mechanism for animation assets
+
 **Recommended Next Steps:**
-1. Review all sound asset references
-2. Verify that asset IDs point to valid sound files
-3. Replace invalid sound assets with correct ones
+1. Continue auditing all asset references
+2. Update all UI scripts to use AssetValidator for image assets
+3. Create a comprehensive asset validation report
+4. Consider implementing asset preloading for critical assets
+
+## CoreRegistry Access Issues (⚠️ HIGH PRIORITY)
+
+**Error Message:** 
+- `attempt to index nil with 'registerSystem'`
+- `CoreRegistry not found. Cannot run tests without it.`
+- `[CoreRegistry] ModuleLoader not found, using legacy loading`
+
+**Context:** Many systems fail to initialize properly because they can't find or access the CoreRegistry.
+
+**Impact:** Critical. Prevents proper initialization of core game systems and causes cascading failures.
+
+**Frequency:** Consistent on every game start.
+
+**Recommended Next Steps:**
+1. Create a robust CoreRegistry initialization system that:
+   - Loads early in the game lifecycle
+   - Provides clear logging when it initializes
+   - Has fallback mechanisms when core modules aren't found
+   - Can be accessed consistently from both server and client
+2. Add a diagnostic tool to check CoreRegistry health on startup
+3. Create a universal system finder that can gracefully handle missing CoreRegistry
+4. Implement registry auto-repair utilities to fix common issues
+
+## UI Module Loading Issues (⚠️ HIGH PRIORITY)
+
+**Error Message:**
+- `UIStyle module not found, using fallback styles`
+- `IconSet module not found, MainMenuUI will have limited functionality`
+- `ButtonFactory module not found, will have limited functionality`
+- `attempt to index nil with 'createIconButton'`
+
+**Context:** Many UI components failing to load due to missing dependencies.
+
+**Impact:** High. UI functionality severely degraded, missing buttons, icons, and styling.
+
+**Frequency:** Consistent on every game session.
+
+**Recommended Next Steps:**
+1. Create a consolidated UI Module system with:
+   - UIStyle - central styling definitions
+   - IconSet - standardized icon access
+   - ButtonFactory - standardized button creation
+   - DialogFactory - standardized dialog creation
+2. Ensure these UI modules are loaded early and reliably
+3. Add fallback styling and icons for when the main ones fail to load
+4. Create a UI diagnostic tool that can validate UI module health
+
+## Client Registry Issues (⚠️ HIGH PRIORITY)
+
+**Error Message:**
+- `ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"`
+- `ClientRegistryFixer: Found ClientRegistry, creating global reference`
+- `The current thread cannot write 'Source' (lacking capability PluginOrOpenCloud)`
+
+**Context:** ClientRegistry is not being properly initialized or accessed across the client scripts.
+
+**Impact:** High. Many client systems fail to initialize properly.
+
+**Frequency:** Consistent on every game session.
+
+**Recommended Next Steps:**
+1. Create a robust ClientRegistry initialization system that:
+   - Loads at the earliest possible moment in the client lifecycle
+   - Properly registers itself in the correct location
+   - Has fallback mechanisms when expected modules aren't found
+   - Can be accessed consistently from all client scripts
+2. Implement a diagnostic tool to verify ClientRegistry initialization
+3. Update all client scripts to use a consistent ClientRegistry access pattern
+4. Add a ClientRegistryFixer that properly handles Studio permissions
 
 ## Data Management and Restoration Issues (✅ FIXED)
 
@@ -109,7 +189,30 @@
    - Use background priority for non-essential operations like backups
    - Implement more robust error handling
 
-## Miscellaneous Script Errors (NOT STARTED)
+## GUI Element Missing Issues (🔧 IN PROGRESS)
+
+**Error Message:** 
+- `Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui:45: Expected <eof>, got 'end'`
+- `PurchaseButton is not a valid member of PlayerGui "Players.Xdjpearsonx.PlayerGui"`
+- `Players.Xdjpearsonx.PlayerGui.SatisfactionButton:28: attempt to index nil with 'WaitForChild'`
+
+**Context:** Various GUI elements missing or failing to load properly.
+
+**Impact:** Medium to High. UI elements not appearing or functioning correctly.
+
+**Frequency:** Multiple instances with different UI components.
+
+**Status:**
+- ✅ Fixed BuilderBoostPurchaseGui to properly create its button if missing
+- ✅ Added error handling for missing UI elements
+
+**Recommended Next Steps:**
+1. Create a UI diagnostic tool to verify all essential UI elements exist
+2. Implement a UI cleanup/repair utility to fix common issues
+3. Add safety checks before accessing UI elements
+4. Create a standardized approach for UI element creation and access
+
+## Miscellaneous Script Errors (🔧 IN PROGRESS)
 
 **Error Message:** Various errors including undefined globals, references to non-existent members.
 
@@ -119,8 +222,35 @@
 
 **Frequency:** Sporadic.
 
+**Status:**
+- ✅ Fixed ElevatorMovement script errors related to PrimaryPart
+- ✅ Updated font references from deprecated GothamSemibold to GothamMedium
+- ✅ Added proper error handling for missing or invalid arguments
+
 **Recommended Next Steps:**
-1. Fix reference paths in scripts
-2. Ensure all UI elements exist before attempting to access them
-3. Add null checks before accessing potentially undefined objects
-4. Review the BuilderBoostPurchaseGui component to ensure PurchaseButton exists
+1. Implement a more comprehensive error handling system
+2. Create a diagnostic tool to systematically check for and report common errors
+3. Add more robust null/nil checks before accessing potentially undefined objects
+4. Replace all deprecated API usage with updated alternatives
+
+## Path Module Loading Issues (⚠️ HIGH PRIORITY)
+
+**Error Message:** 
+- `Attempted to call require with invalid argument(s)`
+- `Core is not a valid member of PlayerScripts "Players.Xdjpearsonx.PlayerScripts"`
+
+**Context:** Many scripts are failing to properly require modules due to incorrect path references.
+
+**Impact:** Critical. Many systems fail to initialize, causing cascading failures.
+
+**Frequency:** Very high, affecting most module requires.
+
+**Recommended Next Steps:**
+1. Create a robust ModuleLoader system that:
+   - Provides standardized access to modules regardless of their location
+   - Supports multiple search paths for modules
+   - Has fallback mechanisms when modules aren't found
+   - Provides helpful error messages when modules can't be loaded
+2. Update all scripts to use ModuleLoader instead of direct require
+3. Implement script analysis to find and fix common module path issues
+4. Create a module dependency graph to better understand the loading order
