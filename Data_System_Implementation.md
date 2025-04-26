@@ -34,6 +34,26 @@ Located at `src/server/Core/VersionedDataStore.server.luau`, this system offers:
 - Version comparison to identify changes
 - Automatic version creation on key game events
 
+### 5. DataMigrationUtility
+Located at `src/server/Core/DataMigrationUtility.server.luau`, this utility handles:
+- Safe migration of player data between different systems
+- Data validation before and after migration
+- Automatic backups before migration attempts
+- Admin commands for controlling migration processes
+- Detailed tracking of migration progress and results
+
+### 6. DataSystemIntegration
+Located at `src/server/Data/DataSystemIntegration.server.luau`, this module provides:
+- Unified API for accessing any data system
+- Compatibility layer for legacy code
+- Event integration with CoreRegistry
+- Automatic event handling for important game milestones
+- System statistics and monitoring
+
+### 7. Utility Modules
+- `SafeRequire.luau`: Safely requires modules without crashing
+- `SafeWaitForChild.luau`: Provides robust instance acquisition with timeouts
+
 ## Key Improvements
 
 ### Data Loss Prevention

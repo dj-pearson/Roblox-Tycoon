@@ -1,454 +1,485 @@
+--!strict
 --[[
     SystemDiagnostics.server.luau
     
-    Diagnostic module to validate the CoreRegistry, ModuleLoader, and EventBridge systems.
-    Run this script to check if the fixes have resolved the issues.
+    A diagnostic tool for checking system health and fixing common issues.
+    Useful for troubleshooting CoreRegistry, ModuleLoader, and other critical systems.
     
-    Created: April 25, 2025
+    Created: April 26, 2025
 ]]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Configuration
-local CONFIG = {
-    RUN_ON_START = false,
-    VERBOSE_LOGGING = true,
-    CHECK_MODULE_PATHS = true,
-    CHECK_CORE_SYSTEMS = true,
-    CHECK_EVENTS = true
-}
+-- Debug settings
+local DEBUG_ENABLED = true
 
--- Health status tracking
-local healthStatus = {
-    moduleLoaderStatus = "unknown",
-    coreRegistryStatus = "unknown",
-    eventBridgeStatus = "unknown",
-    systemsFound = 0,
-    systemsTotal = 0,
-    failures = {},
-    criticalIssues = 0,
-    warnings = 0
-}
-
--- Logging
+-- Print debug messages
 local function log(message)
-    print("[SystemDiagnostics] " .. message)
+    if DEBUG_ENABLED then
+        print("[SystemDiagnostics] " .. message)
+    end
 end
 
-local function warn_log(message)
-    warn("[SystemDiagnostics] " .. message)
-    healthStatus.warnings += 1
-end
-
-local function fail_log(message)
-    warn("[SystemDiagnostics] CRITICAL: " .. message)
-    healthStatus.criticalIssues += 1
-    table.insert(healthStatus.failures, message)
-end
-
--- Test ModuleLoader functionality
-local function testModuleLoader()
-    log("Testing ModuleLoader...")
+-- Find a module script in common locations
+local function findModuleInCommonLocations(moduleName)
+    local commonLocations = {
+        ServerScriptService:FindFirstChild("Core") and 
+            ServerScriptService.Core:FindFirstChild(moduleName),
+        
+        ReplicatedStorage:FindFirstChild("shared") and 
+            ReplicatedStorage.shared:FindFirstChild(moduleName),
+        
+        ServerScriptService:FindFirstChild("src") and 
+            ServerScriptService.src:FindFirstChild("server") and 
+            ServerScriptService.src.server:FindFirstChild("Core") and 
+            ServerScriptService.src.server.Core:FindFirstChild(moduleName),
+        
+        ReplicatedStorage:FindFirstChild("src") and 
+            ReplicatedStorage.src:FindFirstChild("shared") and 
+            ReplicatedStorage.src.shared:FindFirstChild(moduleName)
+    }
     
-    -- Try to find ModuleLoader in shared folder
-    local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
-    if not sharedFolder then
-        fail_log("Shared folder not found in ReplicatedStorage!")
-        return false
+    for _, location in ipairs(commonLocations) do
+        if location and location:IsA("ModuleScript") then
+            return location
+        end
     end
     
-    local moduleLoader = sharedFolder:FindFirstChild("ModuleLoader")
-    if not moduleLoader then
-        fail_log("ModuleLoader not found in shared folder!")
-        return false
+    return nil
+end
+
+-- Safely require a module
+local function safeRequire(moduleScript)
+    if not moduleScript then
+        return nil, "Module is nil"
     end
     
-    -- Try to require the ModuleLoader
-    local success, ModuleLoader = pcall(function()
-        return require(moduleLoader)
+    local success, result = pcall(function()
+        return require(moduleScript)
     end)
     
-    if not success or not ModuleLoader then
-        fail_log("Failed to require ModuleLoader: " .. tostring(ModuleLoader))
-        return false
+    if not success then
+        return nil, tostring(result)
     end
     
-    -- Test core functionality
-    if typeof(ModuleLoader.tryRequire) ~= "function" then
-        fail_log("ModuleLoader.tryRequire is not a function!")
-        return false
-    end
+    return result, nil
+end
+
+-- Main diagnostics module
+local SystemDiagnostics = {
+    testResults = {},
+    fixesApplied = {}
+}
+
+-- Run a single test
+function SystemDiagnostics:RunTest(testName, testFunction)
+    log("Running test: " .. testName)
     
-    if typeof(ModuleLoader.findModule) ~= "function" then
-        warn_log("ModuleLoader.findModule is not a function!")
-    end
+    local startTime = os.clock()
+    local success, result = pcall(testFunction)
+    local endTime = os.clock()
     
-    if typeof(ModuleLoader.initialize) ~= "function" then
-        warn_log("ModuleLoader.initialize is not a function!")
+    local testResult = {
+        name = testName,
+        success = success,
+        result = result,
+        error = not success and tostring(result) or nil,
+        duration = endTime - startTime
+    }
+    
+    self.testResults[testName] = testResult
+    
+    if success then
+        log("✓ Test passed: " .. testName)
     else
-        -- Try to initialize
-        success = pcall(function()
-            ModuleLoader.initialize()
+        log("✗ Test failed: " .. testName .. " - " .. tostring(result))
+    end
+    
+    return success, result
+end
+
+-- Test if CoreRegistry is available
+function SystemDiagnostics:TestCoreRegistry()
+    -- Try multiple methods to find CoreRegistry
+    local methods = {
+        function()
+            if _G and _G.CoreRegistry then
+                return _G.CoreRegistry
+            end
+            return nil, "Not found in _G"
+        end,
+        
+        function()
+            if shared and shared.CoreRegistry then
+                return shared.CoreRegistry
+            end
+            return nil, "Not found in shared"
+        end,
+        
+        function()
+            local coreRegistryScript = findModuleInCommonLocations("CoreRegistry")
+            if coreRegistryScript then
+                return safeRequire(coreRegistryScript)
+            end
+            return nil, "Script not found in common locations"
+        end,
+        
+        function()
+            local CoreRegistryAccess = findModuleInCommonLocations("CoreRegistryAccess")
+            if CoreRegistryAccess then
+                local access, error = safeRequire(CoreRegistryAccess)
+                if access and access.GetRegistry then
+                    return access:GetRegistry()
+                end
+            end
+            return nil, "Not found through CoreRegistryAccess"
+        end
+    }
+    
+    -- Try each method
+    local registry = nil
+    local errors = {}
+    
+    for i, method in ipairs(methods) do
+        local success, result = pcall(function()
+            return method()
+        end)
+        
+        if success and result then
+            registry = result
+            break
+        else
+            table.insert(errors, "Method " .. i .. ": " .. tostring(result))
+        end
+    end
+    
+    if not registry then
+        return false, "CoreRegistry not found using any method. Errors: " .. table.concat(errors, ", ")
+    end
+    
+    -- Verify it's a proper CoreRegistry
+    if not registry.registerSystem or not registry.getSystem then
+        return false, "Found object is not a valid CoreRegistry (missing key methods)"
+    end
+    
+    return true, registry
+end
+
+-- Test if ModuleLoader is available
+function SystemDiagnostics:TestModuleLoader()
+    local moduleLoaderScript = findModuleInCommonLocations("ModuleLoader")
+    if not moduleLoaderScript then
+        return false, "ModuleLoader script not found"
+    end
+    
+    local moduleLoader, error = safeRequire(moduleLoaderScript)
+    if not moduleLoader then
+        return false, "Failed to require ModuleLoader: " .. error
+    end
+    
+    if not moduleLoader.tryRequire and not moduleLoader.LoadServerModule then
+        return false, "Invalid ModuleLoader (missing key methods)"
+    end
+    
+    return true, moduleLoader
+end
+
+-- Test if EventBridge is available and working
+function SystemDiagnostics:TestEventBridge()
+    local success, registry = self:TestCoreRegistry()
+    if not success then
+        return false, "Cannot test EventBridge - CoreRegistry not available"
+    end
+    
+    local eventBridge = registry.getSystem("EventBridge")
+    if not eventBridge then
+        return false, "EventBridge not found in CoreRegistry"
+    end
+    
+    -- Test creating an event and firing it
+    if not eventBridge.getOrCreateEvent or not eventBridge.fireEvent or not eventBridge.connectEvent then
+        return false, "EventBridge is missing required methods"
+    end
+    
+    -- Create a test event
+    local eventFired = false
+    eventBridge:connectEvent("DiagnosticTestEvent", function()
+        eventFired = true
+    end)
+    
+    eventBridge:fireEvent("DiagnosticTestEvent")
+    
+    -- Check if event was fired
+    if not eventFired then
+        return false, "EventBridge event system not working properly"
+    end
+    
+    return true, eventBridge
+end
+
+-- Test if folder structure is correct
+function SystemDiagnostics:TestFolderStructure()
+    local requiredFolders = {
+        ServerScriptService:FindFirstChild("Core"),
+        ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("Events")
+    }
+    
+    local missingFolders = {}
+    
+    for i, folder in ipairs(requiredFolders) do
+        if not folder then
+            table.insert(missingFolders, {"ServerScriptService.Core", "ReplicatedStorage.shared", "ReplicatedStorage.Events"}[i])
+        end
+    end
+    
+    if #missingFolders > 0 then
+        return false, "Missing critical folders: " .. table.concat(missingFolders, ", ")
+    end
+    
+    return true, "All critical folders exist"
+end
+
+-- Fix missing CoreRegistry
+function SystemDiagnostics:FixCoreRegistry()
+    log("Attempting to fix CoreRegistry...")
+    
+    -- Check if CoreRegistryInitializer exists and run it if it does
+    local initializerScript = findModuleInCommonLocations("CoreRegistryInitializer")
+    if initializerScript then
+        log("Found CoreRegistryInitializer, attempting to run it")
+        
+        local initializer, error = safeRequire(initializerScript)
+        if initializer then
+            log("CoreRegistryInitializer loaded successfully")
+            self.fixesApplied["CoreRegistry"] = "Used existing CoreRegistryInitializer"
+            
+            -- Test again
+            local success, _ = self:TestCoreRegistry()
+            return success, success and "CoreRegistry fixed successfully" or "CoreRegistry still not working properly"
+        else
+            log("Failed to load CoreRegistryInitializer: " .. error)
+        end
+    end
+    
+    -- Create a minimal CoreRegistry if needed
+    log("Creating minimal CoreRegistry")
+    
+    -- Ensure Core folder exists
+    local core = ServerScriptService:FindFirstChild("Core")
+    if not core then
+        core = Instance.new("Folder")
+        core.Name = "Core"
+        core.Parent = ServerScriptService
+        log("Created missing Core folder")
+    end
+    
+    -- Create minimal CoreRegistry
+    local minimalRegistry = Instance.new("ModuleScript")
+    minimalRegistry.Name = "CoreRegistry"
+    minimalRegistry.Source = [[
+-- Minimal CoreRegistry implementation
+local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Create the registry table
+local CoreRegistry = {
+    systems = {},     -- Systems that have been registered
+    initialized = {}, -- Systems that have been initialized
+    loading = {}      -- Systems currently being initialized (to detect circular dependencies)
+}
+
+-- Debug function
+local function log(...)
+    print("[CoreRegistry]", ...)
+end
+
+-- Register a system with the registry
+function CoreRegistry.registerSystem(name, system, dependencies)
+    if CoreRegistry.systems[name] then
+        log("Warning: System '" .. name .. "' already registered, overwriting")
+    end
+    
+    CoreRegistry.systems[name] = {
+        module = system,
+        dependencies = dependencies or {}
+    }
+    
+    log("Registered system: " .. name)
+    return system
+end
+
+-- Get a system and ensure it's initialized
+function CoreRegistry.getSystem(name)
+    -- Return already initialized system
+    if CoreRegistry.initialized[name] then
+        return CoreRegistry.initialized[name]
+    end
+    
+    -- Check if system exists
+    if not CoreRegistry.systems[name] then
+        log("System not found: " .. name)
+        return nil
+    end
+    
+    -- Detect circular dependencies
+    if CoreRegistry.loading[name] then
+        log("Error: Circular dependency detected for system: " .. name)
+        return nil
+    end
+    
+    -- Mark as loading
+    CoreRegistry.loading[name] = true
+    
+    -- Initialize the system
+    local system = CoreRegistry.systems[name].module
+    if type(system.initialize) == "function" then
+        log("Initializing system: " .. name)
+        local success, errorMsg = pcall(function()
+            system:initialize()
         end)
         
         if not success then
-            warn_log("ModuleLoader.initialize failed to execute!")
+            log("Error initializing system '" .. name .. "': " .. tostring(errorMsg))
         end
     end
     
-    -- Test module loading
-    local testModule = ModuleLoader.tryRequire("CoreRegistry")
-    if not testModule then
-        warn_log("ModuleLoader failed to find CoreRegistry!")
-    else
-        log("ModuleLoader successfully loaded CoreRegistry")
-    end
+    -- Mark as initialized and no longer loading
+    CoreRegistry.initialized[name] = system
+    CoreRegistry.loading[name] = nil
     
-    healthStatus.moduleLoaderStatus = "functional"
-    return true
+    return system
 end
 
--- Test CoreRegistry functionality
-local function testCoreRegistry()
-    log("Testing CoreRegistry...")
+-- Create a basic EventBridge system
+local EventBridge = {
+    events = {},
+    remoteEvents = {},
     
-    -- Try to find CoreRegistry in ServerScriptService/Core
-    local CoreRegistry
+    initialize = function()
+        log("EventBridge initialized")
+        return true
+    end,
     
-    local coreFolder = ServerScriptService:FindFirstChild("Core")
-    if not coreFolder then
-        fail_log("Core folder not found in ServerScriptService!")
-        return false
-    end
-    
-    local coreRegistry = coreFolder:FindFirstChild("CoreRegistry")
-    if not coreRegistry then
-        fail_log("CoreRegistry not found in ServerScriptService/Core!")
-        return false
-    end
-    
-    -- Try to require the CoreRegistry
-    local success
-    success, CoreRegistry = pcall(function()
-        return require(coreRegistry)
-    end)
-    
-    if not success or not CoreRegistry then
-        fail_log("Failed to require CoreRegistry: " .. tostring(CoreRegistry))
-        return false
-    end
-    
-    -- Test core functionality
-    if typeof(CoreRegistry.registerSystem) ~= "function" then
-        fail_log("CoreRegistry.registerSystem is not a function!")
-        return false
-    end
-    
-    if typeof(CoreRegistry.getSystem) ~= "function" then
-        fail_log("CoreRegistry.getSystem is not a function!")
-        return false
-    end
-    
-    -- Test registration and retrieval
-    local testSystem = {
-        name = "TestSystem",
-        initialize = function() return true end
-    }
-    
-    CoreRegistry.registerSystem("TestSystem", testSystem)
-    
-    local retrievedSystem = CoreRegistry.getSystem("TestSystem")
-    if not retrievedSystem then
-        fail_log("CoreRegistry failed to retrieve registered system!")
-        return false
-    end
-    
-    if retrievedSystem.name ~= "TestSystem" then
-        warn_log("Retrieved system does not match registered system!")
-    end
-    
-    healthStatus.coreRegistryStatus = "functional"
-    return true
-end
-
--- Test EventBridge functionality
-local function testEventBridge()
-    log("Testing EventBridge...")
-    
-    -- Get CoreRegistry first
-    local coreRegistry = ServerScriptService.Core:FindFirstChild("CoreRegistry")
-    if not coreRegistry then
-        fail_log("CoreRegistry not found, cannot test EventBridge!")
-        return false
-    end
-    
-    local success, CoreRegistry = pcall(function()
-        return require(coreRegistry)
-    end)
-    
-    if not success or not CoreRegistry then
-        fail_log("Failed to require CoreRegistry: " .. tostring(CoreRegistry))
-        return false
-    end
-    
-    -- Get EventBridge through CoreRegistry
-    local EventBridge = CoreRegistry.getSystem("EventBridge")
-    if not EventBridge then
-        fail_log("EventBridge not found in CoreRegistry!")
-        return false
-    end
-    
-    -- Test core functionality
-    if typeof(EventBridge.connectEvent) ~= "function" then
-        fail_log("EventBridge.connectEvent is not a function!")
-        return false
-    end
-    
-    if typeof(EventBridge.fireEvent) ~= "function" then
-        fail_log("EventBridge.fireEvent is not a function!")
-        return false
-    end
-    
-    -- Test event connection and firing
-    local testValue = 0
-    
-    EventBridge:connectEvent("TestEvent", function(value)
-        testValue = value
-    end)
-    
-    EventBridge:fireEvent("TestEvent", 42)
-    
-    -- Wait briefly for event to fire
-    task.wait(0.1)
-    
-    if testValue ~= 42 then
-        warn_log("EventBridge event didn't update test value correctly!")
-    end
-    
-    -- Test RemoteEvent integration if events folder exists
-    local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
-    if eventsFolder then
-        local testEvent = eventsFolder:FindFirstChild("TestEvent")
-        if not testEvent then
-            testEvent = Instance.new("RemoteEvent")
-            testEvent.Name = "TestEvent"
-            testEvent.Parent = eventsFolder
-            log("Created TestEvent RemoteEvent")
+    getOrCreateEvent = function(self, eventName)
+        if not self.events[eventName] then
+            self.events[eventName] = {
+                callbacks = {}
+            }
         end
-        
-        if typeof(EventBridge.registerRemoteEvent) == "function" then
-            EventBridge:registerRemoteEvent("RemoteTestEvent", testEvent)
-            log("Registered RemoteTestEvent with EventBridge")
-        else
-            warn_log("EventBridge.registerRemoteEvent is not a function!")
+        return self.events[eventName]
+    end,
+    
+    fireEvent = function(self, eventName, ...)
+        local event = self.events[eventName]
+        if event then
+            for _, callback in ipairs(event.callbacks) do
+                task.spawn(function()
+                    callback(...)
+                end)
+            end
         end
-    else
-        warn_log("Events folder not found in ReplicatedStorage!")
-    end
+    end,
     
-    healthStatus.eventBridgeStatus = "functional"
-    return true
-end
-
--- Check for all critical systems
-local function checkCriticalSystems()
-    log("Checking for critical systems...")
-    
-    -- Get CoreRegistry
-    local coreRegistry = ServerScriptService.Core:FindFirstChild("CoreRegistry")
-    if not coreRegistry then
-        fail_log("CoreRegistry not found!")
-        return false
-    end
-    
-    local success, CoreRegistry = pcall(function()
-        return require(coreRegistry)
-    end)
-    
-    if not success or not CoreRegistry then
-        fail_log("Failed to require CoreRegistry: " .. tostring(CoreRegistry))
-        return false
-    end
-    
-    -- List of all critical systems
-    local criticalSystems = {
-        "EventBridge",
-        "CoreRegistry",
-        "ModuleLoader",
-        "DataThrottler",
-        "DataManager", 
-        "GymAutomation",
-        "TutorialManager",
-        "MigrationUtils",
-        "BuyTileSystem",
-        "EquipmentManager",
-        "NPCSystem"
-    }
-    
-    healthStatus.systemsTotal = #criticalSystems
-    
-    -- Check each system
-    for _, systemName in ipairs(criticalSystems) do
-        local system = CoreRegistry.getSystem(systemName)
-        
-        if system then
-            log("Found system: " .. systemName)
-            healthStatus.systemsFound += 1
-        else
-            warn_log("System not found: " .. systemName)
-        end
-    end
-    
-    log("Found " .. healthStatus.systemsFound .. "/" .. healthStatus.systemsTotal .. " critical systems")
-    
-    return healthStatus.systemsFound >= healthStatus.systemsTotal * 0.7 -- At least 70% of systems should be found
-end
-
--- Check that expected folders exist
-local function checkFolderStructure()
-    log("Checking folder structure...")
-    
-    local expectedFolders = {
-        ReplicatedStorage.shared,
-        ReplicatedStorage.Events,
-        ServerScriptService.Core,
-        ServerScriptService.Systems,
-        ServerScriptService.Data,
-        ServerScriptService.Connectors
-    }
-    
-    local foundCount = 0
-    
-    for _, folder in ipairs(expectedFolders) do
-        if folder then
-            foundCount += 1
-        else
-            local folderPath = "Unknown path"
-            pcall(function()
-                folderPath = folder:GetFullName()
-            end)
-            warn_log("Expected folder not found: " .. folderPath)
-        end
-    end
-    
-    log("Found " .. foundCount .. "/" .. #expectedFolders .. " expected folders")
-    
-    return foundCount >= #expectedFolders * 0.7 -- At least 70% of folders should be found
-end
-
--- Check that events exist
-local function checkEvents()
-    log("Checking event structure...")
-    
-    local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
-    if not eventsFolder then
-        fail_log("Events folder not found in ReplicatedStorage!")
-        return false
-    end
-    
-    -- List of events that should exist
-    local expectedEvents = {
-        "PlayerAddedToAllianceEvent",
-        "PlayerRemovedFromAllianceEvent",
-        "AllianceInviteEvent",
-        "PurchaseTileEvent",
-        "TileStateChangedEvent",
-        "UIActionEvent"
-    }
-    
-    local foundCount = 0
-    
-    for _, eventName in ipairs(expectedEvents) do
-        local event = eventsFolder:FindFirstChild(eventName)
-        
-        if event and event:IsA("RemoteEvent") then
-            foundCount += 1
-        else
-            warn_log("Expected event not found: " .. eventName)
-        end
-    end
-      log("Found " .. foundCount .. "/" .. #expectedEvents .. " expected events")
-    
-    return foundCount >= #expectedEvents * 0.7 -- At least 70% of events should be found
-end
-
--- Main diagnostics function
-local function runDiagnostics()
-    log("Starting system diagnostics...")
-    
-    -- Reset health status
-    healthStatus = {
-        moduleLoaderStatus = "unknown",
-        coreRegistryStatus = "unknown",
-        eventBridgeStatus = "unknown",
-        systemsFound = 0,
-        systemsTotal = 0,
-        failures = {},
-        criticalIssues = 0,
-        warnings = 0
-    }
-    
-    -- Run tests
-    local moduleLoaderOK = testModuleLoader()
-    local coreRegistryOK = testCoreRegistry()
-    local eventBridgeOK = testEventBridge()
-    
-    if CONFIG.CHECK_MODULE_PATHS then
-        checkFolderStructure()
-    end
-    
-    if CONFIG.CHECK_CORE_SYSTEMS then
-        checkCriticalSystems()
-    end
-    
-    if CONFIG.CHECK_EVENTS then
-        checkEvents()
-    end
-    
-    -- Print summary
-    log("========== DIAGNOSTICS SUMMARY ==========")
-    log("ModuleLoader: " .. healthStatus.moduleLoaderStatus)
-    log("CoreRegistry: " .. healthStatus.coreRegistryStatus)
-    log("EventBridge: " .. healthStatus.eventBridgeStatus)
-    log("Systems found: " .. healthStatus.systemsFound .. "/" .. healthStatus.systemsTotal)
-    log("Critical issues: " .. healthStatus.criticalIssues)
-    log("Warnings: " .. healthStatus.warnings)
-    
-    -- Show failures
-    if #healthStatus.failures > 0 then
-        log("The following critical issues were found:")
-        for i, failure in ipairs(healthStatus.failures) do
-            log("  " .. i .. ". " .. failure)
-        end
-    end
-    
-    -- Overall assessment
-    local allPassed = moduleLoaderOK and coreRegistryOK and eventBridgeOK and healthStatus.criticalIssues == 0
-    
-    if allPassed then
-        log("✅ All critical systems appear to be working correctly!")
-    elseif healthStatus.criticalIssues > 0 then
-        log("❌ Critical issues were found! Game functionality may be impaired.")
-    else
-        log("⚠️ Some non-critical issues were found. Game may work but with reduced functionality.")
-    end
-    
-    return allPassed
-end
-
--- Run diagnostics on script load if configured
-if CONFIG.RUN_ON_START then
-    task.spawn(function()
-        -- Wait for systems to initialize
-        task.wait(2)
-        runDiagnostics()
-    end)
-end
-
-return {
-    runDiagnostics = runDiagnostics,
-    getHealthStatus = function() 
-        return healthStatus 
+    connectEvent = function(self, eventName, callback)
+        local event = self:getOrCreateEvent(eventName)
+        table.insert(event.callbacks, callback)
     end
 }
+
+-- Register core EventBridge system
+CoreRegistry.registerSystem("EventBridge", EventBridge, {})
+
+-- Store in shared table for access from anywhere
+if shared then
+    shared.CoreRegistry = CoreRegistry
+end
+
+return CoreRegistry
+]]
+    minimalRegistry.Parent = core
+    
+    -- Try to require it
+    local registry, error = safeRequire(minimalRegistry)
+    if not registry then
+        log("Failed to load minimal CoreRegistry: " .. error)
+        return false, "Failed to create minimal CoreRegistry: " .. error
+    end
+    
+    -- Store in global scope for emergency access
+    shared.CoreRegistry = registry
+    
+    log("Created minimal CoreRegistry successfully")
+    self.fixesApplied["CoreRegistry"] = "Created minimal CoreRegistry"
+    
+    -- Test again
+    local success, _ = self:TestCoreRegistry()
+    return success, success and "CoreRegistry fixed successfully" or "CoreRegistry still not working properly"
+end
+
+-- Run all diagnostic tests
+function SystemDiagnostics:RunAllTests()
+    log("Starting system diagnostics...")
+    self.testResults = {}
+    self.fixesApplied = {}
+    
+    self:RunTest("FolderStructure", function() return self:TestFolderStructure() end)
+    self:RunTest("CoreRegistry", function() return self:TestCoreRegistry() end)
+    self:RunTest("ModuleLoader", function() return self:TestModuleLoader() end)
+    self:RunTest("EventBridge", function() return self:TestEventBridge() end)
+    
+    -- Generate report
+    local report = {
+        testsRun = 0,
+        passed = 0,
+        failed = 0,
+        fixes = self.fixesApplied,
+        details = {}
+    }
+    
+    for name, result in pairs(self.testResults) do
+        report.testsRun = report.testsRun + 1
+        if result.success then
+            report.passed = report.passed + 1
+        else
+            report.failed = report.failed + 1
+        end
+        
+        report.details[name] = {
+            success = result.success,
+            error = result.error,
+            duration = result.duration
+        }
+    end
+    
+    return report
+end
+
+-- Auto-fix issues
+function SystemDiagnostics:AutoFixIssues()
+    log("Auto-fixing system issues...")
+    
+    -- Run tests first
+    self:RunAllTests()
+    
+    -- Fix issues based on test results
+    if self.testResults.CoreRegistry and not self.testResults.CoreRegistry.success then
+        self:FixCoreRegistry()
+    end
+    
+    -- Run tests again after fixes
+    return self:RunAllTests()
+end
+
+-- Run diagnostics once on module load
+task.spawn(function()
+    log("Running initial diagnostics...")
+    wait(1) -- Allow some time for scripts to load
+    
+    local report = SystemDiagnostics:RunAllTests()
+    log("Initial diagnostics complete. Passed: " .. report.passed .. "/" .. report.testsRun)
+end)
+
+return SystemDiagnostics

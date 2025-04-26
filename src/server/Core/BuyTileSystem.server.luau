@@ -1,50 +1,134 @@
--- BuyTileSystem.luau
--- Unified system for purchasing and managing gym equipment tiles
--- Place in ServerScriptService/Core
+--!strict
+--[[
+    BuyTileSystem.server.luau
+    Unified system for purchasing and managing gym equipment tiles
+    
+    Updated: April 26, 2025
+]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
--- Try to use ModuleLoader for better dependency management
-local ModuleLoader
-local CoreRegistry
+-- Debug logging
+local function log(message)
+    print("[BuyTileSystem] " .. message)
+end
 
--- First try to load ModuleLoader
-local loaderSuccess, loaderResult = pcall(function()
-    return require(ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
-end)
+local function warn_log(message)
+    warn("[BuyTileSystem] " .. message)
+end
 
-if loaderSuccess and loaderResult then
-    ModuleLoader = loaderResult
-    print("[BuyTileSystem] Using ModuleLoader for dependencies")
+-- Get dependencies using modern utilities
+local CoreRegistryAccess, ModuleLoaderHelper, UniversalSystemFinder
+
+-- Try loading our modern utilities first
+local function loadDependencies()
+    -- Try CoreRegistryAccess first (most reliable)
+    local success, result = pcall(function()
+        if ReplicatedStorage:FindFirstChild("shared") and 
+           ReplicatedStorage.shared:FindFirstChild("CoreRegistryAccess") then
+            return require(ReplicatedStorage.shared.CoreRegistryAccess)
+        end
+        return nil
+    end)
     
-    -- Load CoreRegistry using ModuleLoader
-    CoreRegistry = ModuleLoader:LoadServerModule("Core", "CoreRegistry")
-else
-    print("[BuyTileSystem] ModuleLoader not found, using legacy loading")
-    -- Legacy loading methods in order of preference
-    -- Try to require directly from parent
+    if success and result then
+        CoreRegistryAccess = result
+        log("Using CoreRegistryAccess")
+        return true
+    end
+    
+    -- Try ModuleLoaderHelper next
+    success, result = pcall(function()
+        if ReplicatedStorage:FindFirstChild("shared") and 
+           ReplicatedStorage.shared:FindFirstChild("ModuleLoaderHelper") then
+            return require(ReplicatedStorage.shared.ModuleLoaderHelper)
+        end
+        return nil
+    end)
+    
+    if success and result then
+        ModuleLoaderHelper = result
+        log("Using ModuleLoaderHelper")
+        return true
+    end
+    
+    -- Try UniversalSystemFinder last
+    success, result = pcall(function()
+        if ReplicatedStorage:FindFirstChild("shared") and 
+           ReplicatedStorage.shared:FindFirstChild("UniversalSystemFinder") then
+            return require(ReplicatedStorage.shared.UniversalSystemFinder)
+        end
+        return nil
+    end)
+    
+    if success and result then
+        UniversalSystemFinder = result
+        log("Using UniversalSystemFinder")
+        return true
+    end
+    
+    -- Fallback to legacy loading if no modern utilities found
+    return false
+end
+
+-- Get CoreRegistry using the most reliable method available
+local CoreRegistry
+local function getCoreRegistry()
+    -- Try modern methods first
+    if CoreRegistryAccess then
+        CoreRegistry = CoreRegistryAccess:GetRegistry()
+        if CoreRegistry then
+            log("Got CoreRegistry via CoreRegistryAccess")
+            return true
+        end
+    end
+    
+    if ModuleLoaderHelper then
+        CoreRegistry = ModuleLoaderHelper.getCoreRegistry()
+        if CoreRegistry then
+            log("Got CoreRegistry via ModuleLoaderHelper")
+            return true
+        end
+    end
+    
+    if UniversalSystemFinder then
+        CoreRegistry = UniversalSystemFinder:GetCoreRegistry()
+        if CoreRegistry then
+            log("Got CoreRegistry via UniversalSystemFinder")
+            return true
+        end
+    end
+    
+    -- Legacy fallbacks
     local success, result = pcall(function() 
         return require(script.Parent.CoreRegistry)
     end)
     
-    if success then
+    if success and result then
         CoreRegistry = result
-        print("[BuyTileSystem] Loaded CoreRegistry from parent")
-    else
-        -- Final fallback
-        local finalSuccess, finalResult = pcall(function()
-            return require(ServerScriptService.Core.CoreRegistry)
-        end)
-        
-        if finalSuccess then
-            CoreRegistry = finalResult
-            print("[BuyTileSystem] Loaded CoreRegistry from ServerScriptService.Core")
-        else
-            warn("[BuyTileSystem] CRITICAL: Failed to load CoreRegistry!")
-        end
+        log("Got CoreRegistry via legacy method 1")
+        return true
     end
+    
+    -- Final direct attempt
+    success, result = pcall(function()
+        return require(ServerScriptService.Core.CoreRegistry)
+    end)
+    
+    if success and result then
+        CoreRegistry = result
+        log("Got CoreRegistry via direct require")
+        return true
+    end
+    
+    warn_log("NOTICE: CoreRegistry not found, using standalone mode")
+    return false
 end
+
+-- Load dependencies
+loadDependencies()
+getCoreRegistry()
 
 -- Configuration
 local CONFIG = {

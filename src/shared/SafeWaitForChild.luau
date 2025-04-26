@@ -2,255 +2,173 @@
 --[[
     SafeWaitForChild.luau
     
-    A utility module for safely waiting for children with timeout handling.
-    This prevents the "Infinite yield possible on WaitForChild" errors mentioned
-    in the issues list.
+    A utility module that provides safe replacements for WaitForChild to avoid
+    issues with timing and missing instances.
     
     Created: April 26, 2025
 ]]
 
 -- Configuration
 local DEFAULT_TIMEOUT = 5 -- Default timeout in seconds
-local DEBUG_LOGGING = true
-local TRACK_YIELDS = true
+local DEBUG_MODE = false   -- Enable debug logging
 
--- Tracking for long yields
-local yieldStats = {
-    totalYields = 0,
-    timeoutYields = 0,
-    longestYield = 0,
-    longestYieldPath = "",
-    problematicPaths = {}
-}
-
--- SafeWaitForChild utility
-local SafeWaitForChild = {}
-
--- Internal logging function
+-- Debug logging
 local function log(message)
-    if DEBUG_LOGGING then
+    if DEBUG_MODE then
         print("[SafeWaitForChild] " .. message)
     end
 end
 
--- Record a problematic path
-local function recordProblematicPath(parent, childName, elapsed)
-    if not TRACK_YIELDS then return end
-    
-    local path = parent:GetFullName() .. "." .. childName
-    
-    -- Update tracking stats
-    yieldStats.totalYields = yieldStats.totalYields + 1
-    
-    -- Record longest yield
-    if elapsed > yieldStats.longestYield then
-        yieldStats.longestYield = elapsed
-        yieldStats.longestYieldPath = path
-    end
-    
-    -- Track path frequency
-    yieldStats.problematicPaths[path] = (yieldStats.problematicPaths[path] or 0) + 1
-end
-
 -- Safely wait for a child with timeout
-function SafeWaitForChild.waitForChild(parent, childName, timeoutSeconds)
-    timeoutSeconds = timeoutSeconds or DEFAULT_TIMEOUT
-    
+local function SafeWaitForChild(parent, childName, timeout)
     if not parent then
-        warn("[SafeWaitForChild] Parent is nil while waiting for: " .. childName)
+        warn("[SafeWaitForChild] Parent is nil")
         return nil
     end
     
-    local startTime = os.clock()
-    local child = parent:FindFirstChild(childName)
+    if not childName then
+        warn("[SafeWaitForChild] Child name is nil")
+        return nil
+    end
     
-    -- If child already exists, return it immediately
+    timeout = timeout or DEFAULT_TIMEOUT
+    
+    -- Check if child already exists
+    local child = parent:FindFirstChild(childName)
     if child then
         return child
     end
     
-    -- Set up a flag to track if we've found the child
-    local found = false
+    -- Wait with timeout
+    local startTime = os.clock()
     local connection
+    local result = nil
     
-    -- Create function to handle when a child is added
+    -- Create a promise-like mechanism
+    local complete = false
+    
     connection = parent.ChildAdded:Connect(function(newChild)
         if newChild.Name == childName then
-            found = true
-            child = newChild
+            result = newChild
+            complete = true
+            connection:Disconnect()
         end
     end)
     
-    -- Wait until we find the child or timeout
-    while not found and (os.clock() - startTime) < timeoutSeconds do
+    -- Check again after connection (race condition prevention)
+    if not complete then
+        child = parent:FindFirstChild(childName)
+        if child then
+            complete = true
+            result = child
+            connection:Disconnect()
+        end
+    end
+    
+    -- Wait until complete or timeout
+    while not complete and (os.clock() - startTime) < timeout do
         task.wait(0.1)
-        
-        -- Double-check if child exists directly (might have been added just before connection)
-        if not child then
-            child = parent:FindFirstChild(childName)
-            if child then
-                found = true
-                break
-            end
-        end
     end
     
-    -- Clean up the connection
-    connection:Disconnect()
-    
-    -- Record statistics
-    local elapsed = os.clock() - startTime
-    if elapsed > 0.5 then -- Only record yields longer than 0.5 seconds
-        recordProblematicPath(parent, childName, elapsed)
-    end
-    
-    -- Handle timeout
-    if not found then
-        yieldStats.timeoutYields = yieldStats.timeoutYields + 1
-        warn("[SafeWaitForChild] Timed out waiting for child: " .. childName .. 
-             " in parent: " .. parent:GetFullName() .. 
-             " (timeout: " .. timeoutSeconds .. "s)")
-        return nil
-    end
-    
-    return child
-end
-
--- Wait for a descendant (may be multiple levels deep)
-function SafeWaitForChild.waitForDescendant(parent, descendantPath, timeoutSeconds)
-    timeoutSeconds = timeoutSeconds or DEFAULT_TIMEOUT
-    local startTime = os.clock()
-    local timeRemaining = timeoutSeconds
-    
-    -- Split the path into parts
-    local pathParts = string.split(descendantPath, ".")
-    local current = parent
-    
-    -- Navigate through each part of the path
-    for _, part in ipairs(pathParts) do
-        if not current then return nil end
-        
-        -- Calculate remaining time for this part
-        timeRemaining = timeoutSeconds - (os.clock() - startTime)
-        if timeRemaining <= 0 then
-            warn("[SafeWaitForChild] Timed out waiting for descendant part: " .. part .. 
-                 " in path: " .. descendantPath)
-            return nil
-        end
-        
-        -- Wait for this part
-        current = SafeWaitForChild.waitForChild(current, part, timeRemaining)
-    end
-    
-    return current
-end
-
--- Create a child if it doesn't exist and return it
-function SafeWaitForChild.getOrCreateChild(parent, childName, instanceType, properties)
-    local child = parent:FindFirstChild(childName)
-    
-    if not child then
-        child = Instance.new(instanceType)
-        child.Name = childName
-        
-        -- Apply properties if provided
-        if properties then
-            for key, value in pairs(properties) do
-                child[key] = value
-            end
-        end
-        
-        child.Parent = parent
-        log("Created " .. instanceType .. " '" .. childName .. "' in " .. parent:GetFullName())
-    end
-    
-    return child
-end
-
--- Create a folder hierarchy from a path string
-function SafeWaitForChild.createPath(parent, path)
-    local pathParts = string.split(path, ".")
-    local current = parent
-    
-    for _, part in ipairs(pathParts) do
-        current = SafeWaitForChild.getOrCreateChild(current, part, "Folder")
-    end
-    
-    return current
-end
-
--- Get statistics on problematic WaitForChild calls
-function SafeWaitForChild.getYieldStats()
-    return {
-        totalYields = yieldStats.totalYields,
-        timeoutYields = yieldStats.timeoutYields,
-        timeoutRate = yieldStats.totalYields > 0 
-                     and (yieldStats.timeoutYields / yieldStats.totalYields) 
-                     or 0,
-        longestYield = yieldStats.longestYield,
-        longestYieldPath = yieldStats.longestYieldPath,
-        problematicPaths = table.clone(yieldStats.problematicPaths)
-    }
-end
-
--- Reset statistics
-function SafeWaitForChild.resetStats()
-    yieldStats = {
-        totalYields = 0,
-        timeoutYields = 0,
-        longestYield = 0,
-        longestYieldPath = "",
-        problematicPaths = {}
-    }
-end
-
--- Get the most problematic paths
-function SafeWaitForChild.getMostProblematicPaths(limit)
-    limit = limit or 10
-    
-    local paths = {}
-    for path, count in pairs(yieldStats.problematicPaths) do
-        table.insert(paths, {
-            path = path,
-            count = count
-        })
-    end
-    
-    -- Sort by frequency
-    table.sort(paths, function(a, b)
-        return a.count > b.count
-    end)
-    
-    -- Limit results
-    local result = {}
-    for i = 1, math.min(limit, #paths) do
-        table.insert(result, paths[i])
+    -- Clean up if timed out
+    if not complete and connection then
+        connection:Disconnect()
+        warn("[SafeWaitForChild] Timed out waiting for " .. childName .. " in " .. parent:GetFullName())
     end
     
     return result
 end
 
--- Set default timeout
-function SafeWaitForChild.setDefaultTimeout(seconds)
-    DEFAULT_TIMEOUT = seconds
-    log("Default timeout set to " .. seconds .. " seconds")
+-- Safely wait for a descendant with timeout
+local function SafeWaitForDescendant(parent, descendantPath, timeout)
+    if not parent or not descendantPath then
+        return nil
+    end
+    
+    timeout = timeout or DEFAULT_TIMEOUT
+    local startTime = os.clock()
+    local remainingTime = timeout
+    local currentParent = parent
+    
+    -- Split the path
+    local pathParts = string.split(descendantPath, ".")
+    
+    -- Navigate through each part of the path
+    for i, childName in ipairs(pathParts) do
+        -- Calculate remaining timeout
+        remainingTime = timeout - (os.clock() - startTime)
+        if remainingTime <= 0 then
+            warn("[SafeWaitForDescendant] Timed out waiting for " .. descendantPath .. " at part " .. childName)
+            return nil
+        end
+        
+        -- Wait for this child
+        local child = SafeWaitForChild(currentParent, childName, remainingTime)
+        if not child then
+            return nil
+        end
+        
+        currentParent = child
+    end
+    
+    return currentParent
 end
 
--- Configure the module
-function SafeWaitForChild.configure(config)
-    if config.defaultTimeout then
-        DEFAULT_TIMEOUT = config.defaultTimeout
+-- Create a multi-path finder that tries several paths
+local function SafeFindFirstInstance(paths, timeout)
+    if not paths or #paths == 0 then
+        return nil
     end
     
-    if config.debugLogging ~= nil then
-        DEBUG_LOGGING = config.debugLogging
+    timeout = timeout or DEFAULT_TIMEOUT
+    local startTime = os.clock()
+    
+    for _, path in ipairs(paths) do
+        -- Skip empty paths
+        if not path or path == "" then
+            continue
+        end
+        
+        -- Calculate remaining timeout
+        local remainingTime = timeout - (os.clock() - startTime)
+        if remainingTime <= 0 then
+            warn("[SafeFindFirstInstance] Timed out searching for instance")
+            return nil
+        end
+        
+        -- Parse path - either a direct instance or a path string
+        if typeof(path) == "Instance" then
+            return path
+        elseif typeof(path) == "string" then
+            -- Split into segments
+            local segments = string.split(path, ".")
+            local current = game
+            local found = true
+            
+            -- Navigate through segments
+            for i, segment in ipairs(segments) do
+                current = SafeWaitForChild(current, segment, remainingTime / #segments)
+                
+                if not current then
+                    found = false
+                    break
+                end
+            end
+            
+            if found then
+                return current
+            end
+        end
     end
     
-    if config.trackYields ~= nil then
-        TRACK_YIELDS = config.trackYields
-    end
-    
-    log("SafeWaitForChild configured")
+    return nil
 end
 
-return SafeWaitForChild
+-- Return all functions
+return {
+    WaitForChild = SafeWaitForChild,
+    WaitForDescendant = SafeWaitForDescendant,
+    FindFirstInstance = SafeFindFirstInstance,
+    SetDebug = function(enabled) DEBUG_MODE = enabled end,
+    SetDefaultTimeout = function(timeout) DEFAULT_TIMEOUT = timeout end
+}

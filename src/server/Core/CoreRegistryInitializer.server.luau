@@ -224,12 +224,40 @@ local function initializeCoreRegistry()
     -- Ensure Core folder exists
     local core = findFolder(ServerScriptService, "Core", true)
     
+    -- Try multiple paths to find CoreRegistry
+    local registryPaths = {
+        core:FindFirstChild("CoreRegistry"),
+        ServerScriptService.Core:FindFirstChild("CoreRegistry"),
+        ServerScriptService:FindFirstChild("src") and 
+            ServerScriptService.src:FindFirstChild("server") and 
+            ServerScriptService.src.server:FindFirstChild("Core") and
+            ServerScriptService.src.server.Core:FindFirstChild("CoreRegistry")
+    }
+    
+    -- Try each path
+    for _, registryPath in ipairs(registryPaths) do
+        if registryPath and registryPath:IsA("ModuleScript") then
+            log("Found CoreRegistry at: " .. registryPath:GetFullName())
+            
+            -- Try to require it
+            local success, registry = pcall(function()
+                return require(registryPath)
+            end)
+            
+            if success and registry then
+                log("Successfully loaded CoreRegistry")
+                _G.CoreRegistry = registry
+                return registry
+            end
+        end
+    end
+    
     -- Check if CoreRegistry already exists
     local existingRegistry = core:FindFirstChild("CoreRegistry")
     if existingRegistry and existingRegistry:IsA("ModuleScript") then
         log("Found existing CoreRegistry")
         
-        -- Try to require it
+        -- Try to require it again with error handling
         local success, registry = pcall(function()
             return require(existingRegistry)
         end)

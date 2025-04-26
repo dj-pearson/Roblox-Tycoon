@@ -1,275 +1,270 @@
+--!strict
 --[[
     ModuleLoaderHelper.luau
     
-    A utility module that helps with loading modules across both server and client.
-    This module provides a consistent interface for requiring modules with good error handling.
+    Helper utility for loading modules across both server and client.
+    Provides consistent interface for requiring modules with error handling.
     
-    Created: April 25, 2025
+    Created: April 26, 2025
 ]]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
--- Constants
-local IsServer = RunService:IsServer()
-local IsClient = RunService:IsClient()
+-- Configuration
+local CONFIG = {
+    DEBUG_LOGGING = true,      -- Enable debug logging
+    MAX_RETRY_COUNT = 2,       -- Number of retries for module loading
+    RETRY_DELAY = 0.5,         -- Delay between retries (seconds)
+    USE_MODULE_LOADER = true   -- Try to use ModuleLoader if available
+}
 
--- Cache to avoid requiring the same module multiple times
-local moduleCache = {}
+-- Debug logging
+local function log(message)
+    if CONFIG.DEBUG_LOGGING then
+        print("[ModuleLoaderHelper] " .. message)
+    end
+end
 
--- ModuleLoaderHelper singleton
+local function warn_log(message)
+    warn("[ModuleLoaderHelper] " .. message)
+end
+
+-- Table of standard paths for module lookup
+local standardPaths = {
+    -- Core paths
+    core = {
+        RunService:IsServer() and ServerScriptService:FindFirstChild("Core"),
+        RunService:IsServer() and ServerScriptService:FindFirstChild("Core"):FindFirstChild("Systems"),
+        RunService:IsClient() and ReplicatedStorage:FindFirstChild("Core"),
+        RunService:IsClient() and ReplicatedStorage:FindFirstChild("client"):FindFirstChild("Core")
+    },
+    
+    -- Shared paths
+    shared = {
+        ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared")
+    },
+    
+    -- Client paths
+    client = {
+        RunService:IsClient() and ReplicatedStorage:FindFirstChild("client"),
+        RunService:IsClient() and ReplicatedStorage:FindFirstChild("src"):FindFirstChild("client")
+    },
+    
+    -- Server paths
+    server = {
+        RunService:IsServer() and ServerScriptService,
+        RunService:IsServer() and ServerScriptService:FindFirstChild("Systems"),
+        RunService:IsServer() and ServerScriptService:FindFirstChild("Core")
+    }
+}
+
+-- Find module in standard locations
+local function findModule(moduleName, context)
+    context = context or "core"
+    
+    -- First, check direct path if provided with dot notation
+    if string.find(moduleName, "%.") then
+        local segments = string.split(moduleName, ".")
+        local instance = game
+        
+        for _, segment in ipairs(segments) do
+            instance = instance:FindFirstChild(segment)
+            if not instance then
+                break
+            end
+        end
+        
+        if instance and instance:IsA("ModuleScript") then
+            return instance
+        end
+    end
+    
+    -- Then check standard paths based on context
+    local paths = standardPaths[context:lower()] or standardPaths.core
+    
+    for _, path in ipairs(paths) do
+        if path then
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
+        end
+    end
+    
+    -- Special cases for common modules
+    if moduleName == "CoreRegistry" and RunService:IsServer() then
+        -- Direct path for CoreRegistry
+        local coreRegistry = ServerScriptService:FindFirstChild("Core"):FindFirstChild("CoreRegistry")
+        if coreRegistry and coreRegistry:IsA("ModuleScript") then
+            return coreRegistry
+        end
+    elseif moduleName == "ClientRegistry" and RunService:IsClient() then
+        -- Direct path for ClientRegistry
+        local clientRegistry = ReplicatedStorage:FindFirstChild("client"):FindFirstChild("ClientRegistry")
+        if clientRegistry and clientRegistry:IsA("ModuleScript") then
+            return clientRegistry
+        end
+    end
+    
+    return nil
+end
+
+-- Try to load ModuleLoader
+local ModuleLoader
+local success, result = pcall(function()
+    if ReplicatedStorage:FindFirstChild("shared") and 
+       ReplicatedStorage.shared:FindFirstChild("ModuleLoader") then
+        return require(ReplicatedStorage.shared.ModuleLoader)
+    end
+    return nil
+end)
+
+if success and result then
+    ModuleLoader = result
+    log("Found ModuleLoader")
+else
+    log("ModuleLoader not found, using direct requires")
+end
+
+-- Main module object
 local ModuleLoaderHelper = {}
 
--- Get the ModuleLoader instance
-function ModuleLoaderHelper:GetModuleLoader()
-    -- Return from cache if we've already loaded it
-    if moduleCache.ModuleLoader then
-        return moduleCache.ModuleLoader
-    end
-    
-    -- Find the ModuleLoader in the shared folder
-    local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
-    if not sharedFolder then
-        warn("[ModuleLoaderHelper] Shared folder not found, creating it")
-        sharedFolder = Instance.new("Folder")
-        sharedFolder.Name = "shared"
-        sharedFolder.Parent = ReplicatedStorage
-    end
-    
-    -- Try to require the ModuleLoader
-    local moduleLoader = sharedFolder:FindFirstChild("ModuleLoader")
-    if moduleLoader and moduleLoader:IsA("ModuleScript") then
-        local success, result = pcall(function()
-            return require(moduleLoader)
-        end)
-        
-        if success then
-            moduleCache.ModuleLoader = result
-            print("[ModuleLoaderHelper] ModuleLoader loaded successfully")
-            return result
-        else
-            warn("[ModuleLoaderHelper] Failed to load ModuleLoader: " .. tostring(result))
-        end
-    end
-    
-    warn("[ModuleLoaderHelper] ModuleLoader not found, using fallback methods")
-    return nil
-end
-
--- Safely require a module with fallbacks
-function ModuleLoaderHelper:SafeRequire(modulePath)
-    if not modulePath then
+-- Load a module with error handling and retries
+function ModuleLoaderHelper.require(moduleName, context)
+    if not moduleName then
+        warn_log("Module name is nil")
         return nil
     end
     
-    -- If it's a string, try to find the module
-    if type(modulePath) == "string" then
-        -- Try ModuleLoader first
-        local moduleLoader = self:GetModuleLoader()
-        if moduleLoader then
-            return moduleLoader.tryRequire(modulePath)
+    -- Check if we have ModuleLoader and should use it
+    if ModuleLoader and CONFIG.USE_MODULE_LOADER then
+        local loaderResult
+        
+        if RunService:IsServer() then
+            loaderResult = ModuleLoader.LoadServerModule and ModuleLoader:LoadServerModule(context, moduleName)
+        else
+            loaderResult = ModuleLoader.LoadClientModule and ModuleLoader:LoadClientModule(context, moduleName)
         end
         
-        -- If that fails, we can't do much with just a string
+        if loaderResult then
+            return loaderResult
+        end
+        
+        -- Fall through if ModuleLoader failed
+        log("ModuleLoader failed to load " .. moduleName .. ", falling back to direct require")
+    end
+    
+    -- Find the module instance
+    local moduleInstance = findModule(moduleName, context)
+    if not moduleInstance then
+        warn_log("Module not found: " .. moduleName)
         return nil
     end
     
-    -- Otherwise, assume it's an instance and try to require it
-    if typeof(modulePath) == "Instance" and modulePath:IsA("ModuleScript") then
-        local success, result = pcall(function()
-            return require(modulePath)
+    -- Try to require the module
+    local retryCount = 0
+    while retryCount <= CONFIG.MAX_RETRY_COUNT do
+        local requireSuccess, requireResult = pcall(function()
+            return require(moduleInstance)
         end)
         
-        if success then
+        if requireSuccess then
+            return requireResult
+        end
+        
+        -- Log failure and retry
+        warn_log("Failed to require " .. moduleName .. " (attempt " .. (retryCount + 1) .. 
+                "): " .. tostring(requireResult))
+        
+        retryCount = retryCount + 1
+        
+        if retryCount <= CONFIG.MAX_RETRY_COUNT then
+            task.wait(CONFIG.RETRY_DELAY)
+        end
+    end
+    
+    warn_log("All attempts to load " .. moduleName .. " failed")
+    return nil
+end
+
+-- Get CoreRegistry using the most reliable method
+function ModuleLoaderHelper.getCoreRegistry()
+    -- First check global registry (should have been set up by CoreRegistryInitializer)
+    if _G.CoreRegistry then
+        return _G.CoreRegistry
+    end
+    
+    -- Next try to require it directly
+    local coreRegistry = ModuleLoaderHelper.require("CoreRegistry", "core")
+    if coreRegistry then
+        -- Store for future quick access
+        if _G then
+            _G.CoreRegistry = coreRegistry
+        end
+        return coreRegistry
+    end
+    
+    -- Final attempt with direct path
+    if RunService:IsServer() and ServerScriptService:FindFirstChild("Core") then
+        local success, result = pcall(function()
+            return require(ServerScriptService.Core.CoreRegistry)
+        end)
+        
+        if success and result then
+            -- Store for future quick access
+            if _G then
+                _G.CoreRegistry = result
+            end
             return result
-        else
-            warn("[ModuleLoaderHelper] Failed to require " .. modulePath:GetFullName() .. ": " .. tostring(result))
-            return nil
         end
     end
     
+    warn_log("Failed to get CoreRegistry through all available methods")
     return nil
 end
 
--- Get a module with multiple fallback paths
-function ModuleLoaderHelper:GetModule(moduleName, alternativePaths)
-    -- Return from cache if we've already loaded it
-    if moduleCache[moduleName] then
-        return moduleCache[moduleName]
+-- Get ClientRegistry on the client
+function ModuleLoaderHelper.getClientRegistry()
+    if not RunService:IsClient() then
+        warn_log("Attempted to get ClientRegistry from server")
+        return nil
     end
     
-    -- Try ModuleLoader first (most reliable)
-    local moduleLoader = self:GetModuleLoader()
-    if moduleLoader then
-        local module = moduleLoader.tryRequire(moduleName)
-        if module then
-            moduleCache[moduleName] = module
-            return module
-        end
+    -- Try to require it directly
+    local clientRegistry = ModuleLoaderHelper.require("ClientRegistry", "client")
+    if clientRegistry then
+        return clientRegistry
     end
     
-    -- Try alternative paths if provided
-    if alternativePaths then
-        for _, path in ipairs(alternativePaths) do
-            if typeof(path) == "Instance" and path:IsA("ModuleScript") then
-                local module = self:SafeRequire(path)
-                if module then
-                    moduleCache[moduleName] = module
-                    return module
-                end
-            elseif typeof(path) == "function" then
-                -- Allow providing a function to find the module
-                local success, moduleOrPath = pcall(path)
-                if success and moduleOrPath then
-                    if typeof(moduleOrPath) == "table" then
-                        -- Function returned a module directly
-                        moduleCache[moduleName] = moduleOrPath
-                        return moduleOrPath
-                    else
-                        -- Function returned a path to require
-                        local module = self:SafeRequire(moduleOrPath)
-                        if module then
-                            moduleCache[moduleName] = module
-                            return module
-                        end
-                    end
-                end
-            end
-        end
-    end
-    
-    warn("[ModuleLoaderHelper] Failed to find module: " .. moduleName)
+    warn_log("Failed to get ClientRegistry")
     return nil
 end
 
--- Get the CoreRegistry instance
-function ModuleLoaderHelper:GetCoreRegistry()
-    return self:GetModule("CoreRegistry", {
-        function()
-            if IsServer then
-                local ServerScriptService = game:GetService("ServerScriptService")
-                if ServerScriptService:FindFirstChild("Core") then
-                    return ServerScriptService.Core:FindFirstChild("CoreRegistry")
-                end
-            else
-                local ClientRegistry = nil
-                if ReplicatedStorage:FindFirstChild("shared") then
-                    ClientRegistry = ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
-                    if ClientRegistry then return ClientRegistry end
-                end
-                
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-                if LocalPlayer and LocalPlayer.PlayerScripts:FindFirstChild("Client") then
-                    return LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("ClientRegistry")
-                end
-            end
-            return nil
-        end
-    })
-end
-
--- Get the EventBridge instance
-function ModuleLoaderHelper:GetEventBridge()
-    return self:GetModule("EventBridge", {
-        function()
-            if IsServer then
-                local ServerScriptService = game:GetService("ServerScriptService")
-                if ServerScriptService:FindFirstChild("Core") then
-                    return ServerScriptService.Core:FindFirstChild("EventBridge")
-                end
-            else
-                -- For client, we need to use RemoteEvents
-                local coreRegistry = self:GetCoreRegistry()
-                if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
-                    return coreRegistry:getSystem("EventBridge")
-                end
-            end
-            return nil
-        end
-    })
-end
-
--- Get any system from CoreRegistry
-function ModuleLoaderHelper:GetSystem(systemName)
-    local coreRegistry = self:GetCoreRegistry()
-    if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
-        return coreRegistry:getSystem(systemName)
+-- Module system detection and integration
+function ModuleLoaderHelper.initialize()
+    -- Detect loading system and set appropriate flags
+    -- This integrates with core systems as needed
+    
+    -- Try CoreRegistry integration
+    local CoreRegistry = ModuleLoaderHelper.getCoreRegistry()
+    if CoreRegistry and CoreRegistry.registerSystem then
+        CoreRegistry.registerSystem("ModuleLoaderHelper", ModuleLoaderHelper, {})
+        log("Registered with CoreRegistry")
     end
     
-    return self:GetModule(systemName)
-end
-
--- Connect to an event with EventBridge or fallback to direct connection
-function ModuleLoaderHelper:ConnectToEvent(eventName, callback)
-    -- Try EventBridge first
-    local eventBridge = self:GetEventBridge()
-    if eventBridge and typeof(eventBridge.connectEvent) == "function" then
-        eventBridge:connectEvent(eventName, callback)
-        return true
-    end
-    
-    -- Otherwise, try direct RemoteEvent connection
-    local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
-    if eventsFolder then
-        local remoteEvent = eventsFolder:FindFirstChild(eventName)
-        if remoteEvent and remoteEvent:IsA("RemoteEvent") then
-            remoteEvent.OnClientEvent:Connect(callback)
-            return true
+    -- Try ClientRegistry integration
+    if RunService:IsClient() then
+        local ClientRegistry = ModuleLoaderHelper.getClientRegistry()
+        if ClientRegistry and ClientRegistry.registerSystem then
+            ClientRegistry.registerSystem("ModuleLoaderHelper", ModuleLoaderHelper, {})
+            log("Registered with ClientRegistry")
         end
     end
     
-    -- Try directly in ReplicatedStorage as fallback
-    local remoteEvent = ReplicatedStorage:FindFirstChild(eventName)
-    if remoteEvent and remoteEvent:IsA("RemoteEvent") then
-        if IsClient then
-            remoteEvent.OnClientEvent:Connect(callback)
-        else
-            remoteEvent.OnServerEvent:Connect(callback)
-        end
-        return true
-    end
-    
-    warn("[ModuleLoaderHelper] Failed to connect to event: " .. eventName)
-    return false
-end
-
--- Fire an event with EventBridge or fallback to direct firing
-function ModuleLoaderHelper:FireEvent(eventName, ...)
-    -- Try EventBridge first
-    local eventBridge = self:GetEventBridge()
-    if eventBridge and typeof(eventBridge.fireEvent) == "function" then
-        eventBridge:fireEvent(eventName, ...)
-        return true
-    end
-    
-    -- Otherwise, try direct RemoteEvent firing
-    local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
-    if eventsFolder then
-        local remoteEvent = eventsFolder:FindFirstChild(eventName)
-        if remoteEvent and remoteEvent:IsA("RemoteEvent") then
-            if IsServer then
-                remoteEvent:FireAllClients(...)
-            else
-                remoteEvent:FireServer(...)
-            end
-            return true
-        end
-    end
-    
-    -- Try directly in ReplicatedStorage as fallback
-    local remoteEvent = ReplicatedStorage:FindFirstChild(eventName)
-    if remoteEvent and remoteEvent:IsA("RemoteEvent") then
-        if IsServer then
-            remoteEvent:FireAllClients(...)
-        else
-            remoteEvent:FireServer(...)
-        end
-        return true
-    end
-    
-    warn("[ModuleLoaderHelper] Failed to fire event: " .. eventName)
-    return false
+    return ModuleLoaderHelper
 end
 
 return ModuleLoaderHelper
