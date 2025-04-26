@@ -4,12 +4,293 @@
 
 local GameSystem = require(game.ReplicatedStorage.GameSystem)
 
+-- Services
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+-- Player references
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- UI Modules with safe requires and fallbacks
+local function safeRequire(path, fallback)
+    local success, result = pcall(function() 
+        return require(path)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("Failed to require " .. tostring(path) .. ": " .. tostring(result))
+        return fallback
+    end
+end
+
+-- Try to load UI modules from multiple possible locations
+local function tryRequireUIModule(moduleName)
+    -- Common locations to check for UI modules
+    local possiblePaths = {
+        game.ReplicatedStorage.shared.UI,
+        game.ReplicatedStorage.src.shared.UI,
+        game.ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("UI"),
+        game.ReplicatedStorage.UI
+    }
+    
+    for _, path in ipairs(possiblePaths) do
+        if path and path:FindFirstChild(moduleName) then
+            local module = safeRequire(path:FindFirstChild(moduleName))
+            if module then
+                return module
+            end
+        end
+    end
+    
+    -- Return fallback if module not found
+    warn(moduleName .. " module not found, using fallback")
+    
+    if moduleName == "UIStyle" then
+        return {
+            Colors = {
+                Background = Color3.fromRGB(50, 50, 50),
+                TabActive = Color3.fromRGB(100, 100, 255),
+                TabInactive = Color3.fromRGB(70, 70, 70),
+                ButtonPrimary = Color3.fromRGB(0, 120, 255),
+                ButtonSecondary = Color3.fromRGB(100, 100, 100),
+                ButtonWarning = Color3.fromRGB(255, 100, 0),
+                ButtonDanger = Color3.fromRGB(255, 0, 0),
+                TextPrimary = Color3.fromRGB(255, 255, 255),
+                TextSecondary = Color3.fromRGB(200, 200, 200),
+                Border = Color3.fromRGB(100, 100, 100)
+            },
+            Fonts = {
+                Header = Enum.Font.GothamBold,
+                Regular = Enum.Font.Gotham,
+                Button = Enum.Font.GothamMedium
+            },
+            Animation = {
+                Default = Enum.EasingStyle.Quad,
+                DefaultTime = 0.3
+            }
+        }
+    elseif moduleName == "ButtonFactory" then
+        return {
+            createButton = function(config)
+                local button = Instance.new("TextButton")
+                button.Size = config.size or UDim2.new(0.2, 0, 0.08, 0)
+                button.Position = config.position or UDim2.new(0, 0, 0, 0)
+                button.BackgroundColor3 = config.color or Color3.fromRGB(0, 120, 255)
+                button.Text = config.text or "Button"
+                button.Font = config.font or Enum.Font.GothamMedium
+                button.TextSize = config.textSize or 16
+                button.TextColor3 = config.textColor or Color3.fromRGB(255, 255, 255)
+                button.Parent = config.parent
+                
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 6)
+                corner.Parent = button
+                
+                if config.callback then
+                    button.MouseButton1Click:Connect(config.callback)
+                end
+                
+                return button
+            end,
+            createIconButton = function(config)
+                local button = Instance.new("TextButton")
+                button.Size = config.size or UDim2.new(0.1, 0, 0.1, 0)
+                button.Position = config.position or UDim2.new(0, 0, 0, 0)
+                button.BackgroundColor3 = config.color or Color3.fromRGB(0, 120, 255)
+                button.Text = ""
+                button.Parent = config.parent
+                
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 6)
+                corner.Parent = button
+                
+                local icon = Instance.new("ImageLabel")
+                icon.Size = UDim2.new(0.7, 0, 0.7, 0)
+                icon.Position = UDim2.new(0.15, 0, 0.15, 0)
+                icon.BackgroundTransparency = 1
+                icon.Image = config.icon or ""
+                icon.Parent = button
+                
+                if config.callback then
+                    button.MouseButton1Click:Connect(config.callback)
+                end
+                
+                return button
+            end
+        }
+    elseif moduleName == "DialogFactory" then
+        return {
+            showConfirmDialog = function(config)
+                local dialog = Instance.new("Frame")
+                dialog.Size = UDim2.new(0.4, 0, 0.3, 0)
+                dialog.Position = UDim2.new(0.3, 0, 0.35, 0)
+                dialog.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                dialog.BorderSizePixel = 0
+                dialog.ZIndex = 20
+                dialog.Parent = player.PlayerGui
+                
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 8)
+                corner.Parent = dialog
+                
+                local title = Instance.new("TextLabel")
+                title.Size = UDim2.new(1, 0, 0.2, 0)
+                title.BackgroundTransparency = 1
+                title.Text = config.title or "Confirm"
+                title.Font = Enum.Font.GothamBold
+                title.TextSize = 20
+                title.TextColor3 = Color3.fromRGB(255, 255, 255)
+                title.Parent = dialog
+                
+                local message = Instance.new("TextLabel")
+                message.Size = UDim2.new(0.9, 0, 0.4, 0)
+                message.Position = UDim2.new(0.05, 0, 0.25, 0)
+                message.BackgroundTransparency = 1
+                message.Text = config.message or "Are you sure?"
+                message.Font = Enum.Font.Gotham
+                message.TextSize = 16
+                message.TextWrapped = true
+                message.TextColor3 = Color3.fromRGB(230, 230, 230)
+                message.Parent = dialog
+                
+                local confirmButton = Instance.new("TextButton")
+                confirmButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+                confirmButton.Position = UDim2.new(0.1, 0, 0.7, 0)
+                confirmButton.BackgroundColor3 = config.confirmColor or Color3.fromRGB(0, 180, 0)
+                confirmButton.Text = config.confirmText or "Confirm"
+                confirmButton.Font = Enum.Font.GothamMedium
+                confirmButton.TextSize = 16
+                confirmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                confirmButton.Parent = dialog
+                
+                local cancelButton = Instance.new("TextButton")
+                cancelButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+                cancelButton.Position = UDim2.new(0.5, 0, 0.7, 0)
+                cancelButton.BackgroundColor3 = config.cancelColor or Color3.fromRGB(180, 0, 0)
+                cancelButton.Text = config.cancelText or "Cancel"
+                cancelButton.Font = Enum.Font.GothamMedium
+                cancelButton.TextSize = 16
+                cancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                cancelButton.Parent = dialog
+                
+                local cornerConfirm = Instance.new("UICorner")
+                cornerConfirm.CornerRadius = UDim.new(0, 6)
+                cornerConfirm.Parent = confirmButton
+                
+                local cornerCancel = Instance.new("UICorner")
+                cornerCancel.CornerRadius = UDim.new(0, 6)
+                cornerCancel.Parent = cancelButton
+                
+                confirmButton.MouseButton1Click:Connect(function()
+                    dialog:Destroy()
+                    if config.onConfirm then
+                        config.onConfirm()
+                    end
+                end)
+                
+                cancelButton.MouseButton1Click:Connect(function()
+                    dialog:Destroy()
+                    if config.onCancel then
+                        config.onCancel()
+                    end
+                end)
+                
+                return dialog
+            end,
+            showInfoDialog = function(config)
+                local dialog = Instance.new("Frame")
+                dialog.Size = UDim2.new(0.4, 0, 0.3, 0)
+                dialog.Position = UDim2.new(0.3, 0, 0.35, 0)
+                dialog.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                dialog.BorderSizePixel = 0
+                dialog.ZIndex = 20
+                dialog.Parent = player.PlayerGui
+                
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 8)
+                corner.Parent = dialog
+                
+                local title = Instance.new("TextLabel")
+                title.Size = UDim2.new(1, 0, 0.2, 0)
+                title.BackgroundTransparency = 1
+                title.Text = config.title or "Information"
+                title.Font = Enum.Font.GothamBold
+                title.TextSize = 20
+                title.TextColor3 = Color3.fromRGB(255, 255, 255)
+                title.Parent = dialog
+                
+                local message = Instance.new("TextLabel")
+                message.Size = UDim2.new(0.9, 0, 0.5, 0)
+                message.Position = UDim2.new(0.05, 0, 0.25, 0)
+                message.BackgroundTransparency = 1
+                message.Text = config.message or ""
+                message.Font = Enum.Font.Gotham
+                message.TextSize = 16
+                message.TextWrapped = true
+                message.TextColor3 = Color3.fromRGB(230, 230, 230)
+                message.Parent = dialog
+                
+                local okButton = Instance.new("TextButton")
+                okButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+                okButton.Position = UDim2.new(0.3, 0, 0.75, 0)
+                okButton.BackgroundColor3 = config.confirmColor or Color3.fromRGB(0, 120, 255)
+                okButton.Text = config.okText or "OK"
+                okButton.Font = Enum.Font.GothamMedium
+                okButton.TextSize = 16
+                okButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                okButton.Parent = dialog
+                
+                local cornerOk = Instance.new("UICorner")
+                cornerOk.CornerRadius = UDim.new(0, 6)
+                cornerOk.Parent = okButton
+                
+                okButton.MouseButton1Click:Connect(function()
+                    dialog:Destroy()
+                    if config.onOk then
+                        config.onOk()
+                    end
+                end)
+                
+                return dialog
+            end
+        }
+    elseif moduleName == "IconSet" then
+        return {
+            Icons = {
+                Close = "rbxassetid://6031094678",
+                Settings = "rbxassetid://6031280882",
+                Player = "rbxassetid://6031302920",
+                Warning = "rbxassetid://6031094670",
+                Success = "rbxassetid://6031094661",
+                Error = "rbxassetid://6031094667",
+                Info = "rbxassetid://6026568247"
+            }
+        }
+    end
+    
+    return {}
+end
+
+-- Load UI modules with fallbacks
+local UIStyle = tryRequireUIModule("UIStyle")
+local ButtonFactory = tryRequireUIModule("ButtonFactory")
+local DialogFactory = tryRequireUIModule("DialogFactory")
+local IconSet = tryRequireUIModule("IconSet")
+
+-- UI State
+local uiState = {
+    isOpen = false,
+    currentTab = "Players",
+    selectedPlayer = nil,
+    menuElements = {},
+    playerListItems = {}
+}
+
 -- Admin Controls UI Module
-local AdminControlsUI = {} 
+local AdminControlsUI = {}
 
 function AdminControlsUI.initialize()
 	-- Create the main panel frame
@@ -288,12 +569,11 @@ function AdminControlsUI:UpdatePlayersList()
             child:Destroy()
         end
     end
-    
-    -- Get all players
+      -- Get all players
     local playersList = Players:GetPlayers()
     
     -- Add entries for each player
-    for i, plr in ipairs(playersList) do
+    for _, plr in ipairs(playersList) do
         -- Create player entry card
         local entryFrame = Instance.new("Frame")
         entryFrame.Name = "PlayerEntry_" .. plr.Name
@@ -446,10 +726,9 @@ function AdminControlsUI:CreateGameSettingsTab(parent)
         { name = "Max Players", type = "number", min = 1, max = 100, default = 50, icon = "User" },
         { name = "Game Difficulty", type = "dropdown", options = {"Easy", "Normal", "Hard"}, default = "Normal", icon = "Settings" }
     }
-    
-    -- Create UI for each setting
+      -- Create UI for each setting
     local yOffset = 50
-    for i, setting in ipairs(settings) do
+    for _, setting in ipairs(settings) do
         -- Create setting card
         local settingCard = Instance.new("Frame")
         settingCard.Name = setting.name .. "Setting"

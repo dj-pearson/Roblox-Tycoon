@@ -31,6 +31,24 @@ local IsServer = RunService:IsServer()
 local IsClient = RunService:IsClient()
 local IsStudio = RunService:IsStudio()
 
+-- Safe require utility
+local function requireSafely(module)
+    if not module then
+        return nil
+    end
+    
+    local success, result = pcall(function()
+        return require(module)
+    end)
+    
+    if not success then
+        warn("[AssetValidator] Failed to require module: ", module:GetFullName())
+        return nil
+    end
+    
+    return result
+end
+
 -- Find shared folder
 local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
 if not sharedFolder then
@@ -72,7 +90,8 @@ local AssetValidator = {
         loadAttempts = 0,
         loadSuccesses = 0,
         loadFailures = 0
-    }
+    },
+    initialized = false
 }
 
 -- Debug logging
@@ -107,7 +126,7 @@ function AssetValidator.registerCriticalAsset(assetId, assetType)
     
     -- If we're already initialized, preload this asset now
     if AssetValidator.initialized and CONFIG.PRELOAD_CRITICAL_ASSETS then
-        AssetValidator.preloadAsset(normalizedId)
+        AssetValidator.preloadAsset(normalizedId, assetType)
     end
     
     return true
@@ -145,10 +164,37 @@ function AssetValidator.validateAsset(assetId, assetType, skipCache)
             -- For images, create a temporary ImageLabel
             local imageLabel = Instance.new("ImageLabel")
             imageLabel.Image = normalizedId
-            imageLabel:GetPropertyChangedSignal("IsLoaded"):Wait()
-            if not imageLabel.IsLoaded then
-                error("Image failed to load: " .. normalizedId)
+            
+            -- Use a timeout to avoid hanging if the image never loads
+            local loadedSuccessfully = false
+            local connection
+            
+            -- Create a promise-like pattern with timeout
+            local timeoutTime = tick() + 3 -- 3 second timeout
+            
+            connection = imageLabel:GetPropertyChangedSignal("IsLoaded"):Connect(function()
+                if imageLabel.IsLoaded then
+                    loadedSuccessfully = true
+                    if connection then
+                        connection:Disconnect()
+                    end
+                end
+            end)
+            
+            -- Wait for load or timeout
+            while not loadedSuccessfully and tick() < timeoutTime do
+                task.wait(0.1)
             end
+            
+            -- Clean up
+            if connection then
+                connection:Disconnect()
+            end
+            
+            if not loadedSuccessfully then
+                error("Image failed to load within timeout: " .. normalizedId)
+            end
+            
             imageLabel:Destroy()
         elseif assetType == "Sound" then
             -- For sounds, create a temporary Sound
@@ -195,9 +241,9 @@ function AssetValidator.validateAsset(assetId, assetType, skipCache)
             end
         else
             -- For other asset types, use ContentProvider
-            ContentProvider:PreloadAsync({normalizedId}, function(assetId, status)
+            ContentProvider:PreloadAsync({normalizedId}, function(id, status)
                 if status ~= Enum.AssetFetchStatus.Success then
-                    error("Asset failed to load: " .. assetId .. " (Status: " .. tostring(status) .. ")")
+                    error("Asset failed to load: " .. id .. " (Status: " .. tostring(status) .. ")")
                 end
             end)
         end
@@ -378,9 +424,22 @@ function AssetValidator.generateHealthReport()
         loadSuccesses = AssetValidator.stats.loadSuccesses,
         loadFailures = AssetValidator.stats.loadFailures,
         invalidAssetsList = AssetValidator.getInvalidAssets(),
-        criticalAssetsCount = #criticalAssets,
-        preloadedAssetsCount = #preloadedAssets
+        criticalAssetsCount = 0, -- Will be calculated
+        preloadedAssetsCount = 0 -- Will be calculated
     }
+    
+    -- Count critical and preloaded assets
+    local criticalCount = 0
+    for _ in pairs(criticalAssets) do
+        criticalCount += 1
+    end
+    report.criticalAssetsCount = criticalCount
+    
+    local preloadedCount = 0
+    for _ in pairs(preloadedAssets) do
+        preloadedCount += 1
+    end
+    report.preloadedAssetsCount = preloadedCount
     
     return report
 end
@@ -415,6 +474,18 @@ function AssetValidator.printHealthReport()
     return report
 end
 
+-- Try to get ClientRegistry for integration
+local ClientRegistry = nil
+if IsClient then
+    -- Try to find via ModuleLoader
+    if sharedFolder:FindFirstChild("ModuleLoader") then
+        local ModuleLoader = requireSafely(sharedFolder.ModuleLoader)
+        if ModuleLoader then
+            ClientRegistry = ModuleLoader.tryRequire("ClientRegistry")
+        end
+    end
+end
+
 -- Initialize the validator
 function AssetValidator.initialize()
     if AssetValidator.initialized then
@@ -424,8 +495,8 @@ function AssetValidator.initialize()
     log("Initializing AssetValidator")
     
     -- Preregister default fallback assets as critical
-    for assetType, assetId in pairs(fallbackAssets) do
-        AssetValidator.registerCriticalAsset(assetId, assetType)
+    for assetTypeStr, assetIdStr in pairs(fallbackAssets) do
+        AssetValidator.registerCriticalAsset(assetIdStr, assetTypeStr)
     end
     
     -- Preload critical assets if enabled
@@ -445,8 +516,14 @@ function AssetValidator.initialize()
             "rbxassetid://6031090990"  -- Placeholder image
         }
         
-        for _, assetId in ipairs(uiAssets) do
-            AssetValidator.registerCriticalAsset(assetId, "UI")
+        for _, assetIdVal in ipairs(uiAssets) do
+            AssetValidator.registerCriticalAsset(assetIdVal, "UI")
+        end
+        
+        -- Try to register with ClientRegistry if available
+        if ClientRegistry and typeof(ClientRegistry.registerSystem) == "function" then
+            ClientRegistry:registerSystem("AssetValidator", AssetValidator)
+            log("Registered with ClientRegistry")
         end
     end
     
@@ -454,6 +531,259 @@ function AssetValidator.initialize()
     log("AssetValidator initialized")
     
     return true
+end
+
+-- Create an AssetHealthDashboard for monitoring asset status
+function AssetValidator.createAssetHealthDashboard()
+    if not IsClient then
+        warn("[AssetValidator] Asset Health Dashboard can only be created on the client")
+        return nil
+    end
+    
+    local PlayersService = game:GetService("Players")
+    local LocalPlayer = PlayersService.LocalPlayer
+    if not LocalPlayer then return nil end
+    
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+    
+    log("Creating Asset Health Dashboard")
+    
+    -- Create ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AssetHealthDashboard"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+    
+    -- Main frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 600, 0, 400)
+    mainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    -- Add corner rounding
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = mainFrame
+    
+    -- Title bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+    
+    -- Title text
+    local titleText = Instance.new("TextLabel")
+    titleText.Name = "Title"
+    titleText.Size = UDim2.new(1, -50, 1, 0)
+    titleText.Position = UDim2.new(0, 10, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Font = Enum.Font.GothamBold
+    titleText.TextSize = 20
+    titleText.TextColor3 = Color3.new(1, 1, 1)
+    titleText.Text = "Asset Health Dashboard"
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.Parent = titleBar
+    
+    -- Close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -35, 0, 5)
+    closeButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    closeButton.Text = "X"
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 18
+    closeButton.TextColor3 = Color3.new(1, 1, 1)
+    closeButton.Parent = titleBar
+    
+    -- Add corner to close button
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0.5, 0)
+    closeCorner.Parent = closeButton
+    
+    -- Content frame
+    local contentFrame = Instance.new("ScrollingFrame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -20, 1, -50)
+    contentFrame.Position = UDim2.new(0, 10, 0, 45)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.ScrollBarThickness = 6
+    contentFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+    contentFrame.CanvasSize = UDim2.new(0, 0, 0, 800) -- Will be adjusted
+    contentFrame.Parent = mainFrame
+    
+    -- Close handler
+    closeButton.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+    
+    -- Helper function to create a stat section
+    local function createStatSection(name, value, position)
+        local section = Instance.new("Frame")
+        section.Name = name .. "Section"
+        section.Size = UDim2.new(0.5, -15, 0, 80)
+        section.Position = position
+        section.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        section.Parent = contentFrame
+        
+        -- Add corner
+        local sectionCorner = Instance.new("UICorner")
+        sectionCorner.CornerRadius = UDim.new(0, 6)
+        sectionCorner.Parent = section
+        
+        -- Add title
+        local sectionTitle = Instance.new("TextLabel")
+        sectionTitle.Name = "Title"
+        sectionTitle.Size = UDim2.new(1, -20, 0, 30)
+        sectionTitle.Position = UDim2.new(0, 10, 0, 5)
+        sectionTitle.BackgroundTransparency = 1
+        sectionTitle.Font = Enum.Font.GothamMedium
+        sectionTitle.TextSize = 16
+        sectionTitle.TextColor3 = Color3.new(1, 1, 1)
+        sectionTitle.Text = name
+        sectionTitle.TextXAlignment = Enum.TextXAlignment.Left
+        sectionTitle.Parent = section
+        
+        -- Add value
+        local sectionValue = Instance.new("TextLabel")
+        sectionValue.Name = "Value"
+        sectionValue.Size = UDim2.new(1, -20, 0, 30)
+        sectionValue.Position = UDim2.new(0, 10, 0, 40)
+        sectionValue.BackgroundTransparency = 1
+        sectionValue.Font = Enum.Font.GothamBold
+        sectionValue.TextSize = 24
+        sectionValue.TextColor3 = Color3.new(1, 1, 1)
+        sectionValue.Text = tostring(value)
+        sectionValue.TextXAlignment = Enum.TextXAlignment.Left
+        sectionValue.Parent = section
+        
+        return section
+    end
+    
+    -- Create stat sections
+    local report = AssetValidator.generateHealthReport()
+    
+    createStatSection("Total Assets", report.totalAssets, UDim2.new(0, 0, 0, 10))
+    createStatSection("Valid Assets", report.validAssets, UDim2.new(0.5, 10, 0, 10))
+    createStatSection("Invalid Assets", report.invalidAssets, UDim2.new(0, 0, 0, 100))
+    createStatSection("Preloaded Assets", report.preloadedAssets, UDim2.new(0.5, 10, 0, 100))
+    createStatSection("Load Attempts", report.loadAttempts, UDim2.new(0, 0, 0, 190))
+    createStatSection("Load Successes", report.loadSuccesses, UDim2.new(0.5, 10, 0, 190))
+    createStatSection("Load Failures", report.loadFailures, UDim2.new(0, 0, 0, 280))
+    createStatSection("Critical Assets", report.criticalAssetsCount, UDim2.new(0.5, 10, 0, 280))
+    
+    -- Create invalid assets list if any
+    if #report.invalidAssetsList > 0 then
+        -- Create section title
+        local listTitle = Instance.new("TextLabel")
+        listTitle.Name = "InvalidAssetsTitle"
+        listTitle.Size = UDim2.new(1, -20, 0, 30)
+        listTitle.Position = UDim2.new(0, 10, 0, 370)
+        listTitle.BackgroundTransparency = 1
+        listTitle.Font = Enum.Font.GothamBold
+        listTitle.TextSize = 18
+        listTitle.TextColor3 = Color3.new(1, 1, 1)
+        listTitle.Text = "Invalid Assets"
+        listTitle.TextXAlignment = Enum.TextXAlignment.Left
+        listTitle.Parent = contentFrame
+        
+        -- Create list container
+        local listContainer = Instance.new("Frame")
+        listContainer.Name = "InvalidAssetsList"
+        listContainer.Size = UDim2.new(1, -20, 0, 30 * math.min(10, #report.invalidAssetsList))
+        listContainer.Position = UDim2.new(0, 10, 0, 410)
+        listContainer.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        listContainer.BorderSizePixel = 0
+        listContainer.Parent = contentFrame
+        
+        -- Add corner
+        local listCorner = Instance.new("UICorner")
+        listCorner.CornerRadius = UDim.new(0, 6)
+        listCorner.Parent = listContainer
+        
+        -- Add list items
+        for i, assetId in ipairs(report.invalidAssetsList) do
+            if i > 10 then break end -- Limit to 10 items
+            
+            local listItem = Instance.new("TextLabel")
+            listItem.Name = "Item_" .. i
+            listItem.Size = UDim2.new(1, -20, 0, 30)
+            listItem.Position = UDim2.new(0, 10, 0, (i - 1) * 30)
+            listItem.BackgroundTransparency = 1
+            listItem.Font = Enum.Font.Gotham
+            listItem.TextSize = 14
+            listItem.TextColor3 = Color3.fromRGB(255, 100, 100)
+            listItem.Text = assetId
+            listItem.TextXAlignment = Enum.TextXAlignment.Left
+            listItem.TextWrapped = true
+            listItem.Parent = listContainer
+        end
+        
+        -- Add message if there are more
+        if #report.invalidAssetsList > 10 then
+            local moreText = Instance.new("TextLabel")
+            moreText.Name = "MoreText"
+            moreText.Size = UDim2.new(1, -20, 0, 30)
+            moreText.Position = UDim2.new(0, 10, 0, 410 + 30 * 10)
+            moreText.BackgroundTransparency = 1
+            moreText.Font = Enum.Font.GothamMedium
+            moreText.TextSize = 14
+            moreText.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+            moreText.Text = "...and " .. (#report.invalidAssetsList - 10) .. " more"
+            moreText.TextXAlignment = Enum.TextXAlignment.Left
+            moreText.Parent = contentFrame
+            
+            -- Adjust canvas size
+            contentFrame.CanvasSize = UDim2.new(0, 0, 0, 460 + 30 * 10)
+        else
+            -- Adjust canvas size
+            contentFrame.CanvasSize = UDim2.new(0, 0, 0, 420 + 30 * #report.invalidAssetsList)
+        end
+    else
+        -- No invalid assets
+        local noInvalidText = Instance.new("TextLabel")
+        noInvalidText.Name = "NoInvalidText"
+        noInvalidText.Size = UDim2.new(1, -20, 0, 30)
+        noInvalidText.Position = UDim2.new(0, 10, 0, 370)
+        noInvalidText.BackgroundTransparency = 1
+        noInvalidText.Font = Enum.Font.GothamBold
+        noInvalidText.TextSize = 18
+        noInvalidText.TextColor3 = Color3.fromRGB(40, 180, 100)
+        noInvalidText.Text = "No invalid assets detected ✓"
+        noInvalidText.TextXAlignment = Enum.TextXAlignment.Left
+        noInvalidText.Parent = contentFrame
+    end
+    
+    -- Add refresh button
+    local refreshButton = Instance.new("TextButton")
+    refreshButton.Name = "RefreshButton"
+    refreshButton.Size = UDim2.new(0, 150, 0, 40)
+    refreshButton.Position = UDim2.new(0.5, -75, 1, -60)
+    refreshButton.BackgroundColor3 = Color3.fromRGB(60, 100, 180)
+    refreshButton.Font = Enum.Font.GothamBold
+    refreshButton.TextSize = 16
+    refreshButton.TextColor3 = Color3.new(1, 1, 1)
+    refreshButton.Text = "Refresh Data"
+    refreshButton.Parent = mainFrame
+    
+    -- Add corner to refresh button
+    local refreshCorner = Instance.new("UICorner")
+    refreshCorner.CornerRadius = UDim.new(0, 8)
+    refreshCorner.Parent = refreshButton
+    
+    -- Refresh handler
+    refreshButton.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+        AssetValidator.createAssetHealthDashboard()
+    end)
+    
+    return screenGui
 end
 
 -- Auto-initialize
