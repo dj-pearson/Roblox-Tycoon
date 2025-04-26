@@ -5,7 +5,7 @@
     This module handles integration between the data system and other game systems,
     providing a unified interface and integrating with CoreRegistry.
     
-    Created: April 26, 2025
+    Updated: April 26, 2025
 ]]
 
 -- Services
@@ -14,11 +14,38 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- Find CoreRegistry
+-- Find CoreRegistry using advanced methods
 local CoreRegistry
-local hasRegistry = pcall(function()
-    CoreRegistry = require(ServerScriptService.Core.CoreRegistry)
+local hasRegistry = false
+local CoreRegistryAccess
+local UniversalSystemFinder
+
+-- Try to use our new utilities first
+pcall(function()
+    CoreRegistryAccess = require(ReplicatedStorage.shared.CoreRegistryAccess)
+    if CoreRegistryAccess then
+        CoreRegistry = CoreRegistryAccess:GetRegistry()
+        hasRegistry = CoreRegistry ~= nil
+    end
 end)
+
+-- If that fails, try UniversalSystemFinder
+if not hasRegistry then
+    pcall(function()
+        UniversalSystemFinder = require(ReplicatedStorage.shared.UniversalSystemFinder)
+        if UniversalSystemFinder then
+            CoreRegistry = UniversalSystemFinder:GetCoreRegistry()
+            hasRegistry = CoreRegistry ~= nil
+        end
+    end)
+end
+
+-- Final fallback to direct requiring
+if not hasRegistry then
+    hasRegistry = pcall(function()
+        CoreRegistry = require(ServerScriptService.Core.CoreRegistry)
+    end)
+end
 
 -- System modules
 local DataManager
@@ -104,6 +131,48 @@ local DataSystemIntegration = {
     hasRegistry = hasRegistry,
     systemsLoaded = false
 }
+
+-- Helper functions for event handlers
+function DataSystemIntegration:HandleMilestoneEvent(player, milestone)
+    -- Create a backup and version for important milestones
+    if DataBackup then
+        task.spawn(function()
+            DataBackup:CreateCriticalBackup(player, "Milestone_" .. milestone)
+        end)
+    end
+    
+    if VersionedDataStore then
+        task.spawn(function()
+            VersionedDataStore:CreateVersion(player, "Milestone_" .. milestone)
+        end)
+    end
+end
+
+function DataSystemIntegration:HandleLevelUpEvent(player, newLevel)
+    -- Create a backup and version for gym level ups
+    if DataBackup then
+        task.spawn(function()
+            DataBackup:CreateCriticalBackup(player, "GymLevelUp_" .. newLevel)
+        end)
+    end
+    
+    if VersionedDataStore then
+        task.spawn(function()
+            VersionedDataStore:CreateVersion(player, "GymLevelUp_" .. newLevel)
+        end)
+    end
+end
+
+function DataSystemIntegration:HandleTransactionEvent(player, amount, reason)
+    if amount >= 10000 then -- Only for really large transactions
+        -- Create a version for significant cash changes
+        if VersionedDataStore then
+            task.spawn(function()
+                VersionedDataStore:CreateVersion(player, "LargeTransaction_" .. reason .. "_" .. amount)
+            end)
+        end
+    end
+end
 
 -- Initialize the integration
 function DataSystemIntegration:Initialize()
@@ -223,7 +292,13 @@ function DataSystemIntegration:CreateCompatibilityLayer()
         bindable.OnInvoke = func
     end
     
-    log("Compatibility layer created with " .. #table.keys(functions) .. " functions")
+    -- Count functions
+    local functionCount = 0
+    for _ in pairs(functions) do
+        functionCount = functionCount + 1
+    end
+    
+    log("Compatibility layer created with " .. functionCount .. " functions")
 end
 
 -- Connect to events
@@ -231,12 +306,12 @@ function DataSystemIntegration:ConnectEvents()
     log("Connecting events")
     
     -- Player added events
-    Players.PlayerAdded:Connect(function(player)
+    Players.PlayerAdded:Connect(function(_player)
         -- Nothing special to do on join - DataManager handles this
     end)
     
     -- Player removing events
-    Players.PlayerRemoving:Connect(function(player)
+    Players.PlayerRemoving:Connect(function(_player)
         -- Nothing special to do on leave - DataManager handles this
     end)
     
@@ -273,58 +348,51 @@ end
 
 -- Register event handlers with CoreRegistry
 function DataSystemIntegration:RegisterEventHandlers()
-    if not hasRegistry or not CoreRegistry.onEvent or not CoreRegistry.fireEvent then
+    -- Different ways to register events based on what's available
+    local registerSuccess = false
+    
+    -- Try using CoreRegistryAccess if available
+    if CoreRegistryAccess then
+        log("Using CoreRegistryAccess for event registration")
+        registerSuccess = true
+        
+        -- Use CoreRegistryAccess.OnEvent for safety
+        CoreRegistryAccess:OnEvent("PlayerMilestoneReached", function(player, milestone)
+            self:HandleMilestoneEvent(player, milestone)
+        end)
+        
+        CoreRegistryAccess:OnEvent("GymLevelUp", function(player, newLevel)
+            self:HandleLevelUpEvent(player, newLevel)
+        end)
+        
+        CoreRegistryAccess:OnEvent("LargeTransaction", function(player, amount, reason)
+            self:HandleTransactionEvent(player, amount, reason)
+        end)
+    elseif hasRegistry and CoreRegistry.onEvent then
+        log("Using direct CoreRegistry for event registration")
+        registerSuccess = true
+        
+        -- Handle player milestone events
+        CoreRegistry:onEvent("PlayerMilestoneReached", function(player, milestone)
+            self:HandleMilestoneEvent(player, milestone)
+        end)
+        
+        -- Handle gym level up events
+        CoreRegistry:onEvent("GymLevelUp", function(player, newLevel)
+            self:HandleLevelUpEvent(player, newLevel)
+        end)
+        
+        -- Handle large cash transactions
+        CoreRegistry:onEvent("LargeTransaction", function(player, amount, reason)
+            self:HandleTransactionEvent(player, amount, reason)
+        end)
+    else
+        log("No suitable event registration system found")
         return false
     end
     
-    log("Registering event handlers with CoreRegistry")
-    
-    -- Handle player milestone events
-    CoreRegistry:onEvent("PlayerMilestoneReached", function(player, milestone)
-        -- Create a backup and version for important milestones
-        if DataBackup then
-            task.spawn(function()
-                DataBackup:CreateCriticalBackup(player, "Milestone_" .. milestone)
-            end)
-        end
-        
-        if VersionedDataStore then
-            task.spawn(function()
-                VersionedDataStore:CreateVersion(player, "Milestone_" .. milestone)
-            end)
-        end
-    end)
-    
-    -- Handle gym level up events
-    CoreRegistry:onEvent("GymLevelUp", function(player, newLevel)
-        -- Create a backup and version for gym level ups
-        if DataBackup then
-            task.spawn(function()
-                DataBackup:CreateCriticalBackup(player, "GymLevelUp_" .. newLevel)
-            end)
-        end
-        
-        if VersionedDataStore then
-            task.spawn(function()
-                VersionedDataStore:CreateVersion(player, "GymLevelUp_" .. newLevel)
-            end)
-        end
-    end)
-    
-    -- Handle large cash transactions
-    CoreRegistry:onEvent("LargeTransaction", function(player, amount, reason)
-        if amount >= 10000 then -- Only for really large transactions
-            -- Create a version for significant cash changes
-            if VersionedDataStore then
-                task.spawn(function()
-                    VersionedDataStore:CreateVersion(player, "LargeTransaction_" .. reason .. "_" .. amount)
-                end)
-            end
-        end
-    end)
-    
     log("Event handlers registered")
-    return true
+    return registerSuccess
 end
 
 -- Public API for accessing the data system
