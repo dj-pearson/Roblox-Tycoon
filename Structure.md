@@ -1,403 +1,238 @@
-# src/client
+# src root
 
-## src/client/ClientCore
+-`src/GameSystem.lua`: Core game system module that serves as an entry point for the game's primary functionality. It coordinates between major subsystems, handles game state management, and provides a high-level API for common game operations. The module bridges between server, client, and shared code components and serves as the main orchestrator for game initialization and runtime behavior.
 
--   `src/client/ClientCore/AchievementClient.client.luau`
-    -   Client-side script for handling the achievement system's logic. It initializes the achievement system, connects to events (like unlocking achievements or progress updates), manages achievement data, and interacts with the UI to display achievement notifications and the achievements menu. The script also handles input for toggling the achievements menu. It uses the `ClientEventBridge` to communicate with the server, the `UIManager` to manage UI elements, and the `NotificationSystem` to display notifications.
-
--   `src/client/ClientCore/AchievementClientLoader.client.luau`
--   Client-side script that is responsible for loading and registering the `AchievementClient` with the `ClientRegistry`. It uses the `ClientRegistry` to make the `AchievementClient` available to other parts of the client-side code. It also defines the dependencies of the `AchievementClient`, which are `ClientEventBridge`, `UIManager`, and `NotificationSystem`.
--   `src/client/ClientCore/AdminDashboardClient.client.luau`
-    -   Client-side script responsible for managing the admin dashboard UI and functionality. It initializes the admin dashboard, sets up the UI elements, connects to server events to receive updates, and handles the execution of admin commands. It uses remote events (`GetGameStats`, `ExecuteAdminCommand`, `RefreshAdminData`) to communicate with the server. It caches game statistics and logs received from the server to display in the admin dashboard.
--   `src/client/ClientCore/AdminDashboardClient.client.luau`
-- `src/client/ClientCore/CompetitionClientLoader.client.luau`: Client-side script that is responsible for loading and registering the `CompetitionClient` module with the `ClientRegistry`. This makes the `CompetitionClient` available for other client-side systems to use. It ensures that the `CompetitionClient` is properly initialized and integrated into the client-side architecture. This script is essential for the `CompetitionClient` to function within the game's client environment.
--   `src/client/ClientCore/RevenueClient.client.luau`
--   `src/client/ClientCore/RevenueClientLoader.client.luau`
--   `src/client/ClientCore/SatisfactionClient.client.luau`
--   `src/client/ClientCore/CompetitionClient.client.luau`: Client-side script that controls the competition system from the player's perspective. It manages communication with the server to receive competition updates, handles starting competitions, and displays relevant UI elements. The script initializes the competition UI, registers event handlers to listen for server events related to competitions (updates, start, failure, end), and manages a loop for periodically requesting competition data. It interacts with `ClientEventBridge` to communicate with the server, and `UIManager` to manage UI notifications and the competition interface. It also handles checking if the player has enough money to start a competition.
-- `src/client/ClientCore/SatisfactionClient.client.luau`: Client-side script responsible for managing the member satisfaction system. It handles updates to member satisfaction, including receiving data from the server, updating the UI, and notifying the player of significant changes. It also manages the display of a satisfaction panel and handles events such as members leaving due to low satisfaction. The script sets up event handlers to listen for server events related to satisfaction updates, members leaving, and tile purchases. It uses the `ClientEventBridge` to communicate with the server, `UIManager` to manage the UI, and `NotificationSystem` to display notifications. It defines different satisfaction levels and their associated colors.
-
-## src/client/Core
-
-- `src/client/Core/ClientBootstrap.client.luau`: Main initialization script for the client-side systems. It's responsible for initializing the `ClientRegistry` and other core systems in the correct order, handling dependencies, and managing system retries in case of initialization failures. It uses `ModuleLoader` and `ClientRegistryFixer` if they are available. It supports logging, safe requiring, and dependency management. It also includes a system for tracking the initialization state of each system. Finally it registers the `ClientBootstrap` into the `ClientRegistry`.
-- `src/client/Core/ClientEvents.client.luau`: Simple client-side event management system. It allows for registering events with callbacks and firing those events with parameters. It uses a table to store events and their associated callbacks. This file is a basic event manager that provides a way to register, fire and manage events on the client.
-- `src/client/Core/ClientEvents.client.luau`: Client-side script that provides a basic event system for communication between different parts of the client code. It allows different systems to register callbacks for specific events and then fire those events when necessary. It manages a list of events and their associated callbacks, allowing systems to subscribe to specific events and receive updates when those events are triggered. It is a very simple implementation of an event system.
--   `src/client/Core/ClientFunctions.client.luau`
-- `src/client/Core/ClientFunctions.client.luau`: Module designed to handle client-side functions that can be called from the server. It allows for registering functions with callbacks. When a registered function is invoked by the server, its callback is executed, and the result is sent back to the server. It uses `ClientEventBridge` to handle the communication with the server. This file provides a mechanism for the server to execute code on the client and get a response back. Finally it registers the `ClientFunctions` into the `ClientRegistry`.
--   `src/client/Core/ClientPerformanceManager.client.luau`
--   `src/client/Core/ClientFunctions.client.luau`: Client-side script designed to manage client functions that can be called from the server. It provides a mechanism for registering functions with specific names and callbacks, and then invoking those callbacks when a corresponding event is fired from the server. It depends on `ClientEventBridge` to manage events and communicate with the server. When a function is registered, the script connects to a specific event (e.g., `FunctionNameResponse`) and, when this event is fired, invokes the registered callback. The result of the callback is sent back to the server using `ClientEventBridge`.
-- `src/client/Core/ClientEventBridge.client.luau`: Client-side script that manages communication between client systems and with the server. It acts as an event bus, allowing different parts of the client to communicate with each other and the server without direct coupling. It handles both local events and remote events/functions. It can create, connect, disconnect, and fire events locally, as well as fire remote events and call remote functions on the server. It also manages core events like `PlayerDataUpdated`, `InventoryUpdated`, `TycoonUpdated`, `SpecializationChanged` and `UIRequested`.
--   `src/client/Core/ClientRegistry.client.luau`
--  `src/client/Core/ClientEventBridge.client.luau`: Responsible for handling communication between client-side systems and with the server. It creates and manages client-side events, connects handlers to these events, and provides functions to fire these events. It also manages remote events and functions, allowing the client to communicate with the server. The script handles event connections, disconnections, and firing, both locally and remotely. It supports creating custom events and has core events predefined. Finally it registers the `ClientEventBridge` into the `ClientRegistry`.
--   `src/client/Core/ClientRegistry.client.luau`: Central registry for managing client-side systems and their dependencies. It allows systems to be registered, retrieved, and initialized. It also supports defining dependencies between systems, ensuring they are initialized in the correct order. The registry provides functions to register a system, get a registered system, define dependencies, initialize a system and its dependencies, initialize all registered systems, and clear the registry. It ensures that systems are initialized only once and in the order specified by their dependencies.
--   `src/client/Core/ClientRegistryFixer.client.luau`
-- `src/client/Core/CompetitionClient.client.luau`: Client-side script that controls the competition system from the player's perspective. It manages communication with the server to receive competition updates, handles starting competitions, and displays relevant UI elements. The script initializes the competition UI, registers event handlers to listen for server events related to competitions (updates, start, failure, end), and manages a loop for periodically requesting competition data. It interacts with `ClientEventBridge` to communicate with the server, and `UIManager` to manage UI notifications and the competition interface. It also handles checking if the player has enough money to start a competition.
-- `src/client/Core/ClientEventBridge.client.luau`: Client-side script that manages communication between client systems and with the server. It acts as an event bus, allowing different parts of the client to communicate with each other and the server without direct coupling. It handles both local events and remote events/functions. It can create, connect, disconnect, and fire events locally, as well as fire remote events and call remote functions on the server. It also manages core events like `PlayerDataUpdated`, `InventoryUpdated`, `TycoonUpdated`, `SpecializationChanged` and `UIRequested`.
-- `src/client/Core/RebirthClient.client.luau`: Enhanced client-side controller for managing the rebirth system, including unlockable content progression. It communicates with the server to handle rebirth requests, update rebirth data, and track unlocked features, active perks, and achievements. It uses `ClientEventBridge` to listen for and fire events, `UIManager` for visual effects, and `NotificationSystem` to display notifications. It also handles visual and sound effects for unlocks and rebirths. The script maintains detailed stats like total rebirths, fastest time, and time in current rebirth.
-- `src/client/Core/NotificationSystem.client.luau`: Responsible for managing and displaying various types of notifications to the player. It handles standard notifications, achievement notifications, milestone notifications, tutorial tips, warnings, and errors. It interacts with `UIManager` to display notifications and `ClientEventBridge` to receive events. It uses `TweenService` for animations. It configures sounds for each notification type and manages a notification queue. It also has functions to get and set the notification configuration.
-- `src/client/Core/ClientRegistryFixer.client.luau`: Utility script designed to address common issues with the `ClientRegistry`. Its primary purpose is to ensure that the `ClientRegistry` is properly initialized and accessible to all client scripts. It searches for the `ClientRegistry` in various locations, and if it cannot find it, it creates a minimal version. It also fixes common problems like missing fields or methods in the `ClientRegistry` and ensures that it has been initialized. Finally, it creates a proxy of the `ClientRegistry` in the `ReplicatedStorage.shared` folder. It uses safe requires and logs errors and actions.
-- `src/client/Core/ClientRegistry.luau`: Central registry for client-side systems and UI components, providing a unified access point for these modules. It manages the registration and retrieval of both systems and UI components, handling dependencies and initialization order. The script attempts to load modules using a `ModuleLoader` if available and falls back to direct `require` calls. It also includes fallback mechanisms for common UI components like `UIStyle` and `IconSet`. It supports registering systems, UI components, getting them, and initializing the systems. It attempts to load common systems like `UIManager`, `DataManager`, `NotificationManager`, and `InputManager`. It prioritizes loading the `UIComponents` module to get the UI Components and uses fallbacks if it can't be loaded. It also supports safe requires.
--   `src/client/Core/ClientRegistryFixer.client.luau`
--   `src/client/Core/RebirthClient.client.luau`
--   `src/client/Core/TycoonClient.client.luau`
--   `src/client/Core/UIHub.client.luau`
-- `src/client/Core/TycoonClient.client.luau`: Client-side system responsible for managing player interactions within their tycoon. It handles detecting and highlighting interactable objects, displaying interaction prompts, and sending interaction events to the server. The script uses raycasting and proximity checks to find interactable objects and supports both keyboard/gamepad and mobile input. It also manages a mobile interaction button and handles various interaction types, such as collecting revenue or upgrading equipment. It interacts with the `ClientEventBridge` to handle events and the `UIManager` and `NotificationSystem` to provide feedback.
-
--   `src/client/Core/UIManager.client.luau`
-
-## src/client/Tools
-
--   `src/client/Tools/WaitForChildFinder.client.luau`
-
-## src/client/UI
-
--   `src/client/UI/AchievementsTab.client.luau`
--   `src/client/UI/AdminControlsUI.client.luau`
--   `src/client/UI/AllianceUI.client.luau`
--   `src/client/UI/AssetHealthDashboard.client.luau`
--   `src/client/UI/CentralMenuUI.client.luau`
--   `src/client/UI/FeaturesTab.client.luau`
--   `src/client/UI/MainMenuUI.client.luau`
--   `src/client/UI/MainTab.client.luau`
--   `src/client/UI/MemberSatisfactionUI.client.luau`
--   `src/client/UI/MinigamesMenuUI.client.luau`
--   `src/client/UI/MultiplierDisplay.client.luau`
--   `src/client/UI/NextUnlockPreview.client.luau`
--   `src/client/UI/PerksTab.client.luau`
--   `src/client/UI/ProgressBar.client.luau`
--   `src/client/UI/RebirthUI.client.luau`
--   `src/client/UI/SettingsMenuUI.client.luau`
--   `src/client/UI/StaffManagementUI.client.luau`
--   `src/client/UI/StatisticsDisplay.client.luau`
--   `src/client/UI/TutorialUI.client.luau`
--   `src/client/UI/UIElements.md`
--   `src/client/UI/UIExample.client.luau`
--   `src/client/UI/UIHub.client.luau`
--   `src/client/UI/UIManager.client.luau`
--   `src/client/UI/UIRegistry.client.luau`
--   `src/client/UI/UIRegistry.luau`
--   `src/client/UI/UISystemTester.client.luau`
--`src/client/AllianceClient.client.luau`
--`src/client/BasketballClient.client.luau`
--`src/client/ClientBootstrap.client.luau`
--`src/client/ClientRegistryFixer.client.luau`
--`src/client/CompetitionClient.client.luau`
--`src/client/DataManagementUI.client.luau`
--`src/client/EquipmentUpgradeUI.client.luau`
--`src/client/JobClient.client.luau`
--`src/client/Main.client.luau`
--`src/client/MembershipBoostClient.client.luau`
--`src/client/PlayerActivityTracker.client.luau`
--`src/client/ReputationClient.client.luau`
--`src/client/SaunaTemperatureClient.client.luau`
--`src/client/SeasonalClient.client.luau`
--`src/client/SpecializationClient.client.luau`
--`src/client/TileSound.client.luau`
--`src/client/TutorialClient.client.luau`
-
-# src/server
-
-## src/server/Connectors
-
--   `src/server/Connectors/AutoBuyTileSetup.server.luau`
--   `src/server/Connectors/AutomationInitializer.server.luau`
--   `src/server/Connectors/BuyTileConfigGenerator.server.luau`
--   `src/server/Connectors/BuyTileHitboxGenerator.server.luau`
--   `src/server/Connectors/GymTycoonAutomation.server.luau`
--   `src/server/Connectors/GymTycoonConnector.server.luau`
--   `src/server/Connectors/GymTycoonConnectorBridge.server.luau`
--   `src/server/Connectors/GymTycoonInit.server.luau`
--   `src/server/Connectors/SyncGymStructureCommand.luau`
--   `src/server/Connectors/SystemManager.server.luau`
-
-## src/server/Core
-
--   `src/server/Core/AchievementSystem.server.luau`
--   `src/server/Core/AdminDashboardSystem.server.luau`
--   `src/server/Core/AllianceEventSetup.server.luau`
--   `src/server/Core/AnalyzeGymStructure.server.luau`
--   `src/server/Core/AttributeSetup.server.luau`
--   `src/server/Core/BasketballSystem.server.luau`
--   `src/server/Core/BoundingBoxManager.server.luau`
--   `src/server/Core/BuyTileHelper.lua`
--   `src/server/Core/BuyTileProgressionManager.server.luau`
--   `src/server/Core/BuyTileSystem.server.luau`
--   `src/server/Core/CompetitionSystem.server.luau`
--   `src/server/Core/ConfigManager.server.luau`
--   `src/server/Core/ConsolidationPlan.md`
--   `src/server/Core/CoreRegistry.server.luau`
--   `src/server/Core/CoreRegistryInitializer.server.luau`
--   `src/server/Core/DataAccessLayer.server.luau`
--   `src/server/Core/DataAdminServer.server.luau`
--   `src/server/Core/DataAdminSystem.server.luau`
--   `src/server/Core/DataBackup.server.luau`
--   `src/server/Core/DataManager.server.luau`
--   `src/server/Core/DataMigrationUtility.server.luau`
--   `src/server/Core/DataPersistenceIntegration.server.luau`
--   `src/server/Core/DataSystemBridge.server.luau`
--   `src/server/Core/DataSystemInitializer.server.luau`
--   `src/server/Core/DataThrottler.lua`
--   `src/server/Core/DataThrottler.server.luau`
--   `src/server/Core/DevUtilityFunctions.lua`
--   `src/server/Core/DevUtilityFunctions.server.luau`
--   `src/server/Core/DynamicEconomy.server.luau`
--   `src/server/Core/EquipmentMaintenanceSystem.server.luau`
--   `src/server/Core/EquipmentManager.server.luau`
--   `src/server/Core/EquipmentUpgradeSystem.luau`
--   `src/server/Core/EquipmentUpgradeSystem.server.luau`
--   `src/server/Core/EventBridge.server.luau`
--   `src/server/Core/EventCreator.server.luau`
--   `src/server/Core/FeatureManager.server.luau`
--   `src/server/Core/FloorAttributeSetup.server.luau`
--   `src/server/Core/FolderSetup.server.luau`
--   `src/server/Core/GymAutomation.server.luau`
--   `src/server/Core/GymPartsFinder.server.luau`
--   `src/server/Core/GymSpecializationSystem.server.luau`
--   `src/server/Core/GymStructureIntegration.server.luau`
--   `src/server/Core/GymTycoonConnector.server.luau`
--   `src/server/Core/InitializeCore.server.luau`
--   `src/server/Core/InteractiveElement.server.luau`
--   `src/server/Core/JobSystem.server.luau`
--   `src/server/Core/KeywordDetection.server.luau`
--   `src/server/Core/LeaderstatsSystem.server.luau`
--   `src/server/Core/LegacyBridge.server.luau`
--   `src/server/Core/MemberSatisfactionSystem.server.luau`
--   `src/server/Core/MemberTrainingSystem.server.luau`
--   `src/server/Core/MemoryStoreManager.server.luau`
--   `src/server/Core/MigrationUtils.server.luau`
--   `src/server/Core/MilestoneSystem.server.luau`
--   `src/server/Core/ModuleLoaderExample.server.luau`
--   `src/server/Core/ModuleLoaderHelper.server.luau`
--   `src/server/Core/NPCAnimationSystem.server.luau`
--   `src/server/Core/NPCInteractionTest.server.luau`
--   `src/server/Core/NPCSystem.server.luau`
--   `src/server/Core/NPCSystemPerformance.server.luau`
--   `src/server/Core/NPC_Movement.server.luau`
--   `src/server/Core/PathRegistration.server.luau`
--   `src/server/Core/PerformanceManager.server.luau`
--   `src/server/Core/PerformanceOptimizationFramework.server.luau`
--   `src/server/Core/PerformanceProfiler.server.luau`
--   `src/server/Core/QuestSystem.server.luau`
--   `src/server/Core/RebirthSystem.server.luau`
--   `src/server/Core/ReputationSystem.server.luau`
--   `src/server/Core/RevenueSystem.server.luau`
--   `src/server/Core/SafetyService.server.luau`
--   `src/server/Core/SatisfactionEventHandler.server.luau`
--   `src/server/Core/SaunaSystem.server.luau`
--   `src/server/Core/SeasonalSystem.server.luau`
--   `src/server/Core/ServerEvents.server.luau`
--   `src/server/Core/ServerFunctions.server.luau`
--   `src/server/Core/ServerRunner.server.luau`
--   `src/server/Core/SpecializationNPC.luau`
--   `src/server/Core/SpecializationNPC.server.luau`
--   `src/server/Core/SpecializationSystem.server.luau`
--   `src/server/Core/StaffManagementSystem.server.luau`
--   `src/server/Core/StaffSpecializationSystem.server.luau`
--   `src/server/Core/StaffTrainingSystem.server.luau`
--   `src/server/Core/SystemBootstrap.server.luau`
--   `src/server/Core/SystemDiagnostics.server.luau`
--   `src/server/Core/TaskScheduler.server.luau`
--   `src/server/Core/TestingFramework.server.luau`
--   `src/server/Core/TileDataGenerator.server.luau`
--   `src/server/Core/TutorialManager.server.luau`
--   `src/server/Core/TycoonSystem.server.luau`
--   `src/server/Core/VersionedDataStore.server.luau`
-
-### src/server/Core/ModelValidation
-
--   `src/server/Core/ModelValidation/ConfigGenerator.server.luau`
--   `src/server/Core/ModelValidation/ModelValidator.server.luau`
--   `src/server/Core/ModelValidation/TaggingSystem.server.luau`
--   `src/server/Core/ModelValidation/UpgradePathDetector.server.luau`
-
-### src/server/Core/Tests
-
--   `src/server/Core/Tests/AllianceSystem.test.luau`
--   `src/server/Core/Tests/ConsolidationTest.server.luau`
--   `src/server/Core/Tests/DataManagerTests.server.luau`
--   `src/server/Core/Tests/DataThrottlerTests.server.luau`
--   `src/server/Core/Tests/EventBridgeTests.server.luau`
--   `src/server/Core/Tests/HelloWorld.test.luau`
--   `src/server/Core/Tests/IntegrationTests.server.luau`
--   `src/server/Core/Tests/RunTests.server.luau`
--   `src/server/Core/Tests/TestLauncher.server.luau`
-
-## src/server/Data
-
--   `src/server/Data/DataSystemIntegration.server.luau`
--   `src/server/Data/EnhancedDataStorageSystem.server.luau`
--   `src/server/Data/GymTycoonDataManager.server.luau`
--   `src/server/Data/PlayerDataManager.server.luau`
-
-## src/server/Enhancements
-
--   `src/server/Enhancements/BuilderBoost.server.luau`
--   `src/server/Enhancements/DailyRewardsSystem.server.luau`
--   `src/server/Enhancements/DoubleMemberBoost.server.luau`
--   `src/server/Enhancements/EventSystem.server.luau`
--   `src/server/Enhancements/GymVisits.server.luau`
--   `src/server/Enhancements/JobSystem.server.luau`
--   `src/server/Enhancements/MembershipBoostEvent.server.luau`
--   `src/server/Enhancements/RebirthSystem.server.luau`
--   `src/server/Enhancements/StaffManagementSystem.server.luau`
--   `src/server/Enhancements/UnifiedNPCSystem.server.luau`
-
-## src/server/Essentials
-
--   `src/server/Essentials/Accrued Dues.server.luau`
--   `src/server/Essentials/AdminCommands.server.luau`
--   `src/server/Essentials/BuyTile.server.luau`
--   `src/server/Essentials/EquipmentSetupCommands.server.luau`
--   `src/server/Essentials/EventBridge.server.luau`
--   `src/server/Essentials/FrontDeskPrompt.server.luau`
--   `src/server/Essentials/GymMilestonesSystem.server.luau`
--   `src/server/Essentials/GymPartsSetupCommand.luau`
--   `src/server/Essentials/GymRevenueSystem.server.luau`
--   `src/server/Essentials/GymSpecializationSystem.server.luau`
--   `src/server/Essentials/Leaderstats.server.luau`
--   `src/server/Essentials/PlayerActivityReceiver.server.luau`
--   `src/server/Essentials/PlayerCharacterCheck.server.luau`
--   `src/server/Essentials/PlayerProgressRestoration.server.luau`
--   `src/server/Essentials/PlayerSanctionSystem.server.luau`
--   `src/server/Essentials/SpecializationIntegration.server.luau`
--   `src/server/Essentials/SystemConfig.server.luau`
--   `src/server/Essentials/SystemConnector.server.luau`
--   `src/server/Essentials/UnifiedTycoonSystem.server.luau`
-
-## src/server/Fixes
-
--   `src/server/Fixes/Cleanup.server.luau`
--   `src/server/Fixes/ErrorSuppressor.server.luau`
--   `src/server/Fixes/FrontDeskFix.server.luau`
--   `src/server/Fixes/ResetButtonHandler.server.luau`
--   `src/server/Fixes/Sauna_Steam_Error.server.luau`
--   `src/server/Fixes/StartupTileVerification.server.luau`
-
-## src/server/Legacy
-
--   `src/server/Legacy/BoundingBoxGenerator.server.luau`
--   `src/server/Legacy/EquipmentBoundingBox.luau`
--   `src/server/Legacy/EquipmentSetup.server.luau`
--   `src/server/Legacy/EquipmentUpgradeSystem.server.luau`
-
-## src/server/Model Function
-
--   `src/server/Model Function/Basketball.server.luau`
--   `src/server/Model Function/ElevatorMovement.server.luau`
--   `src/server/Model Function/EquipmentSetup.server.luau`
--   `src/server/Model Function/PoolSwimmingSystem.server.luau`
--   `src/server/Model Function/SaunaTemperatureSystem.server.luau`
--   `src/server/Model Function/SteamSauna.server.luau`
-
-## src/server/SocialFeatures
-
--   `src/server/SocialFeatures/AllianceSystem.server.luau`
--   `src/server/SocialFeatures/ChallengeSystem.server.luau`
--   `src/server/SocialFeatures/CommunityGoalSystem.server.luau`
--   `src/server/SocialFeatures/GuestPassSystem.server.luau`
--   `src/server/SocialFeatures/StaffTrainingSystem.server.luau`
--   `src/server/SocialFeatures/TradingSystem.server.luau`
-
-## src/server/SystemsSetup
-
--   `src/server/SystemsSetup/AllianceEventSetup.server.luau`
-
-## src/server/Tests
-
--   `src/server/Tests/DataSystemTest.server.luau`
-
-## src/server/TutorialSteps
-
--   `src/server/TutorialSteps/MovementTutorial.server.luau`
-
-## src/server/Utilities
-
--   `src/server/Utilities/DeprecationHelper.luau`
--`src/server/AdminDashboardSystem.server.luau`
--`src/server/BuildOrderVisualizer.server.luau`
--`src/server/Dan.luau`
--`src/server/FolderSetup.server.luau`
--`src/server/GymAutomation.server.luau`
--`src/server/MigrationTest.server.luau`
--`src/server/MigrationUtils.server.luau`
--`src/server/Regular_Member.luau`
--`src/server/StaffManagementSystem.server.luau`
--`src/server/TestSuite.server.luau`
--`src/server/TycoonValidationTool.server.luau`
--`src/server/VIP_Member.luau`
-
-# src/shared
-
--   `src/shared/AchievementNotification.luau`
--   `src/shared/AchievementNotification.luau.new`
--   `src/shared/AchievementsMenu.luau`
--   `src/shared/AssetValidator.luau`
--   `src/shared/ButtonFactory.luau`
--   `src/shared/ClientRegistry.lua`
--   `src/shared/CompetitionUI.luau`
--   `src/shared/CoreRegistryAccess.luau`
--   `src/shared/DataValidator.luau`
--   `src/shared/DialogFactory.luau`
--   `src/shared/IconSet.luau`
--   `src/shared/JobsUI.luau`
--   `src/shared/MenuContainer.luau`
--   `src/shared/MilestonesMenu.luau`
--   `src/shared/ModuleFallbackGenerator.luau`
--   `src/shared/ModuleLoader.luau`
--   `src/shared/ModuleLoaderExample.luau`
--   `src/shared/ModuleLoaderHelper.luau`
--   `src/shared/ModuleTemplate.luau`
--   `src/shared/ReputationUI.luau`
--   `src/shared/RevenueDisplay.luau`
--   `src/shared/SafeRequire.luau`
--   `src/shared/SafeWait.luau`
--   `src/shared/SafeWaitForChild.lua`
--   `src/shared/SafeWaitForChild.luau`
--   `src/shared/SatisfactionDisplay.luau`
--   `src/shared/SaunaTemperatureUI.luau`
--   `src/shared/SeasonalEventsUI.luau`
--   `src/shared/SettingsMenu.luau`
--   `src/shared/SpecializationMenu.luau`
--   `src/shared/SpecializationsUI.luau`
--   `src/shared/StaffManagementUI.luau`
--   `src/shared/TemperatureDisplay.client.luau`
--   `src/shared/UIComponent.luau`
--   `src/shared/UIComponents.luau`
--   `src/shared/UIModuleTemplate.luau`
--   `src/shared/UIStyle.luau`
--   `src/shared/UIUtils.luau`
--   `src/shared/UniversalSystemFinder.luau`
--   `src/shared/WaitForChildScanner.luau`
 # src/StarterGui
 
--`src/StarterGui/BuilderBoostPurchaseGui.client.luau`
--`src/StarterGui/CleanGymController.client.luau`
--`src/StarterGui/CloseButtonFactory.lua`
--`src/StarterGui/DirectResetButton.server.luau`
--`src/StarterGui/DoubleMemberPurchaseGui.client.luau`
--`src/StarterGui/MainMenuUI.client.luau`
--`src/StarterGui/RebirthMenuUI.client.luau`
--`src/StarterGui/RebirthUI.client.luau`
--`src/StarterGui/RebirthUIFixes.luau`
--`src/StarterGui/RebirthUI_Enhanced.client.luau`
--`src/StarterGui/ResetButton.client.luau`
--`src/StarterGui/SatisfactionButton.server.luau`
--`src/StarterGui/SettingsUI.client.luau`
--`src/StarterGui/StatsGui.client.luau`
--`src/StarterGui/TemperatureDisplay.client.luau`
+-   `src/StarterGui/RebirthUI.client.luau`: Client-side script for the primary rebirth system interface. It displays rebirth options, prerequisites, benefits, and confirmation dialogs. The script handles visual feedback during the rebirth process and animates the transition to the reborn state.
+
+-   `src/StarterGui/RebirthUIFixes.luau`: Utility module containing patches for known issues in the rebirth UI. It addresses edge cases, visual glitches, and interaction problems without requiring a complete rewrite of the main UI script. The module is applied at runtime to fix specific rebirth interface problems.
+
+-   `src/StarterGui/RebirthUI_Enhanced.client.luau`: Upgraded version of the rebirth interface with additional features. It extends the basic rebirth UI with detailed statistics, rebirth history, and specialized options for advanced players. The script represents a significant enhancement over the original rebirth interface.
+
+-   `src/StarterGui/ResetButton.client.luau`: Client-side script implementing a custom character reset button. It provides a more controlled reset experience than the default Roblox reset, with appropriate animations and data preservation. The script integrates with the game's systems to ensure safe character resetting.
+
+-   `src/StarterGui/SatisfactionButton.server.luau`: Server-side script managing interactive satisfaction feedback controls. It processes player interactions with satisfaction rating buttons and records the feedback for analysis. The script helps gather player sentiment data about different game features.
+
+-   `src/StarterGui/StatsGui.client.luau`: Client-side script for displaying key player statistics. It shows gym metrics, player progress, and performance indicators in a compact, always-visible interface. The script updates in real-time as game values change to provide immediate feedback.
+
+-   `src/StarterGui/BuilderBoostPurchaseGui.client.luau`: Client-side script for the builder boost purchase interface. It allows players to purchase temporary boosts that accelerate building and development of their gym. The script handles purchase confirmation, displays boost effects and duration, and communicates with the server to apply purchased boosts.
+
+-   `src/StarterGui/CleanGymController.client.luau`: Client-side script that manages the gym cleanliness system interface. It displays cleanliness levels, highlights areas needing attention, and provides controls for cleaning activities. The script communicates with server-side cleanliness systems and updates visuals to reflect current gym conditions.
+
+-   `src/StarterGui/DirectResetButton.server.luau`: Server-side script that manages a direct character reset feature. It provides a way for players to reset their character state without using the standard Roblox reset function, offering more control over the reset process and its consequences in the game context.
+
+-   `src/StarterGui/DoubleMemberPurchaseGui.client.luau`: Client-side script for purchasing double member promotions. It displays the benefits, costs, and duration of membership boosts that double the rate of member visits. The script handles purchase confirmation and communicates with the server to apply the boost effects.
+
+-   `src/StarterGui/MainMenuUI.client.luau`: Primary client-side script for the main menu interface. It creates and manages the main menu structure, handles navigation between different sections, and provides access to core game features. The script responds to player input and game state changes to update the menu accordingly.
+
+-   `src/StarterGui/RebirthMenuUI.client.luau`: Client-side script for the rebirth system menu. It displays rebirth options, benefits, requirements, and confirmation dialogs. The script calculates potential post-rebirth status and communicates with the server to execute rebirth operations when confirmed.
+
+-   `src/StarterGui/SettingsUI.client.luau`: Client-side script for the game settings interface. It provides controls for adjusting audio, graphics, control schemes, and gameplay preferences. The script saves settings locally and applies changes immediately to enhance the player experience.
+
+-   `src/StarterGui/TemperatureDisplay.client.luau`: Client-side script specifically for displaying temperature information for sauna and pool areas. It shows current temperature, optimal ranges, and effects on gym members. The script includes visual indicators that change color based on temperature conditions.
 
 # src/ServerStorage
 
--`src/ServerStorage/AutomationLoader.server.luau`
--`src/ServerStorage/BuyTiles.rbxmx`
--`src/ServerStorage/CommandScripts.rbxmx`
--`src/ServerStorage/Elliptical_Upgrade.rbxmx`
--`src/ServerStorage/EquipmentAttributeSetup.server.luau`
--`src/ServerStorage/NPC_Character.rbxmx`
--`src/ServerStorage/RemoteEvents.server.luau`
--`src/ServerStorage/ScriptBoneyard.rbxmx`
--`src/ServerStorage/SurfaceGUI.rbxmx`
--`src/ServerStorage/Treadmill_Upgrade.rbxmx`
--`src/ServerStorage/Unused_Models.rbxmx`
--`src/ServerStorage/Unused_Scripts.rbxmx`
--`src/GameSystem.lua`
+-`src/ServerStorage/BuyTiles.rbxmx`: Model file containing the physical assets for purchasable gym tiles. It includes 3D models, textures, and configuration properties for different tile types. This resource file is used by the tile purchasing system to instantiate new tiles when players make purchases.
+
+-`src/ServerStorage/CommandScripts.rbxmx`: Collection of administrative and development command scripts. It contains utilities for debugging, testing, and managing the game environment. These scripts provide authorized users with tools to inspect and manipulate game state.
+
+-`src/ServerStorage/Elliptical_Upgrade.rbxmx`: Model file containing upgraded versions of elliptical training equipment. It includes higher quality 3D models and enhanced interaction points for upgraded equipment. These models are used when players purchase equipment upgrades.
+
+-`src/ServerStorage/NPC_Character.rbxmx`: Template character models for non-player characters. It contains different member types with varied appearances, animations, and properties. These templates are used to instantiate gym members and staff with appropriate visual characteristics.
+
+-`src/ServerStorage/ScriptBoneyard.rbxmx`: Archive of deprecated or replaced scripts kept for reference. It contains code that has been removed from active use but maintained for historical or educational purposes. This collection helps developers understand previous implementation approaches.
+
+-`src/ServerStorage/SurfaceGUI.rbxmx`: Collection of GUI elements designed for mounting on 3D surfaces in the game. It includes screen displays, control panels, and information boards that can be attached to gym objects. These interfaces provide immersive interaction points within the 3D environment.
+
+-`src/ServerStorage/Treadmill_Upgrade.rbxmx`: Model file containing upgraded versions of treadmill equipment. It includes higher quality 3D models with enhanced features and visual effects. These models are used when players purchase treadmill upgrades for their gym.
+
+-`src/ServerStorage/Unused_Models.rbxmx`: Archive of 3D models and assets that were created but not currently used in the game. It contains experimental designs, discontinued equipment types, and alternative visual styles. These assets are preserved for potential future use.
+
+-`src/ServerStorage/Unused_Scripts.rbxmx`: Collection of scripts that were developed but not currently active in the game. It contains experimental features, alternative implementations, and incomplete systems. These scripts are maintained as reference material or for potential future implementation.
+
+## src/server/Essentials
+
+-   `src/server/Essentials/Accrued Dues.server.luau`: Server-side script managing the gym membership payment system. It tracks member dues, handles payment collection schedules, and processes overdue accounts. The script includes configurable payment periods, late fee calculations, and membership suspension logic when payments fall too far behind.
+
+-   `src/server/Essentials/AdminCommands.server.luau`: Server-side script implementing administrative commands for game management. It provides authorized users with tools to inspect game state, modify player data, and troubleshoot issues. The script includes security measures to ensure only proper users can execute administrative functions.
+
+-   `src/server/Essentials/BuyTile.server.luau`: Server-side script handling the core tile purchasing functionality. It processes purchase requests, validates requirements, handles payment, and instantiates new gym tiles. The script includes logic for discounts, special offers, and purchase limitations based on player level.
+
+-   `src/server/Essentials/EquipmentSetupCommands.server.luau`: Server-side script providing commands for configuring and positioning gym equipment. It helps with initial placement, attribute setting, and connection to relevant systems. The script assists developers in rapidly setting up and testing new equipment types.
+
+-   `src/server/Essentials/EventBridge.server.luau`: Server-side script establishing communication channels between different game systems. It creates a standardized event system for modules to interact without direct dependencies. The script handles event registration, firing, and connection management for efficient inter-system communication.
+
+-   `src/server/Essentials/FrontDeskPrompt.server.luau`: Server-side script managing the interactive front desk area. It handles player interactions with the reception desk, including membership sign-ups, information requests, and gym tours. The script creates an entry point for new players to learn about gym features.
+
+-   `src/server/Essentials/GymMilestonesSystem.server.luau`: Server-side script implementing progression milestones for gym development. It tracks achievement of significant gym improvements, awards appropriate rewards, and manages milestone notifications. The script provides a sense of accomplishment as players build their gym.
+
+-   `src/server/Essentials/GymPartsSetupCommand.luau`: Module providing commands for initializing and configuring gym structural components. It includes functions for setting up walls, floors, and fixed facilities. The script assists developers in creating and testing consistent gym environments.
+
+-   `src/server/Essentials/GymRevenueSystem.server.luau`: Server-side script handling the core financial mechanics of the game. It calculates income from various sources, manages operating expenses, and updates player funds. The script creates the economic foundation that drives the tycoon gameplay loop.
+
+-   `src/server/Essentials/GymSpecializationSystem.server.luau`: Server-side script implementing gym focus area mechanics. It manages specialization selection, specialized equipment bonuses, and member type attraction based on gym focus. The script allows players to differentiate their gym with strategic specialization choices.
+
+-   `src/server/Essentials/Leaderstats.server.luau`: Server-side script creating and updating player leaderboard statistics. It displays key metrics like wealth, gym rating, and member count for competitive comparison. The script ensures leaderboard values stay synchronized with actual player progress.
+
+-   `src/server/Essentials/PlayerActivityReceiver.server.luau`: Server-side script collecting and processing player activity data. It records gameplay patterns, feature usage, and time investment for analytics purposes. The script helps developers understand how players interact with the game.
+
+-   `src/server/Essentials/PlayerCharacterCheck.server.luau`: Server-side script verifying player character integrity. It ensures characters have all required components, fixes missing or broken elements, and resets characters when necessary. The script prevents gameplay issues arising from character state problems.
+
+-   `src/server/Essentials/PlayerProgressRestoration.server.luau`: Server-side script handling recovery of player progress in case of data issues. It provides mechanisms to restore lost progress, fix corrupted saves, or compensate players for technical problems. The script serves as a safety net for data integrity issues.
+
+-   `src/server/Essentials/PlayerSanctionSystem.server.luau`: Server-side script implementing moderation tools for player behavior management. It handles warnings, temporary restrictions, and more severe sanctions for rule violations. The script helps maintain a positive game environment.
+
+-   `src/server/Essentials/SpecializationIntegration.server.luau`: Server-side script connecting the specialization system with other game mechanics. It ensures that specialization choices affect relevant systems like member attraction, equipment effectiveness, and revenue calculations. The script creates cohesive gameplay effects from specialization decisions.
+
+-   `src/server/Essentials/SystemConfig.server.luau`: Server-side script managing global configuration values for game systems. It provides centralized storage and access for settings, thresholds, and constants used throughout the codebase. The script allows developers to easily adjust game parameters without modifying multiple files.
+
+-   `src/server/Essentials/SystemConnector.server.luau`: Server-side script facilitating communication between otherwise independent systems. It establishes connection points, translates data formats, and routes information between different modules. The script reduces direct dependencies while maintaining necessary information flow.
+
+-   `src/server/Essentials/UnifiedTycoonSystem.server.luau`: Server-side script implementing the consolidated tycoon gameplay mechanics. It brings together plot ownership, construction, revenue, and progression elements into a cohesive system. The script provides the core tycoon gameplay experience that drives the game.
+
+# Related Scripts by Purpose
+
+This section groups scripts that serve similar functions across different directories. These groupings can help identify potential duplicate functionality or opportunities for consolidation.
+
+## UI Systems
+
+- **Rebirth UI Related**:
+  - `src/client/UI/RebirthUI.client.luau`: Core rebirth UI component
+  - `src/StarterGui/RebirthUI.client.luau`: Primary rebirth interface
+  - `src/StarterGui/RebirthUIFixes.luau`: Patches for rebirth UI issues
+  - `src/StarterGui/RebirthUI_Enhanced.client.luau`: Enhanced version with additional features
+  - `src/StarterGui/RebirthMenuUI.client.luau`: Menu system for rebirth options
+
+- **Main Menu Systems**:
+  - `src/client/UI/MainMenuUI.client.luau`: Core menu implementation
+  - `src/client/UI/UIHub.client.luau`: Central controller for UI navigation
+  - `src/StarterGui/MainMenuUI.client.luau`: Primary menu interface
+
+- **Settings Interfaces**:
+  - `src/client/UI/SettingsMenuUI.client.luau`: Main settings component
+  - `src/StarterGui/SettingsUI.client.luau`: Game settings interface
+  - `src/shared/SettingsMenu.luau`: Shared module for settings layout
+
+- **Statistics Displays**:
+  - `src/client/UI/StatisticsDisplay.client.luau`: Detailed stats component
+  - `src/StarterGui/StatsGui.client.luau`: Compact stats interface
+
+## Core Systems
+
+- **Registry Systems**:
+  - `src/client/Core/ClientRegistry.client.luau`: Client-side registry
+  - `src/client/Core/ClientRegistryFixer.client.luau`: Client registry repair tools
+  - `src/server/Core/CoreRegistry.server.luau`: Server-side registry
+  - `src/server/Core/CoreRegistryInitializer.server.luau`: Server registry initialization
+  - `src/shared/ClientRegistry.lua`: Legacy shared registry
+
+- **Data Management**:
+  - `src/server/Core/DataManager.server.luau`: Primary data system
+  - `src/server/Core/DataAccessLayer.server.luau`: Data access abstraction
+  - `src/server/Core/DataBackup.server.luau`: Backup functionality
+  - `src/server/Core/DataSystemInitializer.server.luau`: Data system setup
+  - `src/server/Core/DataThrottler.server.luau`: Data operation rate limiting
+  - `src/server/Data/EnhancedDataStorageSystem.server.luau`: Advanced storage techniques
+  - `src/server/Data/PlayerDataManager.server.luau`: Player-specific data management
+  - `src/server/Data/GymTycoonDataManager.server.luau`: Tycoon-related data
+  - `src/client/DataManagementUI.client.luau`: Data management interface
+
+- **Event Systems**:
+  - `src/client/Core/ClientEvents.client.luau`: Client event system
+  - `src/client/Core/ClientEventBridge.client.luau`: Client-server communication
+  - `src/server/Core/EventBridge.server.luau`: Server event handling
+  - `src/server/Core/EventCreator.server.luau`: Event creation system
+  - `src/server/Essentials/EventBridge.server.luau`: Essential events communication
+
+## Game Features
+
+- **Rebirth Systems**:
+  - `src/client/Core/RebirthClient.client.luau`: Client-side rebirth controller
+  - `src/server/Core/RebirthSystem.server.luau`: Server-side rebirth processing
+  - `src/server/Enhancements/RebirthSystem.server.luau`: Enhanced rebirth features
+
+- **Tile Purchase Systems**:
+  - `src/server/Essentials/BuyTile.server.luau`: Core tile purchasing
+  - `src/server/Core/BuyTileSystem.server.luau`: Main tile system
+  - `src/server/Core/BuyTileProgressionManager.server.luau`: Tile progression
+  - `src/server/Core/BuyTileHelper.lua`: Helper functions for tile purchases
+  - `src/server/Connectors/BuyTileConfigGenerator.server.luau`: Tile configuration
+  - `src/server/Connectors/BuyTileHitboxGenerator.server.luau`: Tile hitbox setup
+  - `src/server/Connectors/AutoBuyTileSetup.server.luau`: Automated tile purchasing
+
+- **Equipment Systems**:
+  - `src/server/Core/EquipmentManager.server.luau`: Main equipment management
+  - `src/server/Core/EquipmentUpgradeSystem.server.luau`: Equipment upgrades
+  - `src/server/Core/EquipmentMaintenanceSystem.server.luau`: Equipment maintenance
+  - `src/server/Legacy/EquipmentSetup.server.luau`: Legacy equipment setup
+  - `src/server/Legacy/EquipmentUpgradeSystem.server.luau`: Legacy upgrade system
+  - `src/server/Model Function/EquipmentSetup.server.luau`: Physical equipment setup
+  - `src/client/EquipmentUpgradeUI.client.luau`: Upgrade interface
+
+- **Tycoon Core Systems**:
+  - `src/client/Core/TycoonClient.client.luau`: Client-side tycoon controller
+  - `src/server/Core/TycoonSystem.server.luau`: Core tycoon implementation
+  - `src/server/Essentials/UnifiedTycoonSystem.server.luau`: Consolidated tycoon mechanics
+  - `src/server/Connectors/GymTycoonConnector.server.luau`: Tycoon system interface
+  - `src/server/Connectors/GymTycoonInit.server.luau`: Tycoon initialization
+
+- **NPC Systems**:
+  - `src/server/Core/NPCSystem.server.luau`: Main NPC management
+  - `src/server/Core/NPCAnimationSystem.server.luau`: NPC animations
+  - `src/server/Core/NPCSystemPerformance.server.luau`: Performance-optimized NPC system
+  - `src/server/Core/NPCInteractionTest.server.luau`: NPC interaction testing
+  - `src/server/Core/NPC_Movement.server.luau`: NPC movement logic
+  - `src/server/Enhancements/UnifiedNPCSystem.server.luau`: Enhanced NPC behavior
+
+- **Specialization Systems**:
+  - `src/client/SpecializationClient.client.luau`: Client-side specialization interface
+  - `src/server/Core/GymSpecializationSystem.server.luau`: Gym specialization logic
+  - `src/server/Core/SpecializationSystem.server.luau`: Core specialization system
+  - `src/server/Core/SpecializationNPC.server.luau`: Specialized NPC behavior
+  - `src/server/Essentials/SpecializationIntegration.server.luau`: Integration with other systems
+  - `src/shared/SpecializationMenu.luau`: Shared specialization interface
+  - `src/shared/SpecializationsUI.luau`: Extended specialization interface
+
+- **Satisfaction and Member Systems**:
+  - `src/client/ClientCore/SatisfactionClient.client.luau`: Client satisfaction controller
+  - `src/server/Core/MemberSatisfactionSystem.server.luau`: Member satisfaction processing
+  - `src/server/Core/SatisfactionEventHandler.server.luau`: Satisfaction event management
+  - `src/client/UI/MemberSatisfactionUI.client.luau`: Satisfaction interface
+  - `src/shared/SatisfactionDisplay.luau`: Shared satisfaction components
+
+- **Competition Systems**:
+  - `src/client/ClientCore/CompetitionClient.client.luau`: Client competition controller
+  - `src/client/CompetitionClient.client.luau`: Another client competition script
+  - `src/client/ClientCore/CompetitionClientLoader.client.luau`: Competition client loader
+  - `src/server/Core/CompetitionSystem.server.luau`: Server-side competition logic
+  - `src/shared/CompetitionUI.luau`: Shared competition interface
+
+## Utilities and Helpers
+
+- **Module Loading Systems**:
+  - `src/shared/ModuleLoader.luau`: Core module loading system
+  - `src/shared/ModuleLoaderHelper.luau`: Helper functions for module loading
+  - `src/shared/ModuleLoaderExample.luau`: Example implementation
+  - `src/server/Core/ModuleLoaderHelper.server.luau`: Server-specific module loading
+
+- **Safety Utilities**:
+  - `src/shared/SafeRequire.luau`: Safe module requiring
+  - `src/shared/SafeWait.luau`: Enhanced waiting function
+  - `src/shared/SafeWaitForChild.luau`: Enhanced child instance finding
+  - `src/client/Tools/WaitForChildFinder.client.luau`: Client-side child finding
+
+## Testing and Admin
+
+- **Testing Systems**:
+  - `src/server/Core/Tests/RunTests.server.luau`: Test orchestration
+  - `src/server/Core/Tests/TestLauncher.server.luau`: Test environment setup
+  - `src/server/Core/Tests/IntegrationTests.server.luau`: Integration test suite
+  - `src/server/Tests/DataSystemTest.server.luau`: Data system testing
+
+- **Admin Tools**:
+  - `src/server/Core/AdminDashboardSystem.server.luau`: Admin dashboard backend
+  - `src/client/ClientCore/AdminDashboardClient.client.luau`: Admin dashboard interface
+  - `src/client/UI/AdminControlsUI.client.luau`: Admin control panel
+  - `src/server/Essentials/AdminCommands.server.luau`: Admin command system
