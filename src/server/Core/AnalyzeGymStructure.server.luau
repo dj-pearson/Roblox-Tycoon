@@ -98,6 +98,13 @@ local function formatAttributes(instance)
         
         table.insert(result, name .. ": " .. valueStr)
     end
+    local valueStr = ""
+     if not instance:GetAttribute("BuildOrder") then
+        instance:SetAttribute("BuildOrder",0)
+     end
+      if not instance:GetAttribute("isRequired") then
+        instance:SetAttribute("isRequired",false)
+     end
     
     if #result > 0 then
         return " [" .. table.concat(result, ", ") .. "]"
@@ -109,26 +116,30 @@ end
 -- Function to analyze the hierarchy and return structured data
 local function analyzeHierarchy(instance, depth, maxDepth, parent)
     if depth > maxDepth then return "..." end
-    
+
     local result = {}
     local indent = string.rep("  ", depth)
-    
+
      -- Check if this instance is a room
     if instance.Name == "Rooms" or (parent and parent.Name == "Rooms") then
         local roomName = instance.Name
         if parent and parent.Name == "Rooms" then
             roomName = instance.Name
         end
-        local floorNum = getFloorNumber(parent.Parent.Name)
-        local roomAttributes = {
-            RoomName = roomName,
-            Floor = floorNum
-        }
-        setAttributes(instance, roomAttributes)
+        if instance.Name ~= "Rooms" then
+            local floorNum = getFloorNumber(parent.Parent.Name)
+            local roomAttributes = {
+                RoomName = roomName,
+                Floor = floorNum
+            }
+            setAttributes(instance, roomAttributes)
+        end
     end
-    local floorNum = nil
+        local floorNum = nil
         if instance:GetAttribute("Floor") then
             floorNum = instance:GetAttribute("Floor")
+        elseif instance.Parent and instance.Parent:GetAttribute("Floor") then
+            floorNum = instance.Parent:GetAttribute("Floor")
         elseif parent and parent:GetAttribute("Floor") then
             floorNum = parent:GetAttribute("Floor")
         elseif instance.Name:match("%dst") or instance.Name:match("%dnd") or instance.Name:match("%drd") or instance.Name:match("%dth") then
@@ -138,14 +149,13 @@ local function analyzeHierarchy(instance, depth, maxDepth, parent)
     local floorStr = floorNum and (" (Floor " .. floorNum .. ")") or ""
     table.insert(result, indent .. "- " .. instance.Name .. " [" .. instance.ClassName .. "]" .. floorStr .. formatAttributes(instance))
     
-        -- Check if the child is not a floor and is inside of a room to add item properties
-    if  (parent and parent.Name ~= "Rooms" and parent.Parent.Name == "Rooms") then
-
+    -- Set attributes for items inside a room
+    if (parent and parent.Name ~= "Rooms" and parent.Parent.Name == "Rooms") then
         local itemAttributes = {
             Category = getCategoryFromRoomName(parent.Name),
             RoomName = parent.Name,
-            Floor = getFloorNumber(parent.Parent.Parent.Name),
-        }
+            Floor = floorNum
+        }   
         setAttributes(instance, itemAttributes)
     end
     -- Process children
@@ -440,7 +450,7 @@ local function generateStructureSummary(structure)
 end
 
 -- Main execution
-local function main()
+local function main() 
     local structure = analyzeGymStructure()
     local summary = generateStructureSummary(structure)
     
@@ -483,13 +493,16 @@ local function main()
     return summary
 end
 
+
+-- Execute the analysis if the script is run directly
+if script == script.Parent:FindFirstChild(script.Name) then
+	main()
+end
+
 -- Function to run the attribute setup from the command line
 local function runAttributeSetup()
     analyzeGymStructure()
 end
 
--- Add runAttributeSetup to the returned value
-return { runAttributeSetup = runAttributeSetup }
-
--- Execute the analysis
-main()
+-- Make the function global
+_G.runAttributeSetup = runAttributeSetup
