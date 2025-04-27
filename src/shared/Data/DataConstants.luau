@@ -52,28 +52,26 @@ DataConstants.GLOBAL_KEYS = {
 
 -- Player Data Scopes
 DataConstants.PLAYER_SCOPES = {
-    CORE = "core",           -- Core player data (level, cash, etc)
-    INVENTORY = "inventory", -- Player inventory items
+    CORE = "core",           -- Core player data (level, XP, etc.)
     STATS = "stats",         -- Player statistics
+    INVENTORY = "inventory", -- Player inventory items
     ACHIEVEMENTS = "achievements", -- Player achievements
-    QUESTS = "quests",       -- Player quests
-    SOCIAL = "social",       -- Social data (friends, etc)
-    SETTINGS = "settings"    -- Player preferences
+    QUESTS = "quests",       -- Active and completed quests
+    SOCIAL = "social",       -- Friends, guild, etc.
+    SETTINGS = "settings"    -- Player preferences and settings
 }
 
---[[ Data Operation Settings ]]--
+-- Client-Writable Scopes (scopes that can be modified from client)
+DataConstants.CLIENT_WRITABLE_SCOPES = {
+    [DataConstants.PLAYER_SCOPES.SETTINGS] = true, -- Allow clients to update their settings
+    -- Other scopes require server validation
+}
 
--- Autosave Configuration
+-- Auto-Save Configuration
 DataConstants.AUTOSAVE = {
-    ENABLED = true,
-    INTERVAL = 120,  -- Seconds between autosaves
-    THROTTLE_THRESHOLD = 5,  -- Minimum seconds between saves
-    MAX_QUEUE_SIZE = 50,     -- Maximum pending save operations
-    BUDGETING = {
-        INITIAL_BUDGET = 30,  -- Initial SaveBudget 
-        MINIMUM_BUDGET = 5,   -- Minimum to maintain
-        DRAIN_RATE = 1        -- How much each save costs
-    }
+    ENABLED = true,          -- Whether auto-save is enabled
+    INTERVAL = 120,          -- Save interval in seconds
+    STAGGER_RANGE = 30       -- Random stagger time to prevent simultaneous saves
 }
 
 -- Rate Limiting
