@@ -84,41 +84,33 @@ This document outlines the plan to consolidate all gym automation scripts into a
   - [x] Provide migration guides (MigrationGuide.md)
   - [x] Create examples for common use cases
 
-## Core Module Responsibilities
+### Phase 6: System Enhancement & Expansion (In Progress)
+- [ ] Create advanced configuration system:
+  - [ ] `TycoonConfigurationManager.server.luau` - Configuration management for different tycoon styles
+  - [ ] JSON-based configuration files
+  - [ ] In-game configuration editor for Studio
+- [ ] Enhance room detection capabilities:
+  - [ ] Semantic room identification based on equipment types
+  - [ ] Zone-based room boundaries
+  - [ ] Floor plan optimization suggestions
+- [ ] Improve build order visualization:
+  - [ ] Interactive build path visualization
+  - [ ] Color-coded progression paths
+  - [ ] Prerequisite relationship maps
+- [ ] Expand automated testing framework:
+  - [ ] Enhanced unit and integration test coverage
+  - [ ] Performance benchmarks
+  - [ ] Stress testing for large tycoons
+- [ ] Implement performance optimizations:
+  - [ ] Batched processing for equipment setup
+  - [ ] Optimized bounding box calculations
+  - [ ] Tiered loading system for large tycoons
+- [ ] Create developer tools:
+  - [ ] Debugging console for real-time system monitoring
+  - [ ] Visual indicators for system states
+  - [ ] Advanced logging capabilities
 
-### BoundingBoxManager
-- Generate hitboxes for buyable tiles
-- Calculate optimal bounding boxes
-- Visualize hitboxes for debugging
-- Manage interaction zones
-
-### EquipmentManager
-- Initialize equipment models
-- Apply equipment attributes
-- Manage upgrade paths
-- Handle equipment state changes
-
-### BuyTileProgressionManager
-- Manage build order for tiles
-- Set up prerequisites for tile purchases
-- Identify required tiles for progression
-- Control floor unlocking
-
-### TileDataGenerator
-- Generate tile data from models
-- Apply attribute templates
-- Organize tiles by category and type
-- Calculate prices and income values
-
-## Global Studio Functions
-Studio-only global functions have been provided for testing:
-- `_G.AutomateGym(tycoonName)` - Automate a specific tycoon
-- `_G.AutomateAllGyms()` - Automate all gym tycoons
-- `_G.GenerateBuildOrder()` - Generate build order for tiles
-- `_G.ShowTycoonInfo(tycoonName)` - Show debug info about tycoon structure
-- `_G.ShowHitboxes()` - Show all hitboxes
-- `_G.HideHitboxes()` - Hide all hitboxes
-- `_G.ProcessEquipment()` - Process all equipment in workspace
+For detailed implementation schedule and tasks, see [ConsolidationPhase6.md](Documentation/ConsolidationPhase6.md)
 
 ## Core Module Responsibilities
 
@@ -156,8 +148,52 @@ Studio-only global functions have been provided for testing:
 - `_G.HideHitboxes()` - Hide all hitboxes
 - `_G.ProcessEquipment()` - Process all equipment in workspace
 
-## Future Improvements
-- Add configuration options for different tycoon styles
-- Implement more advanced room detection algorithms
-- Create visualizations for build order progression
-- Add automated testing for system integrity
+## Core Module Responsibilities
+
+### BoundingBoxManager
+- Generate hitboxes for buyable tiles
+- Calculate optimal bounding boxes
+- Visualize hitboxes for debugging
+- Manage interaction zones
+
+### EquipmentManager
+- Initialize equipment models
+- Apply equipment attributes
+- Manage upgrade paths
+- Handle equipment state changes
+
+### BuyTileProgressionManager
+- Manage build order for tiles
+- Set up prerequisites for tile purchases
+- Identify required tiles for progression
+- Control floor unlocking
+
+### TileDataGenerator
+- Generate tile data from models
+- Apply attribute templates
+- Organize tiles by category and type
+- Calculate prices and income values
+
+## Global Studio Functions
+Studio-only global functions have been provided for testing:
+- `_G.AutomateGym(tycoonName)` - Automate a specific tycoon
+- `_G.AutomateAllGyms()` - Automate all gym tycoons
+- `_G.GenerateBuildOrder()` - Generate build order for tiles
+- `_G.ShowTycoonInfo(tycoonName)` - Show debug info about tycoon structure
+- `_G.ShowHitboxes()` - Show all hitboxes
+- `_G.HideHitboxes()` - Hide all hitboxes
+- `_G.ProcessEquipment()` - Process all equipment in workspace
+
+## Achievement Milestones
+- ✅ **Phase 1:** Created consolidated modules (April 1, 2025)
+- ✅ **Phase 2:** Updated main automation script (April 5, 2025)
+- ✅ **Phase 3:** Completed data migration (April 12, 2025)
+- ✅ **Phase 4:** Finished testing & validation (April 18, 2025)
+- ✅ **Phase 5:** Deprecated old scripts (April 25, 2025)
+- 🔄 **Phase 6:** System enhancement & expansion (In Progress, due July 9, 2025)
+
+## Next Steps
+- Complete all tasks in Phase 6 (see [ConsolidationPhase6.md](Documentation/ConsolidationPhase6.md))
+- Plan for integration with other systems (UI, Analytics, etc.)
+- Consider supporting third-party extensions
+- Evaluate potential framework extraction for reuse in other tycoon games
