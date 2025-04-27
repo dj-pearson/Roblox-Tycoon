@@ -1,0 +1,817 @@
+--!strict
+--[[
+    TycoonDataService.luau
+    
+    Gym/Tycoon-specific data service layer that provides a convenient API for
+    working with gym data using the DataManager.
+    
+    Features:
+    - Gym data operations
+    - Equipment management
+    - Member management
+    - Staff management
+    - Revenue tracking
+    - Statistics and analytics
+    
+    Author: Updated April 27, 2025
+]]
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Import required modules
+local ServerScripts = script.Parent.Parent
+local SharedModules = ReplicatedStorage:WaitForChild("src"):WaitForChild("shared")
+
+local DataManager = require(script.Parent:WaitForChild("DataManager"))
+local DataTypes = require(SharedModules:WaitForChild("Data"):WaitForChild("DataTypes"))
+local DataConstants = require(SharedModules:WaitForChild("Data"):WaitForChild("DataConstants"))
+
+-- Module and state variables
+local TycoonDataService = {}
+local initialized = false
+local gymDataScope = "gymData"
+local equipmentScope = "equipment"
+local membersScope = "members"
+local staffScope = "staff"
+local layoutScope = "layout"
+local statisticsScope = "statistics"
+
+--[[ Private Utility Functions ]]--
+
+-- Generate a unique ID for an entity
+local function generateUniqueId(prefix)
+    return string.format("%s_%d_%d", prefix or "item", os.time(), math.random(1000, 9999))
+end
+
+-- Find an item in a table by ID
+local function findById(items, id)
+    if not items or type(items) ~= "table" then
+        return nil
+    end
+    
+    for _, item in pairs(items) do
+        if type(item) == "table" and item.id == id then
+            return item
+        end
+    end
+    
+    return nil
+end
+
+-- Remove an item from a table by ID
+local function removeById(items, id)
+    if not items or type(items) ~= "table" then
+        return false
+    end
+    
+    for i, item in pairs(items) do
+        if type(item) == "table" and item.id == id then
+            table.remove(items, i)
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- Calculate gym revenue based on equipment and members
+local function calculateGymRevenue(gymData, timeElapsed)
+    if not gymData then
+        return 0
+    end
+    
+    -- Base calculation factors
+    local equipmentFactor = #(gymData.equipment or {}) * 5
+    local membersFactor = #(gymData.members or {}) * 10
+    local reputationFactor = (gymData.reputation or 1) * 1.5
+    local levelFactor = (gymData.level or 1) * 2
+    
+    -- Calculate hourly revenue
+    local hourlyRevenue = equipmentFactor * membersFactor * reputationFactor * levelFactor / 100
+    
+    -- Scale by time elapsed (in hours)
+    local revenue = hourlyRevenue * (timeElapsed / 3600)
+    
+    -- Apply any specialization multiplier
+    if gymData.specialization and DataConstants.SPECIALIZATIONS[gymData.specialization] then
+        revenue = revenue * DataConstants.SPECIALIZATIONS[gymData.specialization].revenueMultiplier
+    end
+    
+    return revenue
+end
+
+-- Calculate maintenance costs
+local function calculateMaintenanceCosts(gymData, timeElapsed)
+    if not gymData then
+        return 0
+    end
+    
+    -- Base costs
+    local equipmentCost = #(gymData.equipment or {}) * DataConstants.EQUIPMENT.REPAIR_EFFECTIVENESS * timeElapsed / 3600
+    local staffCost = 0
+    
+    -- Calculate staff costs
+    for _, staffId in ipairs(gymData.staff or {}) do
+        local staffData = findById(gymData.staffData, staffId)
+        if staffData then
+            staffCost = staffCost + staffData.salary * timeElapsed / 3600 / 24 -- Daily salary prorated to elapsed time
+        end
+    end
+    
+    return equipmentCost + staffCost
+end
+
+--[[ Public API Functions ]]--
+
+-- Initialize the service
+function TycoonDataService:initialize()
+    if initialized then
+        return true
+    end
+    
+    -- Ensure DataManager is initialized
+    if not DataManager:initialize() then
+        warn("Failed to initialize DataManager")
+        return false
+    end
+    
+    initialized = true
+    return true
+end
+
+-- Get player's gym data
+function TycoonDataService:getGymData(player)
+    self:initialize()
+    return DataManager:getPlayerData(player, gymDataScope) or {}
+end
+
+-- Update player's gym data
+function TycoonDataService:updateGymData(player, updateFunction)
+    self:initialize()
+    
+    local success, newData = DataManager:updatePlayerData(player, gymDataScope, function(data)
+        -- Initialize data if it's empty
+        if not data or next(data) == nil then
+            data = DataTypes.create("GymData")
+        end
+        
+        -- Apply the update function
+        return updateFunction(data)
+    end)
+    
+    return success, newData
+end
+
+-- Create a new gym for a player
+function TycoonDataService:createGym(player, name)
+    self:initialize()
+    
+    -- Check if player already has a gym
+    local currentGym = self:getGymData(player)
+    if currentGym and next(currentGym) ~= nil then
+        return false, "Player already has a gym", currentGym
+    end
+    
+    -- Create a new gym
+    local success, newGym = self:updateGymData(player, function(_)
+        return DataTypes.create("GymData", name or ("Gym " .. player.Name))
+    end)
+    
+    return success, success and "Gym created successfully" or "Failed to create gym", newGym
+end
+
+-- Rename a player's gym
+function TycoonDataService:renameGym(player, newName)
+    self:initialize()
+    
+    if not newName or newName == "" then
+        return false, "Invalid gym name"
+    end
+    
+    return self:updateGymData(player, function(data)
+        data.name = newName
+        return data
+    end)
+end
+
+-- Set the gym's specialization
+function TycoonDataService:setSpecialization(player, specialization)
+    self:initialize()
+    
+    if not DataConstants.SPECIALIZATIONS[specialization] then
+        return false, "Invalid specialization"
+    end
+    
+    return self:updateGymData(player, function(data)
+        data.specialization = specialization
+        return data
+    end)
+end
+
+-- Get all equipment in the gym
+function TycoonDataService:getAllEquipment(player)
+    self:initialize()
+    
+    local gymData = self:getGymData(player)
+    if not gymData or not gymData.equipmentData then
+        return {}
+    end
+    
+    return gymData.equipmentData
+end
+
+-- Get a specific piece of equipment by ID
+function TycoonDataService:getEquipment(player, equipmentId)
+    self:initialize()
+    
+    local allEquipment = self:getAllEquipment(player)
+    return findById(allEquipment, equipmentId)
+end
+
+-- Add equipment to the gym
+function TycoonDataService:addEquipment(player, equipmentType, name, position)
+    self:initialize()
+    
+    local equipmentId = generateUniqueId("equip")
+    
+    return self:updateGymData(player, function(data)
+        -- Initialize equipment data array if needed
+        if not data.equipmentData then
+            data.equipmentData = {}
+        end
+        if not data.equipment then
+            data.equipment = {}
+        end
+        
+        -- Create equipment
+        local equipment = DataTypes.create("Equipment", equipmentId, name, equipmentType)
+        
+        -- Set position if provided
+        if position then
+            equipment.position = position
+        end
+        
+        -- Add to arrays
+        table.insert(data.equipmentData, equipment)
+        table.insert(data.equipment, equipmentId)
+        
+        return data
+    end)
+end
+
+-- Remove equipment from the gym
+function TycoonDataService:removeEquipment(player, equipmentId)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Remove from arrays
+        if data.equipment then
+            for i, id in ipairs(data.equipment) do
+                if id == equipmentId then
+                    table.remove(data.equipment, i)
+                    break
+                end
+            end
+        end
+        
+        if data.equipmentData then
+            removeById(data.equipmentData, equipmentId)
+        end
+        
+        return data
+    end)
+end
+
+-- Upgrade equipment
+function TycoonDataService:upgradeEquipment(player, equipmentId)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Find the equipment
+        if not data.equipmentData then
+            return data
+        end
+        
+        local equipment
+        for i, equip in ipairs(data.equipmentData) do
+            if equip.id == equipmentId then
+                equipment = equip
+                break
+            end
+        end
+        
+        if not equipment then
+            return data
+        end
+        
+        -- Upgrade
+        equipment.level = equipment.level + 1
+        equipment.efficiency = equipment.efficiency * DataConstants.EQUIPMENT.UPGRADE_BENEFIT_MULTIPLIER
+        equipment.popularity = equipment.popularity * 1.1
+        equipment.durability = 100 -- Reset durability on upgrade
+        
+        return data
+    end)
+end
+
+-- Maintain equipment (repair)
+function TycoonDataService:maintainEquipment(player, equipmentId)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Find the equipment
+        if not data.equipmentData then
+            return data
+        end
+        
+        local equipment
+        for i, equip in ipairs(data.equipmentData) do
+            if equip.id == equipmentId then
+                equipment = equip
+                break
+            end
+        end
+        
+        if not equipment then
+            return data
+        end
+        
+        -- Repair
+        local repairAmount = (100 - equipment.durability) * DataConstants.EQUIPMENT.REPAIR_EFFECTIVENESS
+        equipment.durability = equipment.durability + repairAmount
+        equipment.lastMaintenance = os.time()
+        
+        -- Cap at 100
+        if equipment.durability > 100 then
+            equipment.durability = 100
+        end
+        
+        return data
+    end)
+end
+
+-- Get all members in the gym
+function TycoonDataService:getAllMembers(player)
+    self:initialize()
+    
+    local gymData = self:getGymData(player)
+    if not gymData or not gymData.memberData then
+        return {}
+    end
+    
+    return gymData.memberData
+end
+
+-- Get a specific member by ID
+function TycoonDataService:getMember(player, memberId)
+    self:initialize()
+    
+    local allMembers = self:getAllMembers(player)
+    return findById(allMembers, memberId)
+end
+
+-- Add a member to the gym
+function TycoonDataService:addMember(player, name)
+    self:initialize()
+    
+    local memberId = generateUniqueId("member")
+    
+    return self:updateGymData(player, function(data)
+        -- Initialize member data array if needed
+        if not data.memberData then
+            data.memberData = {}
+        }
+        if not data.members then
+            data.members = {}
+        end
+        
+        -- Create member
+        local member = DataTypes.create("GymMember", memberId, name)
+        
+        -- Add traits and preferences based on gym specialization
+        if data.specialization and DataConstants.SPECIALIZATIONS[data.specialization] then
+            local specialization = DataConstants.SPECIALIZATIONS[data.specialization]
+            local memberType = specialization.memberTypes or "balanced"
+            
+            if memberType == "strength" then
+                member.traits = {"strength", "muscle", "determined"}
+                member.preferences.workoutIntensity = "high"
+            elseif memberType == "cardio" then
+                member.traits = {"cardio", "endurance", "energetic"}
+                member.preferences.workoutIntensity = "medium"
+            elseif memberType == "luxury" then
+                member.traits = {"wealthy", "demanding", "particular"}
+                member.preferences.workoutIntensity = "medium"
+            elseif memberType == "budget" then
+                member.traits = {"frugal", "casual", "practical"}
+                member.preferences.workoutIntensity = "low"
+            else
+                -- Balanced
+                local traitSets = {
+                    {"strength", "muscle", "determined"},
+                    {"cardio", "endurance", "energetic"},
+                    {"flexible", "balanced", "focused"},
+                    {"casual", "social", "friendly"}
+                }
+                member.traits = traitSets[math.random(1, #traitSets)]
+                member.preferences.workoutIntensity = {"low", "medium", "high"}[math.random(1, 3)]
+            end
+        end
+        
+        -- Add to arrays
+        table.insert(data.memberData, member)
+        table.insert(data.members, memberId)
+        
+        return data
+    end)
+end
+
+-- Remove a member from the gym
+function TycoonDataService:removeMember(player, memberId)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Remove from arrays
+        if data.members then
+            for i, id in ipairs(data.members) do
+                if id == memberId then
+                    table.remove(data.members, i)
+                    break
+                end
+            end
+        end
+        
+        if data.memberData then
+            removeById(data.memberData, memberId)
+        end
+        
+        return data
+    end)
+end
+
+-- Update member satisfaction
+function TycoonDataService:updateMemberSatisfaction(player, memberId, change)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Find the member
+        if not data.memberData then
+            return data
+        end
+        
+        local member
+        for i, mem in ipairs(data.memberData) do
+            if mem.id == memberId then
+                member = mem
+                break
+            end
+        end
+        
+        if not member then
+            return data
+        end
+        
+        -- Update satisfaction
+        member.satisfaction = math.clamp(member.satisfaction + change, 0, 1)
+        
+        -- Update loyalty based on satisfaction change
+        if change > 0 then
+            member.loyalty = math.clamp(member.loyalty + change * 0.1, 0, 1)
+        elseif change < -0.1 then
+            -- Large negative changes reduce loyalty more
+            member.loyalty = math.clamp(member.loyalty + change * 0.2, 0, 1)
+        end
+        
+        return data
+    end)
+end
+
+-- Get all staff in the gym
+function TycoonDataService:getAllStaff(player)
+    self:initialize()
+    
+    local gymData = self:getGymData(player)
+    if not gymData or not gymData.staffData then
+        return {}
+    end
+    
+    return gymData.staffData
+end
+
+-- Get a specific staff member by ID
+function TycoonDataService:getStaff(player, staffId)
+    self:initialize()
+    
+    local allStaff = self:getAllStaff(player)
+    return findById(allStaff, staffId)
+end
+
+-- Hire a staff member
+function TycoonDataService:hireStaff(player, name, role)
+    self:initialize()
+    
+    if not DataConstants.STAFF_ROLES[role] then
+        return false, "Invalid staff role"
+    end
+    
+    local staffId = generateUniqueId("staff")
+    
+    return self:updateGymData(player, function(data)
+        -- Initialize staff data array if needed
+        if not data.staffData then
+            data.staffData = {}
+        }
+        if not data.staff then
+            data.staff = {}
+        end
+        
+        -- Create staff member
+        local staff = DataTypes.create("StaffMember", staffId, name, role)
+        
+        -- Add specialties based on role
+        if role == DataConstants.STAFF_ROLES.TRAINER then
+            staff.specialties = {"strength", "cardio"}
+        elseif role == DataConstants.STAFF_ROLES.MAINTENANCE then
+            staff.specialties = {"equipment", "facilities"}
+        elseif role == DataConstants.STAFF_ROLES.CLEANING then
+            staff.specialties = {"sanitation", "organization"}
+        elseif role == DataConstants.STAFF_ROLES.RECEPTION then
+            staff.specialties = {"customer service", "administration"}
+        elseif role == DataConstants.STAFF_ROLES.MANAGER then
+            staff.specialties = {"leadership", "scheduling", "marketing"}
+        end
+        
+        -- Add to arrays
+        table.insert(data.staffData, staff)
+        table.insert(data.staff, staffId)
+        
+        return data
+    end)
+end
+
+-- Fire a staff member
+function TycoonDataService:fireStaff(player, staffId)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Remove from arrays
+        if data.staff then
+            for i, id in ipairs(data.staff) do
+                if id == staffId then
+                    table.remove(data.staff, i)
+                    break
+                end
+            end
+        end
+        
+        if data.staffData then
+            removeById(data.staffData, staffId)
+        end
+        
+        return data
+    end)
+end
+
+-- Train a staff member (improve skills)
+function TycoonDataService:trainStaff(player, staffId)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Find the staff member
+        if not data.staffData then
+            return data
+        end
+        
+        local staff
+        for i, s in ipairs(data.staffData) do
+            if s.id == staffId then
+                staff = s
+                break
+            end
+        end
+        
+        if not staff then
+            return data
+        end
+        
+        -- Improve skills
+        staff.skill = math.min(staff.skill + 0.1, 5.0)
+        staff.efficiency = math.min(staff.efficiency + 0.05, 2.0)
+        
+        return data
+    end)
+end
+
+-- Update gym layout
+function TycoonDataService:updateLayout(player, layoutData)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Update layout
+        data.layout = layoutData
+        return data
+    end)
+end
+
+-- Add or update a tile in the gym
+function TycoonDataService:updateTile(player, tileId, tileData)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Initialize layout if needed
+        if not data.layout then
+            data.layout = {
+                tiles = {},
+                walls = {},
+                decorations = {}
+            }
+        end
+        
+        if not data.layout.tiles then
+            data.layout.tiles = {}
+        end
+        
+        -- Update existing tile or add new one
+        local found = false
+        for i, tile in ipairs(data.layout.tiles) do
+            if tile.id == tileId then
+                data.layout.tiles[i] = tileData
+                found = true
+                break
+            end
+        end
+        
+        if not found then
+            table.insert(data.layout.tiles, tileData)
+        end
+        
+        return data
+    end)
+end
+
+-- Remove a tile from the gym
+function TycoonDataService:removeTile(player, tileId)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        if not data.layout or not data.layout.tiles then
+            return data
+        end
+        
+        -- Remove tile
+        for i, tile in ipairs(data.layout.tiles) do
+            if tile.id == tileId then
+                table.remove(data.layout.tiles, i)
+                break
+            end
+        end
+        
+        return data
+    end)
+end
+
+-- Collect revenue from the gym
+function TycoonDataService:collectRevenue(player, timeElapsed)
+    self:initialize()
+    
+    -- Get current gym data
+    local gymData = self:getGymData(player)
+    if not gymData then
+        return false, "No gym data found", 0
+    end
+    
+    -- Calculate revenue based on elapsed time since last collection
+    if not timeElapsed then
+        if not gymData.lastCollection then
+            timeElapsed = 300 -- Default 5 minutes for first collection
+        else
+            timeElapsed = os.time() - gymData.lastCollection
+        }
+    end
+    
+    -- Calculate revenue
+    local revenue = calculateGymRevenue(gymData, timeElapsed)
+    local costs = calculateMaintenanceCosts(gymData, timeElapsed)
+    local netRevenue = revenue - costs
+    
+    -- Update gym data and player cash
+    local success, updatedGym = self:updateGymData(player, function(data)
+        -- Update revenue statistics
+        data.revenue = data.revenue + netRevenue
+        data.totalEarnings = data.totalEarnings + revenue
+        data.lastCollection = os.time()
+        
+        -- Add to statistics
+        if not data.statistics then
+            data.statistics = {
+                dailyRevenue = {},
+                totalRevenue = 0,
+                collections = 0,
+                lastDailyReset = os.time()
+            }
+        end
+        
+        data.statistics.totalRevenue = (data.statistics.totalRevenue or 0) + revenue
+        data.statistics.collections = (data.statistics.collections or 0) + 1
+        
+        return data
+    end)
+    
+    -- Update player's cash
+    if success and netRevenue > 0 then
+        local PlayerDataService = require(script.Parent:WaitForChild("PlayerDataService"))
+        PlayerDataService:addCash(player, netRevenue)
+    end
+    
+    return success, success and "Revenue collected successfully" or "Failed to collect revenue", netRevenue
+end
+
+-- Get gym statistics
+function TycoonDataService:getStatistics(player)
+    self:initialize()
+    
+    local gymData = self:getGymData(player)
+    if not gymData or not gymData.statistics then
+        return {
+            totalRevenue = 0,
+            collections = 0,
+            memberCount = 0,
+            equipmentCount = 0,
+            staffCount = 0,
+            reputation = 1.0
+        }
+    end
+    
+    local stats = gymData.statistics
+    
+    -- Add current counts
+    stats.memberCount = #(gymData.members or {})
+    stats.equipmentCount = #(gymData.equipment or {})
+    stats.staffCount = #(gymData.staff or {})
+    stats.reputation = gymData.reputation or 1.0
+    
+    return stats
+end
+
+-- Record a gym statistic
+function TycoonDataService:recordStat(player, statName, value, operation)
+    self:initialize()
+    operation = operation or "add"
+    
+    if not statName then
+        return false
+    end
+    
+    return self:updateGymData(player, function(data)
+        if not data.statistics then
+            data.statistics = {}
+        end
+        
+        if operation == "add" then
+            data.statistics[statName] = (data.statistics[statName] or 0) + (value or 1)
+        elseif operation == "set" then
+            data.statistics[statName] = value
+        elseif operation == "max" then
+            data.statistics[statName] = math.max(data.statistics[statName] or 0, value or 0)
+        elseif operation == "min" then
+            data.statistics[statName] = math.min(data.statistics[statName] or 0, value or 0)
+        end
+        
+        return data
+    end)
+end
+
+-- Update gym reputation
+function TycoonDataService:updateReputation(player, change)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Update reputation
+        data.reputation = math.clamp((data.reputation or 1.0) + change, 0.1, 5.0)
+        return data
+    end)
+end
+
+-- Increase gym level
+function TycoonDataService:upgradeGym(player)
+    self:initialize()
+    
+    return self:updateGymData(player, function(data)
+        -- Increase level
+        data.level = (data.level or 1) + 1
+        
+        -- Update reputation
+        data.reputation = math.clamp((data.reputation or 1.0) + 0.1, 0.1, 5.0)
+        
+        return data
+    end)
+end
+
+-- Save gym data
+function TycoonDataService:saveGym(player)
+    self:initialize()
+    return DataManager:savePlayerData(player, true)
+end
+
+return TycoonDataService

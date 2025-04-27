@@ -1,3 +1,19 @@
+# Structure Overview
+
+This document outlines the structure of the Gym Tycoon project, highlighting key files and systems. As part of our ongoing consolidation efforts (see `Documentation/ComprehensiveConsolidationPlan.md`), we're working to reduce duplication and improve code organization across the codebase.
+
+## Refactoring Status
+
+| System | Status | Notes |
+|--------|--------|-------|
+| UI Systems | ✅ Completed | Unified framework implemented with centralized components |
+| Registry Systems | 🔄 In Planning | Design document created, implementation pending |
+| Event Systems | 🔄 In Planning | Design document created, implementation pending |
+| Data Management | ⏳ To Be Planned | Analysis phase not yet started |
+| Rebirth Systems | ⏳ To Be Planned | Analysis phase not yet started |
+| Tile Purchase Systems | ⏳ To Be Planned | Analysis phase not yet started |
+| Equipment Systems | ⏳ To Be Planned | Analysis phase not yet started |
+
 # src root
 
 -`src/GameSystem.lua`: Core game system module that serves as an entry point for the game's primary functionality. It coordinates between major subsystems, handles game state management, and provides a high-level API for common game operations. The module bridges between server, client, and shared code components and serves as the main orchestrator for game initialization and runtime behavior.
@@ -141,16 +157,26 @@ This section groups scripts that serve similar functions across different direct
   - `src/server/Core/CoreRegistryInitializer.server.luau`: Legacy server registry initialization (To be migrated)
   - `src/shared/ClientRegistry.lua`: Legacy shared registry (To be migrated)
 
-- **Data Management**:
-  - `src/server/Core/DataManager.server.luau`: Primary data system
-  - `src/server/Core/DataAccessLayer.server.luau`: Data access abstraction
-  - `src/server/Core/DataBackup.server.luau`: Backup functionality
-  - `src/server/Core/DataSystemInitializer.server.luau`: Data system setup
-  - `src/server/Core/DataThrottler.server.luau`: Data operation rate limiting
-  - `src/server/Data/EnhancedDataStorageSystem.server.luau`: Advanced storage techniques
-  - `src/server/Data/PlayerDataManager.server.luau`: Player-specific data management
-  - `src/server/Data/GymTycoonDataManager.server.luau`: Tycoon-related data
-  - `src/client/DataManagementUI.client.luau`: Data management interface
+- **Data Management** (Current Focus - Core Implementation Complete):
+  - `src/shared/Data/DataTypes.luau`: ✅ Standardized data type definitions with validation
+  - `src/shared/Data/DataConstants.luau`: ✅ Centralized constants and configuration values
+  - `src/server/Core/Data/DataManager.luau`: ✅ Central data coordination layer
+  - `src/server/Core/Data/DataPersistence.luau`: ✅ Robust storage with error handling
+  - `src/server/Core/Data/PlayerDataService.luau`: ✅ Player-focused data operations
+  - `src/server/Core/Data/DataMigration.luau`: ⏳ Data format migration tools (In Progress)
+  - `src/server/Core/Data/TycoonDataService.luau`: ⏳ Gym-specific data operations (Planned)
+  - `src/server/Core/Data/DataCache.luau`: ⏳ Advanced caching mechanisms (Planned)
+  - `src/server/Core/Data/DataAnalytics.luau`: ⏳ Monitoring and telemetry (Planned)
+  - `src/client/Data/ClientDataService.luau`: ⏳ Client-side data access (Planned)
+  - `src/server/Core/DataManager.server.luau`: Legacy primary data system (To be migrated)
+  - `src/server/Core/DataAccessLayer.server.luau`: Legacy data access abstraction (To be migrated)
+  - `src/server/Core/DataBackup.server.luau`: Legacy backup functionality (To be migrated)
+  - `src/server/Core/DataSystemInitializer.server.luau`: Legacy data system setup (To be migrated)
+  - `src/server/Core/DataThrottler.server.luau`: Legacy data operation rate limiting (To be migrated)
+  - `src/server/Data/EnhancedDataStorageSystem.server.luau`: Legacy advanced storage techniques (To be migrated)
+  - `src/server/Data/PlayerDataManager.server.luau`: Legacy player-specific data management (To be migrated)
+  - `src/server/Data/GymTycoonDataManager.server.luau`: Legacy tycoon-related data (To be migrated)
+  - `src/client/DataManagementUI.client.luau`: Legacy data management interface (To be migrated)
 
 - **Event Systems**:
   - `src/shared/Events/EventTypes.luau`: Definitions of event types and type checking (Proposed)
