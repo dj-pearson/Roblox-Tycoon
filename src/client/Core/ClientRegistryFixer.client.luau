@@ -6,6 +6,7 @@
     initialized and accessible to all client scripts.
     
     Created: April 26, 2025
+    Fixed: April 27, 2025
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -134,10 +135,8 @@ local function createMinimalClientRegistry()
         return requireSafely(shared.ClientRegistry)
     end
     
-    -- Create a new ClientRegistry
-    local clientRegistryModule = Instance.new("ModuleScript")
-    clientRegistryModule.Name = "ClientRegistry"
-    clientRegistryModule.Source = [[
+    -- Create client registry source code
+    local sourceCode = [[
 --[[
     ClientRegistry (Minimal Version)
     A central registry for client-side systems and UI components
@@ -216,6 +215,11 @@ end
 
 return ClientRegistry
 ]]
+
+    -- Create a new ClientRegistry
+    local clientRegistryModule = Instance.new("ModuleScript")
+    clientRegistryModule.Name = "ClientRegistry"
+    clientRegistryModule.Source = sourceCode
     clientRegistryModule.Parent = shared
     
     log("Created minimal ClientRegistry in ReplicatedStorage.shared")
@@ -403,8 +407,7 @@ local function fixClientRegistry()
             -- Create a reference module script
             local clientRegistryRef = Instance.new("ModuleScript")
             clientRegistryRef.Name = "ClientRegistry"
-            clientRegistryRef.Source = "-- ClientRegistry Reference\nreturn " ..
-                "require(game:GetService(\"Players\").LocalPlayer.PlayerScripts.Client.Core.ClientRegistry)"
+            clientRegistryRef.Source = "-- ClientRegistry Reference\nreturn require(game:GetService(\"Players\").LocalPlayer.PlayerScripts.Client.Core.ClientRegistry)"
             clientRegistryRef.Parent = shared
             log("Created ClientRegistry reference in ReplicatedStorage.shared")
         end

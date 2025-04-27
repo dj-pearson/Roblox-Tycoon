@@ -1,3 +1,4 @@
+--!strict
 --[[
     UISystemTester.client.luau
     
@@ -6,6 +7,7 @@
     and components to ensure they are properly initialized.
     
     Created: April 25, 2025
+    Fixed: April 27, 2025 - Removed _G usage and fixed parameter issues
 ]]
 
 -- Services
@@ -26,6 +28,9 @@ local testResults = {
     total = 0,
     details = {}
 }
+
+-- ClientBootstrap reference - this will be located without using _G
+local ClientBootstrap = nil
 
 -- Debug logging
 local function log(message)
@@ -58,7 +63,7 @@ local function requireSafely(module)
 end
 
 -- Find a module in multiple possible locations
-local function findModule(moduleName, searchPaths)
+local function findModule(searchPaths)
     if not searchPaths or #searchPaths == 0 then
         return nil
     end
@@ -125,6 +130,51 @@ local function printTestReport()
     end
 end
 
+-- Find the ClientBootstrap object (without using _G)
+local function findClientBootstrap()
+    -- Look in PlayerScripts.Client
+    if LocalPlayer and 
+        LocalPlayer.PlayerScripts and 
+        LocalPlayer.PlayerScripts:FindFirstChild("Client") then
+            
+        local bootstrapModule = LocalPlayer.PlayerScripts.Client:FindFirstChild("ClientBootstrap")
+        
+        if bootstrapModule and bootstrapModule:IsA("ModuleScript") then
+            local bootstrap = requireSafely(bootstrapModule)
+            if bootstrap and typeof(bootstrap) == "table" then
+                return bootstrap
+            end
+        end
+    end
+    
+    -- Look in PlayerScripts
+    if LocalPlayer and LocalPlayer.PlayerScripts then
+        local bootstrapScript = LocalPlayer.PlayerScripts:FindFirstChild("ClientBootstrap")
+        -- This is likely a LocalScript, not a ModuleScript, so we can't require it
+        -- But we can check if it exposed its API through a Value object
+        if bootstrapScript then
+            local apiValue = bootstrapScript:FindFirstChild("BootstrapAPI")
+            if apiValue and apiValue:IsA("ObjectValue") and apiValue.Value then
+                local api = apiValue.Value
+                if api:IsA("ModuleScript") then
+                    return requireSafely(api)
+                end
+            end
+        end
+    end
+    
+    -- Look for a shared API singleton
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared then
+        local bootstrapAPI = shared:FindFirstChild("ClientBootstrapAPI")
+        if bootstrapAPI and bootstrapAPI:IsA("ModuleScript") then
+            return requireSafely(bootstrapAPI)
+        end
+    end
+    
+    return nil
+end
+
 -- Run tests
 local function runTests()
     log("Running UI system tests...")
@@ -178,9 +228,12 @@ end
 -- TEST DEFINITIONS
 --------------------------------------------------------
 
+-- First, try to find ClientBootstrap
+ClientBootstrap = findClientBootstrap()
+
 -- Test if ModuleLoader exists
 addTest("ModuleLoader Exists", function()
-    local moduleLoaderModule = findModule("ModuleLoader", {
+    local moduleLoaderModule = findModule({
         function() return ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoader") end
     })
     
@@ -197,14 +250,14 @@ addTest("ClientRegistry Exists", function()
     -- Try different methods to find ClientRegistry
     local clientRegistry
     
-    -- Method 1: Look in _G.__ClientBootstrap
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.ClientRegistry then
-        clientRegistry = _G.__ClientBootstrap.ClientRegistry
+    -- Method 1: Look in ClientBootstrap
+    if ClientBootstrap and ClientBootstrap.ClientRegistry then
+        clientRegistry = ClientBootstrap.ClientRegistry
     end
     
     -- Method 2: Look in shared folder
     if not clientRegistry then
-        local clientRegistryModule = findModule("ClientRegistry", {
+        local clientRegistryModule = findModule({
             function() return ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ClientRegistry") end,
             function() return LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("ClientRegistry") end
         })
@@ -226,14 +279,14 @@ addTest("UIComponents Exists", function()
     -- Try different methods to find UIComponents
     local uiComponents
     
-    -- Method 1: Look in _G.__ClientBootstrap
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.UIComponents then
-        uiComponents = _G.__ClientBootstrap.UIComponents
+    -- Method 1: Look in ClientBootstrap
+    if ClientBootstrap and ClientBootstrap.UIComponents then
+        uiComponents = ClientBootstrap.UIComponents
     end
     
     -- Method 2: Look in shared folder
     if not uiComponents then
-        local uiComponentsModule = findModule("UIComponents", {
+        local uiComponentsModule = findModule({
             function() return ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("UIComponents") end,
             function() return LocalPlayer.PlayerScripts.Client.UI:FindFirstChild("UIComponents") end
         })
@@ -253,7 +306,7 @@ end, "UIComponents Exists")
 -- Test if AssetValidator exists
 addTest("AssetValidator Exists", function()
     -- Try to find AssetValidator
-    local assetValidatorModule = findModule("AssetValidator", {
+    local assetValidatorModule = findModule({
         function() return ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("AssetValidator") end,
         function() return LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("AssetValidator") end
     })
@@ -271,8 +324,8 @@ addTest("UIRegistry.UIStyle", function()
     -- Find ClientRegistry
     local clientRegistry
     
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.ClientRegistry then
-        clientRegistry = _G.__ClientBootstrap.ClientRegistry
+    if ClientBootstrap and ClientBootstrap.ClientRegistry then
+        clientRegistry = ClientBootstrap.ClientRegistry
     else
         local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
                                      ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
@@ -300,8 +353,8 @@ addTest("UIRegistry.IconSet", function()
     -- Find ClientRegistry
     local clientRegistry
     
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.ClientRegistry then
-        clientRegistry = _G.__ClientBootstrap.ClientRegistry
+    if ClientBootstrap and ClientBootstrap.ClientRegistry then
+        clientRegistry = ClientBootstrap.ClientRegistry
     else
         local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
                                      ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
@@ -329,8 +382,8 @@ addTest("UIRegistry.ButtonFactory", function()
     -- Find ClientRegistry
     local clientRegistry
     
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.ClientRegistry then
-        clientRegistry = _G.__ClientBootstrap.ClientRegistry
+    if ClientBootstrap and ClientBootstrap.ClientRegistry then
+        clientRegistry = ClientBootstrap.ClientRegistry
     else
         local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
                                      ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
@@ -358,8 +411,8 @@ addTest("UIRegistry.DialogFactory", function()
     -- Find ClientRegistry
     local clientRegistry
     
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.ClientRegistry then
-        clientRegistry = _G.__ClientBootstrap.ClientRegistry
+    if ClientBootstrap and ClientBootstrap.ClientRegistry then
+        clientRegistry = ClientBootstrap.ClientRegistry
     else
         local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
                                      ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
@@ -387,8 +440,8 @@ addTest("UIRegistry Exists", function()
     -- Find ClientRegistry
     local clientRegistry
     
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.ClientRegistry then
-        clientRegistry = _G.__ClientBootstrap.ClientRegistry
+    if ClientBootstrap and ClientBootstrap.ClientRegistry then
+        clientRegistry = ClientBootstrap.ClientRegistry
     else
         local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
                                      ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
@@ -405,8 +458,8 @@ addTest("UIRegistry Can Show Notifications", function()
     -- Find ClientRegistry
     local clientRegistry
     
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.ClientRegistry then
-        clientRegistry = _G.__ClientBootstrap.ClientRegistry
+    if ClientBootstrap and ClientBootstrap.ClientRegistry then
+        clientRegistry = ClientBootstrap.ClientRegistry
     else
         local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
                                      ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
@@ -437,8 +490,8 @@ addTest("UIRegistry Can Show Notifications", function()
     
     -- Try to find UIComponents directly
     local uiComponents
-    if _G.__ClientBootstrap and _G.__ClientBootstrap.UIComponents then
-        uiComponents = _G.__ClientBootstrap.UIComponents
+    if ClientBootstrap and ClientBootstrap.UIComponents then
+        uiComponents = ClientBootstrap.UIComponents
     end
     
     if uiComponents and typeof(uiComponents.createNotification) == "function" then
