@@ -14,13 +14,15 @@
     - UpgradePathDetector - Automatic upgrade path detection (NEW)
     - TaggingSystem - Enhanced CollectionService tagging (NEW)
     - NPCAnimationSystem - Robust NPC animation management (NEW)
+    - TycoonConfigurationManager - Advanced configuration system (NEW: Phase 6)
     
     Author: Created April 2025
-    Updated: April 21, 2025 (Added complete automation enhancements and NPC animation system)
+    Updated: April 27, 2025 (Added configuration system integration for Phase 6)
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -45,6 +47,10 @@ local EquipmentManager = CoreRegistry and CoreRegistry:GetSystem("EquipmentManag
 local BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
 local GymStructureIntegration = CoreRegistry and CoreRegistry:GetSystem("GymStructureIntegration")
 local NPCSystem = CoreRegistry and CoreRegistry:GetSystem("NPCSystem")
+
+-- Phase 6: Load the new configuration system
+local TycoonConfigurationManager = CoreRegistry and CoreRegistry:GetSystem("TycoonConfigurationManager")
+local ConfigurationIntegration = CoreRegistry and CoreRegistry:GetSystem("ConfigurationIntegration")
 
 -- Try to load ModelValidator module (NEW)
 local ModelValidator = nil
@@ -143,6 +149,65 @@ if not TaggingSystem then
     local taggingSystemPath = ServerScriptService:FindFirstChild("Core") 
                                and ServerScriptService.Core:FindFirstChild("ModelValidation") 
                                and ServerScriptService.Core.ModelValidation:FindFirstChild("TaggingSystem")
+
+-- Try to load the new configuration modules (Phase 6)
+if not TycoonConfigurationManager then
+    local configManagerPath = script.Parent:FindFirstChild("TycoonConfigurationManager")
+    
+    if configManagerPath and configManagerPath:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(configManagerPath)
+        end)
+        
+        if success then
+            TycoonConfigurationManager = result
+            TycoonConfigurationManager.init() -- Initialize the module
+            print("TycoonConfigurationManager module loaded directly")
+            
+            -- Register in CoreRegistry if available
+            if CoreRegistry then
+                CoreRegistry.registerSystem("TycoonConfigurationManager", TycoonConfigurationManager)
+            end
+        else
+            print("Failed to load TycoonConfigurationManager: " .. tostring(result))
+        end
+    end
+end
+
+if not ConfigurationIntegration then
+    local configIntegrationPath = script.Parent:FindFirstChild("ConfigurationIntegration")
+    
+    if configIntegrationPath and configIntegrationPath:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(configIntegrationPath)
+        end)
+        
+        if success then
+            ConfigurationIntegration = result
+            print("ConfigurationIntegration module loaded directly")
+            
+            -- Register in CoreRegistry if available
+            if CoreRegistry then
+                CoreRegistry.registerSystem("ConfigurationIntegration", ConfigurationIntegration)
+            end
+            
+            -- Initialize with available modules
+            ConfigurationIntegration.init({
+                BoundingBoxManager = BoundingBoxManager,
+                EquipmentManager = EquipmentManager,
+                BuyTileProgressionManager = BuyTileProgressionManager,
+                TileDataGenerator = TileDataGenerator
+            })
+            
+            -- Register studio commands if in Studio
+            if RunService:IsStudio() then
+                ConfigurationIntegration.registerStudioCommands()
+            end
+        else
+            print("Failed to load ConfigurationIntegration: " .. tostring(result))
+        end
+    end
+end
     
     if not taggingSystemPath then
         local secondPath = script.Parent:FindFirstChild("Core") 
@@ -676,13 +741,19 @@ function GymAutomation:ApplyCollectionTags(tycoon, options)
 end
 
 -- Function to automate gym setup for a specific tycoon
-function GymAutomation:AutomateGym(tycoon)
+function GymAutomation:AutomateGym(tycoon, configName)
     if not tycoon then
         print("Error: No tycoon provided")
         return
     end
     
     print("Automating gym setup for: " .. tycoon.Name)
+    
+    -- Step 0 (NEW): Apply configuration if available
+    if ConfigurationIntegration then
+        print("Applying configuration to " .. tycoon.Name)
+        ConfigurationIntegration.applyConfiguration(tycoon, configName)
+    end
     
     -- Step 1: Apply floor attributes
     local floorCount = self:ApplyFloorAttributes(tycoon)
@@ -726,6 +797,15 @@ function GymAutomation:AutomateGym(tycoon)
         })
     end
     
+    -- Step 10 (NEW): Save configuration if modified
+    if ConfigurationIntegration then
+        local config = ConfigurationIntegration.getConfiguration(tycoon)
+        if config and config.modifiedSinceLastSave then
+            config:SaveConfig()
+            print("Configuration saved for " .. tycoon.Name)
+        end
+    end
+    
     print("Gym automation complete for " .. tycoon.Name)
     print("- Floor count: " .. floorCount)
     print("- Equipment count: " .. equipmentCount)
@@ -764,24 +844,39 @@ function GymAutomation:AutomateGym(tycoon)
 end
 
 -- Function to automate all gyms in the workspace
-function GymAutomation:AutomateAllGyms()
-    local gymParts = self:FindGymParts()
+function GymAutomation:AutomateAllGyms(defaultConfigName)
+    print("Automating all gym tycoons...")
     
-    if #gymParts == 0 then
+    -- Find all gym tycoons in workspace
+    local gymCount = 0
+    
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and (string.match(obj.Name:lower(), "gym") or string.match(obj.Name:lower(), "tycoon")) then
+            -- Use either the tycoon-specific configuration or the default
+            local configName = defaultConfigName or obj.Name
+            self:AutomateGym(obj, configName)
+            gymCount = gymCount + 1
+        end
+    end
+    
+    if gymCount == 0 then
         print("No gym tycoons found in workspace")
-        return
+    else
+        print("Automated " .. gymCount .. " gym tycoons")
     end
     
-    for _, tycoon in ipairs(gymParts) do
-        self:AutomateGym(tycoon)
+    -- Save all configurations if configuration integration is available
+    if ConfigurationIntegration then
+        ConfigurationIntegration.saveAllConfigurations()
+        print("All configurations saved")
     end
     
-    print("All gyms automated: " .. #gymParts .. " gyms processed")
+    return gymCount
 end
 
 -- Register global functions for convenience (Studio only)
 if game:GetService("RunService"):IsStudio() then
-    _G.AutomateGym = function(tycoonName)
+    _G.AutomateGym = function(tycoonName, configName)
         local tycoon
         
         if tycoonName then
@@ -801,7 +896,9 @@ if game:GetService("RunService"):IsStudio() then
             end
         end
         
-        GymAutomation:AutomateGym(tycoon)
+        -- Use provided configName or fall back to tycoon name
+        configName = configName or tycoon.Name
+        GymAutomation:AutomateGym(tycoon, configName)
     end
     
     _G.AutomateAllGyms = function()

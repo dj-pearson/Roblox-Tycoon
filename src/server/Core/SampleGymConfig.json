@@ -1,0 +1,33 @@
+{
+	"tycoonType": "Gym",
+	"version": "1.0.0",
+	"settings": {
+		"economyMultiplier": 1.2,
+		"progressionSpeed": 1.5,
+		"maxFloors": 4,
+		"customizationEnabled": true,
+		"enabledFeatures": {
+			"staffHiring": true,
+			"equipmentUpgrades": true,
+			"membershipTiers": true,
+			"specialEvents": true
+		}
+	},
+	"roomTypes": [
+		{"name": "Cardio", "color": {"r": 1, "g": 0.78, "b": 0.78}},
+		{"name": "Weights", "color": {"r": 0.78, "g": 0.78, "b": 1}},
+		{"name": "Specialized", "color": {"r": 0.78, "g": 1, "b": 0.78}},
+		{"name": "Luxury", "color": {"r": 1, "g": 0.9, "b": 0.6}}
+	],
+	"equipmentCategories": [
+		{"name": "Cardio", "upgradePathPrefix": "Cardio_"},
+		{"name": "Strength", "upgradePathPrefix": "Strength_"},
+		{"name": "Functional", "upgradePathPrefix": "Func_"},
+		{"name": "Premium", "upgradePathPrefix": "Premium_"}
+	],
+	"prerequisites": {
+		"floor2": ["receptionArea", "basicCardio"],
+		"floor3": ["floor2", "advancedCardio"],
+		"luxuryArea": ["floor3", "premiumMembership"]
+	}
+}
