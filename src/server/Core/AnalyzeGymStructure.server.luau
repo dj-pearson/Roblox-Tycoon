@@ -64,6 +64,26 @@ local function getFloorNumber(floorName)
     return nil
 end
 
+-- Function to set attributes on an instance
+local function setAttributes(instance, attributes)
+    for name, value in pairs(attributes) do
+        instance:SetAttribute(name, value)
+    end
+end
+
+-- Function to determine the category based on room name
+local function getCategoryFromRoomName(roomName)
+    if roomName:lower():find("cardio") then
+        return "Cardio"
+    elseif roomName:lower():find("strength") then
+        return "Strength"
+    elseif roomName:lower():find("recovery") then
+        return "Recovery"
+    elseif roomName:lower():find("locker") then
+        return "Locker"
+    end
+    return "General"
+end
 -- Format instance attributes for display
 local function formatAttributes(instance)
     local result = {}
@@ -93,19 +113,41 @@ local function analyzeHierarchy(instance, depth, maxDepth, parent)
     local result = {}
     local indent = string.rep("  ", depth)
     
-    -- Add this instance to the result
-    local floorNum = nil
-    if instance:GetAttribute("Floor") then
-        floorNum = instance:GetAttribute("Floor")
-    elseif parent and parent:GetAttribute("Floor") then
-        floorNum = parent:GetAttribute("Floor")
-    elseif instance.Name:match("%dst") or instance.Name:match("%dnd") or instance.Name:match("%drd") or instance.Name:match("%dth") then
-        floorNum = getFloorNumber(instance.Name)
+     -- Check if this instance is a room
+    if instance.Name == "Rooms" or (parent and parent.Name == "Rooms") then
+        local roomName = instance.Name
+        if parent and parent.Name == "Rooms" then
+            roomName = instance.Name
+        end
+        local floorNum = getFloorNumber(parent.Parent.Name)
+        local roomAttributes = {
+            RoomName = roomName,
+            Floor = floorNum
+        }
+        setAttributes(instance, roomAttributes)
     end
+    local floorNum = nil
+        if instance:GetAttribute("Floor") then
+            floorNum = instance:GetAttribute("Floor")
+        elseif parent and parent:GetAttribute("Floor") then
+            floorNum = parent:GetAttribute("Floor")
+        elseif instance.Name:match("%dst") or instance.Name:match("%dnd") or instance.Name:match("%drd") or instance.Name:match("%dth") then
+            floorNum = getFloorNumber(instance.Name)
+        end
     
     local floorStr = floorNum and (" (Floor " .. floorNum .. ")") or ""
     table.insert(result, indent .. "- " .. instance.Name .. " [" .. instance.ClassName .. "]" .. floorStr .. formatAttributes(instance))
     
+        -- Check if the child is not a floor and is inside of a room to add item properties
+    if  (parent and parent.Name ~= "Rooms" and parent.Parent.Name == "Rooms") then
+
+        local itemAttributes = {
+            Category = getCategoryFromRoomName(parent.Name),
+            RoomName = parent.Name,
+            Floor = getFloorNumber(parent.Parent.Parent.Name),
+        }
+        setAttributes(instance, itemAttributes)
+    end
     -- Process children
     local childrenByType = {}
     
@@ -155,6 +197,7 @@ local function extractRoomTypes(gymParts)
     
     -- Find all folders/models that could be rooms
     for _, floor in pairs(gymParts:GetChildren()) do
+
         -- Check if this is a floor folder
         local floorNum = getFloorNumber(floor.Name)
         if floorNum then
@@ -165,6 +208,7 @@ local function extractRoomTypes(gymParts)
                 for _, room in pairs(roomsFolder:GetChildren()) do
                     roomTypes[room.Name] = roomTypes[room.Name] or {}
                     table.insert(roomTypes[room.Name], floorNum)
+
                 end
             else
                 -- Try to identify room-like folders directly under the floor
@@ -178,6 +222,7 @@ local function extractRoomTypes(gymParts)
                             table.insert(roomTypes[child.Name], floorNum)
                         end
                     end
+
                 end
             end
         end
@@ -437,6 +482,14 @@ local function main()
     
     return summary
 end
+
+-- Function to run the attribute setup from the command line
+local function runAttributeSetup()
+    analyzeGymStructure()
+end
+
+-- Add runAttributeSetup to the returned value
+return { runAttributeSetup = runAttributeSetup }
 
 -- Execute the analysis
 main()
