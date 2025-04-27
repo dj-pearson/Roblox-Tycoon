@@ -98,35 +98,48 @@ This section groups scripts that serve similar functions across different direct
 
 ## UI Systems
 
-- **Rebirth UI Related**:
-  - `src/client/UI/RebirthUI.client.luau`: Core rebirth UI component
-  - `src/StarterGui/RebirthUI.client.luau`: Primary rebirth interface
-  - `src/StarterGui/RebirthUIFixes.luau`: Patches for rebirth UI issues
-  - `src/StarterGui/RebirthUI_Enhanced.client.luau`: Enhanced version with additional features
-  - `src/StarterGui/RebirthMenuUI.client.luau`: Menu system for rebirth options
+### Core UI Framework
+- **Centralized UI System**:
+  - `src/client/UI/Core/UISystem.luau`: Main entry point for the UI system that initializes components and provides access to core services
+  - `src/client/UI/Core/UIRegistry.luau`: Central registry for UI components with versioning and dependency tracking
+  - `src/client/UI/Core/UIManager.luau`: Handles UI operations like showing/hiding, animations, and notifications
+  - `src/client/UI/UIHub.luau`: Navigation controller that manages transitions between screens
+  - `src/shared/UIStyle.luau`: Centralized styling system with theme support
+  - `src/shared/ButtonFactory.luau`: Factory for creating consistently styled buttons
+
+### UI Components
+- **Rebirth UI**:
+  - `src/client/UI/RebirthUIComponent.luau`: Unified rebirth UI component conforming to the new system
+  - `src/StarterGui/RebirthUI.client.luau`: Legacy rebirth interface (to be migrated)
+  - `src/StarterGui/RebirthUIFixes.luau`: Legacy patches (to be consolidated)
+  - `src/StarterGui/RebirthUI_Enhanced.client.luau`: Legacy enhanced version (to be consolidated)
+  - `src/StarterGui/RebirthMenuUI.client.luau`: Legacy menu system (to be consolidated)
 
 - **Main Menu Systems**:
-  - `src/client/UI/MainMenuUI.client.luau`: Core menu implementation
-  - `src/client/UI/UIHub.client.luau`: Central controller for UI navigation
-  - `src/StarterGui/MainMenuUI.client.luau`: Primary menu interface
+  - `src/client/UI/MainMenuUI.client.luau`: Core menu implementation (to be updated)
+  - `src/StarterGui/MainMenuUI.client.luau`: Legacy menu interface (to be migrated)
 
 - **Settings Interfaces**:
-  - `src/client/UI/SettingsMenuUI.client.luau`: Main settings component
-  - `src/StarterGui/SettingsUI.client.luau`: Game settings interface
-  - `src/shared/SettingsMenu.luau`: Shared module for settings layout
+  - `src/client/UI/SettingsMenuUI.client.luau`: Main settings component (to be updated)
+  - `src/StarterGui/SettingsUI.client.luau`: Legacy settings interface (to be migrated)
+  - `src/shared/SettingsMenu.luau`: Legacy shared module (to be consolidated)
 
 - **Statistics Displays**:
-  - `src/client/UI/StatisticsDisplay.client.luau`: Detailed stats component
-  - `src/StarterGui/StatsGui.client.luau`: Compact stats interface
+  - `src/client/UI/StatisticsDisplay.client.luau`: Detailed stats component (to be updated)
+  - `src/StarterGui/StatsGui.client.luau`: Legacy stats interface (to be migrated)
 
 ## Core Systems
 
 - **Registry Systems**:
-  - `src/client/Core/ClientRegistry.client.luau`: Client-side registry
-  - `src/client/Core/ClientRegistryFixer.client.luau`: Client registry repair tools
-  - `src/server/Core/CoreRegistry.server.luau`: Server-side registry
-  - `src/server/Core/CoreRegistryInitializer.server.luau`: Server registry initialization
-  - `src/shared/ClientRegistry.lua`: Legacy shared registry
+  - `src/shared/Registry/RegistryBase.luau`: Base registry class with common functionality (Proposed)
+  - `src/client/Core/Registry/ClientRegistry.luau`: Client-specific registry implementation (Proposed)
+  - `src/server/Core/Registry/ServerRegistry.luau`: Server-specific registry implementation (Proposed)
+  - `src/shared/Registry/SharedRegistry.luau`: Shared registry for both client and server (Proposed)
+  - `src/client/Core/ClientRegistry.client.luau`: Legacy client-side registry (To be migrated)
+  - `src/client/Core/ClientRegistryFixer.client.luau`: Legacy client registry repair tools (To be migrated)
+  - `src/server/Core/CoreRegistry.server.luau`: Legacy server-side registry (To be migrated)
+  - `src/server/Core/CoreRegistryInitializer.server.luau`: Legacy server registry initialization (To be migrated)
+  - `src/shared/ClientRegistry.lua`: Legacy shared registry (To be migrated)
 
 - **Data Management**:
   - `src/server/Core/DataManager.server.luau`: Primary data system
@@ -140,11 +153,16 @@ This section groups scripts that serve similar functions across different direct
   - `src/client/DataManagementUI.client.luau`: Data management interface
 
 - **Event Systems**:
-  - `src/client/Core/ClientEvents.client.luau`: Client event system
-  - `src/client/Core/ClientEventBridge.client.luau`: Client-server communication
-  - `src/server/Core/EventBridge.server.luau`: Server event handling
-  - `src/server/Core/EventCreator.server.luau`: Event creation system
-  - `src/server/Essentials/EventBridge.server.luau`: Essential events communication
+  - `src/shared/Events/EventTypes.luau`: Definitions of event types and type checking (Proposed)
+  - `src/shared/Events/EventBase.luau`: Base event class with common functionality (Proposed)
+  - `src/client/Core/Events/ClientEvents.luau`: Client-side events management (Proposed)
+  - `src/server/Core/Events/ServerEvents.luau`: Server-side events management (Proposed)
+  - `src/shared/Events/EventBridge.luau`: Unified client-server communication (Proposed)
+  - `src/client/Core/ClientEvents.client.luau`: Legacy client event system (To be migrated)
+  - `src/client/Core/ClientEventBridge.client.luau`: Legacy client-server communication (To be migrated)
+  - `src/server/Core/EventBridge.server.luau`: Legacy server event handling (To be migrated)
+  - `src/server/Core/EventCreator.server.luau`: Legacy event creation system (To be migrated)
+  - `src/server/Essentials/EventBridge.server.luau`: Legacy essential events communication (To be migrated)
 
 ## Game Features
 

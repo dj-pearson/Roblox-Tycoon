@@ -2,15 +2,16 @@
 --[[
     UIRegistry.luau
     
-    Central registry for UI components with versioning, dependency tracking,
-    and component discovery. Acts as the single source of truth for UI components.
+    Central registry for UI components with versioning and dependency tracking.
+    Provides a way to register, discover, and manage UI components throughout
+    the application lifecycle.
     
     Features:
-    - Component registration with versioning
+    - Component registration and retrieval
+    - Version tracking and conflict detection
     - Dependency management
-    - Component lifecycle tracking
-    - Component discovery
-    - Error handling and logging
+    - Automatic component discovery
+    - Component initialization orchestration
     
     Author: Updated April 26, 2025
 ]]
@@ -20,149 +21,135 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Module and state variables
 local UIRegistry = {}
 local components = {}
-local dependencies = {}
-local versions = {}
 local componentStates = {}
+local componentVersions = {}
+local dependencies = {}
 
--- State constants
-local ComponentState = {
-    REGISTERED = "registered",
-    INITIALIZING = "initializing",
-    INITIALIZED = "initialized",
-    ERROR = "error"
-}
+-- Constants
+local VERSION_PATTERN = "^(%d+)%.(%d+)%.(%d+)$" -- Semantic versioning pattern (e.g., "1.0.0")
 
--- Version parsing utility
-local function parseVersion(versionString)
-    if not versionString then
-        return { major = 0, minor = 0, patch = 0 }
-    end
+--[[ Utility Functions ]]--
+
+-- Parse a semantic version string into a table of numbers
+local function parseVersion(versionStr)
+    if not versionStr then return nil end
     
-    local major, minor, patch = string.match(versionString, "(%d+)%.(%d+)%.(%d+)")
-    
+    local major, minor, patch = string.match(versionStr, VERSION_PATTERN)
     if not major then
-        major, minor = string.match(versionString, "(%d+)%.(%d+)")
-        patch = 0
-    end
-    
-    if not major then
-        major = string.match(versionString, "(%d+)")
-        minor, patch = 0, 0
-    end
-    
-    if not major then
-        return { major = 0, minor = 0, patch = 0 }
+        warn("Invalid version format: " .. tostring(versionStr) .. ". Expected format: x.y.z")
+        return nil
     end
     
     return {
-        major = tonumber(major) or 0,
-        minor = tonumber(minor) or 0,
-        patch = tonumber(patch) or 0
+        major = tonumber(major),
+        minor = tonumber(minor),
+        patch = tonumber(patch)
     }
 end
 
--- Version comparison utility
-local function isVersionSatisfied(available, required)
-    local availableVersion = parseVersion(available)
-    local requiredVersion = parseVersion(required)
+-- Compare two version tables
+local function compareVersions(v1, v2)
+    if not v1 or not v2 then return false end
     
-    -- Check major version first (breaking changes)
-    if availableVersion.major ~= requiredVersion.major then
-        return availableVersion.major > requiredVersion.major
-    end
-    
-    -- Same major version, check minor version (non-breaking additions)
-    if availableVersion.minor ~= requiredVersion.minor then
-        return availableVersion.minor > requiredVersion.minor
-    end
-    
-    -- Same minor version, check patch version (bug fixes)
-    return availableVersion.patch >= requiredVersion.patch
-end
-
--- Debug logging utility
-local function debugLog(message, level)
-    level = level or "Info"
-    local prefix = "[UIRegistry] "
-    
-    if level == "Info" then
-        print(prefix .. message)
-    elseif level == "Warning" then
-        warn(prefix .. message)
-    elseif level == "Error" then
-        error(prefix .. message)
-    end
-end
-
---[[ Public API Functions ]]--
-
--- Register a component with optional version
-function UIRegistry:registerComponent(name, component, version)
-    if not name or type(name) ~= "string" then
-        debugLog("Invalid component name", "Warning")
-        return false
-    end
-    
-    if not component then
-        debugLog("Cannot register nil component: " .. name, "Warning")
-        return false
-    end
-    
-    -- Store the component
-    components[name] = component
-    componentStates[name] = ComponentState.REGISTERED
-    
-    -- Store version if provided
-    if version then
-        versions[name] = version
-        debugLog("Registered component " .. name .. " v" .. version)
+    if v1.major > v2.major then
+        return 1
+    elseif v1.major < v2.major then
+        return -1
     else
-        versions[name] = "1.0.0" -- Default version
-        debugLog("Registered component " .. name .. " (unversioned)")
+        if v1.minor > v2.minor then
+            return 1
+        elseif v1.minor < v2.minor then
+            return -1
+        else
+            if v1.patch > v2.patch then
+                return 1
+            elseif v1.patch < v2.patch then
+                return -1
+            else
+                return 0 -- Versions are equal
+            end
+        end
+    end
+end
+
+-- Check if a component can be initialized based on its dependencies
+local function canInitializeComponent(name)
+    if not dependencies[name] then
+        return true -- No dependencies
     end
     
-    -- Check if any registered dependencies are satisfied by this component
-    for dependentName, deps in pairs(dependencies) do
-        for depName, requiredVersion in pairs(deps) do
-            if depName == name then
-                local available = versions[name]
-                if isVersionSatisfied(available, requiredVersion) then
-                    debugLog("Dependency satisfied: " .. dependentName .. " requires " .. name .. " v" .. requiredVersion .. ", got v" .. available)
-                else
-                    debugLog("Dependency version mismatch: " .. dependentName .. " requires " .. name .. " v" .. requiredVersion .. ", but got v" .. available, "Warning")
-                end
-            end
+    for depName, depVersion in pairs(dependencies[name]) do
+        local depComponent = components[depName]
+        
+        -- Dependency doesn't exist
+        if not depComponent then
+            return false
+        end
+        
+        -- Check if dependency is initialized
+        if componentStates[depName] ~= "initialized" then
+            return false
+        end
+        
+        -- Check version compatibility
+        local requiredVersion = parseVersion(depVersion)
+        local actualVersion = parseVersion(componentVersions[depName])
+        
+        if not requiredVersion or not actualVersion then
+            return false
+        end
+        
+        -- Major version must match, minor and patch must be >= required
+        if actualVersion.major ~= requiredVersion.major or
+           compareVersions(actualVersion, requiredVersion) < 0 then
+            return false
         end
     end
     
     return true
 end
 
--- Register a dependency
-function UIRegistry:registerDependency(componentName, dependencyName, requiredVersion)
-    if not componentName or not dependencyName then
-        debugLog("Invalid dependency registration parameters", "Warning")
+-- Safely initialize a component
+local function safeInitialize(component)
+    if not component or type(component) ~= "table" or not component.initialize then
         return false
     end
     
-    -- Initialize dependency table if needed
-    dependencies[componentName] = dependencies[componentName] or {}
+    local success, result = pcall(function()
+        return component:initialize()
+    end)
     
-    -- Store the dependency with version requirement
-    dependencies[componentName][dependencyName] = requiredVersion or "1.0.0"
+    return success and result
+end
+
+--[[ Public API Functions ]]--
+
+-- Register a component
+function UIRegistry:registerComponent(name, component, version)
+    if not name or not component then
+        warn("Cannot register component without name or implementation")
+        return false
+    end
     
-    -- Check if dependency is already registered
-    if components[dependencyName] then
-        local available = versions[dependencyName]
-        local required = requiredVersion or "1.0.0"
-        
-        if isVersionSatisfied(available, required) then
-            debugLog("Dependency already satisfied: " .. componentName .. " requires " .. dependencyName .. " v" .. required .. ", got v" .. available)
-        else
-            debugLog("Dependency version mismatch: " .. componentName .. " requires " .. dependencyName .. " v" .. required .. ", but got v" .. available, "Warning")
+    -- Check if component already exists with a different version
+    if components[name] and componentVersions[name] and componentVersions[name] ~= version then
+        warn("Component " .. name .. " already registered with version " .. componentVersions[name])
+        return false
+    end
+    
+    -- Register the component
+    components[name] = component
+    componentStates[name] = "registered"
+    
+    -- Set version if provided
+    if version then
+        -- Validate version format
+        if not parseVersion(version) then
+            warn("Invalid version format for component " .. name .. ": " .. tostring(version))
+            return false
         end
-    else
-        debugLog("Dependency not yet registered: " .. componentName .. " requires " .. dependencyName)
+        
+        componentVersions[name] = version
     end
     
     return true
@@ -173,149 +160,171 @@ function UIRegistry:getComponent(name)
     return components[name]
 end
 
--- Check if a component is registered
-function UIRegistry:hasComponent(name)
-    return components[name] ~= nil
-end
-
--- Get a component version
-function UIRegistry:getComponentVersion(name)
-    return versions[name]
-end
-
 -- Get all registered component names
 function UIRegistry:getAllComponentNames()
     local names = {}
-    for name in pairs(components) do
+    
+    for name, _ in pairs(components) do
         table.insert(names, name)
     end
+    
     return names
-end
-
--- Get all component dependencies
-function UIRegistry:getDependencies(componentName)
-    return dependencies[componentName] or {}
-end
-
--- Check if all dependencies are satisfied
-function UIRegistry:areDependenciesSatisfied(componentName)
-    local deps = dependencies[componentName]
-    if not deps then
-        return true  -- No dependencies
-    end
-    
-    for depName, requiredVersion in pairs(deps) do
-        local component = components[depName]
-        if not component then
-            return false  -- Dependency not registered
-        end
-        
-        local availableVersion = versions[depName]
-        if not isVersionSatisfied(availableVersion, requiredVersion) then
-            return false  -- Version requirement not met
-        end
-    end
-    
-    return true
-end
-
--- Update component state
-function UIRegistry:updateComponentState(name, state)
-    if not components[name] then
-        debugLog("Cannot update state for non-existent component: " .. name, "Warning")
-        return false
-    end
-    
-    if not ComponentState[state] then
-        debugLog("Invalid component state: " .. state, "Warning")
-        return false
-    end
-    
-    componentStates[name] = state
-    return true
 end
 
 -- Get component state
 function UIRegistry:getComponentState(name)
-    return componentStates[name]
+    return componentStates[name] or "unknown"
 end
 
--- Mark component as initialized
-function UIRegistry:setInitialized(name, success)
-    if not components[name] then
-        debugLog("Cannot mark non-existent component as initialized: " .. name, "Warning")
+-- Get component version
+function UIRegistry:getComponentVersion(name)
+    return componentVersions[name]
+end
+
+-- Register dependency
+function UIRegistry:registerDependency(componentName, dependencyName, minVersion)
+    if not componentName or not dependencyName then
+        warn("Cannot register dependency without component name or dependency name")
         return false
     end
     
-    if success == false then
-        componentStates[name] = ComponentState.ERROR
-        debugLog("Component initialization failed: " .. name, "Warning")
+    -- Ensure component is registered
+    if not components[componentName] then
+        warn("Cannot register dependency for unregistered component: " .. componentName)
+        return false
+    end
+    
+    -- Initialize dependencies table for this component if needed
+    if not dependencies[componentName] then
+        dependencies[componentName] = {}
+    end
+    
+    -- Register the dependency with version if provided
+    dependencies[componentName][dependencyName] = minVersion
+    
+    return true
+end
+
+-- Get dependencies for a component
+function UIRegistry:getDependencies(componentName)
+    return dependencies[componentName] or {}
+end
+
+-- Check if a component has a specific dependency
+function UIRegistry:hasDependency(componentName, dependencyName)
+    return dependencies[componentName] and dependencies[componentName][dependencyName] ~= nil
+end
+
+-- Initialize a component by name
+function UIRegistry:initializeComponent(name)
+    local component = components[name]
+    
+    if not component then
+        warn("Cannot initialize unknown component: " .. name)
+        return false
+    end
+    
+    -- Check if already initialized
+    if componentStates[name] == "initialized" then
+        return true
+    end
+    
+    -- Check if dependencies are satisfied
+    if not canInitializeComponent(name) then
+        warn("Cannot initialize component " .. name .. " due to unsatisfied dependencies")
+        componentStates[name] = "dependency_failed"
+        return false
+    end
+    
+    -- Try to initialize the component
+    componentStates[name] = "initializing"
+    
+    local success = safeInitialize(component)
+    
+    if success then
+        componentStates[name] = "initialized"
     else
-        componentStates[name] = ComponentState.INITIALIZED
-        debugLog("Component initialized: " .. name)
+        componentStates[name] = "init_failed"
+        warn("Failed to initialize component: " .. name)
     end
     
-    return true
+    return success
 end
 
--- Unregister a component
-function UIRegistry:unregisterComponent(name)
-    if not components[name] then
-        debugLog("Cannot unregister non-existent component: " .. name, "Warning")
-        return false
-    end
+-- Initialize all components in dependency order
+function UIRegistry:initializeAllComponents()
+    local initialized = {}
+    local failed = {}
     
-    -- Remove component
-    components[name] = nil
-    versions[name] = nil
-    componentStates[name] = nil
-    
-    -- Check for any dependencies that will be broken
-    for depName, deps in pairs(dependencies) do
-        if deps[name] then
-            debugLog("Breaking dependency: " .. depName .. " depends on " .. name, "Warning")
-        end
-    end
-    
-    -- Remove component's dependencies
-    dependencies[name] = nil
-    
-    debugLog("Unregistered component: " .. name)
-    return true
-end
-
--- Find components by pattern matching
-function UIRegistry:findComponents(pattern)
-    local matches = {}
+    -- First pass: initialize components without dependencies
     for name, component in pairs(components) do
-        if string.match(name, pattern) then
-            matches[name] = component
+        if not dependencies[name] or next(dependencies[name]) == nil then
+            if self:initializeComponent(name) then
+                table.insert(initialized, name)
+            else
+                table.insert(failed, name)
+            end
         end
     end
-    return matches
+    
+    -- Repeatedly try to initialize remaining components
+    local progress = true
+    local maxAttempts = 5
+    local attempt = 0
+    
+    while progress and attempt < maxAttempts do
+        progress = false
+        attempt = attempt + 1
+        
+        for name, component in pairs(components) do
+            if componentStates[name] ~= "initialized" and componentStates[name] ~= "init_failed" then
+                if canInitializeComponent(name) then
+                    if self:initializeComponent(name) then
+                        table.insert(initialized, name)
+                        progress = true
+                    else
+                        table.insert(failed, name)
+                    end
+                end
+            end
+        end
+    end
+    
+    -- If there are still uninitialized components, mark them as failed
+    for name, state in pairs(componentStates) do
+        if state ~= "initialized" and state ~= "init_failed" and not table.find(failed, name) then
+            table.insert(failed, name)
+        end
+    end
+    
+    return initialized, failed
 end
 
 -- Check for version conflicts
 function UIRegistry:checkVersionConflicts()
     local conflicts = {}
     
-    for componentName, deps in pairs(dependencies) do
-        for depName, requiredVersion in pairs(deps) do
-            if components[depName] then
-                local availableVersion = versions[depName]
-                if not isVersionSatisfied(availableVersion, requiredVersion) then
-                    conflicts[componentName] = conflicts[componentName] or {}
-                    conflicts[componentName][depName] = {
-                        required = requiredVersion,
-                        available = availableVersion
-                    }
+    -- Check for direct version conflicts between components and their dependencies
+    for componentName, componentDeps in pairs(dependencies) do
+        for depName, requiredVersion in pairs(componentDeps) do
+            local actualVersion = componentVersions[depName]
+            
+            if actualVersion then
+                local reqVersion = parseVersion(requiredVersion)
+                local actVersion = parseVersion(actualVersion)
+                
+                if reqVersion and actVersion then
+                    -- Major version must match, minor and patch must be >= required
+                    if actVersion.major ~= reqVersion.major or
+                       compareVersions(actVersion, reqVersion) < 0 then
+                        table.insert(conflicts, {
+                            component = componentName,
+                            dependency = depName,
+                            required = requiredVersion,
+                            actual = actualVersion
+                        })
+                    end
                 end
-            else
-                conflicts[componentName] = conflicts[componentName] or {}
-                conflicts[componentName][depName] = {
-                    required = requiredVersion,
-                    available = nil
-                }
             end
         end
     end
@@ -323,118 +332,69 @@ function UIRegistry:checkVersionConflicts()
     return conflicts
 end
 
--- Initialize all registered components
-function UIRegistry:initializeAllComponents()
-    local initialized = {}
-    local failed = {}
-    
-    for name, component in pairs(components) do
-        if componentStates[name] ~= ComponentState.INITIALIZED and type(component.initialize) == "function" then
-            componentStates[name] = ComponentState.INITIALIZING
-            
-            -- Check dependencies
-            if not self:areDependenciesSatisfied(name) then
-                debugLog("Cannot initialize " .. name .. " due to unsatisfied dependencies", "Warning")
-                componentStates[name] = ComponentState.ERROR
-                table.insert(failed, name)
-                continue
-            end
-            
-            -- Try to initialize
-            local success, result = pcall(function()
-                return component:initialize()
-            end)
-            
-            if success then
-                componentStates[name] = ComponentState.INITIALIZED
-                table.insert(initialized, name)
-                debugLog("Successfully initialized: " .. name)
-            else
-                componentStates[name] = ComponentState.ERROR
-                table.insert(failed, name)
-                debugLog("Failed to initialize: " .. name .. " - " .. tostring(result), "Warning")
-            end
-        end
-    end
-    
-    return initialized, failed
-end
-
--- Find UI modules in the workspace
+-- Discover UI modules in the workspace
 function UIRegistry:discoverUIModules()
     local discovered = {}
+    local srcFolder = ReplicatedStorage:FindFirstChild("src")
     
-    -- Define paths to search
-    local paths = {
-        ReplicatedStorage:FindFirstChild("src"),
-        game:GetService("StarterGui")
-    }
+    if not srcFolder then
+        warn("Source folder not found for UI component discovery")
+        return discovered
+    end
     
-    -- Helper function to search for UI modules
-    local function searchForUIModules(parent, prefix)
-        prefix = prefix or ""
-        
-        for _, child in ipairs(parent:GetChildren()) do
-            if child:IsA("ModuleScript") and 
-               (string.match(child.Name, "UI") or 
-                string.match(child.Name, "Gui")) then
+    local clientFolder = srcFolder:FindFirstChild("client")
+    if not clientFolder then
+        warn("Client folder not found for UI component discovery")
+        return discovered
+    end
+    
+    local uiFolder = clientFolder:FindFirstChild("UI")
+    if not uiFolder then
+        warn("UI folder not found for component discovery")
+        return discovered
+    end
+    
+    -- Helper function to search for modules
+    local function searchForModules(folder)
+        for _, child in ipairs(folder:GetChildren()) do
+            if child:IsA("ModuleScript") then
+                -- Attempt to require the module
+                local success, result = pcall(function()
+                    return require(child)
+                end)
                 
-                local path = prefix .. child.Name
-                table.insert(discovered, {
-                    name = child.Name,
-                    path = path,
-                    module = child
-                })
-            elseif child:IsA("Folder") or child:IsA("Configuration") then
-                searchForUIModules(child, prefix .. child.Name .. ".")
+                if success and type(result) == "table" then
+                    -- Check if it has the expected UI component interface
+                    if result.initialize and (result.show or result.hide) then
+                        local name = child.Name:gsub("%.luau$", ""):gsub("%.lua$", "")
+                        
+                        -- Register the component
+                        if self:registerComponent(name, result) then
+                            table.insert(discovered, name)
+                        end
+                    end
+                end
+            elseif child:IsA("Folder") then
+                -- Recursively search subfolders
+                searchForModules(child)
             end
         end
     end
     
-    -- Search in all defined paths
-    for _, path in ipairs(paths) do
-        if path then
-            searchForUIModules(path)
-        end
-    end
+    -- Start the search
+    searchForModules(uiFolder)
     
     return discovered
 end
 
--- Auto-register discovered UI modules
-function UIRegistry:autoRegisterUIModules()
-    local discovered = self:discoverUIModules()
-    local registered = {}
+-- Reset registry (mainly for testing)
+function UIRegistry:reset()
+    components = {}
+    componentStates = {}
+    componentVersions = {}
+    dependencies = {}
     
-    for _, info in ipairs(discovered) do
-        local module = requireSafely(info.module)
-        if module then
-            local success = self:registerComponent(info.name:gsub("%.client", ""), module)
-            if success then
-                table.insert(registered, info.name)
-            end
-        end
-    end
-    
-    return registered
-end
-
--- Safe require utility
-local function requireSafely(moduleScript)
-    if not moduleScript or not moduleScript:IsA("ModuleScript") then
-        return nil
-    end
-    
-    local success, result = pcall(function()
-        return require(moduleScript)
-    end)
-    
-    if not success then
-        debugLog("Failed to load module: " .. moduleScript.Name .. " - " .. tostring(result), "Warning")
-        return nil
-    end
-    
-    return result
+    return true
 end
 
 -- Return the module

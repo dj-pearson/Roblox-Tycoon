@@ -2,22 +2,23 @@
 --[[
     UIManager.luau
     
-    Central manager for UI operations including showing/hiding elements,
-    animations, notifications, and modal dialogs.
+    Handles UI operations like showing/hiding, animations, and notifications.
+    Provides a set of utility functions for manipulating UI elements and
+    creating consistent user experiences.
     
     Features:
-    - Unified show/hide functionality
-    - Consistent animation system
+    - UI visibility management
+    - Animation utilities (fade, slide, scale)
     - Notification system
-    - Modal dialog management
+    - Modal dialog system
     - UI state tracking
     
     Author: Updated April 26, 2025
 ]]
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -25,6 +26,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 -- Safe require utility
 local function requireSafely(moduleScript)
     if not moduleScript or not moduleScript:IsA("ModuleScript") then
+        warn("Invalid module script provided to requireSafely")
         return nil
     end
     
@@ -48,782 +50,974 @@ if not srcFolder then
 end
 
 local sharedFolder = srcFolder:FindFirstChild("shared")
-if not sharedFolder then
-    error("Shared folder not found")
-    return
-end
-
-local clientFolder = srcFolder:FindFirstChild("client")
-local clientUIFolder = clientFolder and clientFolder:FindFirstChild("UI")
-local uiCoreFolder = clientUIFolder and clientUIFolder:FindFirstChild("Core")
-
--- Required modules
-local UIRegistry = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIRegistry"))
-
--- Create fallbacks for critical dependencies
-if not UIRegistry then
-    warn("UIRegistry module not found, using fallback implementation")
-    UIRegistry = {
-        getComponent = function(_, name)
-            return nil
-        end,
-        registerComponent = function(_, name, component)
-            return true
-        end
-    }
-end
+local UIStyle = requireSafely(sharedFolder and sharedFolder:FindFirstChild("UIStyle"))
 
 -- Module and state variables
 local UIManager = {}
-local activeUIs = {}
-local notifications = {}
+local visibleUIs = {}
 local activeModals = {}
-local animationQueue = {}
-local isProcessingAnimation = false
+local activeNotifications = {}
+local notificationQueue = {}
+local notificationContainers = {}
+local idCounter = 0
 
--- UI Style fallback (normally would be loaded from a shared module)
-local UIStyle = {
-    Colors = {
-        Primary = Color3.fromRGB(0, 120, 215),
-        Secondary = Color3.fromRGB(45, 45, 45),
-        Background = Color3.fromRGB(30, 30, 30),
-        Text = Color3.fromRGB(255, 255, 255),
-        TextDisabled = Color3.fromRGB(150, 150, 150),
-        Success = Color3.fromRGB(46, 204, 113),
-        Warning = Color3.fromRGB(230, 126, 34),
-        Error = Color3.fromRGB(231, 76, 60)
-    },
-    Fonts = {
-        Regular = Enum.Font.Gotham,
-        Bold = Enum.Font.GothamBold,
-        Light = Enum.Font.GothamMedium
-    },
-    Animations = {
-        Standard = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        Fast = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        Slow = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    }
-}
-
--- Configuration
+-- Default configuration
 local CONFIG = {
-    notificationDuration = 3, -- Default notification duration in seconds
-    maxNotifications = 5, -- Maximum number of notifications shown simultaneously
-    notificationOffset = 10, -- Spacing between notifications
-    notificationWidth = 300, -- Width of notification
-    notificationHeight = 80, -- Height of notification
-    modalBackgroundTransparency = 0.5 -- Transparency of modal background overlay
+    modalZIndex = 10,
+    notificationZIndex = 100,
+    notificationDuration = 5, -- seconds
+    maxNotifications = 5,
+    animationDurations = {
+        fast = 0.15,
+        normal = 0.3,
+        slow = 0.5
+    }
 }
 
 --[[ Animation Functions ]]--
 
--- Process animation queue (one at a time to avoid conflicts)
-local function processAnimationQueue()
-    if isProcessingAnimation or #animationQueue == 0 then
-        return
-    end
-    
-    isProcessingAnimation = true
-    
-    local item = table.remove(animationQueue, 1)
-    local func = item.func
-    
-    -- Call animation function
-    local result = func()
-    
-    -- If it's a promise or yields, handle it
-    if typeof(result) == "function" then
-        -- It returned a callback function to run when done
-        result(function()
-            isProcessingAnimation = false
-            processAnimationQueue()
-        end)
-    else
-        -- It completed synchronously
-        task.delay(item.duration or 0.3, function()
-            isProcessingAnimation = false
-            processAnimationQueue()
-        end)
-    end
-end
-
--- Queue an animation
-local function queueAnimation(func, duration)
-    table.insert(animationQueue, {
-        func = func,
-        duration = duration
-    })
-    
-    if not isProcessingAnimation then
-        processAnimationQueue()
-    end
-end
-
 -- Fade in animation
 function UIManager:fadeIn(instance, duration, callback)
-    if not instance then
-        if callback then callback() end
-        return
+    if not instance then return end
+    
+    -- Store original transparency and ZIndex values
+    local originalTransparency = {}
+    local originalZIndex = {}
+    
+    -- Apply to instance and all descendants
+    local function applyFade(obj)
+        if obj:IsA("GuiObject") then
+            originalTransparency[obj] = obj.BackgroundTransparency
+            originalZIndex[obj] = obj.ZIndex
+            
+            obj.BackgroundTransparency = 1
+            obj.ZIndex = obj.ZIndex + 1 -- Ensure it appears above other elements
+            
+            -- Handle special cases
+            if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                obj.TextTransparency = 1
+            end
+            
+            if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+                obj.ImageTransparency = 1
+            end
+        end
+        
+        -- Apply to children
+        for _, child in ipairs(obj:GetChildren()) do
+            applyFade(child)
+        end
     end
     
-    duration = duration or 0.3
+    -- Apply initial transparent state
+    applyFade(instance)
     
-    queueAnimation(function()
-        instance.Visible = true
-        instance.BackgroundTransparency = 1
+    -- Make the instance visible
+    instance.Visible = true
+    
+    -- Create tweens for all affected objects
+    local tweens = {}
+    
+    local function createTweens(obj)
+        if obj:IsA("GuiObject") then
+            -- Determine original transparency
+            local origTransparency = originalTransparency[obj] or 0
+            
+            -- Create background tween
+            local tweenInfo = TweenInfo.new(duration or CONFIG.animationDurations.normal, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+            local backgroundTween = TweenService:Create(obj, tweenInfo, {
+                BackgroundTransparency = origTransparency
+            })
+            
+            table.insert(tweens, backgroundTween)
+            
+            -- Handle special cases
+            if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                local textTween = TweenService:Create(obj, tweenInfo, {
+                    TextTransparency = 0
+                })
+                table.insert(tweens, textTween)
+            end
+            
+            if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+                local imageTween = TweenService:Create(obj, tweenInfo, {
+                    ImageTransparency = 0
+                })
+                table.insert(tweens, imageTween)
+            end
+        end
         
-        -- Find all text labels and set them transparent
-        local textLabels = {}
-        local function findTextObjects(parent)
-            for _, child in ipairs(parent:GetChildren()) do
-                if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
-                    table.insert(textLabels, child)
-                    child.TextTransparency = 1
-                elseif child:IsA("ImageLabel") or child:IsA("ImageButton") then
-                    table.insert(textLabels, child)
-                    child.ImageTransparency = 1
+        -- Create tweens for children
+        for _, child in ipairs(obj:GetChildren()) do
+            createTweens(child)
+        end
+    end
+    
+    -- Create all the tweens
+    createTweens(instance)
+    
+    -- Play all tweens
+    for _, tween in ipairs(tweens) do
+        tween:Play()
+    end
+    
+    -- Wait for tweens to complete
+    if #tweens > 0 then
+        tweens[1].Completed:Connect(function()
+            -- Restore original ZIndex values
+            for obj, zindex in pairs(originalZIndex) do
+                if obj and obj:IsA("GuiObject") then
+                    obj.ZIndex = zindex
                 end
-                
-                findTextObjects(child)
             end
-        end
-        
-        findTextObjects(instance)
-        
-        -- Create tweens
-        local backgroundTween = TweenService:Create(
-            instance,
-            TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            { BackgroundTransparency = 0 }
-        )
-        
-        local textTweens = {}
-        for _, textObject in ipairs(textLabels) do
-            if textObject:IsA("TextLabel") or textObject:IsA("TextButton") or textObject:IsA("TextBox") then
-                table.insert(textTweens, TweenService:Create(
-                    textObject,
-                    TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    { TextTransparency = 0 }
-                ))
-            elseif textObject:IsA("ImageLabel") or textObject:IsA("ImageButton") then
-                table.insert(textTweens, TweenService:Create(
-                    textObject,
-                    TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    { ImageTransparency = 0 }
-                ))
+            
+            -- Call the callback if provided
+            if callback then
+                callback()
             end
+        end)
+    else
+        -- No tweens were created, call callback immediately
+        if callback then
+            callback()
         end
-        
-        -- Play tweens
-        backgroundTween:Play()
-        for _, tween in ipairs(textTweens) do
-            tween:Play()
-        end
-        
-        -- Return completion callback
-        return function(done)
-            backgroundTween.Completed:Connect(function()
-                if callback then callback() end
-                if done then done() end
-            end)
-        end
-    end, duration)
+    end
 end
 
 -- Fade out animation
 function UIManager:fadeOut(instance, duration, callback)
-    if not instance then
-        if callback then callback() end
-        return
-    end
+    if not instance then return end
     
-    duration = duration or 0.3
+    -- Create tweens for all affected objects
+    local tweens = {}
     
-    queueAnimation(function()
-        if not instance.Visible then
-            if callback then callback() end
-            return
-        end
-        
-        -- Find all text labels
-        local textLabels = {}
-        local function findTextObjects(parent)
-            for _, child in ipairs(parent:GetChildren()) do
-                if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
-                    table.insert(textLabels, child)
-                elseif child:IsA("ImageLabel") or child:IsA("ImageButton") then
-                    table.insert(textLabels, child)
-                end
-                
-                findTextObjects(child)
+    local function createTweens(obj)
+        if obj:IsA("GuiObject") then
+            -- Create background tween
+            local tweenInfo = TweenInfo.new(duration or CONFIG.animationDurations.normal, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
+            local backgroundTween = TweenService:Create(obj, tweenInfo, {
+                BackgroundTransparency = 1
+            })
+            
+            table.insert(tweens, backgroundTween)
+            
+            -- Handle special cases
+            if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                local textTween = TweenService:Create(obj, tweenInfo, {
+                    TextTransparency = 1
+                })
+                table.insert(tweens, textTween)
+            end
+            
+            if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+                local imageTween = TweenService:Create(obj, tweenInfo, {
+                    ImageTransparency = 1
+                })
+                table.insert(tweens, imageTween)
             end
         end
         
-        findTextObjects(instance)
-        
-        -- Create tweens
-        local backgroundTween = TweenService:Create(
-            instance,
-            TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            { BackgroundTransparency = 1 }
-        )
-        
-        local textTweens = {}
-        for _, textObject in ipairs(textLabels) do
-            if textObject:IsA("TextLabel") or textObject:IsA("TextButton") or textObject:IsA("TextBox") then
-                table.insert(textTweens, TweenService:Create(
-                    textObject,
-                    TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    { TextTransparency = 1 }
-                ))
-            elseif textObject:IsA("ImageLabel") or textObject:IsA("ImageButton") then
-                table.insert(textTweens, TweenService:Create(
-                    textObject,
-                    TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    { ImageTransparency = 1 }
-                ))
+        -- Create tweens for children
+        for _, child in ipairs(obj:GetChildren()) do
+            createTweens(child)
+        end
+    end
+    
+    -- Create all the tweens
+    createTweens(instance)
+    
+    -- Play all tweens
+    for _, tween in ipairs(tweens) do
+        tween:Play()
+    end
+    
+    -- Wait for tweens to complete
+    if #tweens > 0 then
+        tweens[1].Completed:Connect(function()
+            -- Hide the instance
+            instance.Visible = false
+            
+            -- Call the callback if provided
+            if callback then
+                callback()
             end
-        end
+        end)
+    else
+        -- No tweens were created, hide immediately and call callback
+        instance.Visible = false
         
-        -- Play tweens
-        backgroundTween:Play()
-        for _, tween in ipairs(textTweens) do
-            tween:Play()
+        if callback then
+            callback()
         end
-        
-        -- Return completion callback
-        return function(done)
-            backgroundTween.Completed:Connect(function()
-                instance.Visible = false
-                if callback then callback() end
-                if done then done() end
-            end)
-        end
-    end, duration)
-end
-
--- Scale in animation
-function UIManager:scaleIn(instance, duration, callback)
-    if not instance then
-        if callback then callback() end
-        return
     end
-    
-    duration = duration or 0.3
-    
-    queueAnimation(function()
-        instance.Visible = true
-        instance.Size = UDim2.new(
-            instance.Size.X.Scale, 0,
-            instance.Size.Y.Scale, 0
-        )
-        
-        -- Create tween
-        local sizeTween = TweenService:Create(
-            instance,
-            TweenInfo.new(duration, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-            { Size = UDim2.new(
-                instance.Size.X.Scale, instance.Size.X.Offset,
-                instance.Size.Y.Scale, instance.Size.Y.Offset
-            )}
-        )
-        
-        -- Play tween
-        sizeTween:Play()
-        
-        -- Return completion callback
-        return function(done)
-            sizeTween.Completed:Connect(function()
-                if callback then callback() end
-                if done then done() end
-            end)
-        end
-    end, duration)
-end
-
--- Scale out animation
-function UIManager:scaleOut(instance, duration, callback)
-    if not instance then
-        if callback then callback() end
-        return
-    end
-    
-    duration = duration or 0.3
-    
-    queueAnimation(function()
-        -- Store original size
-        local originalSize = instance.Size
-        
-        -- Create tween
-        local sizeTween = TweenService:Create(
-            instance,
-            TweenInfo.new(duration, Enum.EasingStyle.Back, Enum.EasingDirection.In),
-            { Size = UDim2.new(
-                originalSize.X.Scale, 0,
-                originalSize.Y.Scale, 0
-            )}
-        )
-        
-        -- Play tween
-        sizeTween:Play()
-        
-        -- Return completion callback
-        return function(done)
-            sizeTween.Completed:Connect(function()
-                instance.Visible = false
-                -- Restore original size
-                instance.Size = originalSize
-                if callback then callback() end
-                if done then done() end
-            end)
-        end
-    end, duration)
 end
 
 -- Slide in animation
 function UIManager:slideIn(instance, direction, duration, callback)
-    if not instance then
-        if callback then callback() end
-        return
+    if not instance then return end
+    
+    direction = direction or "right"
+    duration = duration or CONFIG.animationDurations.normal
+    
+    -- Store original position
+    local originalPosition = instance.Position
+    
+    -- Determine start position based on direction
+    local startPosition
+    if direction == "right" then
+        startPosition = UDim2.new(1, 0, originalPosition.Y.Scale, originalPosition.Y.Offset)
+    elseif direction == "left" then
+        startPosition = UDim2.new(-1, 0, originalPosition.Y.Scale, originalPosition.Y.Offset)
+    elseif direction == "top" then
+        startPosition = UDim2.new(originalPosition.X.Scale, originalPosition.X.Offset, -1, 0)
+    elseif direction == "bottom" then
+        startPosition = UDim2.new(originalPosition.X.Scale, originalPosition.X.Offset, 1, 0)
+    else
+        warn("Invalid slide direction: " .. direction)
+        startPosition = originalPosition
     end
     
-    duration = duration or 0.3
-    direction = direction or "right" -- "right", "left", "top", "bottom"
+    -- Set initial position
+    instance.Position = startPosition
     
-    queueAnimation(function()
-        instance.Visible = true
-        
-        -- Store original position
-        local originalPosition = instance.Position
-        
-        -- Set starting position based on direction
-        if direction == "right" then
-            instance.Position = UDim2.new(1, 0, originalPosition.Y.Scale, originalPosition.Y.Offset)
-        elseif direction == "left" then
-            instance.Position = UDim2.new(-1, 0, originalPosition.Y.Scale, originalPosition.Y.Offset)
-        elseif direction == "bottom" then
-            instance.Position = UDim2.new(originalPosition.X.Scale, originalPosition.X.Offset, 1, 0)
-        else -- top
-            instance.Position = UDim2.new(originalPosition.X.Scale, originalPosition.X.Offset, -1, 0)
+    -- Make instance visible
+    instance.Visible = true
+    
+    -- Create and play tween
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(instance, tweenInfo, {
+        Position = originalPosition
+    })
+    
+    tween:Play()
+    
+    -- Wait for tween to complete
+    tween.Completed:Connect(function()
+        -- Call the callback if provided
+        if callback then
+            callback()
         end
-        
-        -- Create tween
-        local positionTween = TweenService:Create(
-            instance,
-            TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            { Position = originalPosition }
-        )
-        
-        -- Play tween
-        positionTween:Play()
-        
-        -- Return completion callback
-        return function(done)
-            positionTween.Completed:Connect(function()
-                if callback then callback() end
-                if done then done() end
-            end)
-        end
-    end, duration)
+    end)
 end
 
 -- Slide out animation
 function UIManager:slideOut(instance, direction, duration, callback)
-    if not instance then
-        if callback then callback() end
-        return
+    if not instance then return end
+    
+    direction = direction or "right"
+    duration = duration or CONFIG.animationDurations.normal
+    
+    -- Store original position
+    local originalPosition = instance.Position
+    
+    -- Determine end position based on direction
+    local endPosition
+    if direction == "right" then
+        endPosition = UDim2.new(1, 0, originalPosition.Y.Scale, originalPosition.Y.Offset)
+    elseif direction == "left" then
+        endPosition = UDim2.new(-1, 0, originalPosition.Y.Scale, originalPosition.Y.Offset)
+    elseif direction == "top" then
+        endPosition = UDim2.new(originalPosition.X.Scale, originalPosition.X.Offset, -1, 0)
+    elseif direction == "bottom" then
+        endPosition = UDim2.new(originalPosition.X.Scale, originalPosition.X.Offset, 1, 0)
+    else
+        warn("Invalid slide direction: " .. direction)
+        endPosition = originalPosition
     end
     
-    duration = duration or 0.3
-    direction = direction or "right" -- "right", "left", "top", "bottom"
+    -- Create and play tween
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+    local tween = TweenService:Create(instance, tweenInfo, {
+        Position = endPosition
+    })
     
-    queueAnimation(function()
-        -- Store original position
-        local originalPosition = instance.Position
+    tween:Play()
+    
+    -- Wait for tween to complete
+    tween.Completed:Connect(function()
+        -- Hide the instance
+        instance.Visible = false
         
-        -- Determine target position based on direction
-        local targetPosition
-        if direction == "right" then
-            targetPosition = UDim2.new(1, 0, originalPosition.Y.Scale, originalPosition.Y.Offset)
-        elseif direction == "left" then
-            targetPosition = UDim2.new(-1, 0, originalPosition.Y.Scale, originalPosition.Y.Offset)
-        elseif direction == "bottom" then
-            targetPosition = UDim2.new(originalPosition.X.Scale, originalPosition.X.Offset, 1, 0)
-        else -- top
-            targetPosition = UDim2.new(originalPosition.X.Scale, originalPosition.X.Offset, -1, 0)
+        -- Reset position to original
+        instance.Position = originalPosition
+        
+        -- Call the callback if provided
+        if callback then
+            callback()
+        end
+    end)
+end
+
+-- Scale in animation
+function UIManager:scaleIn(instance, duration, callback)
+    if not instance then return end
+    
+    duration = duration or CONFIG.animationDurations.normal
+    
+    -- Store original size and position
+    local originalSize = instance.Size
+    local originalPosition = instance.Position
+    
+    -- Set initial state
+    instance.Size = UDim2.new(0, 0, 0, 0)
+    instance.Position = UDim2.new(0.5, 0, 0.5, 0)
+    instance.AnchorPoint = Vector2.new(0.5, 0.5)
+    
+    -- Make instance visible
+    instance.Visible = true
+    
+    -- Create and play tween
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(instance, tweenInfo, {
+        Size = originalSize,
+        Position = originalPosition
+    })
+    
+    tween:Play()
+    
+    -- Wait for tween to complete
+    tween.Completed:Connect(function()
+        -- Call the callback if provided
+        if callback then
+            callback()
+        end
+    end)
+end
+
+-- Scale out animation
+function UIManager:scaleOut(instance, duration, callback)
+    if not instance then return end
+    
+    duration = duration or CONFIG.animationDurations.normal
+    
+    -- Store original size and position for restoration later
+    local originalSize = instance.Size
+    local originalPosition = instance.Position
+    local originalAnchorPoint = instance.AnchorPoint
+    
+    -- Set anchor point to center for scaling animation
+    instance.AnchorPoint = Vector2.new(0.5, 0.5)
+    local centerPosition = UDim2.new(0.5, 0, 0.5, 0)
+    
+    -- Create and play tween
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+    local tween = TweenService:Create(instance, tweenInfo, {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = centerPosition
+    })
+    
+    tween:Play()
+    
+    -- Wait for tween to complete
+    tween.Completed:Connect(function()
+        -- Hide the instance
+        instance.Visible = false
+        
+        -- Reset to original properties
+        instance.Size = originalSize
+        instance.Position = originalPosition
+        instance.AnchorPoint = originalAnchorPoint
+        
+        -- Call the callback if provided
+        if callback then
+            callback()
+        end
+    end)
+end
+
+--[[ UI Management Functions ]]--
+
+-- Show a UI with animation
+function UIManager:showUI(name, component, animationType, duration, ...)
+    if not component then
+        warn("Cannot show UI without component")
+        return false
+    end
+    
+    -- Check if component has a show method
+    if not component.show then
+        warn("Component does not have a show method")
+        return false
+    end
+    
+    -- Call the component's show method
+    local result = component:show(...)
+    
+    -- If the component returned an instance, animate it
+    if result and typeof(result) == "Instance" then
+        -- Apply animation based on type
+        if animationType == "fade" then
+            self:fadeIn(result, duration)
+        elseif animationType == "slide" then
+            self:slideIn(result, "right", duration)
+        elseif animationType == "scale" then
+            self:scaleIn(result, duration)
         end
         
-        -- Create tween
-        local positionTween = TweenService:Create(
-            instance,
-            TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-            { Position = targetPosition }
-        )
-        
-        -- Play tween
-        positionTween:Play()
-        
-        -- Return completion callback
-        return function(done)
-            positionTween.Completed:Connect(function()
-                instance.Visible = false
-                -- Restore original position
-                instance.Position = originalPosition
-                if callback then callback() end
-                if done then done() end
+        -- Store the instance for later reference
+        component.instance = result
+    elseif component.instance then
+        -- Component already has an instance, make it visible with animation
+        if animationType == "fade" then
+            self:fadeIn(component.instance, duration)
+        elseif animationType == "slide" then
+            self:slideIn(component.instance, "right", duration)
+        elseif animationType == "scale" then
+            self:scaleIn(component.instance, duration)
+        else
+            component.instance.Visible = true
+        end
+    end
+    
+    -- Mark UI as visible
+    visibleUIs[name] = component
+    
+    return true
+end
+
+-- Hide a UI with animation
+function UIManager:hideUI(name, animationType, duration, callback)
+    local component = visibleUIs[name]
+    
+    if not component then
+        if callback then callback() end
+        return false
+    end
+    
+    -- Check if component has an instance or hide method
+    if component.instance then
+        -- Apply animation based on type
+        if animationType == "fade" then
+            self:fadeOut(component.instance, duration, function()
+                -- Call the component's hide method
+                if component.hide then
+                    component:hide()
+                end
+                
+                -- Call the callback if provided
+                if callback then
+                    callback()
+                end
             end)
+        elseif animationType == "slide" then
+            self:slideOut(component.instance, "right", duration, function()
+                -- Call the component's hide method
+                if component.hide then
+                    component:hide()
+                end
+                
+                -- Call the callback if provided
+                if callback then
+                    callback()
+                end
+            end)
+        elseif animationType == "scale" then
+            self:scaleOut(component.instance, duration, function()
+                -- Call the component's hide method
+                if component.hide then
+                    component:hide()
+                end
+                
+                -- Call the callback if provided
+                if callback then
+                    callback()
+                end
+            end)
+        else
+            -- No animation, just hide
+            component.instance.Visible = false
+            
+            -- Call the component's hide method
+            if component.hide then
+                component:hide()
+            end
+            
+            -- Call the callback if provided
+            if callback then
+                callback()
+            end
         end
-    end, duration)
+    elseif component.hide then
+        -- No instance but has hide method
+        component:hide()
+        
+        -- Call the callback if provided
+        if callback then
+            callback()
+        end
+    else
+        -- No instance or hide method
+        if callback then callback() end
+        return false
+    end
+    
+    -- Mark UI as hidden
+    visibleUIs[name] = nil
+    
+    return true
+end
+
+-- Check if a UI is visible
+function UIManager:isUIVisible(name)
+    return visibleUIs[name] ~= nil
+end
+
+-- Hide all UIs
+function UIManager:hideAllUIs(animationType, duration)
+    local hiddenCount = 0
+    
+    for name, _ in pairs(visibleUIs) do
+        if self:hideUI(name, animationType, duration) then
+            hiddenCount = hiddenCount + 1
+        end
+    end
+    
+    return hiddenCount
 end
 
 --[[ Notification Functions ]]--
 
--- Create notification container
-local function createNotificationContainer()
+-- Get or create notification container
+local function getNotificationContainer()
     -- Check if container already exists
-    local container = PlayerGui:FindFirstChild("UINotifications")
-    if container then
-        return container
+    for _, container in pairs(notificationContainers) do
+        if container.Parent then
+            return container
+        end
     end
     
     -- Create new container
-    container = Instance.new("ScreenGui")
-    container.Name = "UINotifications"
-    container.ResetOnSpawn = false
-    container.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    container.Parent = PlayerGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NotificationContainer"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = PlayerGui
     
-    -- Create frame for notifications
     local frame = Instance.new("Frame")
-    frame.Name = "NotificationFrame"
-    frame.Size = UDim2.new(0, CONFIG.notificationWidth, 1, 0)
-    frame.Position = UDim2.new(1, -CONFIG.notificationWidth - 20, 0, 0)
+    frame.Name = "NotificationsFrame"
+    frame.Size = UDim2.new(0, 300, 1, -20)
+    frame.Position = UDim2.new(1, -320, 0, 10)
     frame.BackgroundTransparency = 1
-    frame.Parent = container
+    frame.Parent = screenGui
     
-    -- Add layout for notifications
+    -- Create layout for notifications
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, CONFIG.notificationOffset)
+    layout.Padding = UDim.new(0, 10)
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     layout.VerticalAlignment = Enum.VerticalAlignment.Top
-    layout.SortOrder = Enum.SortOrder.Name
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = frame
     
-    return container
+    -- Store the container
+    table.insert(notificationContainers, frame)
+    
+    return frame
 end
 
 -- Create a notification
 function UIManager:createNotification(options)
-    if not options or not options.message then
-        warn("Cannot create notification without a message")
-        return nil
-    end
+    -- Generate unique ID
+    idCounter = idCounter + 1
+    local id = "notification_" .. idCounter
     
-    local notificationType = options.type or "info" -- "info", "success", "warning", "error"
-    local duration = options.duration or CONFIG.notificationDuration
-    local title = options.title
-    
-    -- Get container
-    local container = createNotificationContainer()
-    local frame = container:FindFirstChild("NotificationFrame")
-    if not frame then
-        return nil
-    end
-    
-    -- Limit number of notifications
-    if #notifications >= CONFIG.maxNotifications then
-        -- Remove the oldest notification
-        local oldest = notifications[1]
-        if oldest and oldest.instance then
-            self:fadeOut(oldest.instance, 0.2, function()
-                oldest.instance:Destroy()
-            end)
-            table.remove(notifications, 1)
-        end
-    end
+    -- Default options
+    options = options or {}
+    options.title = options.title or "Notification"
+    options.message = options.message or ""
+    options.type = options.type or "info"  -- info, success, warning, error
+    options.duration = options.duration or CONFIG.notificationDuration
+    options.closable = options.closable ~= false  -- true by default
     
     -- Create notification instance
-    local notification = Instance.new("Frame")
-    notification.Name = "Notification_" .. tostring(#notifications + 1)
-    notification.Size = UDim2.new(1, -20, 0, CONFIG.notificationHeight)
-    notification.BackgroundColor3 = getNotificationColor(notificationType)
-    notification.BorderSizePixel = 0
-    notification.BackgroundTransparency = 1
-    notification.Visible = false
-    notification.Parent = frame
+    local notification = {}
+    notification.id = id
+    notification.options = options
+    
+    -- Add to queue if too many active notifications
+    if #activeNotifications >= CONFIG.maxNotifications then
+        table.insert(notificationQueue, notification)
+        return notification
+    end
+    
+    -- Create UI elements
+    local container = getNotificationContainer()
+    
+    local frame = Instance.new("Frame")
+    frame.Name = id
+    frame.Size = UDim2.new(1, -20, 0, 80)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    frame.BorderSizePixel = 0
+    frame.ClipsDescendants = true
+    frame.LayoutOrder = idCounter
+    frame.Parent = container
+    
+    -- Get theme-appropriate color
+    local themeColor
+    if UIStyle then
+        if options.type == "success" then
+            themeColor = UIStyle:getColor("Success")
+        elseif options.type == "warning" then
+            themeColor = UIStyle:getColor("Warning")
+        elseif options.type == "error" then
+            themeColor = UIStyle:getColor("Error")
+        else -- info
+            themeColor = UIStyle:getColor("Primary")
+        end
+    else
+        -- Fallback colors
+        if options.type == "success" then
+            themeColor = Color3.fromRGB(46, 204, 113)
+        elseif options.type == "warning" then
+            themeColor = Color3.fromRGB(230, 126, 34)
+        elseif options.type == "error" then
+            themeColor = Color3.fromRGB(231, 76, 60)
+        else -- info
+            themeColor = Color3.fromRGB(52, 152, 219)
+        end
+    end
     
     -- Add corner radius
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = notification
+    corner.Parent = frame
     
-    -- Add shadow
-    local shadow = Instance.new("Frame")
-    shadow.Name = "Shadow"
-    shadow.Size = UDim2.new(1, 6, 1, 6)
-    shadow.Position = UDim2.new(0, -3, 0, -3)
-    shadow.BackgroundColor3 = Color3.new(0, 0, 0)
-    shadow.BackgroundTransparency = 0.7
-    shadow.BorderSizePixel = 0
-    shadow.ZIndex = notification.ZIndex - 1
-    shadow.Parent = notification
+    -- Add accent border on left
+    local accent = Instance.new("Frame")
+    accent.Name = "Accent"
+    accent.Size = UDim2.new(0, 4, 1, 0)
+    accent.Position = UDim2.new(0, 0, 0, 0)
+    accent.BackgroundColor3 = themeColor
+    accent.BorderSizePixel = 0
+    accent.Parent = frame
     
-    -- Add corner radius to shadow
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0, 10)
-    shadowCorner.Parent = shadow
+    -- Add title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -50, 0, 24)
+    title.Position = UDim2.new(0, 14, 0, 8)
+    title.BackgroundTransparency = 1
+    title.Text = options.title
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = frame
     
-    -- Add icon
-    local icon = Instance.new("TextLabel")
-    icon.Name = "Icon"
-    icon.Size = UDim2.new(0, 40, 0, 40)
-    icon.Position = UDim2.new(0, 10, 0.5, -20)
-    icon.BackgroundTransparency = 1
-    icon.TextColor3 = Color3.new(1, 1, 1)
-    icon.Font = UIStyle.Fonts.Bold
-    icon.TextSize = 24
-    icon.Text = getNotificationIcon(notificationType)
-    icon.TextTransparency = 1
-    icon.Parent = notification
+    -- Add message
+    local message = Instance.new("TextLabel")
+    message.Name = "Message"
+    message.Size = UDim2.new(1, -28, 1, -40)
+    message.Position = UDim2.new(0, 14, 0, 32)
+    message.BackgroundTransparency = 1
+    message.Text = options.message
+    message.TextColor3 = Color3.fromRGB(200, 200, 200)
+    message.Font = Enum.Font.Gotham
+    message.TextSize = 14
+    message.TextWrapped = true
+    message.TextXAlignment = Enum.TextXAlignment.Left
+    message.TextYAlignment = Enum.TextYAlignment.Top
+    message.Parent = frame
     
-    -- Add title if provided
-    if title then
-        local titleLabel = Instance.new("TextLabel")
-        titleLabel.Name = "Title"
-        titleLabel.Size = UDim2.new(1, -70, 0, 24)
-        titleLabel.Position = UDim2.new(0, 60, 0, 10)
-        titleLabel.BackgroundTransparency = 1
-        titleLabel.TextColor3 = Color3.new(1, 1, 1)
-        titleLabel.Font = UIStyle.Fonts.Bold
-        titleLabel.TextSize = 18
-        titleLabel.Text = title
-        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-        titleLabel.TextTransparency = 1
-        titleLabel.Parent = notification
+    -- Add close button if closable
+    if options.closable then
+        local closeButton = Instance.new("TextButton")
+        closeButton.Name = "CloseButton"
+        closeButton.Size = UDim2.new(0, 24, 0, 24)
+        closeButton.Position = UDim2.new(1, -28, 0, 8)
+        closeButton.BackgroundTransparency = 1
+        closeButton.Text = "✕"
+        closeButton.TextColor3 = Color3.fromRGB(150, 150, 150)
+        closeButton.Font = Enum.Font.GothamBold
+        closeButton.TextSize = 16
+        closeButton.Parent = frame
         
-        -- Add message
-        local message = Instance.new("TextLabel")
-        message.Name = "Message"
-        message.Size = UDim2.new(1, -70, 0, 24)
-        message.Position = UDim2.new(0, 60, 0, 34)
-        message.BackgroundTransparency = 1
-        message.TextColor3 = Color3.new(1, 1, 1)
-        message.Font = UIStyle.Fonts.Regular
-        message.TextSize = 16
-        message.Text = options.message
-        message.TextXAlignment = Enum.TextXAlignment.Left
-        message.TextTransparency = 1
-        message.Parent = notification
-    else
-        -- Add message (centered if no title)
-        local message = Instance.new("TextLabel")
-        message.Name = "Message"
-        message.Size = UDim2.new(1, -70, 0, 40)
-        message.Position = UDim2.new(0, 60, 0.5, -20)
-        message.BackgroundTransparency = 1
-        message.TextColor3 = Color3.new(1, 1, 1)
-        message.Font = UIStyle.Fonts.Regular
-        message.TextSize = 16
-        message.Text = options.message
-        message.TextXAlignment = Enum.TextXAlignment.Left
-        message.TextYAlignment = Enum.TextYAlignment.Center
-        message.TextWrapped = true
-        message.TextTransparency = 1
-        message.Parent = notification
+        -- Close button hover effect
+        closeButton.MouseEnter:Connect(function()
+            closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end)
+        
+        closeButton.MouseLeave:Connect(function()
+            closeButton.TextColor3 = Color3.fromRGB(150, 150, 150)
+        end)
+        
+        -- Close button click handler
+        closeButton.MouseButton1Click:Connect(function()
+            self:closeNotification(id)
+        end)
     end
     
-    -- Add close button
-    local closeButton = Instance.new("TextButton")
-    closeButton.Name = "CloseButton"
-    closeButton.Size = UDim2.new(0, 24, 0, 24)
-    closeButton.Position = UDim2.new(1, -30, 0, 6)
-    closeButton.BackgroundTransparency = 1
-    closeButton.TextColor3 = Color3.new(1, 1, 1)
-    closeButton.Font = UIStyle.Fonts.Bold
-    closeButton.TextSize = 18
-    closeButton.Text = "×"
-    closeButton.TextTransparency = 1
-    closeButton.Parent = notification
+    -- Store notification in active list
+    table.insert(activeNotifications, {
+        id = id,
+        instance = frame,
+        options = options,
+        timeCreated = os.time()
+    })
     
-    -- Add notification to list
-    local notificationData = {
-        instance = notification,
-        type = notificationType,
-        createdAt = os.time()
-    }
-    table.insert(notifications, notificationData)
+    -- Show with animation
+    frame.Position = UDim2.new(1, 0, 0, 0)
+    frame.Visible = true
     
-    -- Show notification with animation
-    self:fadeIn(notification, 0.25)
+    -- Create and play animation
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(frame, tweenInfo, {
+        Position = UDim2.new(0, 0, 0, 0)
+    })
     
-    -- Set up auto-dismiss
-    task.delay(duration, function()
-        -- Check if notification still exists
-        if notification and notification.Parent then
-            self:fadeOut(notification, 0.25, function()
-                -- Remove from list
-                for i, data in ipairs(notifications) do
-                    if data.instance == notification then
-                        table.remove(notifications, i)
-                        break
-                    end
-                end
-                
-                -- Destroy instance
-                notification:Destroy()
-            end)
+    tween:Play()
+    
+    -- Auto-close after duration if specified
+    if options.duration > 0 then
+        task.delay(options.duration, function()
+            self:closeNotification(id)
+        end)
+    end
+    
+    return notification
+end
+
+-- Close a notification
+function UIManager:closeNotification(id)
+    -- Find the notification in active list
+    local index = nil
+    local notification = nil
+    
+    for i, notif in ipairs(activeNotifications) do
+        if notif.id == id then
+            index = i
+            notification = notif
+            break
+        end
+    end
+    
+    if not notification then
+        return false
+    end
+    
+    -- Animate close
+    local frame = notification.instance
+    
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+    local tween = TweenService:Create(frame, tweenInfo, {
+        Position = UDim2.new(1, 0, 0, 0)
+    })
+    
+    tween:Play()
+    
+    -- Remove from active list after animation
+    tween.Completed:Connect(function()
+        -- Remove from active notifications
+        if index then
+            table.remove(activeNotifications, index)
+        end
+        
+        -- Destroy instance
+        frame:Destroy()
+        
+        -- Show next notification from queue if any
+        if #notificationQueue > 0 then
+            local nextNotification = table.remove(notificationQueue, 1)
+            self:createNotification(nextNotification.options)
         end
     end)
     
-    -- Set up close button
-    closeButton.Activated:Connect(function()
-        -- Check if notification still exists
-        if notification and notification.Parent then
-            self:fadeOut(notification, 0.25, function()
-                -- Remove from list
-                for i, data in ipairs(notifications) do
-                    if data.instance == notification then
-                        table.remove(notifications, i)
-                        break
-                    end
-                end
-                
-                -- Destroy instance
-                notification:Destroy()
-            end)
-        end
-    end)
+    return true
+end
+
+-- Close all notifications
+function UIManager:closeAllNotifications()
+    local closedCount = 0
     
-    return notificationData
-end
-
--- Get notification color based on type
-local function getNotificationColor(notificationType)
-    if notificationType == "success" then
-        return UIStyle.Colors.Success
-    elseif notificationType == "warning" then
-        return UIStyle.Colors.Warning
-    elseif notificationType == "error" then
-        return UIStyle.Colors.Error
-    else -- info
-        return UIStyle.Colors.Primary
+    for _, notification in ipairs(activeNotifications) do
+        if self:closeNotification(notification.id) then
+            closedCount = closedCount + 1
+        end
     end
-end
-
--- Get notification icon based on type
-local function getNotificationIcon(notificationType)
-    if notificationType == "success" then
-        return "✓"
-    elseif notificationType == "warning" then
-        return "⚠"
-    elseif notificationType == "error" then
-        return "✕"
-    else -- info
-        return "ℹ"
-    end
+    
+    -- Clear the queue
+    notificationQueue = {}
+    
+    return closedCount
 end
 
 --[[ Modal Dialog Functions ]]--
 
 -- Create a modal dialog
 function UIManager:createModal(options)
-    if not options then
-        warn("Cannot create modal without options")
-        return nil
-    end
+    -- Generate unique ID
+    idCounter = idCounter + 1
+    local id = "modal_" .. idCounter
     
-    -- Get container
-    local container = PlayerGui:FindFirstChild("UIModals")
-    if not container then
-        container = Instance.new("ScreenGui")
-        container.Name = "UIModals"
-        container.ResetOnSpawn = false
-        container.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        container.Parent = PlayerGui
-    end
+    -- Default options
+    options = options or {}
+    options.title = options.title or "Dialog"
+    options.content = options.content or ""
+    options.buttons = options.buttons or {
+        {
+            text = "OK",
+            style = "primary",
+            callback = function() end
+        }
+    }
+    options.closable = options.closable ~= false  -- true by default
+    options.width = options.width or 400
+    options.height = options.height or 300
+    
+    -- Create ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = id
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = PlayerGui
     
     -- Create background overlay
     local overlay = Instance.new("Frame")
-    overlay.Name = "ModalOverlay"
+    overlay.Name = "Overlay"
     overlay.Size = UDim2.new(1, 0, 1, 0)
     overlay.BackgroundColor3 = Color3.new(0, 0, 0)
-    overlay.BackgroundTransparency = 1 -- Start transparent, will fade in
-    overlay.Parent = container
+    overlay.BackgroundTransparency = 0.5
+    overlay.BorderSizePixel = 0
+    overlay.ZIndex = CONFIG.modalZIndex
+    overlay.Parent = screenGui
     
     -- Create modal frame
-    local modal = Instance.new("Frame")
-    modal.Name = "ModalFrame"
-    modal.Size = UDim2.new(0, 400, 0, 200)
-    modal.Position = UDim2.new(0.5, -200, 0.5, -100)
-    modal.BackgroundColor3 = UIStyle.Colors.Background
-    modal.BorderSizePixel = 0
-    modal.BackgroundTransparency = 1 -- Start transparent
-    modal.Parent = overlay
+    local modalFrame = Instance.new("Frame")
+    modalFrame.Name = "ModalFrame"
+    modalFrame.Size = UDim2.new(0, options.width, 0, options.height)
+    modalFrame.Position = UDim2.new(0.5, -options.width/2, 0.5, -options.height/2)
+    modalFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    modalFrame.BorderSizePixel = 0
+    modalFrame.ZIndex = CONFIG.modalZIndex + 1
+    modalFrame.Parent = screenGui
     
     -- Add corner radius
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = modal
+    corner.Parent = modalFrame
     
-    -- Add title
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, -20, 0, 40)
-    title.Position = UDim2.new(0, 10, 0, 10)
-    title.BackgroundTransparency = 1
-    title.TextColor3 = UIStyle.Colors.Text
-    title.Font = UIStyle.Fonts.Bold
-    title.TextSize = 24
-    title.Text = options.title or "Modal Dialog"
-    title.TextTransparency = 1
-    title.Parent = modal
+    -- Create title bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    titleBar.BorderSizePixel = 0
+    titleBar.ZIndex = CONFIG.modalZIndex + 2
+    titleBar.Parent = modalFrame
     
-    -- Add message
-    local message = Instance.new("TextLabel")
-    message.Name = "Message"
-    message.Size = UDim2.new(1, -40, 0, 80)
-    message.Position = UDim2.new(0, 20, 0, 60)
-    message.BackgroundTransparency = 1
-    message.TextColor3 = UIStyle.Colors.Text
-    message.Font = UIStyle.Fonts.Regular
-    message.TextSize = 18
-    message.Text = options.message or ""
-    message.TextWrapped = true
-    message.TextTransparency = 1
-    message.Parent = modal
+    -- Add corner radius to title bar
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
     
-    -- Add buttons container
+    -- Add title text
+    local titleText = Instance.new("TextLabel")
+    titleText.Name = "TitleText"
+    titleText.Size = UDim2.new(1, -50, 1, 0)
+    titleText.Position = UDim2.new(0, 15, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = options.title
+    titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleText.Font = Enum.Font.GothamBold
+    titleText.TextSize = 16
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.ZIndex = CONFIG.modalZIndex + 3
+    titleText.Parent = titleBar
+    
+    -- Add close button if closable
+    if options.closable then
+        local closeButton = Instance.new("TextButton")
+        closeButton.Name = "CloseButton"
+        closeButton.Size = UDim2.new(0, 30, 0, 30)
+        closeButton.Position = UDim2.new(1, -35, 0, 5)
+        closeButton.BackgroundTransparency = 1
+        closeButton.Text = "✕"
+        closeButton.TextColor3 = Color3.fromRGB(150, 150, 150)
+        closeButton.Font = Enum.Font.GothamBold
+        closeButton.TextSize = 18
+        closeButton.ZIndex = CONFIG.modalZIndex + 3
+        closeButton.Parent = titleBar
+        
+        -- Close button hover effect
+        closeButton.MouseEnter:Connect(function()
+            closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end)
+        
+        closeButton.MouseLeave:Connect(function()
+            closeButton.TextColor3 = Color3.fromRGB(150, 150, 150)
+        end)
+        
+        -- Close button click handler
+        closeButton.MouseButton1Click:Connect(function()
+            self:closeModal(id)
+        end)
+    end
+    
+    -- Create content area
+    local contentArea = Instance.new("Frame")
+    contentArea.Name = "ContentArea"
+    contentArea.Size = UDim2.new(1, -30, 1, -110)
+    contentArea.Position = UDim2.new(0, 15, 0, 50)
+    contentArea.BackgroundTransparency = 1
+    contentArea.ZIndex = CONFIG.modalZIndex + 2
+    contentArea.Parent = modalFrame
+    
+    -- Add content (handle different content types)
+    if typeof(options.content) == "string" then
+        -- Text content
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.Text = options.content
+        textLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        textLabel.Font = Enum.Font.Gotham
+        textLabel.TextSize = 16
+        textLabel.TextWrapped = true
+        textLabel.TextXAlignment = Enum.TextXAlignment.Left
+        textLabel.TextYAlignment = Enum.TextYAlignment.Top
+        textLabel.ZIndex = CONFIG.modalZIndex + 3
+        textLabel.Parent = contentArea
+    elseif typeof(options.content) == "Instance" then
+        -- Instance content
+        options.content.Parent = contentArea
+    elseif typeof(options.content) == "function" then
+        -- Function that returns content
+        local success, result = pcall(options.content, contentArea)
+        
+        if not success then
+            warn("Error creating modal content: " .. tostring(result))
+        end
+    end
+    
+    -- Create button container
     local buttonContainer = Instance.new("Frame")
     buttonContainer.Name = "ButtonContainer"
-    buttonContainer.Size = UDim2.new(1, -40, 0, 40)
-    buttonContainer.Position = UDim2.new(0, 20, 1, -50)
+    buttonContainer.Size = UDim2.new(1, -30, 0, 40)
+    buttonContainer.Position = UDim2.new(0, 15, 1, -50)
     buttonContainer.BackgroundTransparency = 1
-    buttonContainer.Parent = modal
+    buttonContainer.ZIndex = CONFIG.modalZIndex + 2
+    buttonContainer.Parent = modalFrame
     
-    -- Process buttons
-    local buttons = options.buttons or {
-        {
-            text = "OK",
-            color = UIStyle.Colors.Primary
-        }
-    }
+    -- Add buttons
+    local buttonLayout = Instance.new("UIListLayout")
+    buttonLayout.FillDirection = Enum.FillDirection.Horizontal
+    buttonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    buttonLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    buttonLayout.Padding = UDim.new(0, 10)
+    buttonLayout.Parent = buttonContainer
     
-    local buttonCount = #buttons
-    local buttonWidth = (buttonContainer.Size.X.Offset - ((buttonCount - 1) * 10)) / buttonCount
-    
-    for i, buttonInfo in ipairs(buttons) do
+    -- Create buttons
+    for i, buttonInfo in ipairs(options.buttons) do
         local button = Instance.new("TextButton")
-        button.Name = "Button" .. i
-        button.Size = UDim2.new(0, buttonWidth, 1, 0)
-        button.Position = UDim2.new(0, (i - 1) * (buttonWidth + 10), 0, 0)
-        button.BackgroundColor3 = buttonInfo.color or UIStyle.Colors.Primary
+        button.Name = buttonInfo.text
+        button.Size = UDim2.new(0, 100, 0, 35)
+        button.BackgroundColor3 = self:getButtonColor(buttonInfo.style)
         button.BorderSizePixel = 0
-        button.TextColor3 = UIStyle.Colors.Text
-        button.Font = UIStyle.Fonts.Bold
-        button.TextSize = 18
         button.Text = buttonInfo.text
-        button.TextTransparency = 1
-        button.BackgroundTransparency = 1
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.Font = Enum.Font.GothamBold
+        button.TextSize = 14
+        button.ZIndex = CONFIG.modalZIndex + 3
+        button.LayoutOrder = i
         button.Parent = buttonContainer
         
         -- Add corner radius to button
@@ -831,168 +1025,204 @@ function UIManager:createModal(options)
         buttonCorner.CornerRadius = UDim.new(0, 6)
         buttonCorner.Parent = button
         
-        -- Connect callback
-        button.Activated:Connect(function()
-            -- Fade out modal
-            self:fadeOut(overlay, 0.25, function()
-                overlay:Destroy()
-                
-                -- Remove from active modals
-                for i, activeModal in ipairs(activeModals) do
-                    if activeModal == overlay then
-                        table.remove(activeModals, i)
-                        break
-                    end
-                end
-                
-                -- Call callback if provided
-                if buttonInfo.callback then
-                    buttonInfo.callback()
-                end
-            end)
-        end)
-    end
-    
-    -- Add modal to active list
-    table.insert(activeModals, overlay)
-    
-    -- Show modal with animation
-    self:fadeIn(overlay, 0.25, function()
-        -- Set overlay to semi-transparent
-        overlay.BackgroundTransparency = CONFIG.modalBackgroundTransparency
-    end)
-    
-    return overlay
-end
-
--- Close all modals
-function UIManager:closeAllModals()
-    for _, modal in ipairs(activeModals) do
-        self:fadeOut(modal, 0.25, function()
-            modal:Destroy()
-        end)
-    end
-    
-    activeModals = {}
-end
-
--- Close top modal
-function UIManager:closeTopModal()
-    if #activeModals > 0 then
-        local modal = activeModals[#activeModals]
-        
-        self:fadeOut(modal, 0.25, function()
-            modal:Destroy()
-            table.remove(activeModals)
+        -- Button hover effect
+        button.MouseEnter:Connect(function()
+            button.BackgroundColor3 = self:getButtonColor(buttonInfo.style, 0.8)
         end)
         
-        return true
+        button.MouseLeave:Connect(function()
+            button.BackgroundColor3 = self:getButtonColor(buttonInfo.style)
+        end)
+        
+        -- Button click handler
+        button.MouseButton1Click:Connect(function()
+            -- Close modal first
+            self:closeModal(id)
+            
+            -- Call button callback
+            if buttonInfo.callback then
+                buttonInfo.callback()
+            end
+        end)
     end
     
-    return false
+    -- Store modal in active list
+    local modal = {
+        id = id,
+        instance = screenGui,
+        options = options
+    }
+    
+    table.insert(activeModals, modal)
+    
+    -- Animate appearance
+    modalFrame.Size = UDim2.new(0, options.width * 0.8, 0, options.height * 0.8)
+    modalFrame.Position = UDim2.new(0.5, -options.width * 0.4, 0.5, -options.height * 0.4)
+    overlay.BackgroundTransparency = 1
+    
+    -- Create and play animations
+    local frameTween = TweenService:Create(
+        modalFrame, 
+        TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), 
+        {
+            Size = UDim2.new(0, options.width, 0, options.height),
+            Position = UDim2.new(0.5, -options.width/2, 0.5, -options.height/2)
+        }
+    )
+    
+    local overlayTween = TweenService:Create(
+        overlay,
+        TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+        {
+            BackgroundTransparency = 0.5
+        }
+    )
+    
+    frameTween:Play()
+    overlayTween:Play()
+    
+    return modal
 end
 
---[[ UI Management Functions ]]--
-
--- Register a UI component with the manager
-function UIManager:registerUI(name, component)
-    if not name or not component then
-        warn("Cannot register UI without name or component")
+-- Close a modal dialog
+function UIManager:closeModal(id)
+    -- Find the modal in active list
+    local index = nil
+    local modal = nil
+    
+    for i, m in ipairs(activeModals) do
+        if m.id == id then
+            index = i
+            modal = m
+            break
+        end
+    end
+    
+    if not modal then
         return false
     end
     
-    -- Register with UIRegistry if available
-    if UIRegistry and UIRegistry.registerComponent then
-        UIRegistry:registerComponent(name, component)
-    end
+    -- Get references to components
+    local screenGui = modal.instance
+    local modalFrame = screenGui.ModalFrame
+    local overlay = screenGui.Overlay
+    local options = modal.options
+    
+    -- Create and play animations
+    local frameTween = TweenService:Create(
+        modalFrame, 
+        TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), 
+        {
+            Size = UDim2.new(0, options.width * 0.8, 0, options.height * 0.8),
+            Position = UDim2.new(0.5, -options.width * 0.4, 0.5, -options.height * 0.4)
+        }
+    )
+    
+    local overlayTween = TweenService:Create(
+        overlay,
+        TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.In),
+        {
+            BackgroundTransparency = 1
+        }
+    )
+    
+    frameTween:Play()
+    overlayTween:Play()
+    
+    -- Remove from active list after animation
+    overlayTween.Completed:Connect(function()
+        -- Remove from active modals
+        if index then
+            table.remove(activeModals, index)
+        end
+        
+        -- Destroy instance
+        screenGui:Destroy()
+    end)
     
     return true
 end
 
--- Show a UI by name
-function UIManager:showUI(name, ...)
-    local component = UIRegistry and UIRegistry.getComponent and UIRegistry:getComponent(name)
-    if not component then
-        warn("UI component not found: " .. name)
-        return false
+-- Close all modals
+function UIManager:closeAllModals()
+    local closedCount = 0
+    
+    for _, modal in ipairs(activeModals) do
+        if self:closeModal(modal.id) then
+            closedCount = closedCount + 1
+        end
     end
     
-    if typeof(component.show) ~= "function" then
-        warn("UI component does not have a show function: " .. name)
-        return false
-    end
-    
-    -- Call show function and pass any additional arguments
-    local success = component:show(...)
-    
-    -- Track active UI if successful
-    if success then
-        activeUIs[name] = true
-    end
-    
-    return success
+    return closedCount
 end
 
--- Hide a UI by name
-function UIManager:hideUI(name)
-    local component = UIRegistry and UIRegistry.getComponent and UIRegistry:getComponent(name)
-    if not component then
-        warn("UI component not found: " .. name)
-        return false
-    end
+-- Get button color based on style
+function UIManager:getButtonColor(style, multiplier)
+    multiplier = multiplier or 1
     
-    if typeof(component.hide) ~= "function" then
-        warn("UI component does not have a hide function: " .. name)
-        return false
-    end
-    
-    -- Call hide function
-    local success = component:hide()
-    
-    -- Remove from active UIs if successful
-    if success then
-        activeUIs[name] = nil
-    end
-    
-    return success
-end
-
--- Toggle a UI by name
-function UIManager:toggleUI(name, ...)
-    if activeUIs[name] then
-        return self:hideUI(name)
+    if UIStyle then
+        local baseColor
+        
+        if style == "primary" then
+            baseColor = UIStyle:getColor("Primary")
+        elseif style == "secondary" then
+            baseColor = UIStyle:getColor("Secondary")
+        elseif style == "danger" then
+            baseColor = UIStyle:getColor("Error")
+        elseif style == "success" then
+            baseColor = UIStyle:getColor("Success")
+        elseif style == "warning" then
+            baseColor = UIStyle:getColor("Warning")
+        else
+            baseColor = UIStyle:getColor("Primary")
+        end
+        
+        if multiplier ~= 1 then
+            return baseColor:Lerp(Color3.new(1, 1, 1), 1 - multiplier)
+        else
+            return baseColor
+        end
     else
-        return self:showUI(name, ...)
+        -- Fallback colors
+        if style == "primary" then
+            return Color3.fromRGB(114, 137, 218):Lerp(Color3.new(1, 1, 1), 1 - multiplier)
+        elseif style == "secondary" then
+            return Color3.fromRGB(50, 53, 59):Lerp(Color3.new(1, 1, 1), 1 - multiplier)
+        elseif style == "danger" then
+            return Color3.fromRGB(231, 76, 60):Lerp(Color3.new(1, 1, 1), 1 - multiplier)
+        elseif style == "success" then
+            return Color3.fromRGB(46, 204, 113):Lerp(Color3.new(1, 1, 1), 1 - multiplier)
+        elseif style == "warning" then
+            return Color3.fromRGB(230, 126, 34):Lerp(Color3.new(1, 1, 1), 1 - multiplier)
+        else
+            return Color3.fromRGB(114, 137, 218):Lerp(Color3.new(1, 1, 1), 1 - multiplier)
+        end
     end
 end
 
--- Check if a UI is active
-function UIManager:isUIActive(name)
-    return activeUIs[name] == true
-end
+--[[ Initialization Function ]]--
 
--- Hide all active UIs
-function UIManager:hideAllUIs()
-    for name in pairs(activeUIs) do
-        self:hideUI(name)
-    end
-end
-
--- Initialize the manager
 function UIManager:initialize()
-    -- Register with UIRegistry if available
-    if UIRegistry and UIRegistry.registerComponent then
-        UIRegistry:registerComponent("UIManager", self)
-    end
+    -- Set up notification cleanup timer
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            
+            -- Check for expired notifications
+            local now = os.time()
+            for i, notification in ipairs(activeNotifications) do
+                local elapsed = now - notification.timeCreated
+                
+                -- Check if notification has expired
+                if notification.options.duration > 0 and elapsed >= notification.options.duration then
+                    self:closeNotification(notification.id)
+                end
+            end
+        end
+    end)
     
-    -- Set up notification container
-    createNotificationContainer()
-    
-    return self
+    return true
 end
-
--- Initialize on module load
-UIManager:initialize()
 
 -- Return the module
 return UIManager
