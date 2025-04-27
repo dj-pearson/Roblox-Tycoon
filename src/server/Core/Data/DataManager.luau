@@ -293,6 +293,7 @@ function DataManager:initialize()
     -- Setup systems
     setupAutoSave()
     connectPlayerEvents()
+    setupRemoteFunctions() -- Set up client-server communication
     
     -- Start save queue processor
     task.spawn(processSaveQueue)
@@ -903,5 +904,125 @@ function DataManager:tryOperation(operation, context, options)
         return false, result
     end
 end
+
+local function setupRemoteFunctions()
+    -- Get reference to remote objects
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local remotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
+    
+    if not remotesFolder then
+        warn("Failed to find Remotes folder. Client data access will not work.")
+        return
+    end
+    
+    local dataSystemFolder = remotesFolder:WaitForChild("DataSystem", 5)
+    
+    if not dataSystemFolder then
+        warn("Failed to find DataSystem remotes folder. Client data access will not work.")
+        return
+    end
+    
+    -- Set up remote function handlers
+    local getDataRemote = dataSystemFolder:WaitForChild("GetData")
+    local setDataRemote = dataSystemFolder:WaitForChild("SetData")
+    local incrementDataRemote = dataSystemFolder:WaitForChild("IncrementData")
+    local dataChangedEvent = dataSystemFolder:WaitForChild("DataChanged")
+    
+    -- Handle get data requests from clients
+    getDataRemote.OnServerInvoke = function(player, scope, key, requestId)
+        if not player or not scope or not key then
+            return nil
+        end
+        
+        -- Get the value
+        local value = DataManager:getPlayerValue(player, scope, key)
+        
+        -- Track analytics
+        if DataAnalytics then
+            DataAnalytics:trackOperation("read", {
+                source = "remote",
+                scope = scope,
+                key = key,
+                userId = player.UserId,
+                result = value ~= nil and "success" or "nil_value"
+            })
+        end
+        
+        return value
+    end
+    
+    -- Handle set data requests from clients
+    setDataRemote.OnServerInvoke = function(player, scope, key, value, requestId)
+        if not player or not scope or not key then
+            return false
+        end
+        
+        -- Only allow certain scopes to be modified from client
+        if not DataConstants.CLIENT_WRITABLE_SCOPES[scope] then
+            warn("Client attempted to write to non-writable scope:", scope)
+            return false
+        end
+        
+        -- Set the value
+        local success = DataManager:setPlayerValue(player, scope, key, value)
+        
+        -- Track analytics
+        if DataAnalytics then
+            DataAnalytics:trackOperation("write", {
+                source = "remote",
+                scope = scope,
+                key = key,
+                userId = player.UserId,
+                result = success and "success" or "failure"
+            })
+        end
+        
+        -- Notify other clients about the change
+        if success then
+            dataChangedEvent:FireAllClients(scope, key, value)
+        end
+        
+        return success
+    end
+    
+    -- Handle increment requests from clients
+    incrementDataRemote.OnServerInvoke = function(player, scope, key, amount, requestId)
+        if not player or not scope or not key then
+            return false, nil
+        end
+        
+        -- Only allow certain scopes to be modified from client
+        if not DataConstants.CLIENT_WRITABLE_SCOPES[scope] then
+            warn("Client attempted to increment in non-writable scope:", scope)
+            return false, nil
+        end
+        
+        -- Increment the value
+        local success, newValue = DataManager:incrementPlayerValue(player, scope, key, amount)
+        
+        -- Track analytics
+        if DataAnalytics then
+            DataAnalytics:trackOperation("increment", {
+                source = "remote",
+                scope = scope,
+                key = key,
+                userId = player.UserId,
+                amount = amount,
+                result = success and "success" or "failure"
+            })
+        end
+        
+        -- Notify other clients about the change
+        if success then
+            dataChangedEvent:FireAllClients(scope, key, newValue)
+        end
+        
+        return success, newValue
+    end
+    
+    log("Remote functions setup complete")
+end
+
+setupRemoteFunctions()
 
 return DataManager

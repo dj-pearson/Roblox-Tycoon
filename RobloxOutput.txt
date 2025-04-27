@@ -1,981 +1,1085 @@
-  22:59:02.908  Could not find mesh for fish: Union  -  Server - Script:24
-  22:59:02.909  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
-  22:59:02.909  Could not find mesh for fish: Mesh  -  Server - Script:24
-  22:59:02.909  Could not find mesh for fish: Mesh  -  Server - Script:24
-  22:59:02.909  Could not find mesh for fish: Mesh  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Union  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Union  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Union  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Mesh  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
-  22:59:02.910  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Mesh  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Mesh  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Union  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
-  22:59:02.911  Could not find mesh for fish: Union  -  Server - Script:24
-  22:59:02.924  ServerScriptService.Server.Core.MemberSatisfactionSystem:749: attempt to index nil with 'registerSystem'  -  Server - MemberSatisfactionSystem:749
-  22:59:02.925  Stack Begin  -  Studio
-  22:59:02.925  Script 'ServerScriptService.Server.Core.MemberSatisfactionSystem', Line 749  -  Studio - MemberSatisfactionSystem:749
-  22:59:02.925  Stack End  -  Studio
-  22:59:02.925  [BuyTileSystem] ModuleLoader not found, using legacy loading  -  Server - BuyTileSystem:24
-  22:59:02.925  [BuyTileSystem] CRITICAL: Failed to load CoreRegistry!  -  Server - BuyTileSystem:44
-  22:59:02.925  ServerScriptService.Server.Core.BuyTileSystem:664: attempt to index nil with 'registerSystem'  -  Server - BuyTileSystem:664
-  22:59:02.925  Stack Begin  -  Studio
-  22:59:02.925  Script 'ServerScriptService.Server.Core.BuyTileSystem', Line 664  -  Studio - BuyTileSystem:664
-  22:59:02.925  Stack End  -  Studio
-  22:59:02.925  Removing existing script: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Steam Mens.SteamRoom.Steam Script  -  Server
-  22:59:02.925  Removing existing script: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Steam Womens.SteamRoom.Steam Script  -  Server
-  22:59:02.926  Removing existing script: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Sauna Mens.Heater.Heater Element.Heater Script  -  Server
-  22:59:02.926  Removing existing script: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Sauna Womens.Heater.Heater Element.Heater Script  -  Server
-  22:59:02.926  Steam room effects created for: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Steam Mens.SteamRoom  -  Studio
-  22:59:02.927  Steam room effects created for: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Steam Womens.SteamRoom  -  Studio
-  22:59:02.927  Sauna heater effects initialized for: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Sauna Mens.Heater.Heater Element  -  Studio
-  22:59:02.928  Sauna heater effects initialized for: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Sauna Womens.Heater.Heater Element  -  Studio
-  22:59:02.928  All sauna and steam room effects created successfully!  -  Studio
-  22:59:02.928  AutomationLoader is not a valid member of ServerStorage "ServerStorage"  -  Server - BuyTileConfigGenerator:18
-  22:59:02.928  Stack Begin  -  Studio
-  22:59:02.928  Script 'ServerScriptService.Server.Connectors.BuyTileConfigGenerator', Line 18  -  Studio - BuyTileConfigGenerator:18
-  22:59:02.928  Stack End  -  Studio
-  22:59:02.928  Attempted to call require with invalid argument(s).  -  Server - AutoBuyTileSetup:21
-  22:59:02.928  Stack Begin  -  Studio
-  22:59:02.928  Script 'ServerScriptService.Server.Connectors.AutoBuyTileSetup', Line 21  -  Studio - AutoBuyTileSetup:21
-  22:59:02.928  Stack End  -  Studio
-  22:59:02.928  [CoreRegistry] ModuleLoader not found, using legacy loading  -  Server - CoreRegistry:20
-  22:59:02.928  [CoreRegistry] Registered system: EventBridge  -  Server - CoreRegistry:33
-  22:59:02.928  Attempted to call require with invalid argument(s).  -  Server - DataManager:11
-  22:59:02.928  Stack Begin  -  Studio
-  22:59:02.929  Script 'ServerScriptService.Server.Core.DataManager', Line 11  -  Studio - DataManager:11
-  22:59:02.929  Stack End  -  Studio
-  22:59:02.929  Attempted to call require with invalid argument(s).  -  Server - GymTycoonConnector:10
-  22:59:02.929  Stack Begin  -  Studio
-  22:59:02.929  Script 'ServerScriptService.Server.Core.GymTycoonConnector', Line 10  -  Studio - GymTycoonConnector:10
-  22:59:02.929  Stack End  -  Studio
-  22:59:02.929  ServerScriptService.Server.Core.InitializeCore:12: Core folder not found in ServerScriptService!  -  Server - InitializeCore:12
-  22:59:02.929  Stack Begin  -  Studio
-  22:59:02.929  Script 'ServerScriptService.Server.Core.InitializeCore', Line 12  -  Studio - InitializeCore:12
-  22:59:02.929  Stack End  -  Studio
-  22:59:02.929  Attempted to call require with invalid argument(s).  -  Server - LegacyBridge:6
-  22:59:02.929  Stack Begin  -  Studio
-  22:59:02.929  Script 'ServerScriptService.Server.Core.LegacyBridge', Line 6  -  Studio - LegacyBridge:6
-  22:59:02.929  Stack End  -  Studio
-  22:59:02.929  Attempted to call require with invalid argument(s).  -  Server - MilestoneSystem:11
-  22:59:02.929  Stack Begin  -  Studio
-  22:59:02.929  Script 'ServerScriptService.Server.Core.MilestoneSystem', Line 11  -  Studio - MilestoneSystem:11
-  22:59:02.929  Stack End  -  Studio
-  22:59:02.930  Attempted to call require with invalid argument(s).  -  Server - SatisfactionEventHandler:11
-  22:59:02.930  Stack Begin  -  Studio
-  22:59:02.930  Script 'ServerScriptService.Server.Core.SatisfactionEventHandler', Line 11  -  Studio - SatisfactionEventHandler:11
-  22:59:02.930  Stack End  -  Studio
-  22:59:02.930  ==================================================  -  Server - ServerRunner:8
-  22:59:02.930  Starting Gym Tycoon System Architecture v2.0  -  Server - ServerRunner:9
-  22:59:02.930  ==================================================  -  Server - ServerRunner:10
-  22:59:02.930  SystemBootstrap.luau not found in ServerScriptService/Core  -  Server - ServerRunner:32
-  22:59:02.930  [GymTycoonConnectorBridge] Failed to get CoreRegistry  -  Server - GymTycoonConnectorBridge:19
-  22:59:02.930  ServerScriptService.Server.Core.SaunaSystem:698: attempt to index nil with 'registerSystem'  -  Server - SaunaSystem:698
-  22:59:02.930  Stack Begin  -  Studio
-  22:59:02.930  Script 'ServerScriptService.Server.Core.SaunaSystem', Line 698  -  Studio - SaunaSystem:698
-  22:59:02.930  Stack End  -  Studio
-  22:59:02.930  Attempted to call require with invalid argument(s).  -  Server - SpecializationSystem:10
-  22:59:02.930  Stack Begin  -  Studio
-  22:59:02.930  Script 'ServerScriptService.Server.Core.SpecializationSystem', Line 10  -  Studio - SpecializationSystem:10
-  22:59:02.930  Stack End  -  Studio
-  22:59:02.930  [SystemBootstrap] Starting system initialization...  -  Server - SystemBootstrap:20
-  22:59:02.931  [SystemBootstrap] Initializing ModuleLoader and registering paths...  -  Server - SystemBootstrap:20
-  22:59:02.931  [SystemBootstrap] Created shared folder in ReplicatedStorage  -  Server - SystemBootstrap:20
-  22:59:02.931  ServerScriptService.Server.Core.SystemBootstrap:48: attempt to index nil with 'FindFirstChild'  -  Server - SystemBootstrap:48
-  22:59:02.931  Stack Begin  -  Studio
-  22:59:02.931  Script 'ServerScriptService.Server.Core.SystemBootstrap', Line 48 - function initializeModuleLoader  -  Studio - SystemBootstrap:48
-  22:59:02.931  Script 'ServerScriptService.Server.Core.SystemBootstrap', Line 73  -  Studio - SystemBootstrap:73
-  22:59:02.931  Stack End  -  Studio
-  22:59:02.931  Attempted to call require with invalid argument(s).  -  Server - SeasonalSystem:9
-  22:59:02.931  Stack Begin  -  Studio
-  22:59:02.931  Script 'ServerScriptService.Server.Core.SeasonalSystem', Line 9  -  Studio - SeasonalSystem:9
-  22:59:02.931  Stack End  -  Studio
-  22:59:02.931  TestingFramework is not a valid member of Folder "ServerScriptService.Core"  -  Server - DataManagerTests:5
-  22:59:02.931  Stack Begin  -  Studio
-  22:59:02.931  Script 'ServerScriptService.Server.Core.Tests.DataManagerTests', Line 5  -  Studio - DataManagerTests:5
-  22:59:02.931  Stack End  -  Studio
-  22:59:02.931  TestingFramework is not a valid member of Folder "ServerScriptService.Core"  -  Server - EventBridgeTests:5
-  22:59:02.931  Stack Begin  -  Studio
-  22:59:02.931  Script 'ServerScriptService.Server.Core.Tests.EventBridgeTests', Line 5  -  Studio - EventBridgeTests:5
-  22:59:02.931  Stack End  -  Studio
-  22:59:02.931  Attempted to call require with invalid argument(s).  -  Server - GymTycoonAutomation:19
-  22:59:02.932  Stack Begin  -  Studio
-  22:59:02.932  Script 'ServerScriptService.Server.Connectors.GymTycoonAutomation', Line 19  -  Studio - GymTycoonAutomation:19
-  22:59:02.932  Stack End  -  Studio
-  22:59:02.932  
+  07:53:33.184  ServerScriptService.Server.Core.DataBackup:147: Cannot use '...' outside of a vararg function  -  Studio - DataBackup:147
+  07:53:33.185  ServerScriptService.Server.Data.DataSystemIntegration:114: Cannot use '...' outside of a vararg function  -  Studio - DataSystemIntegration:114
+  07:53:33.199  ServerScriptService.Server.Core.VersionedDataStore:112: Cannot use '...' outside of a vararg function  -  Studio - VersionedDataStore:112
+  07:53:33.199  ServerScriptService.Server.Core.SystemDiagnostics:234: Expected ')' (to close '(' at column 25), got '['  -  Studio - SystemDiagnostics:234
+  07:53:33.214  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
+  07:53:33.215  Could not find mesh for fish: Union  -  Server - Script:24
+  07:53:33.215  Could not find mesh for fish: Mesh  -  Server - Script:24
+  07:53:33.215  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
+  07:53:33.216  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
+  07:53:33.218  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
+  07:53:33.218  Could not find mesh for fish: Mesh  -  Server - Script:24
+  07:53:33.218  Could not find mesh for fish: Union  -  Server - Script:24
+  07:53:33.218  Could not find mesh for fish: Union  -  Server - Script:24
+  07:53:33.218  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
+  07:53:33.219  Could not find mesh for fish: Mesh  -  Server - Script:24
+  07:53:33.219  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
+  07:53:33.219  Could not find mesh for fish: Mesh  -  Server - Script:24
+  07:53:33.219  Could not find mesh for fish: Union  -  Server - Script:24
+  07:53:33.219  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
+  07:53:33.219  Could not find mesh for fish: Mesh  -  Server - Script:24
+  07:53:33.220  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
+  07:53:33.220  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
+  07:53:33.220  Could not find mesh for fish: Meshes/TropicalFish12  -  Server - Script:24
+  07:53:33.220  Could not find mesh for fish: Union  -  Server - Script:24
+  07:53:33.221  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
+  07:53:33.221  Could not find mesh for fish: Meshes/fish  -  Server - Script:24
+  07:53:33.221  Could not find mesh for fish: Union  -  Server - Script:24
+  07:53:33.221  Could not find mesh for fish: Mesh  -  Server - Script:24
+  07:53:33.236  Removing existing script: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Steam Mens.SteamRoom.Steam Script  -  Server
+  07:53:33.236  Removing existing script: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Steam Womens.SteamRoom.Steam Script  -  Server
+  07:53:33.236  Removing existing script: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Sauna Mens.Heater.Heater Element.Heater Script  -  Studio
+  07:53:33.236  Removing existing script: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Sauna Womens.Heater.Heater Element.Heater Script  -  Studio
+  07:53:33.237  Steam room effects created for: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Steam Mens.SteamRoom  -  Studio
+  07:53:33.238  Steam room effects created for: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Steam Womens.SteamRoom  -  Studio
+  07:53:33.238  Sauna heater effects initialized for: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Sauna Mens.Heater.Heater Element  -  Studio
+  07:53:33.239  Sauna heater effects initialized for: Workspace.GymParts.3rd Floor.Massage and Wellness.Steam and Sauna.Sauna Womens.Heater.Heater Element  -  Studio
+  07:53:33.239  All sauna and steam room effects created successfully!  -  Studio
+  07:53:33.239  AutomationLoader is not a valid member of ServerStorage "ServerStorage"  -  Server - BuyTileConfigGenerator:18
+  07:53:33.239  Stack Begin  -  Studio
+  07:53:33.239  Script 'ServerScriptService.Server.Connectors.BuyTileConfigGenerator', Line 18  -  Studio - BuyTileConfigGenerator:18
+  07:53:33.240  Stack End  -  Studio
+  07:53:33.240  [SystemBootstrap] Starting system initialization...  -  Server - SystemBootstrap:25
+  07:53:33.240  [SystemBootstrap] Initializing ModuleLoader and registering paths...  -  Server - SystemBootstrap:25
+  07:53:33.240  [SystemBootstrap] Created shared folder in ReplicatedStorage  -  Server - SystemBootstrap:25
+  07:53:33.240  [SystemBootstrap] ModuleLoader not found in src/shared, module loading might not work correctly  -  Server - SystemBootstrap:30
+  07:53:33.240  [SystemBootstrap] Failed to run PathRegistration: Attempted to call require with invalid argument(s).  -  Server - SystemBootstrap:30
+  07:53:33.241  [SystemBootstrap] Running FolderSetup...  -  Server - SystemBootstrap:25
+  07:53:33.241  Attempted to call require with invalid argument(s).  -  Server - SystemBootstrap:84
+  07:53:33.241  Stack Begin  -  Studio
+  07:53:33.241  Script 'ServerScriptService.Server.Core.SystemBootstrap', Line 84  -  Studio - SystemBootstrap:84
+  07:53:33.241  Stack End  -  Studio
+  07:53:33.242  Attempted to call require with invalid argument(s).  -  Server - PerformanceManager:10
+  07:53:33.242  Stack Begin  -  Studio
+  07:53:33.242  Script 'ServerScriptService.Server.Core.PerformanceManager', Line 10  -  Studio - PerformanceManager:10
+  07:53:33.242  Stack End  -  Studio
+  07:53:33.242  Attempted to call require with invalid argument(s).  -  Server - AchievementSystem:12
+  07:53:33.242  Stack Begin  -  Studio
+  07:53:33.242  Script 'ServerScriptService.Server.Core.AchievementSystem', Line 12  -  Studio - AchievementSystem:12
+  07:53:33.242  Stack End  -  Studio
+  07:53:33.243  [GymStructureIntegration] Failed to get CoreRegistry  -  Server - GymStructureIntegration:19
+  07:53:33.243  ServerScriptService.Server.Core.FloorAttributeSetup:32: attempt to index nil with 'GetSystem'  -  Server - FloorAttributeSetup:32
+  07:53:33.244  Stack Begin  -  Studio
+  07:53:33.244  Script 'ServerScriptService.Server.Core.FloorAttributeSetup', Line 32  -  Studio - FloorAttributeSetup:32
+  07:53:33.244  Stack End  -  Studio
+  07:53:33.244  Attempted to call require with invalid argument(s).  -  Server - TileDataGenerator:40
+  07:53:33.244  Stack Begin  -  Studio
+  07:53:33.244  Script 'ServerScriptService.Server.Core.TileDataGenerator', Line 40  -  Studio - TileDataGenerator:40
+  07:53:33.244  Stack End  -  Studio
+  07:53:33.245  [CoreRegistry] ModuleLoader not found, using legacy loading  -  Server - CoreRegistry:20
+  07:53:33.245  [CoreRegistry] Registered system: EventBridge  -  Server - CoreRegistry:33
+  07:53:33.245  Core is not a valid member of ServerScriptService "ServerScriptService"  -  Server - EventBridgeTests:5
+  07:53:33.245  Stack Begin  -  Studio
+  07:53:33.245  Script 'ServerScriptService.Server.Core.Tests.EventBridgeTests', Line 5  -  Studio - EventBridgeTests:5
+  07:53:33.245  Stack End  -  Studio
+  07:53:33.245  Attempted to call require with invalid argument(s).  -  Server - EquipmentUpgradeSystem:17
+  07:53:33.245  Stack Begin  -  Studio
+  07:53:33.245  Script 'ServerScriptService.Server.Core.EquipmentUpgradeSystem', Line 17  -  Studio - EquipmentUpgradeSystem:17
+  07:53:33.245  Stack End  -  Studio
+  07:53:33.246  [BuyTileSystem] NOTICE: CoreRegistry not found, using standalone mode  -  Server - BuyTileSystem:18
+  07:53:33.246  ServerScriptService.Server.Core.BuyTileSystem:748: attempt to index nil with 'registerSystem'  -  Server - BuyTileSystem:748
+  07:53:33.246  Stack Begin  -  Studio
+  07:53:33.246  Script 'ServerScriptService.Server.Core.BuyTileSystem', Line 748  -  Studio - BuyTileSystem:748
+  07:53:33.246  Stack End  -  Studio
+  07:53:33.247  Attempted to call require with invalid argument(s).  -  Server - SeasonalSystem:9
+  07:53:33.247  Stack Begin  -  Studio
+  07:53:33.247  Script 'ServerScriptService.Server.Core.SeasonalSystem', Line 9  -  Studio - SeasonalSystem:9
+  07:53:33.247  Stack End  -  Studio
+  07:53:33.247  Analyzing GymParts structure...  -  Server - AnalyzeGymStructure:237
+  07:53:33.247  ServerScriptService.Server.Core.AnalyzeGymStructure:211: attempt to index nil with 'baseStructure'  -  Server - AnalyzeGymStructure:211
+  07:53:33.247  Stack Begin  -  Studio
+  07:53:33.247  Script 'ServerScriptService.Server.Core.AnalyzeGymStructure', Line 211 - function generateRoomPrerequisites  -  Studio - AnalyzeGymStructure:211
+  07:53:33.247  Script 'ServerScriptService.Server.Core.AnalyzeGymStructure', Line 247 - function analyzeGymStructure  -  Studio - AnalyzeGymStructure:247
+  07:53:33.247  Script 'ServerScriptService.Server.Core.AnalyzeGymStructure', Line 399 - function main  -  Studio - AnalyzeGymStructure:399
+  07:53:33.248  Script 'ServerScriptService.Server.Core.AnalyzeGymStructure', Line 442  -  Studio - AnalyzeGymStructure:442
+  07:53:33.248  Stack End  -  Studio
+  07:53:33.248  Attempted to call require with invalid argument(s).  -  Server - SpecializationSystem:10
+  07:53:33.248  Stack Begin  -  Studio
+  07:53:33.248  Script 'ServerScriptService.Server.Core.SpecializationSystem', Line 10  -  Studio - SpecializationSystem:10
+  07:53:33.248  Stack End  -  Studio
+  07:53:33.248  Attempted to call require with invalid argument(s).  -  Server - EventBridge:164
+  07:53:33.248  Stack Begin  -  Studio
+  07:53:33.248  Script 'ServerScriptService.Server.Core.EventBridge', Line 164  -  Studio - EventBridge:164
+  07:53:33.248  Stack End  -  Studio
+  07:53:33.248  Attempted to call require with invalid argument(s).  -  Server - LegacyBridge:6
+  07:53:33.249  Stack Begin  -  Studio
+  07:53:33.249  Script 'ServerScriptService.Server.Core.LegacyBridge', Line 6  -  Studio - LegacyBridge:6
+  07:53:33.249  Stack End  -  Studio
+  07:53:33.249  ServerScriptService.Server.Core.MemberSatisfactionSystem:749: attempt to index nil with 'registerSystem'  -  Server - MemberSatisfactionSystem:749
+  07:53:33.249  Stack Begin  -  Studio
+  07:53:33.249  Script 'ServerScriptService.Server.Core.MemberSatisfactionSystem', Line 749  -  Studio - MemberSatisfactionSystem:749
+  07:53:33.249  Stack End  -  Studio
+  07:53:33.249  
 === GYM TYCOON AUTOMATION INITIALIZER ===  -  Server - AutomationInitializer:20
-  22:59:02.932  Initializing automation tools...  -  Server - AutomationInitializer:21
-  22:59:02.932  ✓ Automation tools initialized!  -  Server - AutomationInitializer:322
-  22:59:02.932  ✓ Run _G.AutomateGym() in the Command Bar to start  -  Server - AutomationInitializer:323
-  22:59:02.932  ✓ Additional commands: _G.GenerateGymHitboxes(), _G.SetupGymAttributes()  -  Server - AutomationInitializer:324
-  22:59:02.932  Attempted to call require with invalid argument(s).  -  Server - AchievementSystem:12
-  22:59:02.932  Stack Begin  -  Studio
-  22:59:02.932  Script 'ServerScriptService.Server.Core.AchievementSystem', Line 12  -  Studio - AchievementSystem:12
-  22:59:02.932  Stack End  -  Studio
-  22:59:02.932  ===== INITIALIZING GYM TYCOON =====  -  Server - GymTycoonInit:11
-  22:59:02.932  Created EventBridge in ReplicatedStorage  -  Server - GymTycoonInit:18
-  22:59:02.932  Created event: TilePurchased  -  Server - GymTycoonInit:33
-  22:59:02.932  Created event: DuesCollected  -  Server - GymTycoonInit:33
-  22:59:02.932  Created event: NPCSpawned  -  Server - GymTycoonInit:33
-  22:59:02.933  Created event: GymLevelUp  -  Server - GymTycoonInit:33
-  22:59:02.933  Created event: MilestoneReached  -  Server - GymTycoonInit:33
-  22:59:02.933  Failed to load GymTycoonDataManager - data persistence will not work!  -  Server - GymTycoonInit:68
-  22:59:02.933  Failed to load DataSystemBridge - will attempt to continue without it  -  Server - GymTycoonInit:79
-  22:59:02.933  RevenueSystem is not a valid member of Folder "ServerScriptService.Core"  -  Server - GymTycoonInit:89
-  22:59:02.933  Stack Begin  -  Studio
-  22:59:02.933  Script 'ServerScriptService.Server.Connectors.GymTycoonInit', Line 89  -  Studio - GymTycoonInit:89
-  22:59:02.933  Stack End  -  Studio
-  22:59:02.933  Attempted to call require with invalid argument(s).  -  Server - EventBridge:164
-  22:59:02.933  Stack Begin  -  Studio
-  22:59:02.933  Script 'ServerScriptService.Server.Core.EventBridge', Line 164  -  Studio - EventBridge:164
-  22:59:02.933  Stack End  -  Studio
-  22:59:02.933  Splash Script by Plad loaded  -  Server - Splash Script:1
-  22:59:02.933  CoreRegistry is not a valid member of Folder "ServerScriptService.Core"  -  Server - GymTycoonConnector:10
-  22:59:02.933  Stack Begin  -  Studio
-  22:59:02.933  Script 'ServerScriptService.Server.Connectors.GymTycoonConnector', Line 10  -  Studio - GymTycoonConnector:10
-  22:59:02.933  Stack End  -  Studio
-  22:59:02.933  Attempted to call require with invalid argument(s).  -  Server - PerformanceOptimizationFramework:11
-  22:59:02.933  Stack Begin  -  Studio
-  22:59:02.934  Script 'ServerScriptService.Server.Core.PerformanceOptimizationFramework', Line 11  -  Studio - PerformanceOptimizationFramework:11
-  22:59:02.934  Stack End  -  Studio
-  22:59:02.934  [TutorialManager] ModuleLoader not found, using legacy module loading  -  Server - TutorialManager:27
-  22:59:02.934  [TutorialManager] TutorialSteps module not found, creating default tutorials  -  Server - TutorialManager:27
-  22:59:02.934  Attempted to call require with invalid argument(s).  -  Server - FeatureManager:5
-  22:59:02.934  Stack Begin  -  Studio
-  22:59:02.934  Script 'ServerScriptService.Server.Core.FeatureManager', Line 5  -  Studio - FeatureManager:5
-  22:59:02.934  Stack End  -  Studio
-  22:59:02.934  [GymStructureIntegration] Failed to get CoreRegistry  -  Server - GymStructureIntegration:19
-  22:59:02.934  Attempted to call require with invalid argument(s).  -  Server - StaffTrainingSystem:5
-  22:59:02.934  Stack Begin  -  Studio
-  22:59:02.934  Script 'ServerScriptService.Server.Core.StaffTrainingSystem', Line 5  -  Studio - StaffTrainingSystem:5
-  22:59:02.934  Stack End  -  Studio
-  22:59:02.934  Attempted to call require with invalid argument(s).  -  Server - ConfigManager:3
-  22:59:02.934  Stack Begin  -  Studio
-  22:59:02.934  Script 'ServerScriptService.Server.Core.ConfigManager', Line 3  -  Studio - ConfigManager:3
-  22:59:02.934  Stack End  -  Studio
-  22:59:02.935  Attempted to call require with invalid argument(s).  -  Server - MemoryStoreManager:3
-  22:59:02.935  Stack Begin  -  Studio
-  22:59:02.935  Script 'ServerScriptService.Server.Core.MemoryStoreManager', Line 3  -  Studio - MemoryStoreManager:3
-  22:59:02.935  Stack End  -  Studio
-  22:59:02.935  Analyzing GymParts structure...  -  Server - AnalyzeGymStructure:237
-  22:59:02.935  ServerScriptService.Server.Core.AnalyzeGymStructure:211: attempt to index nil with 'baseStructure'  -  Server - AnalyzeGymStructure:211
-  22:59:02.935  Stack Begin  -  Studio
-  22:59:02.935  Script 'ServerScriptService.Server.Core.AnalyzeGymStructure', Line 211 - function generateRoomPrerequisites  -  Studio - AnalyzeGymStructure:211
-  22:59:02.935  Script 'ServerScriptService.Server.Core.AnalyzeGymStructure', Line 247 - function analyzeGymStructure  -  Studio - AnalyzeGymStructure:247
-  22:59:02.935  Script 'ServerScriptService.Server.Core.AnalyzeGymStructure', Line 399 - function main  -  Studio - AnalyzeGymStructure:399
-  22:59:02.935  Script 'ServerScriptService.Server.Core.AnalyzeGymStructure', Line 442  -  Studio - AnalyzeGymStructure:442
-  22:59:02.935  Stack End  -  Studio
-  22:59:02.935  ✓ Registered global function: _G.AutomateGym(tycoonName)  -  Server - GymAutomation:1184
-  22:59:02.936  ✓ Registered global function: _G.AutomateAllGyms()  -  Server - GymAutomation:1185
-  22:59:02.936  ✓ Registered global function: _G.GenerateBuildOrder()  -  Server - GymAutomation:1186
-  22:59:02.936  ✓ Registered global function: _G.ShowTycoonInfo(tycoonName)  -  Server - GymAutomation:1187
-  22:59:02.936  ✓ Registered global function: _G.ShowHitboxes()  -  Server - GymAutomation:1188
-  22:59:02.936  ✓ Registered global function: _G.HideHitboxes()  -  Server - GymAutomation:1189
-  22:59:02.936  ✓ Registered global function: _G.ProcessEquipment()  -  Server - GymAutomation:1190
-  22:59:02.936  ✓ Registered global function: _G.ValidateGymModels(tycoonName)  -  Server - GymAutomation:1191
-  22:59:02.936  ✓ Registered global function: _G.GenerateModelReport(tycoonName)  -  Server - GymAutomation:1192
-  22:59:02.936  ✓ Registered global function: _G.DetectUpgradePaths(tycoonName, options)  -  Server - GymAutomation:1193
-  22:59:02.936  ✓ Registered global function: _G.ApplyCollectionTags(tycoonName, options)  -  Server - GymAutomation:1194
-  22:59:02.936  ✓ Registered global function: _G.GenerateEquipmentConfig(tycoonName, options)  -  Server - GymAutomation:1195
-  22:59:02.936  ✓ Registered global function: _G.ApplyNPCAnimations(tycoonName, options)  -  Server - GymAutomation:1196
-  22:59:02.936  CoreRegistry is not a valid member of Folder "ServerScriptService.Core"  -  Server - NPCAnimationSystem:34
-  22:59:02.936  Stack Begin  -  Studio
-  22:59:02.936  Script 'ServerScriptService.Server.Core.NPCAnimationSystem', Line 34  -  Studio - NPCAnimationSystem:34
-  22:59:02.936  Stack End  -  Studio
-  22:59:02.937  Attempted to call require with invalid argument(s).  -  Server - StaffManagementSystem:10
-  22:59:02.937  Stack Begin  -  Studio
-  22:59:02.937  Script 'ServerScriptService.Server.Core.StaffManagementSystem', Line 10  -  Studio - StaffManagementSystem:10
-  22:59:02.937  Stack End  -  Studio
-  22:59:02.937  Attempted to call require with invalid argument(s).  -  Server - RebirthSystem:7
-  22:59:02.937  Stack Begin  -  Studio
-  22:59:02.937  Script 'ServerScriptService.Server.Core.RebirthSystem', Line 7  -  Studio - RebirthSystem:7
-  22:59:02.937  Stack End  -  Studio
-  22:59:02.937  ✓ Registered global function: _G.BatchProcessModels(tycoonName, processingFunction, options)  -  Server - DevUtilityFunctions:1208
-  22:59:02.937  ✓ Registered global function: _G.GenerateModelStats(tycoonName, options)  -  Server - DevUtilityFunctions:1209
-  22:59:02.937  ✓ Registered global function: _G.CompareConfigWithModels(configModule, tycoonName, options)  -  Server - DevUtilityFunctions:1210
-  22:59:02.937  ✓ Registered global function: _G.ExportCollectionServiceTags(outputFormat, containerName)  -  Server - DevUtilityFunctions:1211
-  22:59:02.937  ✓ Registered global function: _G.SetupTargetHardware(profile, customSettings)  -  Server - DevUtilityFunctions:1212
-  22:59:02.937  ✓ Registered global function: _G.GenerateUIConfig(uiContainer, options)  -  Server - DevUtilityFunctions:1213
-  22:59:02.937  ✓ Registered global function: _G.InitializeDevelopmentEnvironment(options)  -  Server - DevUtilityFunctions:1214
-  22:59:02.938  BuyTileSystem not found, cannot generate build order  -  Server - BuyTileProgressionManager:72
-  22:59:02.938  BuyTileSystem not found, cannot set up floor prerequisites  -  Server - BuyTileProgressionManager:382
-  22:59:02.938  BuyTileSystem not found, cannot identify required tiles  -  Server - BuyTileProgressionManager:474
-  22:59:02.938  BuyTileSystem not found, cannot integrate  -  Server - BuyTileProgressionManager:529
-  22:59:02.938  CommandService not found, progression commands won't be available  -  Server - BuyTileProgressionManager:655
-  22:59:02.938  [DataIntegration] Starting data persistence integration  -  Server - DataPersistenceIntegration:84
-  22:59:02.938  DataAccessLayer not found. Integration will be limited.  -  Server - DataPersistenceIntegration:261
-  22:59:02.938  [DataIntegration] Found 0 legacy data managers  -  Server - DataPersistenceIntegration:84
-  22:59:02.938  [DataIntegration] Found 0 systems to integrate with  -  Server - DataPersistenceIntegration:84
-  22:59:02.938  [DataIntegration] Patched 0 systems to use DataAccessLayer  -  Server - DataPersistenceIntegration:84
-  22:59:02.938  ServerScriptService.Server.Core.DataPersistenceIntegration:242: attempt to perform arithmetic (sub) on number and nil  -  Server - DataPersistenceIntegration:242
-  22:59:02.938  Stack Begin  -  Studio
-  22:59:02.938  Script 'ServerScriptService.Server.Core.DataPersistenceIntegration', Line 242 - function checkServerStatus  -  Studio - DataPersistenceIntegration:242
-  22:59:02.938  Script 'ServerScriptService.Server.Core.DataPersistenceIntegration', Line 286 - function runIntegration  -  Studio - DataPersistenceIntegration:286
-  22:59:02.938  Script 'ServerScriptService.Server.Core.DataPersistenceIntegration', Line 300  -  Studio - DataPersistenceIntegration:300
-  22:59:02.938  Stack End  -  Studio
-  22:59:02.938  [DataMigration] Initializing DataMigrationUtility  -  Server - DataMigrationUtility:109
-  22:59:02.939  Attempted to call require with invalid argument(s).  -  Server - DataThrottler:13
-  22:59:02.939  Stack Begin  -  Studio
-  22:59:02.939  Script 'ServerScriptService.Server.Core.DataThrottler', Line 13  -  Studio - DataThrottler:13
-  22:59:02.939  Stack End  -  Studio
-  22:59:02.939  [DataAccessLayer] Initializing DataAccessLayer v1.0.0  -  Server - DataAccessLayer:99
-  22:59:02.939  No data system found! Data operations will fail!  -  Server - DataAccessLayer:292
-  22:59:02.939  [DataAccessLayer] Player events connected  -  Server - DataAccessLayer:99
-  22:59:02.939  [DataAccessLayer] DataAccessLayer fully initialized  -  Server - DataAccessLayer:99
-  22:59:02.939  [DataInitializer] Starting data systems initialization...  -  Server - DataSystemInitializer:20
-  22:59:02.939  [DataInitializer] CoreRegistry not found, will continue without it  -  Server - DataSystemInitializer:20
-  22:59:02.939  DataAccessLayer not found, data persistence improvements will be limited  -  Server - DataSystemInitializer:52
-  22:59:02.939  [DataInitializer] DataPersistenceIntegration script not found, running integration manually  -  Server - DataSystemInitializer:20
-  22:59:02.939  [DataInitializer] All data systems initialized successfully!  -  Server - DataSystemInitializer:20
-  22:59:02.939  [DataAdminSystem] Initializing DataAdminSystem  -  Server - DataAdminSystem:102
-  22:59:02.939  [DataAdminSystem] Chat commands initialized  -  Server - DataAdminSystem:102
-  22:59:02.939  [VersionedDataStore] Initializing VersionedDataStore  -  Server - VersionedDataStore:41
-  22:59:02.940  ServerScriptService.Server.Core.Tests.ConsolidationTest:34: CoreRegistry not found. Cannot run tests without it.  -  Server - ConsolidationTest:34
-  22:59:02.940  Stack Begin  -  Studio
-  22:59:02.940  Script 'ServerScriptService.Server.Core.Tests.ConsolidationTest', Line 34  -  Studio - ConsolidationTest:34
-  22:59:02.940  Stack End  -  Studio
-  22:59:02.940  [DataAdminServer] Initializing DataAdminServer  -  Server - DataAdminServer:109
-  22:59:02.940  [DataAdminServer] DataAdminServer initialized  -  Server - DataAdminServer:109
-  22:59:02.940  [FolderSetup] Setting up necessary folders...  -  Server - FolderSetup:11
-  22:59:02.940  [FolderSetup] Created folder: ReplicatedStorage/Events  -  Server - FolderSetup:11
-  22:59:02.940  [FolderSetup] Created folder: ReplicatedStorage/ReplicatedEvents  -  Server - FolderSetup:11
-  22:59:02.940  [FolderSetup] Created folder: ReplicatedStorage/MembershipBoostEvent  -  Server - FolderSetup:11
-  22:59:02.940  [FolderSetup] Created folder: ReplicatedStorage/CreateAllianceEvent  -  Server - FolderSetup:11
-  22:59:02.940  [FolderSetup] Created folder: ServerStorage/MemberSatisfactionSystem  -  Server - FolderSetup:11
-  22:59:02.940  [FolderSetup] Created folder: ServerScriptService/src  -  Server - FolderSetup:11
-  22:59:02.941  [FolderSetup] Created RemoteEvent: Events/MembershipUpdated  -  Server - FolderSetup:11
-  22:59:02.941  [FolderSetup] Created RemoteEvent: Events/EquipmentPurchased  -  Server - FolderSetup:11
-  22:59:02.941  [FolderSetup] Created RemoteEvent: Events/RevenueCollected  -  Server - FolderSetup:11
-  22:59:02.941  [FolderSetup] Created RemoteEvent: Events/MemberJoined  -  Server - FolderSetup:11
-  22:59:02.941  [FolderSetup] Created RemoteEvent: Events/MemberLeft  -  Server - FolderSetup:11
-  22:59:02.941  [FolderSetup] Created RemoteEvent: Events/TycoonCreated  -  Server - FolderSetup:11
-  22:59:02.941  [FolderSetup] Created RemoteEvent: Events/MembershipTierChanged  -  Server - FolderSetup:11
-  22:59:02.941  [FolderSetup] Folder setup complete!  -  Server - FolderSetup:11
-  22:59:02.941  [ModuleLoaderExample] ModuleLoader not found, using legacy loading  -  Server - ModuleLoaderExample:26
-  22:59:02.941  [ModuleLoaderExample] Failed to load CoreRegistry: CoreRegistry is not a valid member of Folder "ServerScriptService.Core"  -  Server - ModuleLoaderExample:62
-  22:59:02.941  TestingFramework is not a valid member of Folder "ServerScriptService.Core"  -  Server - IntegrationTests:5
-  22:59:02.941  Stack Begin  -  Studio
-  22:59:02.941  Script 'ServerScriptService.Server.Core.Tests.IntegrationTests', Line 5  -  Studio - IntegrationTests:5
-  22:59:02.941  Stack End  -  Studio
-  22:59:02.941  Attempted to call require with invalid argument(s).  -  Server - NPCSystemPerformance:9
-  22:59:02.941  Stack Begin  -  Studio
-  22:59:02.942  Script 'ServerScriptService.Server.Core.NPCSystemPerformance', Line 9  -  Studio - NPCSystemPerformance:9
-  22:59:02.942  Stack End  -  Studio
-  22:59:02.942  Attempted to call require with invalid argument(s).  -  Server - TestLauncher:12
-  22:59:02.942  Stack Begin  -  Studio
-  22:59:02.942  Script 'ServerScriptService.Server.Core.Tests.TestLauncher', Line 12  -  Studio - TestLauncher:12
-  22:59:02.942  Stack End  -  Studio
-  22:59:02.942  Attempted to call require with invalid argument(s).  -  Server - PerformanceProfiler:10
-  22:59:02.942  Stack Begin  -  Studio
-  22:59:02.942  Script 'ServerScriptService.Server.Core.PerformanceProfiler', Line 10  -  Studio - PerformanceProfiler:10
-  22:59:02.942  Stack End  -  Studio
-  22:59:02.942  Attempted to call require with invalid argument(s).  -  Server - EquipmentUpgradeSystem:17
-  22:59:02.942  Stack Begin  -  Studio
-  22:59:02.942  Script 'ServerScriptService.Server.Core.EquipmentUpgradeSystem', Line 17  -  Studio - EquipmentUpgradeSystem:17
-  22:59:02.942  Stack End  -  Studio
-  22:59:02.942  Attempted to call require with invalid argument(s).  -  Server - NPCInteractionTest:6
-  22:59:02.942  Stack Begin  -  Studio
-  22:59:02.942  Script 'ServerScriptService.Server.Core.NPCInteractionTest', Line 6  -  Studio - NPCInteractionTest:6
-  22:59:02.942  Stack End  -  Studio
-  22:59:02.942  [DataSystemBridge] CoreRegistry not found, creating basic version  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Starting integration fix process...  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Unable to locate any data management system  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] No data manager found, cannot create data interface  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Failed to create data persistence interface  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Unable to locate BuyTile system  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] No BuyTile system found, cannot create spawn function  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Failed to create spawn function  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Unable to locate DataAccessLayer, creating basic version  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Unable to locate any data management system  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] No data manager found, cannot create data interface  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Cannot create DataAccessLayer, no data interface available  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Finished fixing integration issues  -  Server - DataSystemBridge:12
-  22:59:02.943  [DataSystemBridge] Unable to locate any data management system  -  Server - DataSystemBridge:12
-  22:59:02.943  TestingFramework is not a valid member of Folder "ServerScriptService.Core"  -  Server - RunTests:5
-  22:59:02.943  Stack Begin  -  Studio
-  22:59:02.943  Script 'ServerScriptService.Server.Core.Tests.RunTests', Line 5  -  Studio - RunTests:5
-  22:59:02.943  Stack End  -  Studio
-  22:59:02.944  Attempted to call require with invalid argument(s).  -  Server - PerformanceManager:10
-  22:59:02.944  Stack Begin  -  Studio
-  22:59:02.944  Script 'ServerScriptService.Server.Core.PerformanceManager', Line 10  -  Studio - PerformanceManager:10
-  22:59:02.944  Stack End  -  Studio
-  22:59:02.944  ServerScriptService.Server.Core.MemberTrainingSystem:219: attempt to index nil with 'registerSystem'  -  Server - MemberTrainingSystem:219
-  22:59:02.944  Stack Begin  -  Studio
-  22:59:02.944  Script 'ServerScriptService.Server.Core.MemberTrainingSystem', Line 219  -  Studio - MemberTrainingSystem:219
-  22:59:02.944  Stack End  -  Studio
-  22:59:02.944  ✓ Registered global function: _G.MigrateBuyTileSystem()  -  Server - MigrationUtils:682
-  22:59:02.944  ✓ Registered global function: _G.ShowMigrationInfo()  -  Server - MigrationUtils:683
-  22:59:02.944  Attempted to call require with invalid argument(s).  -  Server - ReputationSystem:23
-  22:59:02.944  Stack Begin  -  Studio
-  22:59:02.944  Script 'ServerScriptService.Server.Core.ReputationSystem', Line 23  -  Studio - ReputationSystem:23
-  22:59:02.944  Stack End  -  Studio
-  22:59:02.944  Attempted to call require with invalid argument(s).  -  Server - TaskScheduler:9
-  22:59:02.944  Stack Begin  -  Studio
-  22:59:02.945  Script 'ServerScriptService.Server.Core.TaskScheduler', Line 9  -  Studio - TaskScheduler:9
-  22:59:02.945  Stack End  -  Studio
-  22:59:02.945  Attempted to call require with invalid argument(s).  -  Server - StaffSpecializationSystem:10
-  22:59:02.945  Stack Begin  -  Studio
-  22:59:02.945  Script 'ServerScriptService.Server.Core.StaffSpecializationSystem', Line 10  -  Studio - StaffSpecializationSystem:10
-  22:59:02.945  Stack End  -  Studio
-  22:59:02.945  ServerScriptService.Server.Core.FloorAttributeSetup:32: attempt to index nil with 'GetSystem'  -  Server - FloorAttributeSetup:32
-  22:59:02.945  Stack Begin  -  Studio
-  22:59:02.945  Script 'ServerScriptService.Server.Core.FloorAttributeSetup', Line 32  -  Studio - FloorAttributeSetup:32
-  22:59:02.945  Stack End  -  Studio
-  22:59:02.945  Attempted to call require with invalid argument(s).  -  Server - ServerFunctions:7
-  22:59:02.945  Stack Begin  -  Studio
-  22:59:02.945  Script 'ServerScriptService.Server.Core.ServerFunctions', Line 7  -  Studio - ServerFunctions:7
-  22:59:02.945  Stack End  -  Studio
-  22:59:02.945  Attempted to call require with invalid argument(s).  -  Server - SpecializationNPC:6
-  22:59:02.945  Stack Begin  -  Studio
-  22:59:02.945  Script 'ServerScriptService.Server.Core.SpecializationNPC', Line 6  -  Studio - SpecializationNPC:6
-  22:59:02.945  Stack End  -  Studio
-  22:59:02.945  Attempted to call require with invalid argument(s).  -  Server - AttributeSetup:8
-  22:59:02.945  Stack Begin  -  Studio
-  22:59:02.945  Script 'ServerScriptService.Server.Core.AttributeSetup', Line 8  -  Studio - AttributeSetup:8
-  22:59:02.946  Stack End  -  Studio
-  22:59:02.946  Attempted to call require with invalid argument(s).  -  Server - TileDataGenerator:40
-  22:59:02.946  Stack Begin  -  Studio
-  22:59:02.946  Script 'ServerScriptService.Server.Core.TileDataGenerator', Line 40  -  Studio - TileDataGenerator:40
-  22:59:02.946  Stack End  -  Studio
-  22:59:02.946  Failed to load DataThrottler module: Core is not a valid member of Folder "ServerScriptService.Server.Core"  -  Server - DataThrottlerTests:23
-  22:59:02.946  Attempted to call require with invalid argument(s).  -  Server - TycoonSystem:10
-  22:59:02.946  Stack Begin  -  Studio
-  22:59:02.946  Script 'ServerScriptService.Server.Core.TycoonSystem', Line 10  -  Studio - TycoonSystem:10
-  22:59:02.946  Stack End  -  Studio
-  22:59:02.946  Attempted to call require with invalid argument(s).  -  Server - ServerEvents:7
-  22:59:02.946  Stack Begin  -  Studio
-  22:59:02.946  Script 'ServerScriptService.Server.Core.ServerEvents', Line 7  -  Studio - ServerEvents:7
-  22:59:02.946  Stack End  -  Studio
-  22:59:02.946  BoundingBoxManager: Failed to set up legacy global functions: ServerScriptService.Server.Core.BoundingBoxManager:507: invalid argument #1 to 'rawset' (table expected, got nil)  -  Server - BoundingBoxManager:517
-  22:59:02.947  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Womens.Hot tub - Womens 1.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Womens.Hot tub - Womens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Mens.Hot tub - Mens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Womens.Cold tub - Womens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Found swimming pool: Workspace.GymParts.Roof.Pool Area.Rooftop Pool.Part with water level at Y=118.76155233383179  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Mens.Cold tub - Mens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Womens.Cold tub - Womens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Mens.Cold tub - Mens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Mens.Hot tub - Mens 1.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
-  22:59:02.947  Swimming system initialized with 9 pools  -  Server - PoolSwimmingSystem:768
-  22:59:02.947  Created TilePurchasedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.947  Created DuesCollectedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.947  Created CashUpdatedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.947  Created NPCSpawnedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.947  Created NPCRemovedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.947  Created NPCInteractionEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  Created PlayerJoinedGymEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  Created PlayerLeftGymEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  Created GymLevelUpEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  Created EquipmentUsedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  Created SpecialEventStartedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  Created SpecialEventEndedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  Created MilestoneReachedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  Created ChallengeCompletedEvent in EventBridge  -  Server - EventBridge:49
-  22:59:02.948  EventBridge system initialized - connecting 14 events  -  Server - EventBridge:114
-  22:59:02.948  Reset Button Handler initialized  -  Server - ResetButtonHandler:93
-  22:59:02.948  SpecializationIntegration: Failed to load GymSpecializationSystem  -  Server - SpecializationIntegration:25
-  22:59:02.948  DataThrottler is not a valid member of Folder "ServerScriptService.Core"  -  Server - EnhancedDataStorageSystem:19
-  22:59:02.948  Stack Begin  -  Studio
-  22:59:02.948  Script 'ServerScriptService.Server.Data.EnhancedDataStorageSystem', Line 19 - function loadDataThrottler  -  Studio - EnhancedDataStorageSystem:19
-  22:59:02.948  Script 'ServerScriptService.Server.Data.EnhancedDataStorageSystem', Line 61  -  Studio - EnhancedDataStorageSystem:61
-  22:59:02.948  Stack End  -  Studio
-  22:59:02.949  [FrontDeskFixer] Front desk GUI fixer initialized  -  Server - FrontDeskFix:16
-  22:59:02.949  EventSystem not found, creating a basic implementation  -  Server - MembershipBoostEvent:32
-  22:59:02.949  Event Frequency set to every: 7 days  -  Server - MembershipBoostEvent:156
-  22:59:02.949  Event Type set to:  Random  -  Server - MembershipBoostEvent:139
-  22:59:02.949  Event Length set to:  FullWeekend  -  Server - MembershipBoostEvent:148
-  22:59:02.949  Added event to EventSystem: MembershipBoost  -  Server - MembershipBoostEvent:38
-  22:59:02.949  
+  07:53:33.249  Initializing automation tools...  -  Server - AutomationInitializer:21
+  07:53:33.249  ✓ Automation tools initialized!  -  Server - AutomationInitializer:322
+  07:53:33.250  ✓ Run _G.AutomateGym() in the Command Bar to start  -  Server - AutomationInitializer:323
+  07:53:33.250  ✓ Additional commands: _G.GenerateGymHitboxes(), _G.SetupGymAttributes()  -  Server - AutomationInitializer:324
+  07:53:33.251  Splash Script by Plad loaded  -  Server - Splash Script:1
+  07:53:33.251  Core is not a valid member of ServerScriptService "ServerScriptService"  -  Server - RunTests:5
+  07:53:33.251  Stack Begin  -  Studio
+  07:53:33.251  Script 'ServerScriptService.Server.Core.Tests.RunTests', Line 5  -  Studio - RunTests:5
+  07:53:33.251  Stack End  -  Studio
+  07:53:33.251  ServerScriptService.Server.Core.Tests.ConsolidationTest:34: CoreRegistry not found. Cannot run tests without it.  -  Server - ConsolidationTest:34
+  07:53:33.251  Stack Begin  -  Studio
+  07:53:33.251  Script 'ServerScriptService.Server.Core.Tests.ConsolidationTest', Line 34  -  Studio - ConsolidationTest:34
+  07:53:33.251  Stack End  -  Studio
+  07:53:33.251  Failed to load DataThrottler module: Core is not a valid member of Folder "ServerScriptService.Server.Core"  -  Server - DataThrottlerTests:23
+  07:53:33.251  Attempted to call require with invalid argument(s).  -  Server - TaskScheduler:9
+  07:53:33.251  Stack Begin  -  Studio
+  07:53:33.252  Script 'ServerScriptService.Server.Core.TaskScheduler', Line 9  -  Studio - TaskScheduler:9
+  07:53:33.252  Stack End  -  Studio
+  07:53:33.252  ServerScriptService.Server.Core.SaunaSystem:698: attempt to index nil with 'registerSystem'  -  Server - SaunaSystem:698
+  07:53:33.252  Stack Begin  -  Studio
+  07:53:33.252  Script 'ServerScriptService.Server.Core.SaunaSystem', Line 698  -  Studio - SaunaSystem:698
+  07:53:33.252  Stack End  -  Studio
+  07:53:33.252  [GymTycoonConnectorBridge] Failed to get CoreRegistry  -  Server - GymTycoonConnectorBridge:19
+  07:53:33.252  Attempted to call require with invalid argument(s).  -  Server - ConfigManager:3
+  07:53:33.253  Stack Begin  -  Studio
+  07:53:33.253  Script 'ServerScriptService.Server.Core.ConfigManager', Line 3  -  Studio - ConfigManager:3
+  07:53:33.253  Stack End  -  Studio
+  07:53:33.253  Attempted to call require with invalid argument(s).  -  Server - TestLauncher:12
+  07:53:33.253  Stack Begin  -  Studio
+  07:53:33.253  Script 'ServerScriptService.Server.Core.Tests.TestLauncher', Line 12  -  Studio - TestLauncher:12
+  07:53:33.253  Stack End  -  Studio
+  07:53:33.253  Core is not a valid member of ServerScriptService "ServerScriptService"  -  Server - IntegrationTests:5
+  07:53:33.253  Stack Begin  -  Studio
+  07:53:33.253  Script 'ServerScriptService.Server.Core.Tests.IntegrationTests', Line 5  -  Studio - IntegrationTests:5
+  07:53:33.254  Stack End  -  Studio
+  07:53:33.254  Attempted to call require with invalid argument(s).  -  Server - PerformanceOptimizationFramework:11
+  07:53:33.254  Stack Begin  -  Studio
+  07:53:33.254  Script 'ServerScriptService.Server.Core.PerformanceOptimizationFramework', Line 11  -  Studio - PerformanceOptimizationFramework:11
+  07:53:33.254  Stack End  -  Studio
+  07:53:33.254  Attempted to call require with invalid argument(s).  -  Server - TycoonSystem:10
+  07:53:33.254  Stack Begin  -  Studio
+  07:53:33.255  Script 'ServerScriptService.Server.Core.TycoonSystem', Line 10  -  Studio - TycoonSystem:10
+  07:53:33.255  Stack End  -  Studio
+  07:53:33.255  Attempted to call require with invalid argument(s).  -  Server - NPCSystemPerformance:9
+  07:53:33.255  Stack Begin  -  Studio
+  07:53:33.255  Script 'ServerScriptService.Server.Core.NPCSystemPerformance', Line 9  -  Studio - NPCSystemPerformance:9
+  07:53:33.255  Stack End  -  Studio
+  07:53:33.255  Attempted to call require with invalid argument(s).  -  Server - AutoBuyTileSetup:21
+  07:53:33.255  Stack Begin  -  Studio
+  07:53:33.255  Script 'ServerScriptService.Server.Connectors.AutoBuyTileSetup', Line 21  -  Studio - AutoBuyTileSetup:21
+  07:53:33.255  Stack End  -  Studio
+  07:53:33.256  ServerScriptService.Server.Core.InitializeCore:12: Core folder not found in ServerScriptService!  -  Server - InitializeCore:12
+  07:53:33.256  Stack Begin  -  Studio
+  07:53:33.256  Script 'ServerScriptService.Server.Core.InitializeCore', Line 12  -  Studio - InitializeCore:12
+  07:53:33.256  Stack End  -  Studio
+  07:53:33.256  Attempted to call require with invalid argument(s).  -  Server - SatisfactionEventHandler:11
+  07:53:33.256  Stack Begin  -  Studio
+  07:53:33.256  Script 'ServerScriptService.Server.Core.SatisfactionEventHandler', Line 11  -  Studio - SatisfactionEventHandler:11
+  07:53:33.257  Stack End  -  Studio
+  07:53:33.257  Attempted to call require with invalid argument(s).  -  Server - MemoryStoreManager:3
+  07:53:33.257  Stack Begin  -  Studio
+  07:53:33.257  Script 'ServerScriptService.Server.Core.MemoryStoreManager', Line 3  -  Studio - MemoryStoreManager:3
+  07:53:33.257  Stack End  -  Studio
+  07:53:33.257  Attempted to call require with invalid argument(s).  -  Server - MilestoneSystem:11
+  07:53:33.257  Stack Begin  -  Studio
+  07:53:33.257  Script 'ServerScriptService.Server.Core.MilestoneSystem', Line 11  -  Studio - MilestoneSystem:11
+  07:53:33.257  Stack End  -  Studio
+  07:53:33.257  Core is not a valid member of ServerScriptService "ServerScriptService"  -  Server - GymTycoonConnector:10
+  07:53:33.258  Stack Begin  -  Studio
+  07:53:33.258  Script 'ServerScriptService.Server.Connectors.GymTycoonConnector', Line 10  -  Studio - GymTycoonConnector:10
+  07:53:33.258  Stack End  -  Studio
+  07:53:33.258  ==================================================  -  Server - ServerRunner:8
+  07:53:33.258  Starting Gym Tycoon System Architecture v2.0  -  Server - ServerRunner:9
+  07:53:33.258  ==================================================  -  Server - ServerRunner:10
+  07:53:33.258  SystemBootstrap.luau not found in ServerScriptService/Core  -  Server - ServerRunner:32
+  07:53:33.258  Attempted to call require with invalid argument(s).  -  Server - PerformanceProfiler:10
+  07:53:33.258  Stack Begin  -  Studio
+  07:53:33.258  Script 'ServerScriptService.Server.Core.PerformanceProfiler', Line 10  -  Studio - PerformanceProfiler:10
+  07:53:33.259  Stack End  -  Studio
+  07:53:33.259  Attempted to call require with invalid argument(s).  -  Server - GymTycoonAutomation:19
+  07:53:33.259  Stack Begin  -  Studio
+  07:53:33.259  Script 'ServerScriptService.Server.Connectors.GymTycoonAutomation', Line 19  -  Studio - GymTycoonAutomation:19
+  07:53:33.259  Stack End  -  Studio
+  07:53:33.259  ===== INITIALIZING GYM TYCOON =====  -  Server - GymTycoonInit:11
+  07:53:33.259  Created EventBridge in ReplicatedStorage  -  Server - GymTycoonInit:18
+  07:53:33.259  Created event: TilePurchased  -  Server - GymTycoonInit:33
+  07:53:33.259  Created event: DuesCollected  -  Server - GymTycoonInit:33
+  07:53:33.259  Created event: NPCSpawned  -  Server - GymTycoonInit:33
+  07:53:33.260  Created event: GymLevelUp  -  Server - GymTycoonInit:33
+  07:53:33.260  Created event: MilestoneReached  -  Server - GymTycoonInit:33
+  07:53:33.260  Failed to load GymTycoonDataManager - data persistence will not work!  -  Server - GymTycoonInit:68
+  07:53:33.260  Failed to load DataSystemBridge - will attempt to continue without it  -  Server - GymTycoonInit:79
+  07:53:33.260  RevenueSystem is not a valid member of Folder "ServerScriptService.Core"  -  Server - GymTycoonInit:89
+  07:53:33.260  Stack Begin  -  Studio
+  07:53:33.260  Script 'ServerScriptService.Server.Connectors.GymTycoonInit', Line 89  -  Studio - GymTycoonInit:89
+  07:53:33.260  Stack End  -  Studio
+  07:53:33.261  TestingFramework is not a valid member of Folder "ServerScriptService.Core"  -  Server - DataManagerTests:5
+  07:53:33.261  Stack Begin  -  Studio
+  07:53:33.261  Script 'ServerScriptService.Server.Core.Tests.DataManagerTests', Line 5  -  Studio - DataManagerTests:5
+  07:53:33.261  Stack End  -  Studio
+  07:53:33.261  Attempted to call require with invalid argument(s).  -  Server - GymTycoonConnector:10
+  07:53:33.261  Stack Begin  -  Studio
+  07:53:33.261  Script 'ServerScriptService.Server.Core.GymTycoonConnector', Line 10  -  Studio - GymTycoonConnector:10
+  07:53:33.261  Stack End  -  Studio
+  07:53:33.261  Attempted to call require with invalid argument(s).  -  Server - FeatureManager:5
+  07:53:33.261  Stack Begin  -  Studio
+  07:53:33.261  Script 'ServerScriptService.Server.Core.FeatureManager', Line 5  -  Studio - FeatureManager:5
+  07:53:33.261  Stack End  -  Studio
+  07:53:33.262  Attempted to call require with invalid argument(s).  -  Server - RebirthSystem:7
+  07:53:33.262  Stack Begin  -  Studio
+  07:53:33.262  Script 'ServerScriptService.Server.Core.RebirthSystem', Line 7  -  Studio - RebirthSystem:7
+  07:53:33.262  Stack End  -  Studio
+  07:53:33.262  Attempted to call require with invalid argument(s).  -  Server - ServerFunctions:7
+  07:53:33.262  Stack Begin  -  Studio
+  07:53:33.262  Script 'ServerScriptService.Server.Core.ServerFunctions', Line 7  -  Studio - ServerFunctions:7
+  07:53:33.262  Stack End  -  Studio
+  07:53:33.263  ✓ Registered global function: _G.MigrateBuyTileSystem()  -  Server - MigrationUtils:682
+  07:53:33.263  ✓ Registered global function: _G.ShowMigrationInfo()  -  Server - MigrationUtils:683
+  07:53:33.263  Attempted to call require with invalid argument(s).  -  Server - StaffManagementSystem:10
+  07:53:33.263  Stack Begin  -  Studio
+  07:53:33.263  Script 'ServerScriptService.Server.Core.StaffManagementSystem', Line 10  -  Studio - StaffManagementSystem:10
+  07:53:33.263  Stack End  -  Studio
+  07:53:33.263  Attempted to call require with invalid argument(s).  -  Server - ServerEvents:7
+  07:53:33.263  Stack Begin  -  Studio
+  07:53:33.263  Script 'ServerScriptService.Server.Core.ServerEvents', Line 7  -  Studio - ServerEvents:7
+  07:53:33.264  Stack End  -  Studio
+  07:53:33.264  [DataAdminSystem] Initializing DataAdminSystem  -  Server - DataAdminSystem:102
+  07:53:33.264  [DataAdminSystem] Chat commands initialized  -  Server - DataAdminSystem:102
+  07:53:33.264  CoreRegistry is not a valid member of Folder "ServerScriptService.Core"  -  Server - NPCAnimationSystem:34
+  07:53:33.264  Stack Begin  -  Studio
+  07:53:33.265  Script 'ServerScriptService.Server.Core.NPCAnimationSystem', Line 34  -  Studio - NPCAnimationSystem:34
+  07:53:33.265  Stack End  -  Studio
+  07:53:33.265  [FolderSetup] Starting folder setup...  -  Server - FolderSetup:18
+  07:53:33.265  [FolderSetup] Found existing folder: shared in ReplicatedStorage  -  Server - FolderSetup:18
+  07:53:33.265  [FolderSetup] Created folder: Events in ReplicatedStorage  -  Server - FolderSetup:18
+  07:53:33.265  [FolderSetup] Created folder: src in ReplicatedStorage  -  Server - FolderSetup:18
+  07:53:33.265  [FolderSetup] Created folder: UI in ReplicatedStorage.shared  -  Server - FolderSetup:18
+  07:53:33.265  [FolderSetup] Created folder: Constants in ReplicatedStorage.shared  -  Server - FolderSetup:18
+  07:53:33.265  [FolderSetup] Created folder: Utils in ReplicatedStorage.shared  -  Server - FolderSetup:18
+  07:53:33.265  [FolderSetup] Found existing folder: Core in ServerScriptService  -  Server - FolderSetup:18
+  07:53:33.266  [FolderSetup] Found existing folder: Data in ServerScriptService  -  Server - FolderSetup:18
+  07:53:33.266  [FolderSetup] Created folder: Systems in ServerScriptService  -  Server - FolderSetup:18
+  07:53:33.266  [FolderSetup] Found existing folder: Connectors in ServerScriptService  -  Server - FolderSetup:18
+  07:53:33.266  [FolderSetup] Created folder: Essentials in ServerScriptService  -  Server - FolderSetup:18
+  07:53:33.266  [FolderSetup] Created folder: Enhancements in ServerScriptService  -  Server - FolderSetup:18
+  07:53:33.266  [FolderSetup] Created folder: ModelValidation in ServerScriptService.Core  -  Server - FolderSetup:18
+  07:53:33.266  [FolderSetup] Created folder: Systems in ServerScriptService.Core  -  Server - FolderSetup:18
+  07:53:33.267  [FolderSetup] Created folder: Models in ServerStorage  -  Server - FolderSetup:18
+  07:53:33.267  [FolderSetup] Found existing folder: BuyTiles in ServerStorage  -  Server - FolderSetup:18
+  07:53:33.267  [FolderSetup] Created folder: EquipmentModels in ServerStorage  -  Server - FolderSetup:18
+  07:53:33.267  [FolderSetup] Created folder: NPC_Models in ServerStorage  -  Server - FolderSetup:18
+  07:53:33.267  [FolderSetup] Folder setup complete  -  Server - FolderSetup:18
+  07:53:33.267  Attempted to call require with invalid argument(s).  -  Server - NPCInteractionTest:6
+  07:53:33.267  Stack Begin  -  Studio
+  07:53:33.267  Script 'ServerScriptService.Server.Core.NPCInteractionTest', Line 6  -  Studio - NPCInteractionTest:6
+  07:53:33.267  Stack End  -  Studio
+  07:53:33.268  DataThrottler is not a valid member of Folder "ServerScriptService.Core"  -  Server - EnhancedDataStorageSystem:19
+  07:53:33.268  Stack Begin  -  Studio
+  07:53:33.268  Script 'ServerScriptService.Server.Data.EnhancedDataStorageSystem', Line 19 - function loadDataThrottler  -  Studio - EnhancedDataStorageSystem:19
+  07:53:33.268  Script 'ServerScriptService.Server.Data.EnhancedDataStorageSystem', Line 61  -  Studio - EnhancedDataStorageSystem:61
+  07:53:33.268  Stack End  -  Studio
+  07:53:33.268  [PathRegistration] ModuleLoader not found, waiting...  -  Server - PathRegistration:25
+  07:53:33.327   ▶ Failed to load animation with sanitized ID rbxassetid://4479935848: Animation failed to load, assetId: https://assetdelivery.roblox.com/v1/asset?id=4479935848&serverplaceid=0 (x2)  -  Studio
+  07:53:33.328   ▶ Failed to load animation with sanitized ID rbxassetid://4479937122: Animation failed to load, assetId: https://assetdelivery.roblox.com/v1/asset?id=4479937122&serverplaceid=0 (x2)  -  Studio
+  07:53:33.328   ▶ Failed to load animation with sanitized ID rbxassetid://4571857828: Animation failed to load, assetId: https://assetdelivery.roblox.com/v1/asset?id=4571857828&serverplaceid=0 (x2)  -  Studio
+  07:53:33.338   ▶ NPC assigned as Trainer (x2)  -  Server - JobSystem:17
+  07:53:33.381  [RebirthSystem] Initializing RebirthSystem  -  Server - RebirthSystem:296
+  07:53:33.381  [RebirthSystem] Rebirth remotes set up  -  Server - RebirthSystem:296
+  07:53:33.381  [RebirthSystem] RebirthSystem initialized  -  Server - RebirthSystem:296
+  07:53:33.381  [Staff System] Initializing Staff System  -  Server - StaffManagementSystem:258
+  07:53:33.382  [Staff System] Staff System initialized  -  Server - StaffManagementSystem:258
+  07:53:33.382  Attempted to call require with invalid argument(s).  -  Server - StaffSpecializationSystem:10
+  07:53:33.382  Stack Begin  -  Studio
+  07:53:33.382  Script 'ServerScriptService.Server.Core.StaffSpecializationSystem', Line 10  -  Studio - StaffSpecializationSystem:10
+  07:53:33.382  Stack End  -  Studio
+  07:53:33.382  [AllianceEventSetup] Loaded SafeWaitForChild module  -  Server - AllianceEventSetup:25
+  07:53:33.383  [AllianceEventSetup] Created folder: AllianceEvents  -  Server - AllianceEventSetup:41
+  07:53:33.383  [AllianceEventSetup] Created event: CreateAlliance  -  Server - AllianceEventSetup:57
+  07:53:33.383  [AllianceEventSetup] Created event: DeleteAlliance  -  Server - AllianceEventSetup:57
+  07:53:33.383  [AllianceEventSetup] Created event: InviteToAlliance  -  Server - AllianceEventSetup:57
+  07:53:33.383  [AllianceEventSetup] Created event: AcceptInvitation  -  Server - AllianceEventSetup:57
+  07:53:33.383  [AllianceEventSetup] Created event: DeclineInvitation  -  Server - AllianceEventSetup:57
+  07:53:33.383  [AllianceEventSetup] Created event: LeaveAlliance  -  Server - AllianceEventSetup:57
+  07:53:33.384  [AllianceEventSetup] Created event: KickFromAlliance  -  Server - AllianceEventSetup:57
+  07:53:33.384  [AllianceEventSetup] Created event: PromoteMember  -  Server - AllianceEventSetup:57
+  07:53:33.384  [AllianceEventSetup] Created event: DemoteMember  -  Server - AllianceEventSetup:57
+  07:53:33.384  [AllianceEventSetup] Created event: PlayerAddedToAlliance  -  Server - AllianceEventSetup:57
+  07:53:33.384  [AllianceEventSetup] Created event: PlayerRemovedFromAlliance  -  Server - AllianceEventSetup:57
+  07:53:33.384  [AllianceEventSetup] Created event: AllianceUpdated  -  Server - AllianceEventSetup:57
+  07:53:33.384  [AllianceEventSetup] Created event: RequestAllianceData  -  Server - AllianceEventSetup:57
+  07:53:33.385  [AllianceEventSetup] Created event: AllianceDataResponse  -  Server - AllianceEventSetup:57
+  07:53:33.385  [AllianceEventSetup] Created event: PlayerAddedToAllianceEvent  -  Server - AllianceEventSetup:57
+  07:53:33.385  [AllianceEventSetup] Created event: PlayerRemovedFromAllianceEvent  -  Server - AllianceEventSetup:57
+  07:53:33.385  [AllianceEventSetup] All alliance events created successfully  -  Server - AllianceEventSetup:123
+  07:53:33.385  EventSystem not found, creating a basic implementation  -  Server - MembershipBoostEvent:32
+  07:53:33.385  Event Frequency set to every: 7 days  -  Server - MembershipBoostEvent:156
+  07:53:33.385  Event Type set to:  Random  -  Server - MembershipBoostEvent:139
+  07:53:33.385  Event Length set to:  FullWeekend  -  Server - MembershipBoostEvent:148
+  07:53:33.385  Added event to EventSystem: MembershipBoost  -  Server - MembershipBoostEvent:38
+  07:53:33.386  GymTycoonDataManager is not a valid member of Folder "ServerScriptService.Data"  -  Server - BuilderBoost:5
+  07:53:33.386  Stack Begin  -  Studio
+  07:53:33.386  Script 'ServerScriptService.Server.Enhancements.BuilderBoost', Line 5  -  Studio - BuilderBoost:5
+  07:53:33.386  Stack End  -  Studio
+  07:53:33.386  ✓ Registered global function: _G.AutomateGym(tycoonName)  -  Server - GymAutomation:1184
+  07:53:33.386  ✓ Registered global function: _G.AutomateAllGyms()  -  Server - GymAutomation:1185
+  07:53:33.386  ✓ Registered global function: _G.GenerateBuildOrder()  -  Server - GymAutomation:1186
+  07:53:33.386  ✓ Registered global function: _G.ShowTycoonInfo(tycoonName)  -  Server - GymAutomation:1187
+  07:53:33.386  ✓ Registered global function: _G.ShowHitboxes()  -  Server - GymAutomation:1188
+  07:53:33.386  ✓ Registered global function: _G.HideHitboxes()  -  Server - GymAutomation:1189
+  07:53:33.386  ✓ Registered global function: _G.ProcessEquipment()  -  Server - GymAutomation:1190
+  07:53:33.386  ✓ Registered global function: _G.ValidateGymModels(tycoonName)  -  Server - GymAutomation:1191
+  07:53:33.387  ✓ Registered global function: _G.GenerateModelReport(tycoonName)  -  Server - GymAutomation:1192
+  07:53:33.387  ✓ Registered global function: _G.DetectUpgradePaths(tycoonName, options)  -  Server - GymAutomation:1193
+  07:53:33.387  ✓ Registered global function: _G.ApplyCollectionTags(tycoonName, options)  -  Server - GymAutomation:1194
+  07:53:33.387  ✓ Registered global function: _G.GenerateEquipmentConfig(tycoonName, options)  -  Server - GymAutomation:1195
+  07:53:33.387  ✓ Registered global function: _G.ApplyNPCAnimations(tycoonName, options)  -  Server - GymAutomation:1196
+  07:53:33.387  [DataManager] Running in Studio - data persistence may not work unless enabled in Game Settings  -  Server - GymTycoonDataManager:43
+  07:53:33.388  [DataManager] DataManager initialized successfully  -  Server - GymTycoonDataManager:43
+  07:53:33.389  [DataManager] Connected to TilePurchased event  -  Server - GymTycoonDataManager:43
+  07:53:33.389  [DataManager] Events connected  -  Server - GymTycoonDataManager:43
+  07:53:33.389  [DataManager] Created 'AccruedDues' folder in ReplicatedStorage  -  Server - GymTycoonDataManager:43
+  07:53:33.389  [DataManager] Fixed common issues  -  Server - GymTycoonDataManager:43
+  07:53:33.389  [DataInitializer] Starting data systems initialization...  -  Server - DataSystemInitializer:20
+  07:53:33.389  [DataInitializer] CoreRegistry not found, will continue without it  -  Server - DataSystemInitializer:20
+  07:53:33.389  DataAccessLayer not found, data persistence improvements will be limited  -  Server - DataSystemInitializer:52
+  07:53:33.389  [DataInitializer] DataPersistenceIntegration script not found, running integration manually  -  Server - DataSystemInitializer:20
+  07:53:33.389  [DataInitializer] All data systems initialized successfully!  -  Server - DataSystemInitializer:20
+  07:53:33.390  [ModuleLoaderExample] ModuleLoader not found, using legacy loading  -  Server - ModuleLoaderExample:26
+  07:53:33.390  [ModuleLoaderExample] Failed to load CoreRegistry: CoreRegistry is not a valid member of Folder "ServerScriptService.Core"  -  Server - ModuleLoaderExample:62
+  07:53:33.390  Attempted to call require with invalid argument(s).  -  Server - DataThrottler:13
+  07:53:33.390  Stack Begin  -  Studio
+  07:53:33.390  Script 'ServerScriptService.Server.Core.DataThrottler', Line 13  -  Studio - DataThrottler:13
+  07:53:33.390  Stack End  -  Studio
+  07:53:33.390  Attempted to call require with invalid argument(s).  -  Server - SpecializationNPC:6
+  07:53:33.390  Stack Begin  -  Studio
+  07:53:33.390  Script 'ServerScriptService.Server.Core.SpecializationNPC', Line 6  -  Studio - SpecializationNPC:6
+  07:53:33.391  Stack End  -  Studio
+  07:53:33.391  [TutorialManager] ModuleLoader not found, using legacy module loading  -  Server - TutorialManager:27
+  07:53:33.391  [TutorialManager] TutorialSteps module not found, creating default tutorials  -  Server - TutorialManager:27
+  07:53:33.391  [DataAccessLayer] Initializing DataAccessLayer v1.0.0  -  Server - DataAccessLayer:99
+  07:53:33.391  No data system found! Data operations will fail!  -  Server - DataAccessLayer:292
+  07:53:33.391  [DataAccessLayer] Player events connected  -  Server - DataAccessLayer:99
+  07:53:33.391  [DataAccessLayer] DataAccessLayer fully initialized  -  Server - DataAccessLayer:99
+  07:53:33.392  [CoreRegistryInitializer] Starting Core Registry initialization...  -  Server - CoreRegistryInitializer:24
+  07:53:33.392  [CoreRegistryInitializer] Ensuring ModuleLoader is available...  -  Server - CoreRegistryInitializer:24
+  07:53:33.392  [CoreRegistryInitializer] Could not find ModuleLoader, creating a minimal version  -  Server - CoreRegistryInitializer:29
+  07:53:33.393  [CoreRegistryInitializer] Error during initialization: The current thread cannot write 'Source' (lacking capability PluginOrOpenCloud)  -  Server - CoreRegistryInitializer:29
+  07:53:33.393  ✓ Registered global function: _G.BatchProcessModels(tycoonName, processingFunction, options)  -  Server - DevUtilityFunctions:1208
+  07:53:33.393  ✓ Registered global function: _G.GenerateModelStats(tycoonName, options)  -  Server - DevUtilityFunctions:1209
+  07:53:33.393  ✓ Registered global function: _G.CompareConfigWithModels(configModule, tycoonName, options)  -  Server - DevUtilityFunctions:1210
+  07:53:33.393  ✓ Registered global function: _G.ExportCollectionServiceTags(outputFormat, containerName)  -  Server - DevUtilityFunctions:1211
+  07:53:33.393  ✓ Registered global function: _G.SetupTargetHardware(profile, customSettings)  -  Server - DevUtilityFunctions:1212
+  07:53:33.394  ✓ Registered global function: _G.GenerateUIConfig(uiContainer, options)  -  Server - DevUtilityFunctions:1213
+  07:53:33.394  ✓ Registered global function: _G.InitializeDevelopmentEnvironment(options)  -  Server - DevUtilityFunctions:1214
+  07:53:33.394  BuyTileSystem not found, cannot generate build order  -  Server - BuyTileProgressionManager:72
+  07:53:33.394  BuyTileSystem not found, cannot set up floor prerequisites  -  Server - BuyTileProgressionManager:382
+  07:53:33.394  BuyTileSystem not found, cannot identify required tiles  -  Server - BuyTileProgressionManager:474
+  07:53:33.394  BuyTileSystem not found, cannot integrate  -  Server - BuyTileProgressionManager:529
+  07:53:33.394  CommandService not found, progression commands won't be available  -  Server - BuyTileProgressionManager:655
+  07:53:33.394  BoundingBoxManager: Failed to set up legacy global functions: ServerScriptService.Server.Core.BoundingBoxManager:507: invalid argument #1 to 'rawset' (table expected, got nil)  -  Server - BoundingBoxManager:517
+  07:53:33.394  [DataIntegration] Starting data persistence integration  -  Server - DataPersistenceIntegration:84
+  07:53:33.394  DataAccessLayer not found. Integration will be limited.  -  Server - DataPersistenceIntegration:261
+  07:53:33.395  [DataIntegration] Found 0 legacy data managers  -  Server - DataPersistenceIntegration:84
+  07:53:33.395  [DataIntegration] Found 0 systems to integrate with  -  Server - DataPersistenceIntegration:84
+  07:53:33.395  [DataIntegration] Patched 0 systems to use DataAccessLayer  -  Server - DataPersistenceIntegration:84
+  07:53:33.395  PhysicalMemory is not a valid member of Stats "Stats"  -  Server - DataPersistenceIntegration:243
+  07:53:33.395  Stack Begin  -  Studio
+  07:53:33.395  Script 'ServerScriptService.Server.Core.DataPersistenceIntegration', Line 243 - function checkServerStatus  -  Studio - DataPersistenceIntegration:243
+  07:53:33.395  Script 'ServerScriptService.Server.Core.DataPersistenceIntegration', Line 286 - function runIntegration  -  Studio - DataPersistenceIntegration:286
+  07:53:33.395  Script 'ServerScriptService.Server.Core.DataPersistenceIntegration', Line 300  -  Studio - DataPersistenceIntegration:300
+  07:53:33.395  Stack End  -  Studio
+  07:53:33.396  [DataAdminServer] Initializing DataAdminServer  -  Server - DataAdminServer:109
+  07:53:33.396  [DataAdminServer] DataAdminServer initialized  -  Server - DataAdminServer:109
+  07:53:33.396  Attempted to call require with invalid argument(s).  -  Server - AttributeSetup:8
+  07:53:33.396  Stack Begin  -  Studio
+  07:53:33.396  Script 'ServerScriptService.Server.Core.AttributeSetup', Line 8  -  Studio - AttributeSetup:8
+  07:53:33.396  Stack End  -  Studio
+  07:53:33.396  [DataSystemBridge] CoreRegistry not found, creating basic version  -  Server - DataSystemBridge:12
+  07:53:33.396  [DataSystemBridge] Starting integration fix process...  -  Server - DataSystemBridge:12
+  07:53:33.397  [DataSystemBridge] Unable to locate any data management system  -  Server - DataSystemBridge:12
+  07:53:33.397  [DataSystemBridge] No data manager found, cannot create data interface  -  Server - DataSystemBridge:12
+  07:53:33.397  [DataSystemBridge] Failed to create data persistence interface  -  Server - DataSystemBridge:12
+  07:53:33.397  [DataSystemBridge] Unable to locate BuyTile system  -  Server - DataSystemBridge:12
+  07:53:33.397  [DataSystemBridge] No BuyTile system found, cannot create spawn function  -  Server - DataSystemBridge:12
+  07:53:33.397  [DataSystemBridge] Failed to create spawn function  -  Server - DataSystemBridge:12
+  07:53:33.397  [DataSystemBridge] Unable to locate DataAccessLayer, creating basic version  -  Server - DataSystemBridge:12
+  07:53:33.397  [DataSystemBridge] Unable to locate any data management system  -  Server - DataSystemBridge:12
+  07:53:33.398  [DataSystemBridge] No data manager found, cannot create data interface  -  Server - DataSystemBridge:12
+  07:53:33.398  [DataSystemBridge] Cannot create DataAccessLayer, no data interface available  -  Server - DataSystemBridge:12
+  07:53:33.398  [DataSystemBridge] Finished fixing integration issues  -  Server - DataSystemBridge:12
+  07:53:33.398  [DataSystemBridge] Unable to locate any data management system  -  Server - DataSystemBridge:12
+  07:53:33.398  Attempted to call require with invalid argument(s).  -  Server - StaffTrainingSystem:5
+  07:53:33.398  Stack Begin  -  Studio
+  07:53:33.398  Script 'ServerScriptService.Server.Core.StaffTrainingSystem', Line 5  -  Studio - StaffTrainingSystem:5
+  07:53:33.399  Stack End  -  Studio
+  07:53:33.399  [EventCreator] CoreRegistryAccess not found, using fallback methods  -  Server - EventCreator:20
+  07:53:33.399  [EventCreator] Created RemoteEvent: PlaySoundEvent  -  Server - EventCreator:20
+  07:53:33.399  [EventCreator] Created RemoteEvent: ShowNotification  -  Server - EventCreator:20
+  07:53:33.399  [EventCreator] Created RemoteEvent: RequestDataUpdate  -  Server - EventCreator:20
+  07:53:33.399  [EventCreator] Created RemoteEvent: DataUpdated  -  Server - EventCreator:20
+  07:53:33.399  [EventCreator] Created RemoteEvent: UIActionEvent  -  Server - EventCreator:20
+  07:53:33.399  [EventCreator] Created RemoteEvent: UIStateChanged  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: CloseAllMenusEvent  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: PlayerAddedToAllianceEvent  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: PlayerRemovedFromAllianceEvent  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: AllianceInviteEvent  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: AllianceResponseEvent  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: AllianceCreatedEvent  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: AllianceDeletedEvent  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: PurchaseTileEvent  -  Server - EventCreator:20
+  07:53:33.400  [EventCreator] Created RemoteEvent: TileStateChangedEvent  -  Server - EventCreator:20
+  07:53:33.401  [EventCreator] Created RemoteEvent: RequestTileInfoEvent  -  Server - EventCreator:20
+  07:53:33.401  [EventCreator] Created RemoteEvent: TileInfoResponseEvent  -  Server - EventCreator:20
+  07:53:33.401  [EventCreator] Created RemoteEvent: EquipmentPurchasedEvent  -  Server - EventCreator:20
+  07:53:33.401  [EventCreator] Created RemoteEvent: AdminCommandEvent  -  Server - EventCreator:20
+  07:53:33.401  [EventCreator] Created RemoteEvent: AdminResponseEvent  -  Server - EventCreator:20
+  07:53:33.401  [EventCreator] Created RemoteEvent: MenuToggleEvent  -  Server - EventCreator:20
+  07:53:33.402  [EventCreator] Created RemoteEvent: MenuActionEvent  -  Server - EventCreator:20
+  07:53:33.402  [EventCreator] Created RemoteEvent: TutorialStartEvent  -  Server - EventCreator:20
+  07:53:33.402  [EventCreator] Created RemoteEvent: TutorialStepEvent  -  Server - EventCreator:20
+  07:53:33.402  [EventCreator] Created RemoteEvent: TutorialCompleteEvent  -  Server - EventCreator:20
+  07:53:33.402  [EventCreator] Created 25 remote events  -  Server - EventCreator:20
+  07:53:33.402  ServerScriptService.Server.Core.MemberTrainingSystem:219: attempt to index nil with 'registerSystem'  -  Server - MemberTrainingSystem:219
+  07:53:33.403  Stack Begin  -  Studio
+  07:53:33.403  Script 'ServerScriptService.Server.Core.MemberTrainingSystem', Line 219  -  Studio - MemberTrainingSystem:219
+  07:53:33.403  Stack End  -  Studio
+  07:53:33.403  [CoreRegistryFeedback] Initializing CoreRegistry feedback system  -  Server - CoreRegistryFeedback:39
+  07:53:33.403  ⚠️ Could not locate BoundingBoxManager module. Legacy hitbox functionality will be limited.  -  Server - BoundingBoxGenerator:57
+  07:53:33.403  Build Order Visualizer initialized. Available commands:  -  Server - BuildOrderVisualizer:703
+  07:53:33.404  - _G.ShowBuildOrder([tycoon]) - Visualize the full build order  -  Server - BuildOrderVisualizer:704
+  07:53:33.404  - _G.ShowTileProgression(tile) - Visualize progression for a specific tile  -  Server - BuildOrderVisualizer:705
+  07:53:33.404  - _G.ShowFloorProgression([tycoon]) - Visualize floor unlocking progression  -  Server - BuildOrderVisualizer:706
+  07:53:33.404  - _G.ClearBuildOrderVisualization() - Clear all visualizations  -  Server - BuildOrderVisualizer:707
+  07:53:33.404  - _G.ConfigureVisualizer({...}) - Configure visualization settings  -  Server - BuildOrderVisualizer:708
+  07:53:33.404  [Milestones] Initializing Milestone System  -  Server - GymMilestonesSystem:22
+  07:53:33.404  [Milestones] Milestone System initialized  -  Server - GymMilestonesSystem:22
+  07:53:33.405  PrimaryPart is not a valid member of Folder "ServerScriptService.Server.Model Function"  -  Server - ElevatorMovement:469
+  07:53:33.405  Stack Begin  -  Studio
+  07:53:33.405  Script 'ServerScriptService.Server.Model Function.ElevatorMovement', Line 469 - function initialize  -  Studio - ElevatorMovement:469
+  07:53:33.405  Script 'ServerScriptService.Server.Model Function.ElevatorMovement', Line 502  -  Studio - ElevatorMovement:502
+  07:53:33.405  Stack End  -  Studio
+  07:53:33.405  All sauna and steam room effects created successfully in ServerStorage!  -  Server - SteamSauna:367
+  07:53:33.405  Core is not a valid member of Folder "ServerScriptService.Core"  -  Server - TestSuite:72
+  07:53:33.405  Stack Begin  -  Studio
+  07:53:33.405  Script 'ServerScriptService.Server.TestSuite', Line 72  -  Studio - TestSuite:72
+  07:53:33.405  Stack End  -  Studio
+  07:53:33.405  Attempted to call require with invalid argument(s).  -  Server - EquipmentSetupCommands:14
+  07:53:33.405  Stack Begin  -  Studio
+  07:53:33.406  Script 'ServerScriptService.Server.Essentials.EquipmentSetupCommands', Line 14  -  Studio - EquipmentSetupCommands:14
+  07:53:33.406  Stack End  -  Studio
+  07:53:33.406  Reset Button Handler initialized  -  Server - ResetButtonHandler:93
+  07:53:33.406  DoubleMember model not found in ServerStorage > GymParts!  -  Server - DoubleMemberBoost:25
+  07:53:33.407  Initializing Basketball Court Systems...  -  Server - Basketball:7
+  07:53:33.407  Player Sanction System initialized  -  Server - PlayerSanctionSystem:60
+  07:53:33.407  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Mens.Cold tub - Mens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
+  07:53:33.407  Found swimming pool: Workspace.GymParts.Roof.Pool Area.Rooftop Pool.Part with water level at Y=118.76155233383179  -  Server - PoolSwimmingSystem:179
+  07:53:33.408  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Womens.Cold tub - Womens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
+  07:53:33.408  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Mens.Cold tub - Mens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
+  07:53:33.408  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Mens.Hot tub - Mens 1.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
+  07:53:33.408  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Mens.Hot tub - Mens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
+  07:53:33.408  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Womens.Hot tub - Womens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
+  07:53:33.408  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Womens.Cold tub - Womens 2.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
+  07:53:33.408  Found swimming pool: Workspace.GymParts.3rd Floor.Massage and Wellness.Hot/Cold Tub - Womens.Hot tub - Womens 1.Part with water level at Y=60.2001144438982  -  Server - PoolSwimmingSystem:179
+  07:53:33.408  Swimming system initialized with 9 pools  -  Server - PoolSwimmingSystem:768
+  07:53:33.408  Attempted to call require with invalid argument(s).  -  Server - EquipmentSetup:12
+  07:53:33.408  Stack Begin  -  Studio
+  07:53:33.409  Script 'ServerScriptService.Server.Model Function.EquipmentSetup', Line 12  -  Studio - EquipmentSetup:12
+  07:53:33.409  Stack End  -  Studio
+  07:53:33.409  ?? PlayerCharacterCheck initialized - will prevent characters from being used as tycoons  -  Server - PlayerCharacterCheck:54
+  07:53:33.409  Player activity receiver initialized  -  Server - PlayerActivityReceiver:30
+  07:53:33.409  CoreRegistry is not a valid member of Folder "ServerScriptService.Core"  -  Server - DataSystemTest:15
+  07:53:33.409  Stack Begin  -  Studio
+  07:53:33.409  Script 'ServerScriptService.Server.Tests.DataSystemTest', Line 15  -  Studio - DataSystemTest:15
+  07:53:33.409  Stack End  -  Studio
+  07:53:33.409  Tycoon validation tool initialized. Run _G.ValidateTycoons() to validate all tycoons.  -  Server - TycoonValidationTool:518
+  07:53:33.409  Optional config: _G.ValidateTycoons({LogLevel = 2, SimulatePurchases = true})  -  Server - TycoonValidationTool:519
+  07:53:33.410  [ErrorSuppressor] Starting error suppression...  -  Server - ErrorSuppressor:23
+  07:53:33.649  [ErrorSuppressor] Error suppression complete!  -  Server - ErrorSuppressor:259
+  07:53:33.805  Found 4 sauna heaters  -  Server - SaunaTemperatureSystem:75
+  07:53:33.805  Found 16 sauna rooms  -  Server - SaunaTemperatureSystem:141
+  07:53:33.805  Sauna Womens has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.806  Sauna Bench has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.806  Heater has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.806  Sauna Mens 4 has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.806  Sauna Mens 3 has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.806  Sauna Ceiling has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.806  Sauna Mens 2 has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.806  Sauna Mens 3 has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.807  Sauna Mens 1 has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.807   ▶ Sauna Floor has 0 heaters (x2)  -  Server - SaunaTemperatureSystem:202
+  07:53:33.807  Heater has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.807  Sauna Mens 2 has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.807  Sauna Mens 4 has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.807  Sauna Mens 1 has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.807  Sauna Mens has 0 heaters  -  Server - SaunaTemperatureSystem:202
+  07:53:33.808  
 ✅ GYM TYCOON AUTOMATION LOADED  -  Server - GymAutomation:24
-  22:59:02.949  Run _G.AutomateGym() in the Command Bar to automate the gym setup.  -  Server - GymAutomation:25
-  22:59:02.949  SafeWait module not found, using fallback implementation  -  Server - GymAutomation:59
-  22:59:02.949  Player activity receiver initialized  -  Server - PlayerActivityReceiver:30
-  22:59:02.964   ▶ Failed to load animation with sanitized ID rbxassetid://4479935848: Animation failed to load, assetId: https://assetdelivery.roblox.com/v1/asset?id=4479935848&serverplaceid=0 (x2)  -  Studio
-  22:59:02.964   ▶ Failed to load animation with sanitized ID rbxassetid://4479937122: Animation failed to load, assetId: https://assetdelivery.roblox.com/v1/asset?id=4479937122&serverplaceid=0 (x2)  -  Studio
-  22:59:02.964   ▶ Failed to load animation with sanitized ID rbxassetid://4571857828: Animation failed to load, assetId: https://assetdelivery.roblox.com/v1/asset?id=4571857828&serverplaceid=0 (x2)  -  Studio
-  22:59:03.147  Found 4 sauna heaters  -  Server - SaunaTemperatureSystem:75
-  22:59:03.148  Found 16 sauna rooms  -  Server - SaunaTemperatureSystem:141
-  22:59:03.148  Sauna Mens 1 has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.148  Sauna Mens 2 has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.148  Sauna Mens 1 has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.148  Sauna Floor has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.148  Sauna Mens 4 has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.148  Sauna Bench has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.148  Sauna Mens 2 has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149  Sauna Mens 4 has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149  Sauna Ceiling has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149  Sauna Mens has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149  Heater has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149   ▶ Sauna Mens 3 has 0 heaters (x2)  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149  Heater has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149  Sauna Floor has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149  Sauna Womens has 0 heaters  -  Server - SaunaTemperatureSystem:202
-  22:59:03.149  [DataManager] Running in Studio - data persistence may not work unless enabled in Game Settings  -  Server - GymTycoonDataManager:43
-  22:59:03.149  [DataManager] DataManager initialized successfully  -  Server - GymTycoonDataManager:43
-  22:59:03.149  [DataManager] Connected to TilePurchased event  -  Server - GymTycoonDataManager:43
-  22:59:03.149  [DataManager] Events connected  -  Server - GymTycoonDataManager:43
-  22:59:03.149  [DataManager] Created 'AccruedDues' folder in ReplicatedStorage  -  Server - GymTycoonDataManager:43
-  22:59:03.149  [DataManager] Fixed common issues  -  Server - GymTycoonDataManager:43
-  22:59:03.149  Player Sanction System initialized  -  Server - PlayerSanctionSystem:60
-  22:59:03.150  ⚠️ Could not locate BoundingBoxManager module. Legacy hitbox functionality will be limited.  -  Server - BoundingBoxGenerator:57
-  22:59:03.150  ⚠️ Could not locate EquipmentManager module. Legacy equipment functionality will be limited.  -  Server - EquipmentSetup:57
-  22:59:03.150  ⚠️ Could not locate EquipmentManager module. Legacy equipment upgrade functionality will be limited.  -  Server - EquipmentUpgradeSystem:57
-  22:59:03.150  Build Order Visualizer initialized. Available commands:  -  Server - BuildOrderVisualizer:703
-  22:59:03.150  - _G.ShowBuildOrder([tycoon]) - Visualize the full build order  -  Server - BuildOrderVisualizer:704
-  22:59:03.150  - _G.ShowTileProgression(tile) - Visualize progression for a specific tile  -  Server - BuildOrderVisualizer:705
-  22:59:03.150  - _G.ShowFloorProgression([tycoon]) - Visualize floor unlocking progression  -  Server - BuildOrderVisualizer:706
-  22:59:03.150  - _G.ClearBuildOrderVisualization() - Clear all visualizations  -  Server - BuildOrderVisualizer:707
-  22:59:03.150  - _G.ConfigureVisualizer({...}) - Configure visualization settings  -  Server - BuildOrderVisualizer:708
-  22:59:03.151  [FrontDeskSystem] Initializing Front Desk System...  -  Server - FrontDeskPrompt:68
-  22:59:03.151  [FrontDeskSystem] Created collection sound effect  -  Server - FrontDeskPrompt:68
-  22:59:03.151  [FrontDeskSystem] Started front desk update loop  -  Server - FrontDeskPrompt:68
-  22:59:03.151  [FrontDeskSystem] Front Desk System initialized  -  Server - FrontDeskPrompt:68
-  22:59:03.151  [Cleanup] Starting cleanup...  -  Server - Cleanup:9
-  22:59:03.151  [Cleanup] Searching for test buttons...  -  Server - Cleanup:9
-  22:59:03.151  [Cleanup] Cleaning up NPC scripts...  -  Server - Cleanup:9
-  22:59:03.151  [Cleanup] Cleaning up extra GuiFolder objects...  -  Server - Cleanup:9
-  22:59:03.250  [Cleanup] Checking for syntax error scripts...  -  Server - Cleanup:9
-  22:59:03.250  [Cleanup] Cleanup completed!  -  Server - Cleanup:9
-  22:59:03.250  [Staff System] Initializing Staff System  -  Server - StaffManagementSystem:258
-  22:59:03.250  [Staff System] Staff System initialized  -  Server - StaffManagementSystem:258
-  22:59:03.251  Core is not a valid member of Folder "ServerScriptService.Core"  -  Server - TestSuite:72
-  22:59:03.251  Stack Begin  -  Studio
-  22:59:03.251  Script 'ServerScriptService.Server.TestSuite', Line 72  -  Studio - TestSuite:72
-  22:59:03.251  Stack End  -  Studio
-  22:59:03.251  FolderSetup: Created missing folder server in ServerScriptService.src  -  Server - FolderSetup:21
-  22:59:03.251  FolderSetup: Created missing folder ReputationEvents in ReplicatedStorage  -  Server - FolderSetup:21
-  22:59:03.251  FolderSetup: Created missing folder CompetitionUI in ReplicatedStorage.shared  -  Server - FolderSetup:21
-  22:59:03.251  FolderSetup: Created missing folder JoinAllianceEvent in ReplicatedStorage  -  Server - FolderSetup:21
-  22:59:03.251  FolderSetup: Created missing folder TutorialEvent in ReplicatedStorage.ReplicatedEvents  -  Server - FolderSetup:21
-  22:59:03.251  FolderSetup: Created missing folder UIStyle in ReplicatedStorage.shared  -  Server - FolderSetup:21
-  22:59:03.251  FolderSetup: Created missing RemoteEvent ReputationChanged in ReplicatedStorage.ReputationEvents  -  Server - FolderSetup:42
-  22:59:03.251  FolderSetup: All required folders and events have been created  -  Server - FolderSetup:51
-  22:59:03.251  Tycoon validation tool initialized. Run _G.ValidateTycoons() to validate all tycoons.  -  Server - TycoonValidationTool:518
-  22:59:03.251  Optional config: _G.ValidateTycoons({LogLevel = 2, SimulatePurchases = true})  -  Server - TycoonValidationTool:519
-  22:59:03.251  GameSystem is not a valid member of Folder "ServerScriptService.Server"  -  Server - AdminDashboardSystem:2
-  22:59:03.251  Stack Begin  -  Studio
-  22:59:03.251  Script 'ServerScriptService.Server.AdminDashboardSystem', Line 2  -  Studio - AdminDashboardSystem:2
-  22:59:03.251  Stack End  -  Studio
-  22:59:03.252  [RebirthSystem] Initializing RebirthSystem  -  Server - RebirthSystem:296
-  22:59:03.252  [RebirthSystem] Rebirth remotes set up  -  Server - RebirthSystem:296
-  22:59:03.252  [RebirthSystem] RebirthSystem initialized  -  Server - RebirthSystem:296
-  22:59:03.295   ▶ NPC assigned as Trainer (x2)  -  Server - JobSystem:17
-  22:59:03.337  [DataSystemIntegration] Initializing data system integration...  -  Server - DataSystemIntegration:118
-  22:59:03.337  [DataSystemIntegration] Enhanced data storage system not found!  -  Server - DataSystemIntegration:122
-  22:59:03.337  Created Tycoons folder in Workspace  -  Server - UnifiedTycoonSystem:60
-  22:59:03.338  === Unified Tycoon System Initialized ===  -  Server - UnifiedTycoonSystem:403
-  22:59:03.338  Attempted to call require with invalid argument(s).  -  Server - EquipmentSetupCommands:14
-  22:59:03.338  Stack Begin  -  Studio
-  22:59:03.338  Script 'ServerScriptService.Server.Essentials.EquipmentSetupCommands', Line 14  -  Studio - EquipmentSetupCommands:14
-  22:59:03.338  Stack End  -  Studio
-  22:59:03.338  [ErrorSuppressor] Starting error suppression...  -  Server - ErrorSuppressor:23
-  22:59:03.588  [ErrorSuppressor] Error suppression complete!  -  Server - ErrorSuppressor:259
-  22:59:03.588  Initializing Basketball Court Systems...  -  Server - Basketball:7
-  22:59:03.588  Created GymParts folder in ServerStorage  -  Server - Basketball:15
-  22:59:03.588  [Milestones] Initializing Milestone System  -  Server - GymMilestonesSystem:22
-  22:59:03.589  [Milestones] Milestone System initialized  -  Server - GymMilestonesSystem:22
-  22:59:03.589  GymTycoonDataManager is not a valid member of Folder "ServerScriptService.Data"  -  Server - BuilderBoost:5
-  22:59:03.590  Stack Begin  -  Studio
-  22:59:03.590  Script 'ServerScriptService.Server.Enhancements.BuilderBoost', Line 5  -  Studio - BuilderBoost:5
-  22:59:03.590  Stack End  -  Studio
-  22:59:03.590  DoubleMember model not found in ServerStorage > GymParts!  -  Server - DoubleMemberBoost:25
-  22:59:03.590  [BuyTile] Initializing Buy Tile System...  -  Server - BuyTile:48
-  22:59:03.590  [BuyTile] Starting Buy Tile system initialization  -  Server - BuyTile:48
-  22:59:03.590  [BuyTile] GymTycoonConnector not found, creating minimal version  -  Server - BuyTile:48
-  22:59:03.590  [BuyTile] Attempting to spawn initial BuyTile with ID: 1  -  Server - BuyTile:48
-  22:59:03.590  [BuyTile] Looking for BuyTile with ID: 1  -  Server - BuyTile:48
-  22:59:03.590  [BuyTile] Found BuyTile with ID: 1 and Name: BuyTile 1  -  Server - BuyTile:48
-  22:59:03.590  [BuyTile] Cached BuyTile ID: 1  -  Server - BuyTile:48
-  22:59:03.591  [BuyTile] Created BillboardGui for: Membership Desk  -  Server - BuyTile:48
-  22:59:03.591  [BuyTile] Model BuyTile 1 placed at position: -164, 0.4622473418712616, 105.0479965209961  -  Server - BuyTile:48
-  22:59:03.591  [BuyTile] Spawned BuyTile ID: 1 at position: -164, 0.4622473418712616, 105.0479965209961  -  Server - BuyTile:48
-  22:59:03.591  [BuyTile] Successfully spawned initial BuyTile with ID: 1  -  Server - BuyTile:48
-  22:59:03.591  [BuyTile] Buy Tile system initialization complete  -  Server - BuyTile:48
-  22:59:03.591  All sauna and steam room effects created successfully in ServerStorage!  -  Server - SteamSauna:367
-  22:59:03.591  ?? PlayerCharacterCheck initialized - will prevent characters from being used as tycoons  -  Server - PlayerCharacterCheck:54
-  22:59:03.592  PrimaryPart is not a valid member of Folder "ServerScriptService.Server.Model Function"  -  Server - ElevatorMovement:469
-  22:59:03.592  Stack Begin  -  Studio
-  22:59:03.592  Script 'ServerScriptService.Server.Model Function.ElevatorMovement', Line 469 - function initialize  -  Studio - ElevatorMovement:469
-  22:59:03.592  Script 'ServerScriptService.Server.Model Function.ElevatorMovement', Line 502  -  Studio - ElevatorMovement:502
-  22:59:03.592  Stack End  -  Studio
-  22:59:03.592  Attempted to call require with invalid argument(s).  -  Server - EquipmentSetup:12
-  22:59:03.592  Stack Begin  -  Studio
-  22:59:03.592  Script 'ServerScriptService.Server.Model Function.EquipmentSetup', Line 12  -  Studio - EquipmentSetup:12
-  22:59:03.592  Stack End  -  Studio
-  22:59:03.592  [Membership System] Connected to GymTycoonConnector  -  Server - GymRevenueSystem:56
-  22:59:03.592  [Membership System] Initializing Membership System  -  Server - GymRevenueSystem:56
-  22:59:03.592  [Membership System] Started income generation  -  Server - GymRevenueSystem:56
-  22:59:03.592  [Membership System] Membership System initialized  -  Server - GymRevenueSystem:56
-  22:59:03.592  AllianceEventSetup: Created ServerToClientEvents  -  Server - AllianceEventSetup:36
-  22:59:03.593  AllianceEventSetup: Creating missing event: AllianceCreatedEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: Creating missing event: PlayerJoinedAllianceEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: Creating missing event: PlayerLeftAllianceEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: Creating missing event: PlayerRemovedFromAllianceEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: Creating missing event: PlayerInvitedToAllianceEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: Creating missing event: AllianceDisbandedEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: Found existing event: JoinAllianceEvent  -  Server - AllianceEventSetup:24
-  22:59:03.593  AllianceEventSetup: Found existing event: CreateAllianceEvent  -  Server - AllianceEventSetup:24
-  22:59:03.593  AllianceEventSetup: Creating missing event: LeaveAllianceEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: Creating missing event: DisbandAllianceEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: Creating missing event: ErrorEvent  -  Server - AllianceEventSetup:19
-  22:59:03.593  AllianceEventSetup: All alliance events are ready  -  Server - AllianceEventSetup:61
-  22:59:03.599   ▶ Failed to load sound rbxassetid://9048378264: Asset type does not match requested type (x4)  -  Studio
-  22:59:03.758  Starting random Membership Boost Event  -  Server - MembershipBoostEvent:166
-  22:59:04.492  Xdjpearsonx's leaderstats initialized.  -  Server - Leaderstats:13
-  22:59:04.492  [DataAccessLayer] Player joined: Xdjpearsonx  -  Server - DataAccessLayer:99
-  22:59:04.492  Failed to acquire session lock: ServerScriptService.Server.Core.DataAccessLayer:668: attempt to index nil with 'acquireSessionLock'  -  Server - DataAccessLayer:683
-  22:59:04.492  [DataAccessLayer] Warning: Session lock acquisition failed for Xdjpearsonx. May be active in another server.  -  Server - DataAccessLayer:99
-  22:59:04.853  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistryFixer:293: Expected 'end' (to close 'function' at line 198), got ']'; did you forget to close 'then' at line 281?  -  Studio - ClientRegistryFixer:293
-  22:59:04.886  Attempted to call require with invalid argument(s).  -  Client - SpecializationClient:11
-  22:59:04.886  Stack Begin  -  Studio
-  22:59:04.886  Script 'Players.Xdjpearsonx.PlayerScripts.Client.SpecializationClient', Line 11  -  Studio - SpecializationClient:11
-  22:59:04.886  Stack End  -  Studio
-  22:59:04.887  [ClientRegistryFixer] UIComponents module not found, some UI elements may not function correctly  -  Client - ClientRegistryFixer:27
-  22:59:04.887  [ClientRegistryFixer] Starting ClientRegistryFixer  -  Client - ClientRegistryFixer:27
-  22:59:04.887  [ClientRegistryFixer] ClientRegistry not found, creating one  -  Client - ClientRegistryFixer:27
-  22:59:04.887  [ClientRegistryFixer] Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry  -  Client - ClientRegistryFixer:77
-  22:59:04.887  [ClientRegistryFixer] Failed to load ClientRegistry, UI systems may not function correctly  -  Client - ClientRegistryFixer:199
-  22:59:04.887  [ClientRegistryFixer] ClientRegistryFixer completed  -  Client - ClientRegistryFixer:27
-  22:59:04.892  Attempted to call require with invalid argument(s).  -  Client - SeasonalClient:11
-  22:59:04.892  Stack Begin  -  Studio
-  22:59:04.892  Script 'Players.Xdjpearsonx.PlayerScripts.Client.SeasonalClient', Line 11  -  Studio - SeasonalClient:11
-  22:59:04.892  Stack End  -  Studio
-  22:59:04.892  [ClientBootstrap] Starting client bootstrap  -  Client - ClientBootstrap:28
-  22:59:04.892  [ClientBootstrap] Running bootstrap stage 1/5  -  Client - ClientBootstrap:28
-  22:59:04.892  [ClientBootstrap] Stage 1: Setting up essential folders  -  Client - ClientBootstrap:28
-  22:59:04.892  [ClientBootstrap] Stage 1 completed successfully  -  Client - ClientBootstrap:28
-  22:59:04.892  [ClientBootstrap] Running bootstrap stage 2/5  -  Client - ClientBootstrap:28
-  22:59:04.892  [ClientBootstrap] Stage 2: Loading ModuleLoader  -  Client - ClientBootstrap:28
-  22:59:04.892  [ClientBootstrap] ModuleLoader not found, some modules may fail to load  -  Client - ClientBootstrap:91
-  22:59:04.892  [ClientBootstrap] Stage 2 failed: false  -  Client - ClientBootstrap:215
-  22:59:04.892  [ClientBootstrap] Critical stage failed, bootstrap incomplete  -  Client - ClientBootstrap:220
-  22:59:04.892  [ClientBootstrap] Bootstrap complete: 1/5 stages successful  -  Client - ClientBootstrap:28
-  22:59:04.892  Attempted to call require with invalid argument(s).  -  Client - CompetitionClient:39
-  22:59:04.892  Stack Begin  -  Studio
-  22:59:04.892  Script 'Players.Xdjpearsonx.PlayerScripts.Client.CompetitionClient', Line 39  -  Studio - CompetitionClient:39
-  22:59:04.892  Stack End  -  Studio
-  22:59:04.893  Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI:253: attempt to call missing method 'CreateInfoRow' of table  -  Client - EquipmentUpgradeUI:253
-  22:59:04.894  Stack Begin  -  Studio
-  22:59:04.894  Script 'Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI', Line 253 - function CreateUpgradeUI  -  Studio - EquipmentUpgradeUI:253
-  22:59:04.894  Script 'Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI', Line 103 - function Initialize  -  Studio - EquipmentUpgradeUI:103
-  22:59:04.894  Script 'Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI', Line 385  -  Studio - EquipmentUpgradeUI:385
-  22:59:04.894  Stack End  -  Studio
-  22:59:04.894  Attempted to call require with invalid argument(s).  -  Client - SaunaTemperatureClient:11
-  22:59:04.894  Stack Begin  -  Studio
-  22:59:04.894  Script 'Players.Xdjpearsonx.PlayerScripts.Client.SaunaTemperatureClient', Line 11  -  Studio - SaunaTemperatureClient:11
-  22:59:04.895  Stack End  -  Studio
-  22:59:04.895  [TutorialClient] Initializing Tutorial Client  -  Client - TutorialClient:42
-  22:59:04.895  [TutorialClient] Creating Tutorial UI  -  Client - TutorialClient:42
-  22:59:04.896  [TutorialClient] Tutorial Client initialized  -  Client - TutorialClient:42
-  22:59:04.896  Attempted to call require with invalid argument(s).  -  Client - Main:6
-  22:59:04.897  Stack Begin  -  Studio
-  22:59:04.897  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Main', Line 6  -  Studio - Main:6
-  22:59:04.897  Stack End  -  Studio
-  22:59:04.897  MembershipBoostEvent not found or not a RemoteEvent. Using placeholder.  -  Client - MembershipBoostClient:25
-  22:59:04.897  AdminDashboardClient initialized  -  Client - AdminDashboardClient:26
-  22:59:04.898  Core is not a valid member of PlayerScripts "Players.Xdjpearsonx.PlayerScripts"  -  Client - RevenueClient:4
-  22:59:04.898  Stack Begin  -  Studio
-  22:59:04.898  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.RevenueClient', Line 4  -  Studio - RevenueClient:4
-  22:59:04.898  Stack End  -  Studio
-  22:59:04.898  Attempted to call require with invalid argument(s).  -  Client - UIHub:35
-  22:59:04.898  Stack Begin  -  Studio
-  22:59:04.898  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.UIHub', Line 35  -  Studio - UIHub:35
-  22:59:04.898  Stack End  -  Studio
-  22:59:04.898  Attempted to call require with invalid argument(s).  -  Client - NotificationSystem:11
-  22:59:04.898  Stack Begin  -  Studio
-  22:59:04.898  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.NotificationSystem', Line 11  -  Studio - NotificationSystem:11
-  22:59:04.898  Stack End  -  Studio
-  22:59:04.898  Attempted to call require with invalid argument(s).  -  Client - TycoonClient:13
-  22:59:04.898  Stack Begin  -  Studio
-  22:59:04.898  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.TycoonClient', Line 13  -  Studio - TycoonClient:13
-  22:59:04.898  Stack End  -  Studio
-  22:59:04.898  Attempted to call require with invalid argument(s).  -  Client - ClientFunctions:7
-  22:59:04.898  Stack Begin  -  Studio
-  22:59:04.898  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientFunctions', Line 7  -  Studio - ClientFunctions:7
-  22:59:04.899  Stack End  -  Studio
-  22:59:04.899  Attempted to call require with invalid argument(s).  -  Client - ClientEventBridge:10
-  22:59:04.899  Stack Begin  -  Studio
-  22:59:04.899  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientEventBridge', Line 10  -  Studio - ClientEventBridge:10
-  22:59:04.899  Stack End  -  Studio
-  22:59:04.899  Attempted to call require with invalid argument(s).  -  Client - UIManager:12
-  22:59:04.899  Stack Begin  -  Studio
-  22:59:04.899  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.UIManager', Line 12  -  Studio - UIManager:12
-  22:59:04.899  Stack End  -  Studio
-  22:59:04.899  Attempted to call require with invalid argument(s).  -  Client - RebirthClient:11
-  22:59:04.899  Stack Begin  -  Studio
-  22:59:04.899  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.RebirthClient', Line 11  -  Studio - RebirthClient:11
-  22:59:04.899  Stack End  -  Studio
-  22:59:04.899  [ClientBootstrap] ModuleLoader not found, some system initialization may fail  -  Client - ClientBootstrap:112
-  22:59:04.899  [ClientBootstrap] Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistryFixer  -  Client - ClientBootstrap:71
-  22:59:04.899  [ClientBootstrap] ClientRegistryFixer not found, attempting to continue without it  -  Client - ClientBootstrap:124
-  22:59:04.899  [ClientBootstrap] Trying to get ClientRegistry through direct require  -  Client - ClientBootstrap:56
-  22:59:04.899  [ClientBootstrap] Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry  -  Client - ClientBootstrap:71
-  22:59:04.899  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientBootstrap:160: [ClientBootstrap] Failed to get ClientRegistry, cannot proceed with initialization  -  Client - ClientBootstrap:160
-  22:59:04.899  Stack Begin  -  Studio
-  22:59:04.899  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientBootstrap', Line 160  -  Studio - ClientBootstrap:160
-  22:59:04.899  Stack End  -  Studio
-  22:59:04.899  [UISystemTester] Initializing UI System Tester...  -  Client - UISystemTester:81
-  22:59:04.899  UIStyle module not found, MinigamesMenuUI will have limited functionality  -  Client - MinigamesMenuUI:43
-  22:59:04.900  IconSet module not found, MinigamesMenuUI will have limited functionality  -  Client - MinigamesMenuUI:47
-  22:59:04.900  ButtonFactory module not found, MinigamesMenuUI will have limited functionality  -  Client - MinigamesMenuUI:51
-  22:59:04.900  DialogFactory module not found, MinigamesMenuUI will have limited functionality  -  Client - MinigamesMenuUI:55
-  22:59:04.900  Players.Xdjpearsonx.PlayerScripts.Client.UI.MinigamesMenuUI:142: attempt to index nil with 'createIconButton'  -  Client - MinigamesMenuUI:142
-  22:59:04.900  Stack Begin  -  Studio
-  22:59:04.900  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MinigamesMenuUI', Line 142 - function CreateToggleButton  -  Studio - MinigamesMenuUI:142
-  22:59:04.900  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MinigamesMenuUI', Line 132 - function Initialize  -  Studio - MinigamesMenuUI:132
-  22:59:04.900  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MinigamesMenuUI', Line 1095  -  Studio - MinigamesMenuUI:1095
-  22:59:04.900  Stack End  -  Studio
-  22:59:04.900  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - MainTab:7
-  22:59:04.900  Stack Begin  -  Studio
-  22:59:04.900  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MainTab', Line 7  -  Studio - MainTab:7
-  22:59:04.900  Stack End  -  Studio
-  22:59:04.900  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - AchievementsTab:7
-  22:59:04.900  Stack Begin  -  Studio
-  22:59:04.900  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.AchievementsTab', Line 7  -  Studio - AchievementsTab:7
-  22:59:04.900  Stack End  -  Studio
-  22:59:04.900  [AssetHealthDashboard] AssetValidator module not found  -  Client - AssetHealthDashboard:63
-  22:59:04.900  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - UIHub:6
-  22:59:04.900  Stack Begin  -  Studio
-  22:59:04.900  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.UIHub', Line 6  -  Studio - UIHub:6
-  22:59:04.900  Stack End  -  Studio
-  22:59:04.900  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - MultiplierDisplay:7
-  22:59:04.900  Stack Begin  -  Studio
-  22:59:04.900  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MultiplierDisplay', Line 7  -  Studio - MultiplierDisplay:7
-  22:59:04.900  Stack End  -  Studio
-  22:59:04.900  UIStyle module not found, MainMenuUI will have limited functionality  -  Client - MainMenuUI:57
-  22:59:04.900  IconSet module not found, MainMenuUI will have limited functionality  -  Client - MainMenuUI:61
-  22:59:04.900  ButtonFactory module not found, MainMenuUI will have limited functionality  -  Client - MainMenuUI:65
-  22:59:04.900  DialogFactory module not found, MainMenuUI will have limited functionality  -  Client - MainMenuUI:69
-  22:59:04.901  Players.Xdjpearsonx.PlayerScripts.Client.UI.MainMenuUI:138: attempt to index nil with 'Fonts'  -  Client - MainMenuUI:138
-  22:59:04.901  Stack Begin  -  Studio
-  22:59:04.901  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MainMenuUI', Line 138 - function CreateMainMenu  -  Studio - MainMenuUI:138
-  22:59:04.901  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MainMenuUI', Line 96 - function Initialize  -  Studio - MainMenuUI:96
-  22:59:04.901  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MainMenuUI', Line 480  -  Studio - MainMenuUI:480
-  22:59:04.901  Stack End  -  Studio
-  22:59:04.901  SafeWaitForChild module not found in AllianceUI, falling back to basic implementation  -  Client - AllianceUI:28
-  22:59:04.901  Alliance UI attempt 1 of 3: UI not found, waiting...  -  Client - AllianceUI:92
-  22:59:04.901  GameSystem is not a valid member of ReplicatedStorage "ReplicatedStorage"  -  Client - AdminControlsUI:5
-  22:59:04.901  Stack Begin  -  Studio
-  22:59:04.901  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.AdminControlsUI', Line 5  -  Studio - AdminControlsUI:5
-  22:59:04.901  Stack End  -  Studio
-  22:59:04.901  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client"  -  Client - FeaturesTab:7
-  22:59:04.901  Stack Begin  -  Studio
-  22:59:04.901  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.FeaturesTab', Line 7  -  Studio - FeaturesTab:7
-  22:59:04.901  Stack End  -  Studio
-  22:59:04.901  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client"  -  Client - PerksTab:7
-  22:59:04.901  Stack Begin  -  Studio
-  22:59:04.901  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.PerksTab', Line 7  -  Studio - PerksTab:7
-  22:59:04.901  Stack End  -  Studio
-  22:59:04.901  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client"  -  Client - ProgressBar:7
-  22:59:04.901  Stack Begin  -  Studio
-  22:59:04.901  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.ProgressBar', Line 7  -  Studio - ProgressBar:7
-  22:59:04.901  Stack End  -  Studio
-  22:59:04.901  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - NextUnlockPreview:7
-  22:59:04.901  Stack Begin  -  Studio
-  22:59:04.901  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.NextUnlockPreview', Line 7  -  Studio - NextUnlockPreview:7
-  22:59:04.901  Stack End  -  Studio
-  22:59:04.902  Failed to require module:  ReplicatedStorage.shared.UIStyle  -  Client - UIExample:26
-  22:59:04.903  [UIRegistry] Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry  -  Client - UIRegistry:41
-  22:59:04.903  [UIRegistry] Failed to require module:  ReplicatedStorage.shared.UIStyle  -  Client - UIRegistry:41
-  22:59:04.903  [UIRegistry] Initializing UIRegistry  -  Client - UIRegistry:145
-  22:59:04.903  [UIRegistry] UIRegistry initialized  -  Client - UIRegistry:145
-  22:59:04.903  UIStyle module not found, UIExample will not run correctly  -  Client - UIExample:47
-  22:59:04.903  Failed to require module:  ReplicatedStorage.shared.UIStyle  -  Client - UIRegistry:25
-  22:59:04.903  UIStyle module not found in UIRegistry, using fallback  -  Client - UIRegistry:39
-  22:59:04.903  Failed to load module: UIStyle - Attempted to call require with invalid argument(s).  -  Client - CentralMenuUI:29
-  22:59:04.903  UIUtils module not found, CentralMenuUI will have limited functionality  -  Client - CentralMenuUI:42
-  22:59:04.903  UIStyle module not found, using fallback styles  -  Client - CentralMenuUI:47
-  22:59:04.903  Players.Xdjpearsonx.PlayerScripts.Client.UI.CentralMenuUI:76: attempt to call a nil value  -  Client - CentralMenuUI:76
-  22:59:04.903  Stack Begin  -  Studio
-  22:59:04.903  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.CentralMenuUI', Line 76 - function Initialize  -  Studio - CentralMenuUI:76
-  22:59:04.903  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.CentralMenuUI', Line 436  -  Studio - CentralMenuUI:436
-  22:59:04.903  Stack End  -  Studio
-  22:59:04.903  UIStyle module not found, SettingsMenuUI will have limited functionality  -  Client - SettingsMenuUI:45
-  22:59:04.903  IconSet module not found, SettingsMenuUI will have limited functionality  -  Client - SettingsMenuUI:49
-  22:59:04.904  ButtonFactory module not found, SettingsMenuUI will have limited functionality  -  Client - SettingsMenuUI:53
-  22:59:04.904  DialogFactory module not found, SettingsMenuUI will have limited functionality  -  Client - SettingsMenuUI:57
-  22:59:04.904  SettingsMenu module not found, SettingsMenuUI will not function  -  Client - SettingsMenuUI:61
-  22:59:04.904  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - StatisticsDisplay:7
-  22:59:04.904  Stack Begin  -  Studio
-  22:59:04.904  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.StatisticsDisplay', Line 7  -  Studio - StatisticsDisplay:7
-  22:59:04.904  Stack End  -  Studio
-  22:59:05.500  Timeout waiting for ServerScriptService.Core:DevUtilityFunctions  -  Server - AdminCommands:48
-  22:59:05.500  Failed to load data for Xdjpearsonx  -  Server - DataAccessLayer:796
-  22:59:05.543  Alliance UI attempt 2 of 3: UI not found, waiting...  -  Client - AllianceUI:92
-  22:59:05.570  Players.Xdjpearsonx.PlayerGui.SatisfactionButton:28: attempt to index nil with 'WaitForChild'  -  Server - SatisfactionButton:28
-  22:59:05.570  Stack Begin  -  Studio
-  22:59:05.570  Script 'Players.Xdjpearsonx.PlayerGui.SatisfactionButton', Line 28  -  Studio - SatisfactionButton:28
-  22:59:05.570  Stack End  -  Studio
-  22:59:05.743  PurchaseButton is not a valid member of PlayerGui "Players.Xdjpearsonx.PlayerGui"  -  Client - DoubleMemberPurchaseGui:10
-  22:59:05.743  Stack Begin  -  Studio
-  22:59:05.743  Script 'Players.Xdjpearsonx.PlayerGui.DoubleMemberPurchaseGui', Line 10  -  Studio - DoubleMemberPurchaseGui:10
-  22:59:05.743  Stack End  -  Studio
-  22:59:05.774  BuilderBoostPurchaseGui: Created missing PurchaseButton  -  Client - BuilderBoostPurchaseGui:51
-  22:59:05.774  BuilderBoostPurchaseGui: Created missing BuilderBoostEvent for testing  -  Client - BuilderBoostPurchaseGui:59
-  22:59:05.775  Can only register ProcessReceipt callback on server  -  Client - BuilderBoostPurchaseGui:75
-  22:59:05.775  Stack Begin  -  Studio
-  22:59:05.775  Script 'Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui', Line 75  -  Studio - BuilderBoostPurchaseGui:75
-  22:59:05.775  Stack End  -  Studio
-  22:59:05.775  SafeWaitForChild module not found, falling back to basic implementation  -  Client - RebirthUI:33
-  22:59:05.776  Temperature display UI initialized  -  Client - TemperatureDisplay:315
-  22:59:05.776  CleanGymFunction not found in ReplicatedStorage  -  Client - CleanGymController:117
-  22:59:05.938  [UISystemTester] Testing ModuleLoader...  -  Client - UISystemTester:81
-  22:59:05.938  [UISystemTester] ✗ FAIL: ModuleLoader Exists - ModuleLoader module not found  -  Client - UISystemTester:83
-  22:59:05.938  [UISystemTester] Testing ClientRegistry...  -  Client - UISystemTester:81
-  22:59:05.939  [UISystemTester] Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry  -  Client - UISystemTester:62
-  22:59:05.939  [UISystemTester] ✗ FAIL: ClientRegistry Exists - ClientRegistry not found through any method  -  Client - UISystemTester:83
-  22:59:05.939  [UISystemTester] Testing UIRegistry...  -  Client - UISystemTester:81
-  22:59:05.939  [UISystemTester] ✓ PASS: UIRegistry Exists  -  Client - UISystemTester:81
-  22:59:05.939  [UISystemTester] ✓ PASS: UIRegistry.registerUI Method  -  Client - UISystemTester:81
-  22:59:05.939  [UISystemTester] ✓ PASS: UIRegistry.showUI Method  -  Client - UISystemTester:81
-  22:59:05.939  [UISystemTester] ✓ PASS: UIRegistry.hideUI Method  -  Client - UISystemTester:81
-  22:59:05.939  [UISystemTester] ✗ FAIL: UIRegistry.UIStyle  -  Client - UISystemTester:83
-  22:59:05.939  [UISystemTester] ✗ FAIL: UIRegistry.IconSet  -  Client - UISystemTester:83
-  22:59:05.939  [UISystemTester] ✗ FAIL: UIRegistry.ButtonFactory  -  Client - UISystemTester:83
-  22:59:05.939  [UISystemTester] ✗ FAIL: UIRegistry.DialogFactory  -  Client - UISystemTester:83
-  22:59:05.939  [UISystemTester] ✓ PASS: UIRegistry Can Show Notifications  -  Client - UISystemTester:81
-  22:59:05.939  [UISystemTester] Testing UIComponents...  -  Client - UISystemTester:81
-  22:59:05.940  [UISystemTester] ✗ FAIL: UIComponents Exists - UIComponents not found through any method  -  Client - UISystemTester:83
-  22:59:05.940  [UISystemTester] Testing AssetValidator...  -  Client - UISystemTester:81
-  22:59:05.940  [UISystemTester] ✗ FAIL: AssetValidator Exists - AssetValidator not found through any method  -  Client - UISystemTester:83
-  22:59:05.940  
-======= UI SYSTEM TEST REPORT =======  -  Client - UISystemTester:597
-  22:59:05.940  Tests Run: 13  -  Client - UISystemTester:598
-  22:59:05.940  Tests Passed: 5  -  Client - UISystemTester:599
-  22:59:05.940  Tests Failed: 8  -  Client - UISystemTester:600
-  22:59:05.940  Warnings: 0  -  Client - UISystemTester:601
-  22:59:05.940  Pass Rate: 38%  -  Client - UISystemTester:602
-  22:59:05.940  ------------------------------------  -  Client - UISystemTester:603
-  22:59:05.940  ModuleLoader Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:634
-  22:59:05.940  UIRegistry Exists: 1/1 tests passed (100%)  -  Client - UISystemTester:634
-  22:59:05.940  AssetValidator Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:634
-  22:59:05.940  UIComponents Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:634
-  22:59:05.940  UIRegistry: 3/7 tests passed (42%)  -  Client - UISystemTester:634
-  22:59:05.940  UIRegistry Can Show Notifications: 1/1 tests passed (100%)  -  Client - UISystemTester:634
-  22:59:05.941  ClientRegistry Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:634
-  22:59:05.941  
-Failed Tests:  -  Client - UISystemTester:640
-  22:59:05.941  ✗ ModuleLoader Exists: ModuleLoader module not found  -  Client - UISystemTester:643
-  22:59:05.941  ✗ ClientRegistry Exists: ClientRegistry not found through any method  -  Client - UISystemTester:643
-  22:59:05.941  ✗ UIRegistry.UIStyle:   -  Client - UISystemTester:643
-  22:59:05.941  ✗ UIRegistry.IconSet:   -  Client - UISystemTester:643
-  22:59:05.941  ✗ UIRegistry.ButtonFactory:   -  Client - UISystemTester:643
-  22:59:05.941  ✗ UIRegistry.DialogFactory:   -  Client - UISystemTester:643
-  22:59:05.941  ✗ UIComponents Exists: UIComponents not found through any method  -  Client - UISystemTester:643
-  22:59:05.941  ✗ AssetValidator Exists: AssetValidator not found through any method  -  Client - UISystemTester:643
-  22:59:05.941  ===================================
-  -  Client - UISystemTester:648
-  22:59:05.941  [UISystemTester] Creating test UI...  -  Client - UISystemTester:81
-  22:59:05.941  [UISystemTester] ✗ FAIL: Create Test UI - Required UI components not available  -  Client - UISystemTester:83
-  22:59:06.552  Alliance UI attempt 3 of 3: UI not found, waiting...  -  Client - AllianceUI:92
-  22:59:06.947  ServerScriptService.Server.Enhancements.RebirthSystem:914: attempt to perform arithmetic (div) on nil  -  Server - RebirthSystem:914
-  22:59:06.947  Stack Begin  -  Studio
-  22:59:06.947  Script 'ServerScriptService.Server.Enhancements.RebirthSystem', Line 914 - function getRebirthProgress  -  Studio - RebirthSystem:914
-  22:59:06.947  Script 'ServerScriptService.Server.Enhancements.RebirthSystem', Line 932 - function getRebirthInfo  -  Studio - RebirthSystem:932
-  22:59:06.947  Script 'ServerScriptService.Server.Enhancements.RebirthSystem', Line 1054  -  Studio - RebirthSystem:1054
-  22:59:06.947  Stack End  -  Studio
-  22:59:07.495  [Membership System] Initialized membership data for Xdjpearsonx  -  Server - GymRevenueSystem:56
-  22:59:07.495   ▶ [ProgressRestoration] Could not find existing tycoon for Xdjpearsonx (x2)  -  Server - PlayerProgressRestoration:15
-  22:59:07.496  [ProgressRestoration] No tycoon to restore equipment to for Xdjpearsonx  -  Server - PlayerProgressRestoration:15
-  22:59:07.496  [RebirthSystem] Initializing rebirth system for Xdjpearsonx  -  Server - RebirthSystem:296
-  22:59:07.496  [RebirthSystem] Rebirth system initialized for Xdjpearsonx with rebirth level 0  -  Server - RebirthSystem:296
-  22:59:07.496   ▶ [FrontDeskSystem] Player Xdjpearsonx has no tycoon (x2)  -  Server - FrontDeskPrompt:68
-  22:59:07.571  [DataManager] Loaded data for Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  22:59:07.571  [DataManager] Started auto-save for Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  22:59:07.571  [DataManager] Applied data to Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  22:59:07.576  Timeout waiting for ReplicatedStorage:src  -  Server - AdminCommands:48
-  22:59:07.576  DevUtilityFunctions module not found, using fallback implementation  -  Server - AdminCommands:84
-  22:59:07.576  Admin Commands System initialized  -  Server - AdminCommands:324
-  22:59:07.960  [FrontDeskFixer] Running one-time front desk GUI fix  -  Server - FrontDeskFix:16
-  22:59:07.960  [FrontDeskFixer] Applying permanent fix for Xdjpearsonx  -  Server - FrontDeskFix:16
-  22:59:07.960  Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'  -  Studio
-  22:59:07.960  Stack Begin  -  Studio
-  22:59:07.960  Script 'ServerScriptService.Server.Core.LeaderstatsSystem', Line 6  -  Studio - LeaderstatsSystem:6
-  22:59:07.960  Stack End  -  Studio
-  22:59:07.960  Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("ModuleLoader")'  -  Studio
-  22:59:07.960  Stack Begin  -  Studio
-  22:59:07.961  Script 'ServerScriptService.Server.Core.PathRegistration', Line 13  -  Studio - PathRegistration:13
-  22:59:07.961  Stack End  -  Studio
-  22:59:08.062  AllianceUIFrame not found, creating fallback UI  -  Client - AllianceUI:59
-  22:59:08.173  Infinite yield possible on 'ServerScriptService.Core:WaitForChild("TutorialManager")'  -  Studio
-  22:59:08.173  Stack Begin  -  Studio
-  22:59:08.173  Script 'ServerScriptService.Server.TutorialSteps.MovementTutorial', Line 8  -  Studio - MovementTutorial:8
-  22:59:08.173  Stack End  -  Studio
-  22:59:08.174  Infinite yield possible on 'ServerScriptService.Core:WaitForChild("MigrationUtils")'  -  Studio
-  22:59:08.174  Stack Begin  -  Studio
-  22:59:08.174  Script 'ServerScriptService.Server.MigrationTest', Line 13  -  Studio - MigrationTest:13
-  22:59:08.174  Stack End  -  Studio
-  22:59:08.253  Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'  -  Studio
-  22:59:08.253  Stack Begin  -  Studio
-  22:59:08.253  Script 'ServerScriptService.Server.Enhancements.DailyRewardsSystem', Line 16  -  Studio - DailyRewardsSystem:16
-  22:59:08.253  Script 'ServerScriptService.Server.Enhancements.DailyRewardsSystem', Line 15  -  Studio - DailyRewardsSystem:15
-  22:59:08.253  Stack End  -  Studio
-  22:59:09.496  [Milestones] Initializing milestones for Xdjpearsonx  -  Server - GymMilestonesSystem:22
-  22:59:09.496  [Milestones] Checking milestones for Xdjpearsonx  -  Server - GymMilestonesSystem:22
-  22:59:09.496  [Milestones] Xdjpearsonx achieved milestone: First Steps  -  Server - GymMilestonesSystem:22
-  22:59:09.497  [Milestones] Xdjpearsonx achieved milestone: Growing Business  -  Server - GymMilestonesSystem:22
-  22:59:09.498  Ensuring tycoon for Xdjpearsonx  -  Server - UnifiedTycoonSystem:272
-  22:59:09.498  Looking for tycoon for: Xdjpearsonx  -  Server - UnifiedTycoonSystem:66
-  22:59:09.616  No existing tycoon found for Xdjpearsonx  -  Server - UnifiedTycoonSystem:118
-  22:59:09.616  Creating new tycoon for Xdjpearsonx  -  Server - UnifiedTycoonSystem:175
-  22:59:09.616  Created new tycoon at position: 0, 0, 0  -  Server - UnifiedTycoonSystem:254
-  22:59:09.617  Set Tycoon value to: Workspace.Tycoons.Xdjpearsonx's Gym  -  Server - UnifiedTycoonSystem:298
-  22:59:09.617  Added NPCs folder to tycoon  -  Server - UnifiedTycoonSystem:327
-  22:59:09.617  Tycoon setup complete for Xdjpearsonx  -  Server - UnifiedTycoonSystem:338
-  22:59:09.617  [Staff System] Initialized staff data for Xdjpearsonx  -  Server - StaffManagementSystem:258
-  22:59:09.617  [FrontDeskFixer] Applying permanent fix for Xdjpearsonx  -  Server - FrontDeskFix:16
-  22:59:09.618   ▶ Failed to load sound rbxassetid://9125601193: Asset type does not match requested type (x2)  -  Studio
-  22:59:09.619  [FrontDeskSystem] Could not find front desk for Xdjpearsonx  -  Server - FrontDeskPrompt:68
-  22:59:09.619  [FrontDeskSystem] No front desk found for Xdjpearsonx  -  Server - FrontDeskPrompt:68
-  22:59:09.869   ▶ Failed to load sound rbxassetid://9048378264: Asset type does not match requested type (x2)  -  Studio
-  22:59:09.870   ▶ Failed to load sound rbxassetid://9125601193: Asset type does not match requested type (x2)  -  Studio
-  22:59:09.897  Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlaySoundEvent")'  -  Studio
-  22:59:09.898  Stack Begin  -  Studio
-  22:59:09.898  Script 'Players.Xdjpearsonx.PlayerScripts.Client.TileSound', Line 2  -  Studio - TileSound:2
-  22:59:09.898  Stack End  -  Studio
-  22:59:09.915  Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("ClientRegistry")'  -  Studio
-  22:59:09.915  Stack Begin  -  Studio
-  22:59:09.915  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.SatisfactionClient', Line 15  -  Studio - SatisfactionClient:15
-  22:59:09.915  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.SatisfactionClient', Line 13  -  Studio - SatisfactionClient:13
-  22:59:09.915  Stack End  -  Studio
-  22:59:09.915  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
-  22:59:09.915  Stack Begin  -  Studio
-  22:59:09.915  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.CompetitionClientLoader', Line 7  -  Studio - CompetitionClientLoader:7
-  22:59:09.915  Stack End  -  Studio
-  22:59:09.915  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
-  22:59:09.915  Stack Begin  -  Studio
-  22:59:09.915  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.AchievementClient', Line 12  -  Studio - AchievementClient:12
-  22:59:09.915  Stack End  -  Studio
-  22:59:09.915  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
-  22:59:09.915  Stack Begin  -  Studio
-  22:59:09.915  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.RevenueClientLoader', Line 8  -  Studio - RevenueClientLoader:8
-  22:59:09.916  Stack End  -  Studio
-  22:59:09.916  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
-  22:59:09.916  Stack Begin  -  Studio
-  22:59:09.916  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.AchievementClientLoader', Line 8  -  Studio - AchievementClientLoader:8
-  22:59:09.916  Stack End  -  Studio
-  22:59:09.916  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
-  22:59:09.916  Stack Begin  -  Studio
-  22:59:09.916  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientPerformanceManager', Line 13  -  Studio - ClientPerformanceManager:13
-  22:59:09.916  Stack End  -  Studio
-  22:59:10.583  [DataManager] Restoring 8 tiles for Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  22:59:10.779  Infinite yield possible on 'ReplicatedStorage:WaitForChild("src")'  -  Studio
-  22:59:10.779  Stack Begin  -  Studio
-  22:59:10.779  Script 'Players.Xdjpearsonx.PlayerGui.SettingsUI', Line 17  -  Studio - SettingsUI:17
-  22:59:10.779  Stack End  -  Studio
-  22:59:10.779  Infinite yield possible on 'ReplicatedStorage:WaitForChild("src")'  -  Studio
-  22:59:10.779  Stack Begin  -  Studio
-  22:59:10.779  Script 'Players.Xdjpearsonx.PlayerGui.RebirthUI_Enhanced', Line 23  -  Studio - RebirthUI_Enhanced:23
-  22:59:10.780  Stack End  -  Studio
-  22:59:10.780  Infinite yield possible on 'ReplicatedStorage:WaitForChild("src")'  -  Studio
-  22:59:10.780  Stack Begin  -  Studio
-  22:59:10.780  Script 'Players.Xdjpearsonx.PlayerGui.RebirthMenuUI', Line 12  -  Studio - RebirthMenuUI:12
-  22:59:10.780  Stack End  -  Studio
-  22:59:10.780  Infinite yield possible on 'Players.Xdjpearsonx.PlayerGui:WaitForChild("RebirthMenuUI.client")'  -  Studio
-  22:59:10.780  Stack Begin  -  Studio
-  22:59:10.781  Script 'Players.Xdjpearsonx.PlayerGui.MainMenuUI', Line 12  -  Studio - MainMenuUI:12
-  22:59:10.781  Stack End  -  Studio
-  22:59:10.813  [DataManager] Using fallback spawnGymPart for ID: 0  -  Server - GymTycoonDataManager:43
-  22:59:10.813  Could not find gym part with ID: 0  -  Server - GymTycoonDataManager:398
-  22:59:10.814  Failed to restore tile 0 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
-  22:59:10.903  Timeout waiting for ReplicatedStorage:src  -  Client - RebirthUI:44
-  22:59:11.081  [DataManager] Using fallback spawnBuyTile for ID: 1  -  Server - GymTycoonDataManager:43
-  22:59:11.082  [DataManager] Found and cloned buy tile with ID: 1  -  Server - GymTycoonDataManager:43
-  22:59:11.083  [DataManager] Restored tile 1 for Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  22:59:11.310  [DataManager] Using fallback spawnGymPart for ID: 2  -  Server - GymTycoonDataManager:43
-  22:59:11.310  Could not find gym part with ID: 2  -  Server - GymTycoonDataManager:398
-  22:59:11.310  Failed to restore tile 2 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
-  22:59:11.516  [DataManager] Using fallback spawnGymPart for ID: 3  -  Server - GymTycoonDataManager:43
-  22:59:11.516  Could not find gym part with ID: 3  -  Server - GymTycoonDataManager:398
-  22:59:11.516  Failed to restore tile 3 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
-  22:59:11.728  [DataManager] Using fallback spawnGymPart for ID: 4  -  Server - GymTycoonDataManager:43
-  22:59:11.728  Could not find gym part with ID: 4  -  Server - GymTycoonDataManager:398
-  22:59:11.728  Failed to restore tile 4 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
-  22:59:11.958  [DataManager] Using fallback spawnGymPart for ID: 5  -  Server - GymTycoonDataManager:43
-  22:59:11.958  Could not find gym part with ID: 5  -  Server - GymTycoonDataManager:398
-  22:59:11.958  Failed to restore tile 5 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
-  22:59:12.184  [DataManager] Using fallback spawnGymPart for ID: 9  -  Server - GymTycoonDataManager:43
-  22:59:12.184  Could not find gym part with ID: 9  -  Server - GymTycoonDataManager:398
-  22:59:12.184  Failed to restore tile 9 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
-  22:59:12.407  [DataManager] Using fallback spawnGymPart for ID: 19  -  Server - GymTycoonDataManager:43
-  22:59:12.408  Could not find gym part with ID: 19  -  Server - GymTycoonDataManager:398
-  22:59:12.408  Failed to restore tile 19 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
-  22:59:12.408  [DataManager] Restored 1 of 8 tiles for Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  22:59:12.940  Price adjusted for:  RawMaterial . New Price:  4.75  -  Server - DynamicEconomy:111
-  22:59:12.940  Price adjusted for:  Membership . New Price:  95  -  Server - DynamicEconomy:111
-  22:59:12.940  Price adjusted for:  Equipment . New Price:  47.5  -  Server - DynamicEconomy:111
-  22:59:12.940  Price adjusted for:  Energy . New Price:  9.5  -  Server - DynamicEconomy:111
-  22:59:12.940  Price adjusted for:  FinishedGood . New Price:  19  -  Server - DynamicEconomy:111
-  22:59:12.986  SafeWait: Timed out waiting for server in ServerScriptService  -  Server - GymAutomation:50
-  22:59:12.986  Failed to load server core modules - GymAutomation functionality will be limited  -  Server - GymAutomation:76
-  22:59:12.986  You can use these commands: _G.AutomateGym(), _G.GenerateHitboxes(), _G.SetupAttributes(), _G.ShowHitboxes(), _G.HideHitboxes()  -  Server - GymAutomation:137
-  22:59:13.153  Running Buy Tile startup verification...  -  Server - StartupTileVerification:11
-  22:59:13.260  First buy tile found in workspace: Workspace.Tycoons.Xdjpearsonx's Gym.BuyTile 1  -  Server - StartupTileVerification:18
-  22:59:13.260  Buy Tile startup verification complete  -  Server - StartupTileVerification:127
-  22:59:13.606  [Membership System] Xdjpearsonx gained 9 new members from equipment  -  Server - GymRevenueSystem:56
-  22:59:15.007  Shared is not a valid member of PlayerScripts "Players.Xdjpearsonx.PlayerScripts"  -  Client - ReputationClient:35
-  22:59:15.007  Stack Begin  -  Studio
-  22:59:15.007  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ReputationClient', Line 35  -  Studio - ReputationClient:35
-  22:59:15.008  Stack End  -  Studio
-  22:59:17.806   ▶ Failed to load sound rbxassetid://9048378264: Asset type does not match requested type (x2)  -  Studio
-  22:59:22.955  Price adjusted for:  RawMaterial . New Price:  4.5125  -  Server - DynamicEconomy:111
-  22:59:22.955  Price adjusted for:  Membership . New Price:  90.25  -  Server - DynamicEconomy:111
-  22:59:22.955  Price adjusted for:  Equipment . New Price:  45.125  -  Server - DynamicEconomy:111
-  22:59:22.955  Price adjusted for:  Energy . New Price:  9.025  -  Server - DynamicEconomy:111
-  22:59:22.955  Price adjusted for:  FinishedGood . New Price:  18.05  -  Server - DynamicEconomy:111
-  22:59:32.969  Price adjusted for:  RawMaterial . New Price:  4.286875  -  Server - DynamicEconomy:111
-  22:59:32.969  Price adjusted for:  Membership . New Price:  85.7375  -  Server - DynamicEconomy:111
-  22:59:32.970  Price adjusted for:  Equipment . New Price:  42.86875  -  Server - DynamicEconomy:111
-  22:59:32.970  Price adjusted for:  Energy . New Price:  8.57375  -  Server - DynamicEconomy:111
-  22:59:32.970  Price adjusted for:  FinishedGood . New Price:  17.1475  -  Server - DynamicEconomy:111
-  22:59:33.346  Running periodic tycoon validation check  -  Server - UnifiedTycoonSystem:366
-  22:59:42.982  Price adjusted for:  RawMaterial . New Price:  4.07253125  -  Server - DynamicEconomy:111
-  22:59:42.982  Price adjusted for:  Membership . New Price:  81.45062499999999  -  Server - DynamicEconomy:111
-  22:59:42.982  Price adjusted for:  Equipment . New Price:  40.725312499999994  -  Server - DynamicEconomy:111
-  22:59:42.982  Price adjusted for:  Energy . New Price:  8.1450625  -  Server - DynamicEconomy:111
-  22:59:42.982  Price adjusted for:  FinishedGood . New Price:  16.290125  -  Server - DynamicEconomy:111
-  22:59:45.371  Resetting data for Xdjpearsonx  -  Server - ResetButtonHandler:16
-  22:59:45.372  ServerScriptService.Server.Fixes.ResetButtonHandler:72: invalid argument #1 to 'find' (string expected, got boolean)  -  Server - ResetButtonHandler:72
-  22:59:45.372  Stack Begin  -  Studio
-  22:59:45.372  Script 'ServerScriptService.Server.Fixes.ResetButtonHandler', Line 72 - function resetPlayerData  -  Studio - ResetButtonHandler:72
-  22:59:45.372  Script 'ServerScriptService.Server.Fixes.ResetButtonHandler', Line 90  -  Studio - ResetButtonHandler:90
-  22:59:45.372  Stack End  -  Studio
-  22:59:45.373   ▶ [Milestones] Checking milestones for Xdjpearsonx (x2)  -  Server - GymMilestonesSystem:22
-  22:59:47.190  UIUtils not available - cannot create Rebirth menu  -  Client - RebirthUI:111
-  22:59:47.190  Failed to create rebirth menu  -  Client - RebirthUI:491
-  22:59:52.992  Price adjusted for:  RawMaterial . New Price:  3.8689046874999997  -  Server - DynamicEconomy:111
-  22:59:52.992  Price adjusted for:  Membership . New Price:  77.37809374999999  -  Server - DynamicEconomy:111
-  22:59:52.992  Price adjusted for:  Equipment . New Price:  38.689046874999995  -  Server - DynamicEconomy:111
-  22:59:52.992  Price adjusted for:  Energy . New Price:  7.737809374999999  -  Server - DynamicEconomy:111
-  22:59:52.992  Price adjusted for:  FinishedGood . New Price:  15.475618749999999  -  Server - DynamicEconomy:111
-  23:00:03.007  Price adjusted for:  RawMaterial . New Price:  3.6754594531249998  -  Server - DynamicEconomy:111
-  23:00:03.007  Price adjusted for:  Membership . New Price:  73.50918906249998  -  Server - DynamicEconomy:111
-  23:00:03.007  Price adjusted for:  Equipment . New Price:  36.75459453124999  -  Server - DynamicEconomy:111
-  23:00:03.007  Price adjusted for:  Energy . New Price:  7.3509189062499996  -  Server - DynamicEconomy:111
-  23:00:03.007  Price adjusted for:  FinishedGood . New Price:  14.701837812499999  -  Server - DynamicEconomy:111
-  23:00:03.361  Running periodic tycoon validation check  -  Server - UnifiedTycoonSystem:366
-  23:00:10.365  Disconnect from ::ffff:127.0.0.1|54022  -  Studio
-  23:00:10.365  [DataManager] Saved data for Xdjpearsonx   -  Server - GymTycoonDataManager:43
-  23:00:10.406  [DataAccessLayer] Player leaving: Xdjpearsonx  -  Server - DataAccessLayer:99
-  23:00:10.406  [DataAccessLayer] Processing shutdown, saving all player data  -  Server - DataAccessLayer:99
-  23:00:10.406  [DataAccessLayer] Saved 0 player data records during shutdown  -  Server - DataAccessLayer:99
-  23:00:10.406  [DataManager] Game closing, saving all player data...  -  Server - GymTycoonDataManager:43
-  23:00:10.609  [DataManager] Saved data for Xdjpearsonx (immediate)  -  Server - GymTycoonDataManager:43
-  23:00:10.758  [DataManager] Created backup for Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  23:00:10.758  [DataManager] Stopped auto-save for Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  23:00:10.758  [DataManager] Cleaned up for leaving player: Xdjpearsonx  -  Server - GymTycoonDataManager:43
-  23:00:13.010  Price adjusted for:  RawMaterial . New Price:  3.4916864804687497  -  Server - DynamicEconomy:111
-  23:00:13.010  Price adjusted for:  Membership . New Price:  69.83372960937498  -  Server - DynamicEconomy:111
-  23:00:13.010  Price adjusted for:  Equipment . New Price:  34.91686480468749  -  Server - DynamicEconomy:111
-  23:00:13.010  Price adjusted for:  Energy . New Price:  6.9833729609374995  -  Server - DynamicEconomy:111
-  23:00:13.010  Price adjusted for:  FinishedGood . New Price:  13.966745921874999  -  Server - DynamicEconomy:111
+  07:53:33.808  Run _G.AutomateGym() in the Command Bar to automate the gym setup.  -  Server - GymAutomation:25
+  07:53:33.808  SafeWait module not found, using fallback implementation  -  Server - GymAutomation:59
+  07:53:33.808  AllianceEventSetup: Created ServerToClientEvents  -  Server - AllianceEventSetup:36
+  07:53:33.808  AllianceEventSetup: Creating missing event: AllianceCreatedEvent  -  Server - AllianceEventSetup:19
+  07:53:33.808  AllianceEventSetup: Creating missing event: PlayerJoinedAllianceEvent  -  Server - AllianceEventSetup:19
+  07:53:33.808  AllianceEventSetup: Creating missing event: PlayerLeftAllianceEvent  -  Server - AllianceEventSetup:19
+  07:53:33.809  AllianceEventSetup: Found existing event: PlayerRemovedFromAllianceEvent  -  Server - AllianceEventSetup:24
+  07:53:33.809  AllianceEventSetup: Creating missing event: PlayerInvitedToAllianceEvent  -  Server - AllianceEventSetup:19
+  07:53:33.809  AllianceEventSetup: Creating missing event: AllianceDisbandedEvent  -  Server - AllianceEventSetup:19
+  07:53:33.809  AllianceEventSetup: Creating missing event: JoinAllianceEvent  -  Server - AllianceEventSetup:19
+  07:53:33.809  AllianceEventSetup: Creating missing event: CreateAllianceEvent  -  Server - AllianceEventSetup:19
+  07:53:33.809  AllianceEventSetup: Creating missing event: LeaveAllianceEvent  -  Server - AllianceEventSetup:19
+  07:53:33.809  AllianceEventSetup: Creating missing event: DisbandAllianceEvent  -  Server - AllianceEventSetup:19
+  07:53:33.809  AllianceEventSetup: Creating missing event: ErrorEvent  -  Server - AllianceEventSetup:19
+  07:53:33.809  AllianceEventSetup: All alliance events are ready  -  Server - AllianceEventSetup:61
+  07:53:33.810  GameSystem is not a valid member of Folder "ServerScriptService.Server"  -  Server - AdminDashboardSystem:2
+  07:53:33.810  Stack Begin  -  Studio
+  07:53:33.810  Script 'ServerScriptService.Server.AdminDashboardSystem', Line 2  -  Studio - AdminDashboardSystem:2
+  07:53:33.810  Stack End  -  Studio
+  07:53:33.810  [Membership System] Initializing Membership System  -  Server - GymRevenueSystem:56
+  07:53:33.810  [Membership System] Started income generation  -  Server - GymRevenueSystem:56
+  07:53:33.810  [Membership System] Membership System initialized  -  Server - GymRevenueSystem:56
+  07:53:33.811  FolderSetup: Created missing folder src in ServerScriptService  -  Server - FolderSetup:21
+  07:53:33.811  FolderSetup: Created missing folder server in ServerScriptService.src  -  Server - FolderSetup:21
+  07:53:33.811  FolderSetup: Created missing folder ReputationEvents in ReplicatedStorage  -  Server - FolderSetup:21
+  07:53:33.811  FolderSetup: Created missing folder CompetitionUI in ReplicatedStorage.shared  -  Server - FolderSetup:21
+  07:53:33.812  FolderSetup: Created missing folder ReplicatedEvents in ReplicatedStorage  -  Server - FolderSetup:21
+  07:53:33.812  FolderSetup: Created missing folder TutorialEvent in ReplicatedStorage.ReplicatedEvents  -  Server - FolderSetup:21
+  07:53:33.812  FolderSetup: Created missing folder UIStyle in ReplicatedStorage.shared  -  Server - FolderSetup:21
+  07:53:33.812  FolderSetup: Created missing RemoteEvent ReputationChanged in ReplicatedStorage.ReputationEvents  -  Server - FolderSetup:42
+  07:53:33.812  FolderSetup: All required folders and events have been created  -  Server - FolderSetup:51
+  07:53:33.812  ⚠️ Could not locate EquipmentManager module. Legacy equipment functionality will be limited.  -  Server - EquipmentSetup:57
+  07:53:33.813  [BuyTile] Initializing Buy Tile System...  -  Server - BuyTile:48
+  07:53:33.813  [BuyTile] Starting Buy Tile system initialization  -  Server - BuyTile:48
+  07:53:33.813  [BuyTile] GymTycoonConnector not found, creating minimal version  -  Server - BuyTile:48
+  07:53:33.813  [BuyTile] Attempting to spawn initial BuyTile with ID: 1  -  Server - BuyTile:48
+  07:53:33.813  [BuyTile] Looking for BuyTile with ID: 1  -  Server - BuyTile:48
+  07:53:33.813  [BuyTile] Found BuyTile with ID: 1 and Name: BuyTile 1  -  Server - BuyTile:48
+  07:53:33.813  [BuyTile] Cached BuyTile ID: 1  -  Server - BuyTile:48
+  07:53:33.814  [BuyTile] Created BillboardGui for: Membership Desk  -  Server - BuyTile:48
+  07:53:33.814  [BuyTile] Model BuyTile 1 placed at position: -164, 0.4622473418712616, 105.0479965209961  -  Server - BuyTile:48
+  07:53:33.814  [BuyTile] Spawned BuyTile ID: 1 at position: -164, 0.4622473418712616, 105.0479965209961  -  Server - BuyTile:48
+  07:53:33.814  [BuyTile] Successfully spawned initial BuyTile with ID: 1  -  Server - BuyTile:48
+  07:53:33.814  [BuyTile] Buy Tile system initialization complete  -  Server - BuyTile:48
+  07:53:33.815  ⚠️ Could not locate EquipmentManager module. Legacy equipment upgrade functionality will be limited.  -  Server - EquipmentUpgradeSystem:57
+  07:53:33.815  [FrontDeskSystem] Initializing Front Desk System...  -  Server - FrontDeskPrompt:68
+  07:53:33.815  [FrontDeskSystem] Created collection sound effect  -  Server - FrontDeskPrompt:68
+  07:53:33.815  [FrontDeskSystem] Started front desk update loop  -  Server - FrontDeskPrompt:68
+  07:53:33.815  [FrontDeskSystem] Front Desk System initialized  -  Server - FrontDeskPrompt:68
+  07:53:33.815  SpecializationIntegration: Failed to load GymSpecializationSystem  -  Server - SpecializationIntegration:25
+  07:53:33.815  Created Tycoons folder in Workspace  -  Server - UnifiedTycoonSystem:60
+  07:53:33.815  === Unified Tycoon System Initialized ===  -  Server - UnifiedTycoonSystem:403
+  07:53:33.815  [FrontDeskFixer] Front desk GUI fixer initialized  -  Server - FrontDeskFix:16
+  07:53:33.816  [Cleanup] Starting cleanup...  -  Server - Cleanup:9
+  07:53:33.816  [Cleanup] Searching for test buttons...  -  Server - Cleanup:9
+  07:53:33.816  [Cleanup] Cleaning up NPC scripts...  -  Server - Cleanup:9
+  07:53:33.816  [Cleanup] Cleaning up extra GuiFolder objects...  -  Server - Cleanup:9
+  07:53:33.898  [Cleanup] Checking for syntax error scripts...  -  Server - Cleanup:9
+  07:53:33.898  [Cleanup] Cleanup completed!  -  Server - Cleanup:9
+  07:53:33.898  Created CashUpdatedEvent in EventBridge  -  Server - EventBridge:49
+  07:53:33.898  Created NPCRemovedEvent in EventBridge  -  Server - EventBridge:49
+  07:53:33.898  Created NPCInteractionEvent in EventBridge  -  Server - EventBridge:49
+  07:53:33.899  Created PlayerJoinedGymEvent in EventBridge  -  Server - EventBridge:49
+  07:53:33.899  Created PlayerLeftGymEvent in EventBridge  -  Server - EventBridge:49
+  07:53:33.899  Created EquipmentUsedEvent in EventBridge  -  Server - EventBridge:49
+  07:53:33.899  Created MilestoneReachedEvent in EventBridge  -  Server - EventBridge:49
+  07:53:33.899  Created ChallengeCompletedEvent in EventBridge  -  Server - EventBridge:49
+  07:53:33.900  EventBridge system initialized - connecting 14 events  -  Server - EventBridge:114
+  07:53:33.907   ▶ Failed to load sound rbxassetid://9048378264: Asset type does not match requested type (x4)  -  Studio
+  07:53:34.051   ▶ No random event triggered (x2)  -  Server - MembershipBoostEvent:169
+  07:53:34.667  Xdjpearsonx's leaderstats initialized.  -  Server - Leaderstats:13
+  07:53:34.667  [DataAccessLayer] Player joined: Xdjpearsonx  -  Server - DataAccessLayer:99
+  07:53:34.668  Failed to acquire session lock: ServerScriptService.Server.Core.DataAccessLayer:668: attempt to index nil with 'acquireSessionLock'  -  Server - DataAccessLayer:683
+  07:53:34.668  [DataAccessLayer] Warning: Session lock acquisition failed for Xdjpearsonx. May be active in another server.  -  Server - DataAccessLayer:99
+  07:53:34.681   ▶ No random event triggered (x8)  -  Server - MembershipBoostEvent:169
+  07:53:34.926  Players.Xdjpearsonx.PlayerScripts.Client.ClientBootstrap:281: Expected 'end' (to close 'function' at line 173), got ']'; did you forget to close 'then' at line 273?  -  Studio - ClientBootstrap:281
+  07:53:34.927  Players.Xdjpearsonx.PlayerScripts.Client.ClientUISystem:342: Expected 'end' (to close 'function' at line 232), got ']'; did you forget to close 'then' at line 334?  -  Studio - ClientUISystem:342
+  07:53:34.932  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistryFixer:218: Expected 'end' (to close 'function' at line 121), got ']'; did you forget to close 'then' at line 180?  -  Studio - ClientRegistryFixer:218
+  07:53:34.964  [TutorialClient] Initializing Tutorial Client  -  Client - TutorialClient:42
+  07:53:34.964  [TutorialClient] Creating Tutorial UI  -  Client - TutorialClient:42
+  07:53:34.967  [TutorialClient] Tutorial Client initialized  -  Client - TutorialClient:42
+  07:53:34.967  MembershipBoostEvent not found or not a RemoteEvent. Using placeholder.  -  Client - MembershipBoostClient:25
+  07:53:34.967  Attempted to call require with invalid argument(s).  -  Client - CompetitionClient:39
+  07:53:34.967  Stack Begin  -  Studio
+  07:53:34.967  Script 'Players.Xdjpearsonx.PlayerScripts.Client.CompetitionClient', Line 39  -  Studio - CompetitionClient:39
+  07:53:34.967  Stack End  -  Studio
+  07:53:34.968  Attempted to call require with invalid argument(s).  -  Client - SaunaTemperatureClient:11
+  07:53:34.968  Stack Begin  -  Studio
+  07:53:34.968  Script 'Players.Xdjpearsonx.PlayerScripts.Client.SaunaTemperatureClient', Line 11  -  Studio - SaunaTemperatureClient:11
+  07:53:34.968  Stack End  -  Studio
+  07:53:34.969  GothamLight is not a valid member of "Enum.Font"  -  Client - UIStyle:106
+  07:53:34.970  Stack Begin  -  Studio
+  07:53:34.970  Script 'ReplicatedStorage.Shared.UIStyle', Line 106  -  Studio - UIStyle:106
+  07:53:34.970  Stack End  -  Studio
+  07:53:34.970  Failed to load module: UIStyle  -  Client - EquipmentUpgradeUI:31
+  07:53:34.971  Requested module experienced an error while loading  -  Client - UIComponent:6
+  07:53:34.971  Stack Begin  -  Studio
+  07:53:34.971  Script 'ReplicatedStorage.Shared.UIComponent', Line 6  -  Studio - UIComponent:6
+  07:53:34.971  Stack End  -  Studio
+  07:53:34.971  Failed to load module: UIComponent  -  Client - EquipmentUpgradeUI:31
+  07:53:34.972  UIStyle module not found, using fallback styles  -  Client - EquipmentUpgradeUI:47
+  07:53:34.972  UIComponent module not found, using fallback implementation  -  Client - EquipmentUpgradeUI:70
+  07:53:34.973  Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI:253: attempt to call missing method 'CreateInfoRow' of table  -  Client - EquipmentUpgradeUI:253
+  07:53:34.973  Stack Begin  -  Studio
+  07:53:34.973  Script 'Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI', Line 253 - function CreateUpgradeUI  -  Studio - EquipmentUpgradeUI:253
+  07:53:34.973  Script 'Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI', Line 103 - function Initialize  -  Studio - EquipmentUpgradeUI:103
+  07:53:34.973  Script 'Players.Xdjpearsonx.PlayerScripts.Client.EquipmentUpgradeUI', Line 385  -  Studio - EquipmentUpgradeUI:385
+  07:53:34.973  Stack End  -  Studio
+  07:53:34.974  Attempted to call require with invalid argument(s).  -  Client - SpecializationClient:11
+  07:53:34.974  Stack Begin  -  Studio
+  07:53:34.974  Script 'Players.Xdjpearsonx.PlayerScripts.Client.SpecializationClient', Line 11  -  Studio - SpecializationClient:11
+  07:53:34.974  Stack End  -  Studio
+  07:53:34.974  Attempted to call require with invalid argument(s).  -  Client - Main:6
+  07:53:34.974  Stack Begin  -  Studio
+  07:53:34.975  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Main', Line 6  -  Studio - Main:6
+  07:53:34.975  Stack End  -  Studio
+  07:53:34.975  Shared folder not found  -  Client - UISystem:33
+  07:53:34.975  [ClientRegistryFixer] UIComponents module not found, some UI elements may not function correctly  -  Client - ClientRegistryFixer:27
+  07:53:34.975  [ClientRegistryFixer] Starting ClientRegistryFixer  -  Client - ClientRegistryFixer:27
+  07:53:34.975  [ClientRegistryFixer] ClientRegistry not found, creating one  -  Client - ClientRegistryFixer:27
+  07:53:34.976  [ClientRegistryFixer] Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry  -  Client - ClientRegistryFixer:77
+  07:53:34.976  [ClientRegistryFixer] Failed to load ClientRegistry, UI systems may not function correctly  -  Client - ClientRegistryFixer:199
+  07:53:34.976  [ClientRegistryFixer] ClientRegistryFixer completed  -  Client - ClientRegistryFixer:27
+  07:53:34.976  Attempted to call require with invalid argument(s).  -  Client - SeasonalClient:11
+  07:53:34.976  Stack Begin  -  Studio
+  07:53:34.976  Script 'Players.Xdjpearsonx.PlayerScripts.Client.SeasonalClient', Line 11  -  Studio - SeasonalClient:11
+  07:53:34.977  Stack End  -  Studio
+  07:53:34.981  [UISystemTester] Starting UI System tests...  -  Client - UISystemTester:34
+  07:53:34.981   ▶ [UISystemTester] Failed to require Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry: Attempted to call require with invalid argument(s). (x3)  -  Client - UISystemTester:39
+  07:53:34.982  [UISystemTester] Failed to require Players.Xdjpearsonx.PlayerScripts.Client.ClientUISystem: Attempted to call require with invalid argument(s).  -  Client - UISystemTester:39
+  07:53:34.982   ▶ [UISystemTester] Failed to require Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry: Attempted to call require with invalid argument(s). (x2)  -  Client - UISystemTester:39
+  07:53:34.982  [UISystemTester] Failed to require Players.Xdjpearsonx.PlayerScripts.Client.ClientUISystem: Attempted to call require with invalid argument(s).  -  Client - UISystemTester:39
+  07:53:34.982   ▶ [UISystemTester] Failed to require Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry: Attempted to call require with invalid argument(s). (x2)  -  Client - UISystemTester:39
+  07:53:34.983  [UISystemTester] Failed to require Players.Xdjpearsonx.PlayerScripts.Client.ClientUISystem: Attempted to call require with invalid argument(s).  -  Client - UISystemTester:39
+  07:53:34.983  [UISystemTester] 
+======= UI SYSTEM TEST REPORT =======  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] Tests Run: 12  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] Tests Passed: 0  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] Tests Failed: 12  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] Warnings: 0  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] Pass Rate: 0%  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] ------------------------------------  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] AssetValidator Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] ClientRegistry Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] ModuleLoader Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:34
+  07:53:34.983  [UISystemTester] UIComponents Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:34
+  07:53:34.984  [UISystemTester] UIRegistry: 0/4 tests passed (0%)  -  Client - UISystemTester:34
+  07:53:34.984  [UISystemTester] UIRegistry Can Show Notifications: 0/1 tests passed (0%)  -  Client - UISystemTester:34
+  07:53:34.984  [UISystemTester] UIRegistry Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:34
+  07:53:34.984  [UISystemTester] 
+Failed Tests:  -  Client - UISystemTester:34
+  07:53:34.984  [UISystemTester] ✗ AssetValidator Exists: AssetValidator not found through any method  -  Client - UISystemTester:34
+  07:53:34.984  [UISystemTester] ✗ ClientRegistry Exists: ClientRegistry not found through any method  -  Client - UISystemTester:34
+  07:53:34.984  [UISystemTester] ✗ ModuleLoader Exists: ModuleLoader module not found  -  Client - UISystemTester:34
+  07:53:34.984  [UISystemTester] ✗ UIComponents Exists: UIComponents not found through any method  -  Client - UISystemTester:34
+  07:53:34.985  [UISystemTester] ✗ UIRegistry Can Show Notifications: ClientRegistry not available  -  Client - UISystemTester:34
+  07:53:34.985  [UISystemTester] ✗ UIRegistry Exists: UIRegistry not found  -  Client - UISystemTester:34
+  07:53:34.985  [UISystemTester] ✗ UIRegistry.ButtonFactory: ClientRegistry not available  -  Client - UISystemTester:34
+  07:53:34.985  [UISystemTester] ✗ UIRegistry.DialogFactory: ClientRegistry not available  -  Client - UISystemTester:34
+  07:53:34.985  [UISystemTester] ✗ UIRegistry.IconSet: ClientRegistry not available  -  Client - UISystemTester:34
+  07:53:34.986  [UISystemTester] ✗ UIRegistry.UIStyle: ClientRegistry not available  -  Client - UISystemTester:34
+  07:53:34.986  [UISystemTester] Failed to require Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry: Attempted to call require with invalid argument(s).  -  Client - UISystemTester:39
+  07:53:34.986  Attempted to call require with invalid argument(s).  -  Client - RebirthClient:11
+  07:53:34.986  Stack Begin  -  Studio
+  07:53:34.986  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.RebirthClient', Line 11  -  Studio - RebirthClient:11
+  07:53:34.986  Stack End  -  Studio
+  07:53:34.986  [ClientBootstrap] ModuleLoader not found, some system initialization may fail  -  Client - ClientBootstrap:112
+  07:53:34.986  [ClientBootstrap] Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistryFixer  -  Client - ClientBootstrap:71
+  07:53:34.986  [ClientBootstrap] ClientRegistryFixer not found, attempting to continue without it  -  Client - ClientBootstrap:124
+  07:53:34.986  [ClientBootstrap] Trying to get ClientRegistry through direct require  -  Client - ClientBootstrap:56
+  07:53:34.987  [ClientBootstrap] Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistry  -  Client - ClientBootstrap:71
+  07:53:34.987  Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientBootstrap:160: [ClientBootstrap] Failed to get ClientRegistry, cannot proceed with initialization  -  Client - ClientBootstrap:160
+  07:53:34.987  Stack Begin  -  Studio
+  07:53:34.987  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientBootstrap', Line 160  -  Studio - ClientBootstrap:160
+  07:53:34.987  Stack End  -  Studio
+  07:53:34.987  Attempted to call require with invalid argument(s).  -  Client - NotificationSystem:11
+  07:53:34.987  Stack Begin  -  Studio
+  07:53:34.988  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.NotificationSystem', Line 11  -  Studio - NotificationSystem:11
+  07:53:34.988  Stack End  -  Studio
+  07:53:34.988  Attempted to call require with invalid argument(s).  -  Client - ClientEventBridge:10
+  07:53:34.988  Stack Begin  -  Studio
+  07:53:34.988  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientEventBridge', Line 10  -  Studio - ClientEventBridge:10
+  07:53:34.988  Stack End  -  Studio
+  07:53:34.988  Attempted to call require with invalid argument(s).  -  Client - UIManager:12
+  07:53:34.988  Stack Begin  -  Studio
+  07:53:34.988  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.UIManager', Line 12  -  Studio - UIManager:12
+  07:53:34.989  Stack End  -  Studio
+  07:53:34.989  Attempted to call require with invalid argument(s).  -  Client - UIHub:35
+  07:53:34.989  Stack Begin  -  Studio
+  07:53:34.989  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.UIHub', Line 35  -  Studio - UIHub:35
+  07:53:34.989  Stack End  -  Studio
+  07:53:34.989  Attempted to call require with invalid argument(s).  -  Client - ClientFunctions:7
+  07:53:34.989  Stack Begin  -  Studio
+  07:53:34.989  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientFunctions', Line 7  -  Studio - ClientFunctions:7
+  07:53:34.989  Stack End  -  Studio
+  07:53:34.990  Attempted to call require with invalid argument(s).  -  Client - TycoonClient:13
+  07:53:34.990  Stack Begin  -  Studio
+  07:53:34.990  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.TycoonClient', Line 13  -  Studio - TycoonClient:13
+  07:53:34.990  Stack End  -  Studio
+  07:53:34.990  AdminDashboardClient initialized  -  Client - AdminDashboardClient:26
+  07:53:34.990  Core is not a valid member of PlayerScripts "Players.Xdjpearsonx.PlayerScripts"  -  Client - RevenueClient:4
+  07:53:34.990  Stack Begin  -  Studio
+  07:53:34.991  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.RevenueClient', Line 4  -  Studio - RevenueClient:4
+  07:53:34.991  Stack End  -  Studio
+  07:53:34.991  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - AchievementsTab:7
+  07:53:34.991  Stack Begin  -  Studio
+  07:53:34.991  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.AchievementsTab', Line 7  -  Studio - AchievementsTab:7
+  07:53:34.991  Stack End  -  Studio
+  07:53:34.991  SafeWaitForChild module not found in AllianceUI, falling back to basic implementation  -  Client - AllianceUI:28
+  07:53:34.991  Alliance UI attempt 1 of 3: UI not found, waiting...  -  Client - AllianceUI:92
+  07:53:34.991  Failed to require module:  ReplicatedStorage.shared.UIStyle  -  Client - UIRegistry:25
+  07:53:34.992  UIStyle module not found in UIRegistry, using fallback  -  Client - UIRegistry:39
+  07:53:34.992  UIStyle module not found, MinigamesMenuUI will have limited functionality  -  Client - MinigamesMenuUI:43
+  07:53:34.992  IconSet module not found, MinigamesMenuUI will have limited functionality  -  Client - MinigamesMenuUI:47
+  07:53:34.992  ButtonFactory module not found, MinigamesMenuUI will have limited functionality  -  Client - MinigamesMenuUI:51
+  07:53:34.992  DialogFactory module not found, MinigamesMenuUI will have limited functionality  -  Client - MinigamesMenuUI:55
+  07:53:34.993  Players.Xdjpearsonx.PlayerScripts.Client.UI.MinigamesMenuUI:142: attempt to index nil with 'createIconButton'  -  Client - MinigamesMenuUI:142
+  07:53:34.993  Stack Begin  -  Studio
+  07:53:34.993  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MinigamesMenuUI', Line 142 - function CreateToggleButton  -  Studio - MinigamesMenuUI:142
+  07:53:34.993  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MinigamesMenuUI', Line 132 - function Initialize  -  Studio - MinigamesMenuUI:132
+  07:53:34.993  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MinigamesMenuUI', Line 1095  -  Studio - MinigamesMenuUI:1095
+  07:53:34.993  Stack End  -  Studio
+  07:53:34.993  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - MultiplierDisplay:7
+  07:53:34.993  Stack Begin  -  Studio
+  07:53:34.993  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MultiplierDisplay', Line 7  -  Studio - MultiplierDisplay:7
+  07:53:34.993  Stack End  -  Studio
+  07:53:34.994  [AssetHealthDashboard] AssetValidator module not found  -  Client - AssetHealthDashboard:63
+  07:53:34.994  UIStyle module not found, SettingsMenuUI will have limited functionality  -  Client - SettingsMenuUI:45
+  07:53:34.994  IconSet module not found, SettingsMenuUI will have limited functionality  -  Client - SettingsMenuUI:49
+  07:53:34.994  ButtonFactory module not found, SettingsMenuUI will have limited functionality  -  Client - SettingsMenuUI:53
+  07:53:34.994  DialogFactory module not found, SettingsMenuUI will have limited functionality  -  Client - SettingsMenuUI:57
+  07:53:34.994  SettingsMenu module not found, SettingsMenuUI will not function  -  Client - SettingsMenuUI:61
+  07:53:34.994  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - NextUnlockPreview:7
+  07:53:34.994  Stack Begin  -  Studio
+  07:53:34.995  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.NextUnlockPreview', Line 7  -  Studio - NextUnlockPreview:7
+  07:53:34.995  Stack End  -  Studio
+  07:53:34.995  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - MainTab:7
+  07:53:34.995  Stack Begin  -  Studio
+  07:53:34.995  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MainTab', Line 7  -  Studio - MainTab:7
+  07:53:34.995  Stack End  -  Studio
+  07:53:34.996  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client"  -  Client - ProgressBar:7
+  07:53:34.996  Stack Begin  -  Studio
+  07:53:34.996  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.ProgressBar', Line 7  -  Studio - ProgressBar:7
+  07:53:34.996  Stack End  -  Studio
+  07:53:34.996  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - StatisticsDisplay:7
+  07:53:34.996  Stack Begin  -  Studio
+  07:53:34.996  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.StatisticsDisplay', Line 7  -  Studio - StatisticsDisplay:7
+  07:53:34.996  Stack End  -  Studio
+  07:53:34.997  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client"  -  Client - FeaturesTab:7
+  07:53:34.997  Stack Begin  -  Studio
+  07:53:34.997  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.FeaturesTab', Line 7  -  Studio - FeaturesTab:7
+  07:53:34.997  Stack End  -  Studio
+  07:53:34.997  Failed to load module: UIStyle - Attempted to call require with invalid argument(s).  -  Client - CentralMenuUI:29
+  07:53:34.997  UIUtils module not found, CentralMenuUI will have limited functionality  -  Client - CentralMenuUI:42
+  07:53:34.997  UIStyle module not found, using fallback styles  -  Client - CentralMenuUI:47
+  07:53:34.997  Players.Xdjpearsonx.PlayerScripts.Client.UI.CentralMenuUI:76: attempt to call a nil value  -  Client - CentralMenuUI:76
+  07:53:34.998  Stack Begin  -  Studio
+  07:53:34.998  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.CentralMenuUI', Line 76 - function Initialize  -  Studio - CentralMenuUI:76
+  07:53:34.998  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.CentralMenuUI', Line 436  -  Studio - CentralMenuUI:436
+  07:53:34.998  Stack End  -  Studio
+  07:53:34.998  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client"  -  Client - PerksTab:7
+  07:53:34.998  Stack Begin  -  Studio
+  07:53:34.998  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.PerksTab', Line 7  -  Studio - PerksTab:7
+  07:53:34.998  Stack End  -  Studio
+  07:53:34.998  UIStyle module not found, MainMenuUI will have limited functionality  -  Client - MainMenuUI:57
+  07:53:34.998  IconSet module not found, MainMenuUI will have limited functionality  -  Client - MainMenuUI:61
+  07:53:34.998  ButtonFactory module not found, MainMenuUI will have limited functionality  -  Client - MainMenuUI:65
+  07:53:34.999  DialogFactory module not found, MainMenuUI will have limited functionality  -  Client - MainMenuUI:69
+  07:53:34.999  Players.Xdjpearsonx.PlayerScripts.Client.UI.MainMenuUI:138: attempt to index nil with 'Fonts'  -  Client - MainMenuUI:138
+  07:53:34.999  Stack Begin  -  Studio
+  07:53:34.999  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MainMenuUI', Line 138 - function CreateMainMenu  -  Studio - MainMenuUI:138
+  07:53:34.999  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MainMenuUI', Line 96 - function Initialize  -  Studio - MainMenuUI:96
+  07:53:34.999  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.MainMenuUI', Line 480  -  Studio - MainMenuUI:480
+  07:53:34.999  Stack End  -  Studio
+  07:53:34.999  GameSystem is not a valid member of ReplicatedStorage "ReplicatedStorage"  -  Client - AdminControlsUI:5
+  07:53:34.999  Stack Begin  -  Studio
+  07:53:34.999  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.AdminControlsUI', Line 5  -  Studio - AdminControlsUI:5
+  07:53:34.999  Stack End  -  Studio
+  07:53:34.999  Failed to require module:  ReplicatedStorage.shared.UIStyle  -  Client - UIExample:26
+  07:53:35.000  Failed to require module:  Players.Xdjpearsonx.PlayerScripts.Client.UI.UIRegistry  -  Client - UIExample:26
+  07:53:35.000  UIStyle module not found, UIExample will not run correctly  -  Client - UIExample:47
+  07:53:35.000  ClientRegistry is not a valid member of Folder "Players.Xdjpearsonx.PlayerScripts.Client.UI"  -  Client - UIHub:6
+  07:53:35.000  Stack Begin  -  Studio
+  07:53:35.000  Script 'Players.Xdjpearsonx.PlayerScripts.Client.UI.UIHub', Line 6  -  Studio - UIHub:6
+  07:53:35.000  Stack End  -  Studio
+  07:53:35.571  Starting random Membership Boost Event  -  Server - MembershipBoostEvent:166
+  07:53:35.571  Xdjpearsonx Membership Boost Event is now LIVE! Enjoy 50% more to members, revenue, satisfaction, and experience!  -  Server - MembershipBoostEvent:102
+  07:53:35.609  Alliance UI attempt 2 of 3: UI not found, waiting...  -  Client - AllianceUI:92
+  07:53:35.632  Players.Xdjpearsonx.PlayerGui.SatisfactionButton:28: attempt to index nil with 'WaitForChild'  -  Server - SatisfactionButton:28
+  07:53:35.632  Stack Begin  -  Studio
+  07:53:35.633  Script 'Players.Xdjpearsonx.PlayerGui.SatisfactionButton', Line 28  -  Studio - SatisfactionButton:28
+  07:53:35.633  Stack End  -  Studio
+  07:53:35.803  Failed to load data for Xdjpearsonx  -  Server - DataAccessLayer:796
+  07:53:35.876  PurchaseButton is not a valid member of PlayerGui "Players.Xdjpearsonx.PlayerGui"  -  Client - DoubleMemberPurchaseGui:10
+  07:53:35.877  Stack Begin  -  Studio
+  07:53:35.877  Script 'Players.Xdjpearsonx.PlayerGui.DoubleMemberPurchaseGui', Line 10  -  Studio - DoubleMemberPurchaseGui:10
+  07:53:35.877  Stack End  -  Studio
+  07:53:35.878  BuilderBoostPurchaseGui: Created missing PurchaseButton  -  Client - BuilderBoostPurchaseGui:51
+  07:53:35.878  BuilderBoostPurchaseGui: Created missing BuilderBoostEvent for testing  -  Client - BuilderBoostPurchaseGui:59
+  07:53:35.880  Can only register ProcessReceipt callback on server  -  Client - BuilderBoostPurchaseGui:75
+  07:53:35.880  Stack Begin  -  Studio
+  07:53:35.880  Script 'Players.Xdjpearsonx.PlayerGui.BuilderBoostPurchaseGui', Line 75  -  Studio - BuilderBoostPurchaseGui:75
+  07:53:35.880  Stack End  -  Studio
+  07:53:35.880  SafeWaitForChild module not found, falling back to basic implementation  -  Client - RebirthUI:33
+  07:53:35.881  Temperature display UI initialized  -  Client - TemperatureDisplay:315
+  07:53:35.881  CleanGymFunction not found in ReplicatedStorage  -  Client - CleanGymController:117
+  07:53:35.955  Timeout waiting for ServerScriptService.Core:DevUtilityFunctions  -  Server - AdminCommands:48
+  07:53:36.619  Alliance UI attempt 3 of 3: UI not found, waiting...  -  Client - AllianceUI:92
+  07:53:36.836  [DataManager] Loaded data for Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:53:36.837  [DataManager] Started auto-save for Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:53:36.837  [DataManager] Applied data to Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:53:37.670   ▶ [FrontDeskSystem] Player Xdjpearsonx has no tycoon (x2)  -  Server - FrontDeskPrompt:68
+  07:53:37.671  [Membership System] Initialized membership data for Xdjpearsonx  -  Server - GymRevenueSystem:56
+  07:53:37.671   ▶ [ProgressRestoration] Could not find existing tycoon for Xdjpearsonx (x2)  -  Server - PlayerProgressRestoration:15
+  07:53:37.671  [ProgressRestoration] No tycoon to restore equipment to for Xdjpearsonx  -  Server - PlayerProgressRestoration:15
+  07:53:37.671  [RebirthSystem] Initializing rebirth system for Xdjpearsonx  -  Server - RebirthSystem:296
+  07:53:37.671  [RebirthSystem] Rebirth system initialized for Xdjpearsonx with rebirth level 0  -  Server - RebirthSystem:296
+  07:53:37.996  Timeout waiting for ReplicatedStorage.src:server  -  Server - AdminCommands:48
+  07:53:37.996  DevUtilityFunctions module not found, using fallback implementation  -  Server - AdminCommands:84
+  07:53:37.997  Admin Commands System initialized  -  Server - AdminCommands:324
+  07:53:38.126  AllianceUIFrame not found, creating fallback UI  -  Client - AllianceUI:59
+  07:53:38.254  Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("SafeRequire")'  -  Studio
+  07:53:38.254  Stack Begin  -  Studio
+  07:53:38.254  Script 'ServerScriptService.Server.Core.DataManager', Line 26  -  Studio - DataManager:26
+  07:53:38.254  Stack End  -  Studio
+  07:53:38.269  Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'  -  Studio
+  07:53:38.269  Stack Begin  -  Studio
+  07:53:38.269  Script 'ServerScriptService.Server.Core.LeaderstatsSystem', Line 6  -  Studio - LeaderstatsSystem:6
+  07:53:38.269  Stack End  -  Studio
+  07:53:38.270  Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'  -  Studio
+  07:53:38.270  Stack Begin  -  Studio
+  07:53:38.270  Script 'ServerScriptService.Server.Enhancements.DailyRewardsSystem', Line 16  -  Studio - DailyRewardsSystem:16
+  07:53:38.270  Script 'ServerScriptService.Server.Enhancements.DailyRewardsSystem', Line 15  -  Studio - DailyRewardsSystem:15
+  07:53:38.270  Stack End  -  Studio
+  07:53:38.387  Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("SafeRequire")'  -  Studio
+  07:53:38.388  Stack Begin  -  Studio
+  07:53:38.388  Script 'ServerScriptService.Server.Core.DataMigrationUtility', Line 24  -  Studio - DataMigrationUtility:24
+  07:53:38.388  Stack End  -  Studio
+  07:53:38.403  Infinite yield possible on 'ServerStorage:WaitForChild("MemberSatisfactionSystem")'  -  Studio
+  07:53:38.404  Stack Begin  -  Studio
+  07:53:38.404  Script 'ServerScriptService.Server.Core.ReputationSystem', Line 23  -  Studio - ReputationSystem:23
+  07:53:38.404  Stack End  -  Studio
+  07:53:38.417  [CoreRegistryFeedback] Initial status: CoreRegistry UNAVAILABLE  -  Server - CoreRegistryFeedback:39
+  07:53:38.418  [CoreRegistryFeedback] Starting CoreRegistry health monitoring  -  Server - CoreRegistryFeedback:39
+  07:53:38.418  [CoreRegistryFeedback] CoreRegistry check failed (1/3)  -  Server - CoreRegistryFeedback:44
+  07:53:38.420  Infinite yield possible on 'ServerScriptService.Core:WaitForChild("TutorialManager")'  -  Studio
+  07:53:38.420  Stack Begin  -  Studio
+  07:53:38.421  Script 'ServerScriptService.Server.TutorialSteps.MovementTutorial', Line 8  -  Studio - MovementTutorial:8
+  07:53:38.421  Stack End  -  Studio
+  07:53:38.819  [FrontDeskFixer] Running one-time front desk GUI fix  -  Server - FrontDeskFix:16
+  07:53:38.819  [FrontDeskFixer] Applying permanent fix for Xdjpearsonx  -  Server - FrontDeskFix:16
+  07:53:38.819  Infinite yield possible on 'ServerScriptService.Core:WaitForChild("MigrationUtils")'  -  Studio
+  07:53:38.819  Stack Begin  -  Studio
+  07:53:38.819  Script 'ServerScriptService.Server.MigrationTest', Line 13  -  Studio - MigrationTest:13
+  07:53:38.819  Stack End  -  Studio
+  07:53:38.944  Timeout waiting for ReplicatedStorage.src:shared  -  Client - RebirthUI:44
+  07:53:39.144  The current thread cannot write 'Source' (lacking capability PluginOrOpenCloud)  -  Server - PathRegistration:53
+  07:53:39.145  Stack Begin  -  Studio
+  07:53:39.145  Script 'ServerScriptService.Server.Core.PathRegistration', Line 53 - function waitForModuleLoader  -  Studio - PathRegistration:53
+  07:53:39.145  Script 'ServerScriptService.Server.Core.PathRegistration', Line 153  -  Studio - PathRegistration:153
+  07:53:39.145  Stack End  -  Studio
+  07:53:39.360   ▶ Failed to load sound rbxassetid://9048378264: Asset type does not match requested type (x2)  -  Studio
+  07:53:39.669  [FrontDeskFixer] Applying permanent fix for Xdjpearsonx  -  Server - FrontDeskFix:16
+  07:53:39.669  Ensuring tycoon for Xdjpearsonx  -  Server - UnifiedTycoonSystem:272
+  07:53:39.669  Looking for tycoon for: Xdjpearsonx  -  Server - UnifiedTycoonSystem:66
+  07:53:39.786  No existing tycoon found for Xdjpearsonx  -  Server - UnifiedTycoonSystem:118
+  07:53:39.787  Creating new tycoon for Xdjpearsonx  -  Server - UnifiedTycoonSystem:175
+  07:53:39.787  Created new tycoon at position: 0, 0, 0  -  Server - UnifiedTycoonSystem:254
+  07:53:39.788  Set Tycoon value to: Workspace.Tycoons.Xdjpearsonx's Gym  -  Server - UnifiedTycoonSystem:298
+  07:53:39.788  Added NPCs folder to tycoon  -  Server - UnifiedTycoonSystem:327
+  07:53:39.788  Tycoon setup complete for Xdjpearsonx  -  Server - UnifiedTycoonSystem:338
+  07:53:39.788  [Milestones] Initializing milestones for Xdjpearsonx  -  Server - GymMilestonesSystem:22
+  07:53:39.789  [Milestones] Checking milestones for Xdjpearsonx  -  Server - GymMilestonesSystem:22
+  07:53:39.789  [Staff System] Initialized staff data for Xdjpearsonx  -  Server - StaffManagementSystem:258
+  07:53:39.823  [FrontDeskSystem] Could not find front desk for Xdjpearsonx  -  Server - FrontDeskPrompt:68
+  07:53:39.823  [FrontDeskSystem] No front desk found for Xdjpearsonx  -  Server - FrontDeskPrompt:68
+  07:53:39.840  [DataManager] Restoring 8 tiles for Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:53:39.968  Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlaySoundEvent")'  -  Studio
+  07:53:39.968  Stack Begin  -  Studio
+  07:53:39.968  Script 'Players.Xdjpearsonx.PlayerScripts.Client.TileSound', Line 2  -  Studio - TileSound:2
+  07:53:39.968  Stack End  -  Studio
+  07:53:40.015  [UISystemTester] Running UI system tests...  -  Client - UISystemTester:33
+  07:53:40.015  [UISystemTester] Running test: AssetValidator Exists  -  Client - UISystemTester:33
+  07:53:40.016  [UISystemTester] ✗ AssetValidator Exists: FAILED  -  Client - UISystemTester:38
+  07:53:40.016  [UISystemTester] Running test: ClientRegistry Exists  -  Client - UISystemTester:33
+  07:53:40.016  [UISystemTester] ✗ ClientRegistry Exists: FAILED  -  Client - UISystemTester:38
+  07:53:40.016  [UISystemTester] Running test: ModuleLoader Exists  -  Client - UISystemTester:33
+  07:53:40.016  [UISystemTester] ✗ ModuleLoader Exists: FAILED  -  Client - UISystemTester:38
+  07:53:40.016  [UISystemTester] Running test: UIComponents Exists  -  Client - UISystemTester:33
+  07:53:40.017  [UISystemTester] ✗ UIComponents Exists: FAILED  -  Client - UISystemTester:38
+  07:53:40.017  [UISystemTester] Running test: UIRegistry Can Show Notifications  -  Client - UISystemTester:33
+  07:53:40.017  [UISystemTester] ✗ UIRegistry Can Show Notifications: FAILED  -  Client - UISystemTester:38
+  07:53:40.017  [UISystemTester] Running test: UIRegistry Exists  -  Client - UISystemTester:33
+  07:53:40.017  [UISystemTester] ✗ UIRegistry Exists: FAILED  -  Client - UISystemTester:38
+  07:53:40.017  [UISystemTester] Running test: UIRegistry.ButtonFactory  -  Client - UISystemTester:33
+  07:53:40.017  [UISystemTester] ✗ UIRegistry.ButtonFactory: FAILED  -  Client - UISystemTester:38
+  07:53:40.017  [UISystemTester] Running test: UIRegistry.DialogFactory  -  Client - UISystemTester:33
+  07:53:40.017  [UISystemTester] ✗ UIRegistry.DialogFactory: FAILED  -  Client - UISystemTester:38
+  07:53:40.018  [UISystemTester] Running test: UIRegistry.IconSet  -  Client - UISystemTester:33
+  07:53:40.018  [UISystemTester] ✗ UIRegistry.IconSet: FAILED  -  Client - UISystemTester:38
+  07:53:40.018  [UISystemTester] Running test: UIRegistry.UIStyle  -  Client - UISystemTester:33
+  07:53:40.018  [UISystemTester] ✗ UIRegistry.UIStyle: FAILED  -  Client - UISystemTester:38
+  07:53:40.018  [UISystemTester] 
+======= UI SYSTEM TEST REPORT =======  -  Client - UISystemTester:33
+  07:53:40.018  [UISystemTester] Tests Run: 10  -  Client - UISystemTester:33
+  07:53:40.018  [UISystemTester] Tests Passed: 0  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] Tests Failed: 10  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] Warnings: 10  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] Pass Rate: 0%  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] ------------------------------------  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] ModuleLoader Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] UIComponents Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] AssetValidator Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] UIRegistry: 0/6 tests passed (0%)  -  Client - UISystemTester:33
+  07:53:40.019  [UISystemTester] ClientRegistry Exists: 0/1 tests passed (0%)  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] 
+Failed Tests:  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] ✗ AssetValidator Exists  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] ✗ ClientRegistry Exists  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] ✗ ModuleLoader Exists  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] ✗ UIComponents Exists  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] ✗ UIRegistry Can Show Notifications  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] ✗ UIRegistry Exists  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] ✗ UIRegistry.ButtonFactory  -  Client - UISystemTester:33
+  07:53:40.020  [UISystemTester] ✗ UIRegistry.DialogFactory  -  Client - UISystemTester:33
+  07:53:40.021  [UISystemTester] ✗ UIRegistry.IconSet  -  Client - UISystemTester:33
+  07:53:40.021  [UISystemTester] ✗ UIRegistry.UIStyle  -  Client - UISystemTester:33
+  07:53:40.021  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
+  07:53:40.021  Stack Begin  -  Studio
+  07:53:40.021  Script 'Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientPerformanceManager', Line 13  -  Studio - ClientPerformanceManager:13
+  07:53:40.021  Stack End  -  Studio
+  07:53:40.021  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
+  07:53:40.022  Stack Begin  -  Studio
+  07:53:40.022  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.CompetitionClientLoader', Line 7  -  Studio - CompetitionClientLoader:7
+  07:53:40.022  Stack End  -  Studio
+  07:53:40.022  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
+  07:53:40.022  Stack Begin  -  Studio
+  07:53:40.022  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.AchievementClientLoader', Line 8  -  Studio - AchievementClientLoader:8
+  07:53:40.022  Stack End  -  Studio
+  07:53:40.022  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
+  07:53:40.022  Stack Begin  -  Studio
+  07:53:40.023  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.RevenueClientLoader', Line 8  -  Studio - RevenueClientLoader:8
+  07:53:40.023  Stack End  -  Studio
+  07:53:40.023  Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'  -  Studio
+  07:53:40.023  Stack Begin  -  Studio
+  07:53:40.023  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.AchievementClient', Line 12  -  Studio - AchievementClient:12
+  07:53:40.023  Stack End  -  Studio
+  07:53:40.023  Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("ClientRegistry")'  -  Studio
+  07:53:40.023  Stack Begin  -  Studio
+  07:53:40.023  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.SatisfactionClient', Line 15  -  Studio - SatisfactionClient:15
+  07:53:40.023  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ClientCore.SatisfactionClient', Line 13  -  Studio - SatisfactionClient:13
+  07:53:40.023  Stack End  -  Studio
+  07:53:40.065  [DataManager] Using fallback spawnGymPart for ID: 0  -  Server - GymTycoonDataManager:43
+  07:53:40.065  Could not find gym part with ID: 0  -  Server - GymTycoonDataManager:398
+  07:53:40.065  Failed to restore tile 0 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
+  07:53:40.348  [DataManager] Using fallback spawnBuyTile for ID: 1  -  Server - GymTycoonDataManager:43
+  07:53:40.350  [DataManager] Found and cloned buy tile with ID: 1  -  Server - GymTycoonDataManager:43
+  07:53:40.350  [DataManager] Restored tile 1 for Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:53:40.555  [DataManager] Using fallback spawnGymPart for ID: 2  -  Server - GymTycoonDataManager:43
+  07:53:40.555  Could not find gym part with ID: 2  -  Server - GymTycoonDataManager:398
+  07:53:40.555  Failed to restore tile 2 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
+  07:53:40.760  [DataManager] Using fallback spawnGymPart for ID: 3  -  Server - GymTycoonDataManager:43
+  07:53:40.760  Could not find gym part with ID: 3  -  Server - GymTycoonDataManager:398
+  07:53:40.761  Failed to restore tile 3 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
+  07:53:40.927  Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("shared")'  -  Studio
+  07:53:40.927  Stack Begin  -  Studio
+  07:53:40.927  Script 'Players.Xdjpearsonx.PlayerGui.SettingsUI', Line 17  -  Studio - SettingsUI:17
+  07:53:40.928  Stack End  -  Studio
+  07:53:40.928  Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("shared")'  -  Studio
+  07:53:40.928  Stack Begin  -  Studio
+  07:53:40.928  Script 'Players.Xdjpearsonx.PlayerGui.RebirthUI_Enhanced', Line 23  -  Studio - RebirthUI_Enhanced:23
+  07:53:40.928  Stack End  -  Studio
+  07:53:40.928  Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("GameSystem")'  -  Studio
+  07:53:40.928  Stack Begin  -  Studio
+  07:53:40.928  Script 'Players.Xdjpearsonx.PlayerGui.RebirthMenuUI', Line 12  -  Studio - RebirthMenuUI:12
+  07:53:40.928  Stack End  -  Studio
+  07:53:40.929  Infinite yield possible on 'Players.Xdjpearsonx.PlayerGui:WaitForChild("RebirthMenuUI.client")'  -  Studio
+  07:53:40.929  Stack Begin  -  Studio
+  07:53:40.929  Script 'Players.Xdjpearsonx.PlayerGui.MainMenuUI', Line 12  -  Studio - MainMenuUI:12
+  07:53:40.929  Stack End  -  Studio
+  07:53:40.961  [DataManager] Using fallback spawnGymPart for ID: 4  -  Server - GymTycoonDataManager:43
+  07:53:40.962  Could not find gym part with ID: 4  -  Server - GymTycoonDataManager:398
+  07:53:40.962  Failed to restore tile 4 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
+  07:53:41.166  [DataManager] Using fallback spawnGymPart for ID: 5  -  Server - GymTycoonDataManager:43
+  07:53:41.166  Could not find gym part with ID: 5  -  Server - GymTycoonDataManager:398
+  07:53:41.167  Failed to restore tile 5 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
+  07:53:41.435  [DataManager] Using fallback spawnGymPart for ID: 9  -  Server - GymTycoonDataManager:43
+  07:53:41.436  Could not find gym part with ID: 9  -  Server - GymTycoonDataManager:398
+  07:53:41.436  Failed to restore tile 9 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
+  07:53:41.643  [DataManager] Using fallback spawnGymPart for ID: 19  -  Server - GymTycoonDataManager:43
+  07:53:41.643  Could not find gym part with ID: 19  -  Server - GymTycoonDataManager:398
+  07:53:41.644  Failed to restore tile 19 for Xdjpearsonx  -  Server - GymTycoonDataManager:523
+  07:53:41.644  [DataManager] Restored 1 of 8 tiles for Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:53:41.644  [Milestones] Checking milestones for Xdjpearsonx  -  Server - GymMilestonesSystem:22
+  07:53:41.645  [Milestones] Xdjpearsonx achieved milestone: First Steps  -  Server - GymMilestonesSystem:22
+  07:53:41.738   ▶ Failed to load sound rbxassetid://9125601193: Asset type does not match requested type (x2)  -  Studio
+  07:53:43.282  Price adjusted for:  RawMaterial . New Price:  4.75  -  Server - DynamicEconomy:111
+  07:53:43.282  Price adjusted for:  Membership . New Price:  95  -  Server - DynamicEconomy:111
+  07:53:43.282  Price adjusted for:  Equipment . New Price:  47.5  -  Server - DynamicEconomy:111
+  07:53:43.282  Price adjusted for:  Energy . New Price:  9.5  -  Server - DynamicEconomy:111
+  07:53:43.282  Price adjusted for:  FinishedGood . New Price:  19  -  Server - DynamicEconomy:111
+  07:53:43.817  Running Buy Tile startup verification...  -  Server - StartupTileVerification:11
+  07:53:43.900  First buy tile found in workspace: Workspace.BuyTile 1  -  Server - StartupTileVerification:18
+  07:53:43.900  Buy Tile startup verification complete  -  Server - StartupTileVerification:127
+  07:53:43.903  [Membership System] Xdjpearsonx gained 5 new members from equipment  -  Server - GymRevenueSystem:56
+  07:53:43.952  SafeWait: Timed out waiting for server in ServerScriptService  -  Server - GymAutomation:50
+  07:53:43.952  Failed to load server core modules - GymAutomation functionality will be limited  -  Server - GymAutomation:76
+  07:53:43.952  You can use these commands: _G.AutomateGym(), _G.GenerateHitboxes(), _G.SetupAttributes(), _G.ShowHitboxes(), _G.HideHitboxes()  -  Server - GymAutomation:137
+  07:53:45.051  Shared is not a valid member of PlayerScripts "Players.Xdjpearsonx.PlayerScripts"  -  Client - ReputationClient:35
+  07:53:45.051  Stack Begin  -  Studio
+  07:53:45.051  Script 'Players.Xdjpearsonx.PlayerScripts.Client.ReputationClient', Line 35  -  Studio - ReputationClient:35
+  07:53:45.052  Stack End  -  Studio
+  07:53:45.121   ▶ Failed to load sound rbxassetid://9048378264: Asset type does not match requested type (x2)  -  Studio
+  07:53:48.772   ▶ [DataManagementUI] Access denied - admin permissions required (x2)  -  Client - DataManagementUI:51
+  07:53:53.285  Price adjusted for:  RawMaterial . New Price:  4.5125  -  Server - DynamicEconomy:111
+  07:53:53.286  Price adjusted for:  Membership . New Price:  90.25  -  Server - DynamicEconomy:111
+  07:53:53.286  Price adjusted for:  Equipment . New Price:  45.125  -  Server - DynamicEconomy:111
+  07:53:53.286  Price adjusted for:  Energy . New Price:  9.025  -  Server - DynamicEconomy:111
+  07:53:53.286  Price adjusted for:  FinishedGood . New Price:  18.05  -  Server - DynamicEconomy:111
+  07:54:03.302  Price adjusted for:  RawMaterial . New Price:  4.286875  -  Server - DynamicEconomy:111
+  07:54:03.302  Price adjusted for:  Membership . New Price:  85.7375  -  Server - DynamicEconomy:111
+  07:54:03.302  Price adjusted for:  Equipment . New Price:  42.86875  -  Server - DynamicEconomy:111
+  07:54:03.302  Price adjusted for:  Energy . New Price:  8.57375  -  Server - DynamicEconomy:111
+  07:54:03.302  Price adjusted for:  FinishedGood . New Price:  17.1475  -  Server - DynamicEconomy:111
+  07:54:03.818  Running periodic tycoon validation check  -  Server - UnifiedTycoonSystem:366
+  07:54:13.317  Price adjusted for:  RawMaterial . New Price:  4.07253125  -  Server - DynamicEconomy:111
+  07:54:13.317  Price adjusted for:  Membership . New Price:  81.45062499999999  -  Server - DynamicEconomy:111
+  07:54:13.318  Price adjusted for:  Equipment . New Price:  40.725312499999994  -  Server - DynamicEconomy:111
+  07:54:13.318  Price adjusted for:  Energy . New Price:  8.1450625  -  Server - DynamicEconomy:111
+  07:54:13.318  Price adjusted for:  FinishedGood . New Price:  16.290125  -  Server - DynamicEconomy:111
+  07:54:23.402  Price adjusted for:  RawMaterial . New Price:  3.8689046874999997  -  Server - DynamicEconomy:111
+  07:54:23.403  Price adjusted for:  Membership . New Price:  77.37809374999999  -  Server - DynamicEconomy:111
+  07:54:23.403  Price adjusted for:  Equipment . New Price:  38.689046874999995  -  Server - DynamicEconomy:111
+  07:54:23.403  Price adjusted for:  Energy . New Price:  7.737809374999999  -  Server - DynamicEconomy:111
+  07:54:23.403  Price adjusted for:  FinishedGood . New Price:  15.475618749999999  -  Server - DynamicEconomy:111
+  07:54:28.814  UIUtils not available - cannot create Rebirth menu  -  Client - RebirthUI:111
+  07:54:28.814  Failed to create rebirth menu  -  Client - RebirthUI:491
+  07:54:33.408  Price adjusted for:  RawMaterial . New Price:  3.6754594531249998  -  Server - DynamicEconomy:111
+  07:54:33.408  Price adjusted for:  Membership . New Price:  73.50918906249998  -  Server - DynamicEconomy:111
+  07:54:33.409  Price adjusted for:  Equipment . New Price:  36.75459453124999  -  Server - DynamicEconomy:111
+  07:54:33.409  Price adjusted for:  Energy . New Price:  7.3509189062499996  -  Server - DynamicEconomy:111
+  07:54:33.409  Price adjusted for:  FinishedGood . New Price:  14.701837812499999  -  Server - DynamicEconomy:111
+  07:54:33.828  Running periodic tycoon validation check  -  Server - UnifiedTycoonSystem:366
+  07:54:37.151  [DataManager] Saved data for Xdjpearsonx   -  Server - GymTycoonDataManager:43
+  07:54:38.419  [CoreRegistryFeedback] CoreRegistry check failed (2/3)  -  Server - CoreRegistryFeedback:44
+  07:54:43.421  Price adjusted for:  RawMaterial . New Price:  3.4916864804687497  -  Server - DynamicEconomy:111
+  07:54:43.421  Price adjusted for:  Membership . New Price:  69.83372960937498  -  Server - DynamicEconomy:111
+  07:54:43.421  Price adjusted for:  Equipment . New Price:  34.91686480468749  -  Server - DynamicEconomy:111
+  07:54:43.421  Price adjusted for:  Energy . New Price:  6.9833729609374995  -  Server - DynamicEconomy:111
+  07:54:43.422  Price adjusted for:  FinishedGood . New Price:  13.966745921874999  -  Server - DynamicEconomy:111
+  07:54:53.436  Price adjusted for:  RawMaterial . New Price:  3.317102156445312  -  Server - DynamicEconomy:111
+  07:54:53.437  Price adjusted for:  Membership . New Price:  66.34204312890623  -  Server - DynamicEconomy:111
+  07:54:53.437  Price adjusted for:  Equipment . New Price:  33.17102156445311  -  Server - DynamicEconomy:111
+  07:54:53.437  Price adjusted for:  Energy . New Price:  6.634204312890624  -  Server - DynamicEconomy:111
+  07:54:53.437  Price adjusted for:  FinishedGood . New Price:  13.268408625781248  -  Server - DynamicEconomy:111
+  07:55:03.439  Price adjusted for:  RawMaterial . New Price:  3.151247048623046  -  Server - DynamicEconomy:111
+  07:55:03.439  Price adjusted for:  Membership . New Price:  63.02494097246091  -  Server - DynamicEconomy:111
+  07:55:03.440  Price adjusted for:  Equipment . New Price:  31.512470486230455  -  Server - DynamicEconomy:111
+  07:55:03.440  Price adjusted for:  Energy . New Price:  6.302494097246092  -  Server - DynamicEconomy:111
+  07:55:03.440  Price adjusted for:  FinishedGood . New Price:  12.604988194492185  -  Server - DynamicEconomy:111
+  07:55:03.836  Running periodic tycoon validation check  -  Server - UnifiedTycoonSystem:366
+  07:55:09.466  Disconnect from ::ffff:127.0.0.1|58840  -  Studio
+  07:55:09.477  [DataAccessLayer] Player leaving: Xdjpearsonx  -  Server - DataAccessLayer:99
+  07:55:09.477  [DataManager] Game closing, saving all player data...  -  Server - GymTycoonDataManager:43
+  07:55:09.477  [DataAccessLayer] Processing shutdown, saving all player data  -  Server - DataAccessLayer:99
+  07:55:09.478  [DataAccessLayer] Saved 0 player data records during shutdown  -  Server - DataAccessLayer:99
+  07:55:09.798  [DataManager] Saved data for Xdjpearsonx (immediate)  -  Server - GymTycoonDataManager:43
+  07:55:09.982  [DataManager] Created backup for Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:55:09.982  [DataManager] Stopped auto-save for Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:55:09.982  [DataManager] Cleaned up for leaving player: Xdjpearsonx  -  Server - GymTycoonDataManager:43
+  07:55:13.448  Price adjusted for:  RawMaterial . New Price:  2.993684696191894  -  Server - DynamicEconomy:111
+  07:55:13.448  Price adjusted for:  Membership . New Price:  59.87369392383786  -  Server - DynamicEconomy:111
+  07:55:13.449  Price adjusted for:  Equipment . New Price:  29.93684696191893  -  Server - DynamicEconomy:111
+  07:55:13.449  Price adjusted for:  Energy . New Price:  5.987369392383788  -  Server - DynamicEconomy:111
+  07:55:13.450  Price adjusted for:  FinishedGood . New Price:  11.974738784767576  -  Server - DynamicEconomy:111
