@@ -22,16 +22,13 @@
 - ⚠️ Still seeing Infinite yield on many modules, particularly in PlayerScripts and CoreRegistry references
 
 **Specific Errors:**
-- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("DevUtilityFunctions")'` - ✅ FIXED
-- `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts.Client.UI:WaitForChild("AllianceUIFrame")'` - ✅ FIXED
-- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("ClientRegistry")'` - ⚠️ PARTIALLY FIXED
-- `Infinite yield possible on 'ReplicatedStorage:WaitForChild("src")'` - ⚠️ PARTIALLY FIXED
-- `Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlayerRemovedFromAllianceEvent")'` - ✅ FIXED
 - `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'` - ⚠️ NEW
 - `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'` - ⚠️ NEW
 - `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("TutorialManager")'` - ⚠️ NEW
 - `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("MigrationUtils")'` - ⚠️ NEW
 - `Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlaySoundEvent")'` - ⚠️ NEW
+- `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts.Client:WaitForChild("Core")'` - ⚠️ NEW
+- `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts.Client:WaitForChild("Modules")'` - ⚠️ NEW
 
 **Recommended Next Steps:**
 1. Implement SafeWaitForChild in ALL remaining files using WaitForChild pattern
