@@ -24,6 +24,8 @@ local ServerScripts = script.Parent.Parent
 local SharedModules = ReplicatedStorage:WaitForChild("src"):WaitForChild("shared")
 
 local DataPersistence = require(script.Parent:WaitForChild("DataPersistence"))
+local DataCache = require(script.Parent:WaitForChild("DataCache"))
+local DataAnalytics = require(script.Parent:WaitForChild("DataAnalytics"))
 local DataTypes = require(SharedModules:WaitForChild("Data"):WaitForChild("DataTypes"))
 local DataConstants = require(SharedModules:WaitForChild("Data"):WaitForChild("DataConstants"))
 local DataMigration = nil -- Will be loaded later to avoid circular dependencies
@@ -107,6 +109,9 @@ local function processSaveQueue()
                     maxRetries = DataConstants.RATE_LIMITS.MAX_RETRY_ATTEMPTS
                 })
                 
+                -- Cache key for this data
+                local cacheKey = "player:" .. userId .. ":" .. scope
+                
                 -- Clear in-progress flag
                 if saveInProgress[userId] then
                     saveInProgress[userId][scope] = nil
@@ -122,10 +127,19 @@ local function processSaveQueue()
                         saveAttempts[userId][scope] = 0
                     end
                     
+                    -- Update cache with latest data
+                    DataCache:set(cacheKey, DataTypes.deepCopy(data), {
+                        scope = "player:" .. userId,
+                        ttl = 600 -- 10 minutes
+                    })
+                    
                     if config.logSaves then
                         log("Successfully saved data for player %d, scope '%s'", userId, scope)
                     end
                 else
+                    -- Invalidate cache on save failure
+                    DataCache:invalidate(cacheKey, {scope = "player:" .. userId})
+                    
                     -- Put back in queue for retry if not too many attempts
                     if attempt < DataConstants.RATE_LIMITS.MAX_RETRY_ATTEMPTS then
                         task.wait(DataConstants.RATE_LIMITS.RETRY_DELAY)
@@ -260,6 +274,22 @@ function DataManager:initialize()
     -- Initialize dependencies
     DataPersistence:initialize()
     
+    -- Initialize and configure cache
+    DataCache:initialize({
+        memoryLimit = 50 * 1024 * 1024, -- 50MB limit
+        defaultTTL = 600, -- 10 minutes default TTL
+        writePolicy = "through", -- Use write-through policy for safety
+        logLevel = config.debugMode and 3 or 1 -- More verbose logging in debug mode
+    })
+    
+    -- Initialize analytics
+    DataAnalytics:initialize({
+        enabled = true,
+        debugMode = config.debugMode,
+        logLevel = config.debugMode and 3 or 1,
+        sampleRate = 0.05 -- Sample 5% of operations for detailed metrics
+    })
+    
     -- Setup systems
     setupAutoSave()
     connectPlayerEvents()
@@ -269,6 +299,7 @@ function DataManager:initialize()
     
     initialized = true
     log("DataManager initialized")
+    DataAnalytics:recordEvent("system_initialize", {component = "DataManager"})
     
     return true
 end
@@ -315,25 +346,81 @@ end
 function DataManager:loadPlayerDataScope(player, scope)
     if not player or not player.UserId or not scope then
         warn("Invalid parameters for loadPlayerDataScope")
+        DataAnalytics:recordError("invalid_params", "Invalid parameters for loadPlayerDataScope", "DataManager", {
+            playerValid = player ~= nil,
+            userIdValid = player and player.UserId ~= nil,
+            scopeValid = scope ~= nil
+        })
         return false
     end
     
     local userId = player.UserId
+    local startTime = os.clock()
     
-    -- Get the appropriate store name and key
+    -- Check cache first
+    local cacheKey = "player:" .. userId .. ":" .. scope
+    local cachedData = DataCache:get(cacheKey, {scope = "player:" .. userId})
+    
+    -- If found in cache, use it
+    if cachedData then
+        -- Track cache hit
+        DataAnalytics:trackCacheUsage("hit", {
+            key = cacheKey,
+            scope = "player:" .. userId
+        })
+        
+        if config.logLoads then
+            log("Loaded data for player %s (%d), scope '%s' from cache", player.Name, userId, scope)
+        end
+        
+        -- Store in memory
+        if not playerData[userId] then
+            playerData[userId] = {}
+        end
+        playerData[userId][scope] = DataTypes.deepCopy(cachedData)
+        
+        -- Track operation
+        local duration = os.clock() - startTime
+        DataAnalytics:trackOperation("read", {
+            source = "cache",
+            scope = scope,
+            userId = userId,
+            duration = duration,
+            result = "success"
+        })
+        
+        return true
+    end
+    
+    -- Track cache miss
+    DataAnalytics:trackCacheUsage("miss", {
+        key = cacheKey,
+        scope = "player:" .. userId
+    })
+    
+    -- Not in cache, load from persistence
     local storeName = getStoreNameForScope(scope)
     local key = getStorageKey(userId, scope)
     
     -- Log if configured to do so
     if config.logLoads then
-        log("Loading data for player %s (%d), scope '%s'", player.Name, userId, scope)
+        log("Loading data for player %s (%d), scope '%s' from DataStore", player.Name, userId, scope)
     end
+    
+    -- Track DataStore request
+    DataAnalytics:trackDataStoreUsage("request", {
+        storeName = storeName,
+        key = key
+    })
     
     -- Load the data
     local success, message, data = DataPersistence:loadData(storeName, key, {
         useBackup = config.useBackups,
         maxRetries = DataConstants.RATE_LIMITS.MAX_RETRY_ATTEMPTS
     })
+    
+    -- Calculate operation duration
+    local duration = os.clock() - startTime
     
     -- Handle load result
     if success then
@@ -356,19 +443,58 @@ function DataManager:loadPlayerDataScope(player, scope)
             end
         end
         
-        -- Store in memory
+        -- Store in memory and cache
         if not playerData[userId] then
             playerData[userId] = {}
         end
         playerData[userId][scope] = data
         
+        -- Cache the data
+        DataCache:set(cacheKey, DataTypes.deepCopy(data), {
+            scope = "player:" .. userId,
+            ttl = 600 -- 10 minutes
+        })
+        
         if config.logLoads then
             log("Successfully loaded data for player %s, scope '%s'", player.Name, scope)
         end
         
+        -- Track operation
+        DataAnalytics:trackOperation("read", {
+            source = "datastore",
+            scope = scope,
+            userId = userId,
+            duration = duration,
+            result = "success"
+        })
+        
         return true
     else
         warn("Failed to load data for player", player.Name, "scope", scope, ":", message)
+        
+        -- Track operation failure
+        DataAnalytics:trackOperation("read", {
+            source = "datastore",
+            scope = scope,
+            userId = userId,
+            duration = duration,
+            result = "failure"
+        })
+        
+        -- Track DataStore failure
+        DataAnalytics:trackDataStoreUsage("failure", {
+            storeName = storeName,
+            key = key,
+            errorMessage = message
+        })
+        
+        -- Record error
+        DataAnalytics:recordError("data_load_error", message, "DataManager.loadPlayerDataScope", {
+            player = player.Name,
+            userId = userId,
+            scope = scope
+        })
+        
         return false
     end
 end
@@ -404,10 +530,16 @@ end
 function DataManager:savePlayerDataScope(player, scope, immediate)
     if not player or not player.UserId or not scope then
         warn("Invalid parameters for savePlayerDataScope")
+        DataAnalytics:recordError("invalid_params", "Invalid parameters for savePlayerDataScope", "DataManager", {
+            playerValid = player ~= nil,
+            userIdValid = player and player.UserId ~= nil,
+            scopeValid = scope ~= nil
+        })
         return false
     end
     
     local userId = player.UserId
+    local startTime = os.clock()
     
     -- If no data for this scope, nothing to save
     if not playerData[userId] or not playerData[userId][scope] then
@@ -420,6 +552,13 @@ function DataManager:savePlayerDataScope(player, scope, immediate)
     -- Get the appropriate store name and key
     local storeName = getStoreNameForScope(scope)
     local key = getStorageKey(userId, scope)
+    
+    -- Update the cache with latest data
+    local cacheKey = "player:" .. userId .. ":" .. scope
+    DataCache:set(cacheKey, DataTypes.deepCopy(data), {
+        scope = "player:" .. userId,
+        ttl = 600 -- 10 minutes
+    })
     
     -- If a save is already in progress for this scope, don't queue another one
     if saveInProgress[userId] and saveInProgress[userId][scope] then
@@ -439,11 +578,21 @@ function DataManager:savePlayerDataScope(player, scope, immediate)
             log("Immediate save for player %s (%d), scope '%s'", player.Name, userId, scope)
         end
         
+        -- Track DataStore request
+        DataAnalytics:trackDataStoreUsage("request", {
+            storeName = storeName,
+            key = key,
+            operation = "save"
+        })
+        
         -- Perform the save
         local success, result = DataPersistence:saveData(storeName, key, data, {
             createBackup = config.useBackups,
             maxRetries = DataConstants.RATE_LIMITS.MAX_RETRY_ATTEMPTS
         })
+        
+        -- Calculate operation duration
+        local duration = os.clock() - startTime
         
         -- Clear in-progress flag
         if saveInProgress[userId] then
@@ -458,9 +607,47 @@ function DataManager:savePlayerDataScope(player, scope, immediate)
             if config.logSaves then
                 log("Successfully saved data for player %s, scope '%s'", player.Name, scope)
             end
+            
+            -- Track operation success
+            DataAnalytics:trackOperation("write", {
+                source = "datastore",
+                scope = scope,
+                userId = userId,
+                duration = duration,
+                result = "success"
+            })
+            
             return true
         else
             warn("Failed to save data for player", player.Name, "scope", scope, ":", result)
+            
+            -- Invalidate cache on save failure to force a reload next time
+            DataCache:invalidate(cacheKey, {scope = "player:" .. userId})
+            
+            -- Track operation failure
+            DataAnalytics:trackOperation("write", {
+                source = "datastore",
+                scope = scope,
+                userId = userId,
+                duration = duration,
+                result = "failure"
+            })
+            
+            -- Track DataStore failure
+            DataAnalytics:trackDataStoreUsage("failure", {
+                storeName = storeName,
+                key = key,
+                errorMessage = result,
+                operation = "save"
+            })
+            
+            -- Record error
+            DataAnalytics:recordError("data_save_error", tostring(result), "DataManager.savePlayerDataScope", {
+                player = player.Name,
+                userId = userId,
+                scope = scope
+            })
+            
             return false
         end
     else
@@ -471,6 +658,13 @@ function DataManager:savePlayerDataScope(player, scope, immediate)
             key = key,
             storeName = storeName,
             data = data
+        })
+        
+        -- Track queued operation
+        DataAnalytics:recordEvent("save_queued", {
+            userId = userId,
+            scope = scope,
+            queueLength = #dataSaveQueue
         })
         
         -- Trigger save queue processing
@@ -678,6 +872,9 @@ function DataManager:clearPlayerMemory(player)
     -- Clear memory
     playerData[userId] = nil
     saveAttempts[userId] = nil
+    
+    -- Clear cache for this player
+    DataCache:clear("player:" .. userId)
     
     return true
 end
