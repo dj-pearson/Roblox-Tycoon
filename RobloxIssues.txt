@@ -1,31 +1,59 @@
 # Roblox Issues Tracking Document
 
-## Global Function Access Problems (⚠️ HIGH PRIORITY)
+## GymAutomationLoader Failures (⚠️ HIGH PRIORITY)
 
-**Error Message:** Multiple "attempt to call a nil value" errors when trying to access _G functions.
+**Error Message:** 
+- `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
+- `[GymAutomationLoader] Could not find GymAutomation in any search path`
+- `[GymAutomationLoader] Failed to find any GymAutomation module`
+- `[GymAutomationLoader] Failed to load GymAutomation, scheduling retry...`
 
-**Context:** Observed when trying to run automation scripts in the Studio console.
+**Context:** GymAutomation system is critical for automating gym setup and functionality in the tycoon.
 
-**Impact:** High. Prevents developers from running automation scripts needed for model processing.
+**Impact:** High. Prevents proper automation of gym components and features.
 
-**Frequency:** Consistent when calling any _G functions.
-
-**Specific Errors:**
-- `_G.AutomateGym():1: attempt to call a nil value`
-- `_G.AutomateAllGyms():1: attempt to call a nil value`
-- `_G.ProcessEquipment():1: attempt to call a nil value`
-- `_G.BatchProcessModels():1: attempt to call a nil value`
+**Frequency:** Occurs consistently on game start and repeatedly during gameplay (scheduled retries).
 
 **Status:** 
-- ❌ Despite log showing GYM TYCOON AUTOMATION LOADED, none of the global functions are available
-- ❌ Log shows "Failed to load server core modules - GymAutomation functionality will be limited"
-- ❌ SafeWait timeout when attempting to load server core modules: "SafeWait: Timed out waiting for server in ServerScriptService"
+- ❌ Cannot locate GymAutomationManager or GymAutomation modules despite multiple search attempts
+- ❌ Continuous retry attempts filling logs with errors
+- ❌ Despite reporting "✅ GYM TYCOON AUTOMATION LOADED" earlier in logs, module can't be found
 
 **Recommended Next Steps:**
-1. Fix GymAutomation module to properly expose global functions
-2. Ensure server core modules are loaded before GymAutomation initializes
-3. Implement proper error handling in GymAutomation to show helpful diagnostic messages
-4. Create a fallback system for automation functions that don't require core modules
+1. Create proper GymAutomationManager module in ServerStorage or ServerScriptService
+2. Add the module to all expected search paths
+3. Implement better path resolution in GymAutomationLoader
+4. Add proper diagnostic information to identify missing search paths
+
+## Client UI System Failures (⚠️ HIGH PRIORITY)
+
+**Error Message:** Multiple UI component errors and failed tests:
+- `[UISystemTester] Tests Run: 12, Tests Passed: 0, Tests Failed: 12`
+- `[UISystemTester] Pass Rate: 0%`
+
+**Context:** The UI system is critical for player interaction with the game.
+
+**Impact:** Critical. All UI components are failing, severely impacting player experience.
+
+**Frequency:** Consistent on every game start.
+
+**Specific Errors:**
+- `✗ AssetValidator Exists: AssetValidator not found through any method`
+- `✗ ClientRegistry Exists: ClientRegistry not found through any method`
+- `✗ ModuleLoader Exists: ModuleLoader module not found`
+- `✗ UIComponents Exists: UIComponents not found through any method`
+- `✗ UIRegistry Exists: UIRegistry not found`
+
+**Status:**
+- ❌ No UI components passing validation tests
+- ❌ Core UI systems (ClientRegistry, ModuleLoader, UIComponents) missing
+- ❌ Fallback systems attempting to initialize but failing
+
+**Recommended Next Steps:**
+1. Fix ClientRegistry module to properly export a single value
+2. Create ModuleLoader and UIComponents modules with proper functionality
+3. Implement a robust UI Registry system
+4. Fix AssetValidator to ensure UI assets are properly loaded
 
 ## Module Loading and WaitForChild Errors (⚠️ HIGH PRIORITY)
 
@@ -38,28 +66,49 @@
 **Frequency:** High, occurs consistently on game launch.
 
 **Specific Errors:**
+- `Infinite yield possible on 'ServerStorage:WaitForChild("MemberSatisfactionSystem")'`
+- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("SafeRequire")'`
 - `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'`
 - `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("TutorialManager")'`
 - `Infinite yield possible on 'ServerScriptService.Server.Tests:WaitForChild("TycoonConfigurationManager")'`
 - `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("MigrationUtils")'`
-- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("SafeRequire")'`
-- `Infinite yield possible on 'ReplicatedStorage:WaitForChild("PlaySoundEvent")'`
 - `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'`
-- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("ClientRegistry")'`
 - `Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("shared")'`
-- `Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("GameSystem")'`
-- `Infinite yield possible on 'Players.Xdjpearsonx.PlayerGui:WaitForChild("RebirthMenuUI.client")'`
+- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("SoundSystemManager")'`
 
 **Status:** 
-- ❌ CoreRegistry continues to be a significant issue - failing health check
-- ❌ SafeRequire module not found, causing issues with module loading
 - ❌ Critical path dependencies missing throughout the codebase
+- ❌ SafeRequire module still not found, causing issues with module loading
+- ❌ Core folder structures incomplete or missing
 
 **Recommended Next Steps:**
-1. Create missing modules in the Core folder structure (CoreRegistry, TutorialManager, etc.)
-2. Implement SafeRequire and SafeWaitForChild across all scripts
-3. Review folder structure to ensure all expected paths exist
-4. Add a startup diagnostic system to report missing modules early
+1. Create missing modules in the expected folder structure
+2. Implement timeouts on all WaitForChild calls to prevent infinite yields
+3. Create a dependency loading system that can handle missing dependencies gracefully
+
+## ClientBootstrap Initialization Failures (⚠️ HIGH PRIORITY)
+
+**Error Message:**
+- `[ClientBootstrap] Failed to require module: ReplicatedStorage.shared.ClientRegistry - Module code did not return exactly one value`
+- `[ClientBootstrap] Failed to get ClientRegistry, cannot proceed with initialization`
+- `[ClientBootstrap] ModuleLoader not found, some system initialization may fail`
+
+**Context:** ClientBootstrap is responsible for initializing client-side systems.
+
+**Impact:** Critical. Client-side systems cannot initialize properly.
+
+**Frequency:** Consistent on every game start.
+
+**Status:**
+- ❌ ClientRegistry module not returning a single value as expected
+- ❌ ModuleLoader cannot be found
+- ❌ Core client modules failing to initialize
+
+**Recommended Next Steps:**
+1. Fix ClientRegistry module to return exactly one value
+2. Create proper ModuleLoader module
+3. Implement fallback mechanisms for core client modules
+4. Add better error handling in ClientBootstrap
 
 ## CoreRegistry Issues (⚠️ HIGH PRIORITY)
 
@@ -67,6 +116,7 @@
 - `[CoreRegistryFeedback] Initial status: CoreRegistry UNAVAILABLE`
 - `[CoreRegistryFeedback] CoreRegistry check failed (1/3)`
 - `[CoreRegistryFeedback] CoreRegistry check failed (2/3)`
+- `[SystemBootstrap] CRITICAL: CoreRegistry not available after initialization!`
 
 **Context:** CoreRegistry is a central component for registering and managing game systems.
 
@@ -76,29 +126,38 @@
 
 **Status:**
 - ❌ CoreRegistry is unavailable and failing health checks
-- ❌ Multiple systems attempting to register but failing due to missing CoreRegistry
+- ❌ Multiple attempts to initialize CoreRegistry failing
+- ❌ SystemBootstrap unable to proceed properly without CoreRegistry
 
 **Recommended Next Steps:**
 1. Fix CoreRegistry initialization to ensure it's available early in the game lifecycle
-2. Implement more robust error handling for systems that depend on CoreRegistry
-3. Create a fallback mechanism for critical systems when CoreRegistry is unavailable
+2. Implement robust error handling for CoreRegistry dependency
+3. Create clear diagnostic messages for CoreRegistry initialization failures
 
-## Asset Loading Failures (🔧 IN PROGRESS)
+## Asset Loading and Tile Restoration Failures (🔧 MEDIUM PRIORITY)
 
 **Error Message:** 
 - `Failed to load sound rbxassetid://9048378264: Asset type does not match requested type`
 - `Failed to load sound rbxassetid://9125601193: Asset type does not match requested type`
+- `Could not find gym part with ID: Xdjpearsonx`
+- `[DataManager] Restored 1 of 7 tiles for Xdjpearsonx`
 
-**Context:** When attempting to play sounds during gameplay.
+**Context:** Asset loading and tile restoration for player tycoons.
 
-**Impact:** Medium. Sound effects missing, reducing game feedback quality.
+**Impact:** Medium. Sound effects missing and incomplete tycoon restoration.
 
-**Frequency:** Multiple occurrences.
+**Frequency:** Multiple occurrences during gameplay.
 
 **Status:**
 - ❌ Sound assets still failing to load
+- ❌ Gym parts not found during data restoration
+- ❌ Only 1 of 7 tiles restored for player
 
 **Recommended Next Steps:**
+1. Verify sound asset IDs and update to valid assets
+2. Fix gym part ID resolution in DataManager
+3. Implement proper error recovery for tile restoration
+4. Add logging for successful restorations to diagnose issues
 1. Audit all sound assets to ensure they are valid
 2. Implement a sound asset validation system that checks for proper asset type
 3. Create fallback sounds for commonly failing assets
@@ -174,3 +233,25 @@
 1. Create or fix the ModuleLoader module
 2. Ensure ClientRegistryFixer is properly placed and accessible
 3. Create missing client system modules or implement better fallbacks
+
+## Error Priority Summary and Resolution Plan
+
+### Immediate Fixes (Critical)
+1. **CoreRegistry Repair**: Fix CoreRegistry module to make it available early in the startup sequence
+2. **ClientRegistry Fix**: Update ClientRegistry to properly return a single value
+3. **GymAutomationLoader**: Create missing GymAutomationManager module in expected paths
+
+### Short-term Fixes (High)
+1. **ModuleLoader**: Create ModuleLoader to resolve interdependencies between modules
+2. **UI System Components**: Implement basic versions of UIComponents, AssetValidator, and UIRegistry
+3. **WaitForChild Improvements**: Add timeouts to all WaitForChild calls and implement fallbacks
+
+### Medium-term Improvements
+1. **Data System**: Fix tile restoration and gym part ID resolution
+2. **Asset Loading**: Correct sound asset IDs and implement validation
+3. **Diagnostic System**: Create a comprehensive startup diagnostic system
+
+### Long-term Solutions
+1. **Dependency Management**: Implement a robust dependency management system
+2. **Automated Testing**: Expand UI System Tests to cover all components
+3. **Centralized Error Handling**: Create a unified error handling and logging system

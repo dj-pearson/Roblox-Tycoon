@@ -1,215 +1,164 @@
---!strict
---[[
-    SafeWaitForChild.luau
-    
-    A utility module that provides safe methods for waiting for child instances
-    with timeout handling to prevent infinite yield errors.
-    
-    This module is a critical part of the infrastructure fixes and should be
-    placed in ReplicatedStorage.shared for access from both server and client scripts.
-    
-    Updated: April 27, 2025
-]]
+-- SafeWaitForChild.luau
+-- Utility module to prevent infinite yield errors when waiting for objects
+-- Created: April 28, 2025
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
-
--- Configuration
-local DEBUG_MODE = false
 local DEFAULT_TIMEOUT = 5 -- seconds
+local MAX_ATTEMPTS = 3
+local RETRY_DELAY = 0.5 -- seconds
+local DEBUG = true
 
-local function log(message)
-    if DEBUG_MODE then
-        print("[SafeWaitForChild] " .. message)
-    end
+local SafeWaitForChild = {}
+
+-- Helper function for logging
+local function log(message, level)
+	level = level or "Info"
+	if not DEBUG and level ~= "Error" then return end
+	print(string.format("[SafeWaitForChild][%s] %s", level, message))
 end
 
--- Main function to safely wait for a child with timeout
-local function SafeWaitForChild(parent, childName, timeout)
-    if not parent then
-        warn("[SafeWaitForChild] Parent is nil")
-        return nil
-    end
-    
-    if not childName then
-        warn("[SafeWaitForChild] Child name is nil")
-        return nil
-    end
-    
-    timeout = timeout or DEFAULT_TIMEOUT
-    
-    -- Check if child already exists
-    local child = parent:FindFirstChild(childName)
-    if child then
-        return child
-    end
-    
-    -- Set up connection to detect when child is added
-    local childAddedSignal
-    local foundChild = nil
-    
-    local startTime = os.clock()
-    
-    -- Use ChildAdded event for detection
-    childAddedSignal = parent.ChildAdded:Connect(function(addedChild)
-        if addedChild.Name == childName then
-            foundChild = addedChild
-        end
-    end)
-    
-    -- Try using WaitForChild with timeout
-    local success, result = pcall(function()
-        local co = coroutine.create(function()
-            return parent:WaitForChild(childName, timeout)
-        end)
-        
-        local status, child = coroutine.resume(co)
-        
-        if coroutine.status(co) == "dead" then
-            return child
-        else
-            -- Yield until timeout or child is found
-            local timeElapsed = 0
-            while timeElapsed < timeout and not foundChild do
-                task.wait(0.1)
-                timeElapsed = os.clock() - startTime
-            end
-            
-            return foundChild
-        end
-    end)
-    
-    -- Clean up connection
-    if childAddedSignal then
-        childAddedSignal:Disconnect()
-    end
-    
-    -- Return child if found
-    if success and result then
-        return result
-    end
-    
-    -- Log timeout
-    warn("[SafeWaitForChild] Timed out waiting for " .. childName .. " in " .. parent:GetFullName())
-    return nil
+-- Wait for a child with timeout to prevent infinite yield
+function SafeWaitForChild.Wait(parent, childName, timeout)
+	if not parent then
+		log("Parent is nil", "Error")
+		return nil
+	end
+	
+	if not childName then
+		log("ChildName is nil", "Error")
+		return nil
+	end
+	
+	timeout = timeout or DEFAULT_TIMEOUT
+	local startTime = os.clock()
+	
+	-- First check if the child already exists
+	local child = parent:FindFirstChild(childName)
+	if child then
+		return child
+	end
+	
+	-- Wait for the child with a timeout
+	while os.clock() - startTime < timeout do
+		child = parent:FindFirstChild(childName)
+		if child then
+			return child
+		end
+		wait(0.1)
+	end
+	
+	log("Timed out waiting for " .. childName .. " in " .. parent:GetFullName(), "Warning")
+	return nil
 end
 
--- Get or create a child with the specified class (useful for ensuring folders exist)
-local function getOrCreateChild(parent, childName, className)
-    if not parent then
-        warn("[SafeWaitForChild] Cannot create child, parent is nil")
-        return nil
-    end
-    
-    -- Look for existing child
-    local child = parent:FindFirstChild(childName)
-    if child then
-        return child
-    end
-    
-    -- Create new instance
-    log("Creating " .. className .. " '" .. childName .. "' in " .. parent:GetFullName())
-    local newChild = Instance.new(className)
-    newChild.Name = childName
-    newChild.Parent = parent
-    return newChild
+-- Wait for a child with multiple retry attempts
+function SafeWaitForChild.WaitWithRetry(parent, childName, timeout, attempts)
+	if not parent then
+		log("Parent is nil", "Error")
+		return nil
+	end
+	
+	if not childName then
+		log("ChildName is nil", "Error")
+		return nil
+	end
+	
+	timeout = timeout or DEFAULT_TIMEOUT
+	attempts = attempts or MAX_ATTEMPTS
+	
+	for attempt = 1, attempts do
+		local child = SafeWaitForChild.Wait(parent, childName, timeout)
+		if child then
+			return child
+		end
+		
+		if attempt < attempts then
+			log("Attempt " .. attempt .. "/" .. attempts .. " failed, retrying in " .. RETRY_DELAY .. " seconds...", "Warning")
+			wait(RETRY_DELAY)
+		else
+			log("All " .. attempts .. " attempts failed to find " .. childName .. " in " .. parent:GetFullName(), "Error")
+		end
+	end
+	
+	return nil
 end
 
--- Wait for a child at a specific path within a parent (e.g. "Folder1.Folder2.Target")
-local function waitForDescendant(parent, path, timeout)
-    if not parent or not path then
-        warn("[SafeWaitForChild] Invalid arguments to waitForDescendant")
-        return nil
-    end
-    
-    timeout = timeout or DEFAULT_TIMEOUT
-    local startTime = os.clock()
-    
-    -- Split path into segments
-    local segments = string.split(path, ".")
-    if #segments == 0 then
-        return nil
-    end
-    
-    -- Navigate through path segments
-    local current = parent
-    for i, segment in ipairs(segments) do
-        local remainingTime = timeout - (os.clock() - startTime)
-        if remainingTime <= 0 then
-            warn("[SafeWaitForChild] Timed out waiting for path: " .. path)
-            return nil
-        end
-        
-        current = SafeWaitForChild(current, segment, remainingTime / (#segments - i + 1))
-        if not current then
-            warn("[SafeWaitForChild] Failed to find segment '" .. segment .. "' in path: " .. path)
-            return nil
-        end
-    end
-    
-    return current
+-- Create a child if it doesn't exist (with specified instance type)
+function SafeWaitForChild.EnsureChild(parent, childName, instanceType, timeout)
+	if not parent then
+		log("Parent is nil", "Error")
+		return nil
+	end
+	
+	if not childName then
+		log("ChildName is nil", "Error")
+		return nil
+	end
+	
+	local child = SafeWaitForChild.Wait(parent, childName, timeout)
+	
+	if not child then
+		-- Child not found, create it
+		child = Instance.new(instanceType or "Folder")
+		child.Name = childName
+		child.Parent = parent
+		log("Created " .. instanceType .. " '" .. childName .. "' in " .. parent:GetFullName(), "Warning")
+	end
+	
+	return child
 end
 
--- Create all folders in a path (e.g. "Folder1.Folder2.Folder3")
-local function createPath(parent, path)
-    if not parent or not path then
-        warn("[SafeWaitForChild] Invalid arguments to createPath")
-        return nil
-    end
-    
-    -- Split path into segments
-    local segments = string.split(path, ".")
-    if #segments == 0 then
-        return parent
-    end
-    
-    -- Create each folder in the path
-    local current = parent
-    for _, segment in ipairs(segments) do
-        current = getOrCreateChild(current, segment, "Folder")
-        if not current then
-            warn("[SafeWaitForChild] Failed to create path segment: " .. segment)
-            return nil
-        end
-    end
-    
-    return current
+-- Wait for a child in a path (e.g., "ReplicatedStorage.shared.ClientRegistry")
+function SafeWaitForChild.WaitForPath(pathString, timeout)
+	if not pathString then
+		log("Path string is nil", "Error")
+		return nil
+	end
+	
+	local pathParts = string.split(pathString, ".")
+	local current = game
+	
+	for i, part in ipairs(pathParts) do
+		current = SafeWaitForChild.Wait(current, part, timeout)
+		
+		if not current then
+			log("Failed to find path at part " .. i .. ": " .. part, "Error")
+			return nil
+		end
+	end
+	
+	return current
 end
 
--- Get statistics about WaitForChild calls (for diagnostics)
-local yieldStats = {
-    totalCalls = 0,
-    successfulCalls = 0,
-    timeoutCalls = 0,
-    averageWaitTime = 0,
-    totalWaitTime = 0
-}
-
-local function getYieldStats()
-    return table.clone(yieldStats)
+-- Create a path of folders (e.g., "ReplicatedStorage.shared.UI.Components")
+function SafeWaitForChild.EnsurePath(pathString)
+	if not pathString then
+		log("Path string is nil", "Error")
+		return nil
+	end
+	
+	local pathParts = string.split(pathString, ".")
+	local current = game
+	
+	for i, part in ipairs(pathParts) do
+		if i == 1 then
+			-- First part should be a service
+			current = game:GetService(part)
+			if not current then
+				log("Invalid service name: " .. part, "Error")
+				return nil
+			end
+		else
+			-- Subsequent parts are folders to create
+			current = SafeWaitForChild.EnsureChild(current, part, "Folder")
+			
+			if not current then
+				log("Failed to ensure path at part " .. i .. ": " .. part, "Error")
+				return nil
+			end
+		end
+	end
+	
+	return current
 end
 
--- Ensure critical paths exist when module is loaded
-local function ensureCriticalPaths()
-    -- Create shared folder in ReplicatedStorage if it doesn't exist
-    getOrCreateChild(ReplicatedStorage, "shared", "Folder")
-    
-    -- Create Core folder in ServerScriptService if it doesn't exist
-    if game:GetService("RunService"):IsServer() then
-        getOrCreateChild(ServerScriptService, "Core", "Folder")
-    end
-end
-
--- Run initialization
-ensureCriticalPaths()
-
--- Return the module API
-return {
-    waitForChild = SafeWaitForChild,
-    waitForDescendant = waitForDescendant,
-    getOrCreateChild = getOrCreateChild,
-    createPath = createPath,
-    getYieldStats = getYieldStats,
-    DEBUG_MODE = DEBUG_MODE,
-    DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
-}
+return SafeWaitForChild

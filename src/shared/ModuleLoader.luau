@@ -1,277 +1,266 @@
---!strict
---[[
-    ModuleLoader.luau
-    
-    A utility for loading modules by name from configured search paths.
-    Provides robust error handling and fallback mechanisms for module loading.
-    
-    Created: April 27, 2025
-]]
+-- ModuleLoader.luau
+-- Utility for loading and managing modules across the game
+-- Created: April 28, 2025
 
-local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 
--- Configuration
-local CONFIG = {
-    DEBUG_LOGGING = true,
-    ALWAYS_RELOAD = false
+-- Constants and configuration
+local VERSION = "1.0.0"
+local DEBUG = true 
+local MAX_REQUIRE_DEPTH = 10
+local DEFAULT_TIMEOUT = 5 -- seconds
+
+-- ModuleLoader object
+local ModuleLoader = {
+	_loadedModules = {}, -- Cache of loaded modules
+	_loadAttempts = {}, -- Track how many times we've tried to load a module
+	_version = VERSION,
+	_nameToPaths = {}, -- Mapping from module names to possible paths
 }
 
--- Internal state
-local searchPaths = {}
-local moduleCache = {}
-local aliases = {}
-local initialized = false
-
--- Debug logging
-local function log(message)
-    if CONFIG.DEBUG_LOGGING then
-        print("[ModuleLoader] " .. message)
-    end
+-- Local logging function
+local function log(message, level)
+	level = level or "Info"
+	if not DEBUG and level ~= "Error" then return end
+	print(string.format("[ModuleLoader][%s] %s", level, message))
 end
 
--- Safe require utility (inline implementation to avoid circular dependencies)
-local function safeRequire(module, fallback)
-    if not module then
-        return fallback
-    end
-    
-    if not module:IsA("ModuleScript") then
-        return fallback
-    end
-    
-    local success, result = pcall(function()
-        return require(module)
-    end)
-    
-    if success then
-        return result
-    else
-        warn("[ModuleLoader] Failed to require " .. module:GetFullName() .. ": " .. tostring(result))
-        return fallback
-    end
+-- Safe require function that won't throw errors
+local function safeRequire(moduleScript)
+	if not moduleScript then
+		return nil, "Module is nil"
+	end
+	
+	if not moduleScript:IsA("ModuleScript") then
+		return nil, "Instance is not a ModuleScript, but " .. moduleScript.ClassName
+	end
+	
+	local success, result = pcall(function()
+		return require(moduleScript)
+	end)
+	
+	if success then
+		return result, nil
+	else
+		return nil, result
+	end
 end
 
--- Register default search paths
-local function registerDefaultPaths()
-    log("Registering default search paths")
-    
-    -- Shared paths (available to both server and client)
-    searchPaths = {
-        ["shared"] = ReplicatedStorage:FindFirstChild("shared"),
-        ["ReplicatedStorage"] = ReplicatedStorage,
-    }
-    
-    -- Create SharedFolder if it doesn't exist
-    if not searchPaths["shared"] then
-        log("Creating missing SharedFolder in ReplicatedStorage")
-        local sharedFolder = Instance.new("Folder")
-        sharedFolder.Name = "shared"
-        sharedFolder.Parent = ReplicatedStorage
-        searchPaths["shared"] = sharedFolder
-    end
-    
-    -- Server-specific paths
-    if RunService:IsServer() then
-        searchPaths["ServerScriptService"] = ServerScriptService
-        searchPaths["ServerCore"] = ServerScriptService:FindFirstChild("Core")
-        
-        -- Create Server Core folder if it doesn't exist
-        if not searchPaths["ServerCore"] then
-            log("Creating missing Core folder in ServerScriptService")
-            local coreFolder = Instance.new("Folder")
-            coreFolder.Name = "Core"
-            coreFolder.Parent = ServerScriptService
-            searchPaths["ServerCore"] = coreFolder
-        end
-        
-        -- Look for server folder in src
-        if ServerScriptService:FindFirstChild("src") and 
-           ServerScriptService.src:FindFirstChild("server") then
-            searchPaths["ServerSrc"] = ServerScriptService.src.server
-        end
-    end
-    
-    -- Look for src in ReplicatedStorage
-    if ReplicatedStorage:FindFirstChild("src") then
-        searchPaths["Src"] = ReplicatedStorage.src
-        
-        -- Look for shared folder in src
-        if ReplicatedStorage.src:FindFirstChild("shared") then
-            searchPaths["SrcShared"] = ReplicatedStorage.src.shared
-        end
-    end
-    
-    log("Registered " .. tostring(table.getn(searchPaths)) .. " search paths")
+-- Safe wait for child function with timeout
+local function safeWaitForChild(parent, childName, timeout)
+	timeout = timeout or DEFAULT_TIMEOUT
+	local startTime = os.clock()
+	
+	while os.clock() - startTime < timeout do
+		local child = parent:FindFirstChild(childName)
+		if child then
+			return child
+		end
+		wait(0.1)
+	end
+	
+	return nil -- Timed out
 end
 
--- Initialize the module loader
-local function initialize()
-    if initialized then
-        return
-    end
-    
-    log("Initializing ModuleLoader")
-    registerDefaultPaths()
-    initialized = true
+-- Resolve a path string to a ModuleScript instance
+function ModuleLoader:ResolveModulePath(pathString)
+	if not pathString then
+		return nil, "Path string is nil"
+	end
+	
+	-- Check if we've already resolved this path
+	if self._resolvedPaths then
+		local cached = self._resolvedPaths[pathString]
+		if cached then
+			return cached
+		end
+	else
+		self._resolvedPaths = {}
+	end
+	
+	local pathParts = string.split(pathString, ".")
+	local current = game
+	
+	for i, part in ipairs(pathParts) do
+		current = safeWaitForChild(current, part, DEFAULT_TIMEOUT)
+		
+		if not current then
+			log("Failed to resolve path at part " .. i .. ": " .. part, "Warning")
+			return nil, "Failed to find part: " .. part
+		end
+	end
+	
+	-- Cache the resolved path
+	self._resolvedPaths[pathString] = current
+	
+	return current
 end
 
--- Register a new search path
-local function registerPath(name, path)
-    if not name or not path then
-        warn("[ModuleLoader] Invalid path registration parameters")
-        return false
-    end
-    
-    if searchPaths[name] then
-        log("Updating existing path: " .. name)
-    else
-        log("Registering new path: " .. name)
-    end
-    
-    searchPaths[name] = path
-    return true
+-- Load a module by path string
+function ModuleLoader:LoadModule(pathString)
+	if not pathString then
+		return nil, "Path string is nil"
+	end
+	
+	-- Check if we've already loaded this module
+	if self._loadedModules[pathString] then
+		return self._loadedModules[pathString]
+	end
+	
+	-- Track loading attempts
+	self._loadAttempts[pathString] = (self._loadAttempts[pathString] or 0) + 1
+	
+	-- Check if we're trying to load this module too many times
+	if self._loadAttempts[pathString] > MAX_REQUIRE_DEPTH then
+		log("Circular dependency detected for: " .. pathString, "Error")
+		return nil, "Circular dependency"
+	end
+	
+	-- Resolve the path to a ModuleScript instance
+	local moduleScript, error = self:ResolveModulePath(pathString)
+	if not moduleScript then
+		log("Failed to resolve module path: " .. pathString .. " - " .. error, "Warning")
+		return nil, error
+	end
+	
+	-- Require the module
+	local module, error = safeRequire(moduleScript)
+	if not module then
+		log("Failed to require module: " .. pathString .. " - " .. error, "Warning")
+		return nil, error
+	end
+	
+	-- Cache the loaded module
+	self._loadedModules[pathString] = module
+	
+	-- Reset loading attempts
+	self._loadAttempts[pathString] = 0
+	
+	return module
 end
 
--- Register an alias for a module
-local function registerAlias(aliasName, moduleName)
-    if not aliasName or not moduleName then
-        warn("[ModuleLoader] Invalid alias registration parameters")
-        return false
-    end
-    
-    log("Registering alias: " .. aliasName .. " → " .. moduleName)
-    aliases[aliasName] = moduleName
-    return true
+-- Load a module by name using registered paths
+function ModuleLoader:LoadModuleByName(moduleName)
+	if not moduleName then
+		return nil, "Module name is nil"
+	end
+	
+	-- Check if we have registered paths for this module
+	local paths = self._nameToPaths[moduleName]
+	if not paths or #paths == 0 then
+		log("No paths registered for module: " .. moduleName, "Warning")
+		return nil, "No paths registered"
+	end
+	
+	-- Try each path until we find one that works
+	for _, path in ipairs(paths) do
+		local module, error = self:LoadModule(path)
+		if module then
+			return module
+		end
+	end
+	
+	log("Failed to load module by name: " .. moduleName .. " - No valid paths found", "Warning")
+	return nil, "No valid paths found"
 end
 
--- Resolve the true module name from an alias
-local function resolveAlias(moduleName)
-    -- Check if this name is an alias
-    if aliases[moduleName] then
-        log("Resolved alias: " .. moduleName .. " → " .. aliases[moduleName])
-        return aliases[moduleName]
-    end
-    
-    return moduleName
+-- Register a path for a module name
+function ModuleLoader:RegisterPath(moduleName, pathString)
+	if not moduleName or not pathString then
+		return false
+	end
+	
+	-- Initialize the paths array if it doesn't exist
+	if not self._nameToPaths[moduleName] then
+		self._nameToPaths[moduleName] = {}
+	end
+	
+	-- Add the path if it's not already registered
+	local paths = self._nameToPaths[moduleName]
+	for _, path in ipairs(paths) do
+		if path == pathString then
+			return true -- Already registered
+		end
+	end
+	
+	table.insert(paths, pathString)
+	log("Registered path for " .. moduleName .. ": " .. pathString)
+	
+	return true
 end
 
--- Find a module script in the registered paths
-local function findModule(moduleName)
-    if not moduleName then
-        warn("[ModuleLoader] moduleName is nil")
-        return nil
-    end
-    
-    -- Resolve alias if one exists
-    moduleName = resolveAlias(moduleName)
-    
-    -- Check each registered path
-    for pathName, path in pairs(searchPaths) do
-        if path then
-            local moduleScript = path:FindFirstChild(moduleName)
-            if moduleScript and moduleScript:IsA("ModuleScript") then
-                log("Found module " .. moduleName .. " in path: " .. pathName)
-                return moduleScript
-            end
-        end
-    end
-    
-    -- Special case: check for path-like module names (e.g., "Utils.StringUtil")
-    for pathName, path in pairs(searchPaths) do
-        if path then
-            local segments = string.split(moduleName, ".")
-            if #segments > 1 then
-                -- Try to navigate the path
-                local current = path
-                local found = true
-                
-                for i = 1, #segments - 1 do
-                    current = current:FindFirstChild(segments[i])
-                    if not current then
-                        found = false
-                        break
-                    end
-                end
-                
-                if found and current then
-                    local moduleScript = current:FindFirstChild(segments[#segments])
-                    if moduleScript and moduleScript:IsA("ModuleScript") then
-                        log("Found module " .. moduleName .. " as path in: " .. pathName)
-                        return moduleScript
-                    end
-                end
-            end
-        end
-    end
-    
-    log("Module not found: " .. moduleName)
-    return nil
-end
-
--- Load a module by name
-local function loadModule(moduleName, fallback)
-    if not initialized then
-        initialize()
-    end
-    
-    if not moduleName then
-        warn("[ModuleLoader] moduleName is nil")
-        return fallback
-    end
-    
-    -- Check cache first unless we're always reloading
-    if not CONFIG.ALWAYS_RELOAD and moduleCache[moduleName] then
-        return moduleCache[moduleName]
-    end
-    
-    -- Find the module
-    local moduleScript = findModule(moduleName)
-    if not moduleScript then
-        warn("[ModuleLoader] Module not found: " .. moduleName)
-        return fallback
-    end
-    
-    -- Try to require the module
-    local module = safeRequire(moduleScript, fallback)
-    
-    -- Cache the result if not nil
-    if module ~= nil then
-        moduleCache[moduleName] = module
-    end
-    
-    return module
+-- Get a loaded module
+function ModuleLoader:GetModule(pathStringOrName)
+	if not pathStringOrName then
+		return nil, "Path string or name is nil"
+	end
+	
+	-- Check if we've already loaded this module by path
+	if self._loadedModules[pathStringOrName] then
+		return self._loadedModules[pathStringOrName]
+	end
+	
+	-- Check if we have registered paths for this module name
+	if self._nameToPaths[pathStringOrName] then
+		return self:LoadModuleByName(pathStringOrName)
+	end
+	
+	-- Try to load the module by path
+	return self:LoadModule(pathStringOrName)
 end
 
 -- Clear the module cache
-local function clearCache(moduleName)
-    if moduleName then
-        moduleCache[moduleName] = nil
-        log("Cleared cache for module: " .. moduleName)
-    else
-        moduleCache = {}
-        log("Cleared entire module cache")
-    end
+function ModuleLoader:ClearCache(modulePath)
+	if modulePath then
+		-- Clear a specific module
+		self._loadedModules[modulePath] = nil
+		log("Cleared cache for module: " .. modulePath)
+	else
+		-- Clear all modules
+		self._loadedModules = {}
+		log("Cleared entire module cache")
+	end
 end
 
--- Return the API
-local ModuleLoader = {
-    LoadModule = loadModule,
-    RegisterPath = registerPath,
-    RegisterAlias = registerAlias,
-    FindModule = findModule,
-    ClearCache = clearCache,
-    Initialize = initialize,
-    SetDebugLogging = function(enabled)
-        CONFIG.DEBUG_LOGGING = enabled
-    end,
-    SetAlwaysReload = function(enabled)
-        CONFIG.ALWAYS_RELOAD = enabled
-    end
-}
+-- Get the loader version
+function ModuleLoader:GetVersion()
+	return self._version
+end
 
--- Auto-initialize if loaded from require
-initialize()
+-- Register common module paths
+function ModuleLoader:RegisterCommonPaths()
+	-- Core modules
+	self:RegisterPath("CoreRegistry", "ServerScriptService.Core.CoreRegistry")
+	self:RegisterPath("ClientRegistry", "ReplicatedStorage.shared.ClientRegistry")
+	self:RegisterPath("ClientRegistry", "ReplicatedStorage.src.client.Core.ClientRegistry")
+	
+	-- UI modules
+	self:RegisterPath("UIComponents", "ReplicatedStorage.shared.UIComponents")
+	self:RegisterPath("UIComponents", "ReplicatedStorage.UIModules.UIComponent")
+	self:RegisterPath("UIComponents", "ReplicatedStorage.src.shared.UI.UIComponents")
+	
+	-- Utility modules
+	self:RegisterPath("SafeWaitForChild", "ReplicatedStorage.shared.SafeWaitForChild")
+	self:RegisterPath("SafeWaitForChild", "ReplicatedStorage.src.shared.Utils.SafeWaitForChild")
+	
+	-- System modules
+	self:RegisterPath("GymAutomationManager", "ServerStorage.GymAutomationManager")
+	self:RegisterPath("GymAutomationManager", "ServerScriptService.GymAutomation.GymAutomationManager")
+	self:RegisterPath("GymAutomationManager", "ServerScriptService.server.GymAutomation.GymAutomationManager")
+	
+	log("Registered common module paths")
+end
 
+-- Initialize the ModuleLoader
+do
+	log("Initializing ModuleLoader v" .. VERSION)
+	ModuleLoader:RegisterCommonPaths()
+	
+	-- Make ModuleLoader available via _G for debugging
+	if _G then
+		_G.__ModuleLoader = ModuleLoader
+	end
+end
+
+-- Return the ModuleLoader instance
 return ModuleLoader
