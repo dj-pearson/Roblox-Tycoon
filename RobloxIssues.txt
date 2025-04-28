@@ -1,6 +1,6 @@
 # Roblox Issues Tracking Document
 
-## GymAutomationLoader Failures (⚠️ HIGH PRIORITY)
+## GymAutomationLoader Failures (⚠️ HIGH PRIORITY) - ONGOING
 
 **Error Message:** 
 - `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
@@ -17,7 +17,7 @@
 **Status:** 
 - ❌ Cannot locate GymAutomationManager or GymAutomation modules despite multiple search attempts
 - ❌ Continuous retry attempts filling logs with errors
-- ❌ Despite reporting "✅ GYM TYCOON AUTOMATION LOADED" earlier in logs, module can't be found
+- ❌ Latest observation: System still attempting to load every 5 seconds and failing
 
 **Recommended Next Steps:**
 1. Create proper GymAutomationManager module in ServerStorage or ServerScriptService
@@ -25,37 +25,42 @@
 3. Implement better path resolution in GymAutomationLoader
 4. Add proper diagnostic information to identify missing search paths
 
-## Client UI System Failures (⚠️ HIGH PRIORITY)
+## Client UI System Failures (⚠️ HIGH PRIORITY) - ONGOING
 
 **Error Message:** Multiple UI component errors and failed tests:
-- `[UISystemTester] Tests Run: 12, Tests Passed: 0, Tests Failed: 12`
-- `[UISystemTester] Pass Rate: 0%`
+- `[UISystemTester] Tests Run: 11, Tests Passed: 1, Tests Failed: 10`
+- `[UISystemTester] Pass Rate: 9%`
 
 **Context:** The UI system is critical for player interaction with the game.
 
-**Impact:** Critical. All UI components are failing, severely impacting player experience.
+**Impact:** Critical. Most UI components are failing, severely impacting player experience.
 
 **Frequency:** Consistent on every game start.
 
 **Specific Errors:**
 - `✗ AssetValidator Exists: AssetValidator not found through any method`
-- `✗ ClientRegistry Exists: ClientRegistry not found through any method`
+- `✗ ClientRegistry Exists: Failed to require ClientRegistry: Not a ModuleScript`
 - `✗ ModuleLoader Exists: ModuleLoader module not found`
-- `✗ UIComponents Exists: UIComponents not found through any method`
+- `✗ UIComponents Exists: Failed to require UIComponents: Not a ModuleScript`
 - `✗ UIRegistry Exists: UIRegistry not found`
+- `✗ UIComponents.CreateButton: Failed to require UIComponents: Not a ModuleScript`
+- `✗ AssetValidator.ValidateAsset: AssetValidator not found`
+- `✗ UIRegistry.RegisterComponent: UIRegistry not found`
+- `✗ UIComponents Function: Failed to require UIComponents`
 
 **Status:**
-- ❌ No UI components passing validation tests
-- ❌ Core UI systems (ClientRegistry, ModuleLoader, UIComponents) missing
-- ❌ Fallback systems attempting to initialize but failing
+- ❌ Only 1 of 11 UI components passing validation tests (UI Rendering test only)
+- ❌ Core UI systems (ClientRegistry, ModuleLoader, UIComponents) exist but not as proper ModuleScripts
+- ❌ ClientRegistryFixer attempting to fix missing ClientRegistry but failing after 5 attempts
+- ❌ ClientRegistryFixer reports "ClientRegistry already exists in shared folder" but can't require it
 
 **Recommended Next Steps:**
-1. Fix ClientRegistry module to properly export a single value
-2. Create ModuleLoader and UIComponents modules with proper functionality
-3. Implement a robust UI Registry system
+1. Fix ClientRegistry and UIComponents to be proper ModuleScripts that export a single value
+2. Create ModuleLoader and other missing modules with proper functionality
+3. Investigate if existing modules are instances of wrong type (not ModuleScripts)
 4. Fix AssetValidator to ensure UI assets are properly loaded
 
-## Module Loading and WaitForChild Errors (⚠️ HIGH PRIORITY)
+## Module Loading and WaitForChild Errors (⚠️ HIGH PRIORITY) - ONGOING
 
 **Error Message:** Multiple "Infinite yield possible on WaitForChild" errors occurring on game start.
 
@@ -85,6 +90,8 @@
 1. Create missing modules in the expected folder structure
 2. Implement timeouts on all WaitForChild calls to prevent infinite yields
 3. Create a dependency loading system that can handle missing dependencies gracefully
+4. Add dependency existence checks before attempting to use WaitForChild
+5. Investigate potential circular dependencies between modules
 
 ## ClientBootstrap Initialization Failures (⚠️ HIGH PRIORITY)
 
@@ -110,13 +117,15 @@
 3. Implement fallback mechanisms for core client modules
 4. Add better error handling in ClientBootstrap
 
-## CoreRegistry Issues (⚠️ HIGH PRIORITY)
+## CoreRegistry Issues (⚠️ HIGH PRIORITY) - ONGOING
 
 **Error Message:** 
 - `[CoreRegistryFeedback] Initial status: CoreRegistry UNAVAILABLE`
 - `[CoreRegistryFeedback] CoreRegistry check failed (1/3)`
 - `[CoreRegistryFeedback] CoreRegistry check failed (2/3)`
-- `[SystemBootstrap] CRITICAL: CoreRegistry not available after initialization!`
+- `[CoreRegistryFeedback] CoreRegistry check failed (3/3)`
+- `[SystemBootstrap][Error] Required dependency failed: CoreRegistry for system: DataManager`
+- `[SystemBootstrap][Error] CRITICAL: Required system failed: CoreRegistry`
 
 **Context:** CoreRegistry is a central component for registering and managing game systems.
 
@@ -128,11 +137,13 @@
 - ❌ CoreRegistry is unavailable and failing health checks
 - ❌ Multiple attempts to initialize CoreRegistry failing
 - ❌ SystemBootstrap unable to proceed properly without CoreRegistry
+- ❌ Multiple dependent systems failing (DataManager, HealthCheckSystem) due to CoreRegistry absence
 
 **Recommended Next Steps:**
 1. Fix CoreRegistry initialization to ensure it's available early in the game lifecycle
 2. Implement robust error handling for CoreRegistry dependency
 3. Create clear diagnostic messages for CoreRegistry initialization failures
+4. Investigate ModuleLoader dependency since it's reported as a prerequisite for other systems
 
 ## Asset Loading and Tile Restoration Failures (🔧 MEDIUM PRIORITY)
 
@@ -181,6 +192,7 @@
 - ❌ Multiple UI components failing to load due to missing dependencies
 - ❌ UIStyle, IconSet, ButtonFactory, DialogFactory components missing or inaccessible
 - ❌ RebirthUI and other menu systems unable to initialize properly
+- ❌ Latest test results: `[UISystemTester] Tests Run: 11, Tests Passed: 1, Tests Failed: 10`, `[UISystemTester] Pass Rate: 9%`
 
 **Recommended Next Steps:**
 1. Fix UIRegistry to properly load and expose UI components
@@ -255,3 +267,274 @@
 1. **Dependency Management**: Implement a robust dependency management system
 2. **Automated Testing**: Expand UI System Tests to cover all components
 3. **Centralized Error Handling**: Create a unified error handling and logging system
+
+## Root Cause Analysis and Systemic Solutions - NEW
+
+After reviewing the interconnected nature of the errors, several root causes have been identified that require systematic solutions:
+
+### 1. Module Structure and Organization Issues
+
+**Root Problem:** Critical modules are either missing entirely or exist as incorrect instance types.
+
+**Evidence:**
+- ClientRegistry, UIComponents exist but aren't proper ModuleScripts
+- ModuleLoader, CoreRegistry, and other critical modules are missing
+- Folder structures needed for module resolution are incomplete
+
+**Systemic Solution:**
+- Create a standardized module structure template for all game systems
+- Implement script-based validation of module instances at startup
+- Add automated checks for correct module structure in test environments
+
+### 2. Dependency Resolution System Failure
+
+**Root Problem:** The current module loading system fails to handle missing dependencies and lacks fallbacks.
+
+**Evidence:**
+- Multiple WaitForChild infinite yield errors
+- SystemBootstrap failing due to missing dependencies
+- Cascading failures when one system fails to initialize
+
+**Systemic Solution:**
+- Implement a robust dependency resolution system with timeouts and fallbacks
+- Create a dependency graph visualization tool to identify circular dependencies
+- Add dependency preloading for critical systems
+
+### 3. Data Structure Initialization Issues
+
+**Root Problem:** Player data structures are not properly initialized before access attempts.
+
+**Evidence:**
+- "Value is not a valid member of Folder" errors in player tycoon
+- Data saving failures on player leave
+- Incomplete tile restoration during data loading
+
+**Systemic Solution:**
+- Create a complete data structure validation system
+- Implement default/template data structures for new players
+- Add data repair mechanisms to fix corrupted structures
+
+### 4. Prioritized Implementation Plan
+
+**Phase 1: Critical Module Structure Repair**
+1. Fix CoreRegistry and ModuleLoader modules first (dependency resolution foundation)
+2. Repair ClientRegistry and UIComponents to be proper ModuleScripts
+3. Create standardized folder structure in all expected paths
+
+**Phase 2: Dependency Management**
+1. Replace infinite WaitForChild calls with timeouts
+2. Create module dependency graph to identify circular references
+3. Implement SafeRequire with robust fallbacks
+
+**Phase 3: Data System Repair**
+1. Create standardized tycoon folder structure initialization
+2. Implement data validation before save/load operations
+3. Add data repair utilities for corrupted player data
+
+**Phase 4: Robust Module Loading Implementation**
+1. Create a centralized module registry system
+2. Implement module versioning and compatibility checks
+3. Add proper module loading diagnostics and reporting
+
+This systematic approach addresses the root causes rather than just the symptoms of the current issues.
+
+## Best Practices for Roblox Module Design - NEW
+
+To prevent these issues from recurring, these best practices should be followed:
+
+### Module Structure
+1. **Single Responsibility:** Each module should have a clear, single purpose
+2. **Export Pattern:** Always return exactly one value from ModuleScript:
+   ```lua
+   local MyModule = {}
+   
+   function MyModule.doSomething()
+       -- implementation
+   end
+   
+   return MyModule
+   ```
+
+### Dependency Management
+1. **Explicit Dependencies:** Declare all dependencies at the top of modules:
+   ```lua
+   local ReplicatedStorage = game:GetService("ReplicatedStorage")
+   local CoreRegistry = require(ServerScriptService.Core.CoreRegistry)
+   ```
+
+2. **Safe Requires:** Use safe requiring with timeouts:
+   ```lua
+   local function safeRequire(path, timeout)
+       timeout = timeout or 5
+       local success, result = pcall(function()
+           local module = path:WaitForChild("ModuleName", timeout)
+           return require(module)
+       end)
+       if success then return result else return nil end
+   end
+   ```
+
+3. **Fallbacks:** Always implement fallbacks for critical systems:
+   ```lua
+   local CoreRegistry = safeRequire(path) or createFallbackRegistry()
+   ```
+
+### Instance Management
+1. **Type Validation:** Verify instance types before requiring:
+   ```lua
+   if not module or not module:IsA("ModuleScript") then
+       warn("Expected ModuleScript at path: " .. tostring(path))
+       return fallback
+   end
+   ```
+
+2. **Path Resolution:** Use path utilities to find modules in multiple locations:
+   ```lua
+   local function findModule(name, searchPaths)
+       for _, path in ipairs(searchPaths) do
+           local foundModule = path:FindFirstChild(name)
+           if foundModule and foundModule:IsA("ModuleScript") then
+               return foundModule
+           end
+       end
+       return nil
+   end
+   ```
+
+Implementing these best practices will significantly reduce the likelihood of similar issues in the future.
+
+## Technical Debt Management - NEW
+
+The current issues represent significant technical debt that should be addressed systematically:
+
+### High-Risk Technical Debt
+1. **Unreliable Module Loading System**
+   - Risk: Critical game systems failing to initialize
+   - Solution: Implement robust dependency resolution system (Priority: HIGHEST)
+
+2. **Inconsistent Module Pattern Usage**
+   - Risk: Modules failing to be required properly
+   - Solution: Standardize module patterns across codebase (Priority: HIGH)
+
+3. **Missing Error Handling**
+   - Risk: Cascading failures when dependencies are missing
+   - Solution: Implement comprehensive error handling strategy (Priority: HIGH)
+
+### Medium-Risk Technical Debt
+1. **WaitForChild Without Timeouts**
+   - Risk: Infinite yields causing script execution to halt
+   - Solution: Add timeouts to all WaitForChild calls (Priority: MEDIUM)
+
+2. **Lacking Data Validation**
+   - Risk: Corrupted player data and failed saves
+   - Solution: Add validation for all data structures (Priority: MEDIUM)
+
+### Technical Debt Reduction Strategy
+1. **Documentation:** Create clear module interaction diagrams
+2. **Testing:** Implement automated dependency validation tests
+3. **Monitoring:** Add runtime dependency health checks
+4. **Standards:** Establish and enforce coding standards for modules
+
+Systematically addressing this technical debt will improve game stability and make future development more efficient.
+
+## Debugging Strategies for Current Issues - NEW
+
+To help diagnose and fix the current issues, these debugging strategies are recommended:
+
+### Module Loading Issues
+1. **Path Resolution Debugging**
+   ```lua
+   local function traceModulePath(moduleName, searchPaths)
+       print("🔍 Searching for module:", moduleName)
+       for i, path in ipairs(searchPaths) do
+           print("  Checking path " .. i .. ": " .. path:GetFullName())
+           local found = path:FindFirstChild(moduleName)
+           if found then
+               print("  ✅ Found at: " .. found:GetFullName() .. " (Type: " .. found.ClassName .. ")")
+               if not found:IsA("ModuleScript") then
+                   print("  ⚠️ WARNING: Found but not a ModuleScript!")
+               end
+           else
+               print("  ❌ Not found at this path")
+           end
+       end
+   end
+   ```
+
+2. **Require Stack Tracing**
+   ```lua
+   local oldRequire = require
+   require = function(module)
+       print("🔄 Requiring: " .. module:GetFullName())
+       local success, result = pcall(function() return oldRequire(module) end)
+       if not success then
+           print("❌ Require failed: " .. tostring(result))
+           print(debug.traceback())
+       end
+       return success and result or nil
+   end
+   ```
+
+### Data Structure Validation
+1. **Player Data Structure Validator**
+   ```lua
+   local function validatePlayerData(player)
+       print("🔍 Validating data for: " .. player.Name)
+       local tycoon = player:FindFirstChild("Tycoon")
+       if not tycoon then
+           print("❌ Tycoon folder missing")
+           return false
+       end
+       
+       local requiredItems = {"TycoonData", "Stats", "Purchases"}
+       for _, item in ipairs(requiredItems) do
+           if not tycoon:FindFirstChild(item) then
+               print("❌ Missing required item: " .. item)
+           else
+               print("✅ Found: " .. item)
+           end
+       end
+   end
+   ```
+
+### Core Registry Diagnostics
+1. **Registry Health Checker**
+   ```lua
+   local function checkRegistryHealth()
+       print("🔍 Checking CoreRegistry health...")
+       
+       local ServerScriptService = game:GetService("ServerScriptService")
+       local CoreFolder = ServerScriptService:FindFirstChild("Core")
+       if not CoreFolder then
+           print("❌ Core folder missing in ServerScriptService")
+           return false
+       end
+       
+       local CoreRegistry = CoreFolder:FindFirstChild("CoreRegistry")
+       if not CoreRegistry then
+           print("❌ CoreRegistry missing in Core folder")
+           return false
+       end
+       
+       if not CoreRegistry:IsA("ModuleScript") then
+           print("❌ CoreRegistry exists but is not a ModuleScript (is a " .. CoreRegistry.ClassName .. ")")
+           return false
+       end
+       
+       local success, registry = pcall(function() return require(CoreRegistry) end)
+       if not success then
+           print("❌ CoreRegistry failed to require: " .. tostring(registry))
+           return false
+       end
+       
+       if type(registry) ~= "table" then
+           print("❌ CoreRegistry did not return a table (got " .. type(registry) .. ")")
+           return false
+       end
+       
+       print("✅ CoreRegistry health check passed")
+       return true
+   end
+   ```
+
+These debugging strategies should help identify and fix the specific causes of the current issues.
