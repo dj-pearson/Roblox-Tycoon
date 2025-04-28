@@ -1,7 +1,7 @@
 -- ResetButtonHandler.lua
 -- Place in ServerScriptService
 
-local Players = game:GetService("Players")
+-- We only need ReplicatedStorage to store the remote event
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Create the remote event
@@ -68,8 +68,8 @@ local function resetPlayerData(player)
 	end
 
 	-- Clear milestone completions
-	for _, attrName in pairs(player:GetAttributes()) do
-		if string.find(attrName, "Milestone_") then
+	for attrName, _ in pairs(player:GetAttributes()) do
+		if typeof(attrName) == "string" and string.find(attrName, "Milestone_") then
 			player:SetAttribute(attrName, nil)
 		end
 	end

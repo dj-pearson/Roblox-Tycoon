@@ -2,693 +2,322 @@
 --[[
     ButtonFactory.luau
     
-    Factory module for creating consistent buttons throughout the UI system.
-    Provides utility functions for common button types with standard styling and behaviors.
+    Factory for creating buttons with consistent styling.
+    This is part of the UI components system.
     
-    Features:
-    - Consistent styling for all buttons
-    - Built-in hover and press effects
-    - Presets for common button types
-    - Customizable appearance and behavior
-    - Accessibility features
-    
-    Author: Updated April 26, 2025
+    Created: April 27, 2025
 ]]
 
-local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Safe require utility
-local function requireSafely(moduleScript)
-    if not moduleScript or not moduleScript:IsA("ModuleScript") then
-        return nil
+-- Try to load UIStyle and IconSet
+local UIStyle, IconSet
+
+local function loadDependencies()
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared then
+        -- Load UIStyle
+        local uiStyleModule = shared:FindFirstChild("UIStyle")
+        if uiStyleModule then
+            local success, result = pcall(function()
+                return require(uiStyleModule)
+            end)
+            if success then
+                UIStyle = result
+            end
+        end
+        
+        -- Load IconSet
+        local iconSetModule = shared:FindFirstChild("IconSet")
+        if iconSetModule then
+            local success, result = pcall(function()
+                return require(iconSetModule)
+            end)
+            if success then
+                IconSet = result
+            end
+        end
     end
     
-    local success, result = pcall(function()
-        return require(moduleScript)
-    end)
-    
-    if not success then
-        warn("Failed to load module: " .. moduleScript.Name .. " - " .. tostring(result))
-        return nil
-    end
-    
-    return result
-end
-
--- Find paths to important folders
-local srcFolder = ReplicatedStorage:FindFirstChild("src") 
-if not srcFolder then
-    warn("Source folder not found")
-end
-
-local sharedFolder = srcFolder and srcFolder:FindFirstChild("shared")
-if not sharedFolder then
-    warn("Shared folder not found")
-end
-
--- Try to require UIStyle
-local UIStyle = requireSafely(sharedFolder and sharedFolder:FindFirstChild("UIStyle"))
-
--- Fallback styles if UIStyle module not found
-if not UIStyle then
-    warn("UIStyle module not found, using fallback styles")
-    UIStyle = {
-        Colors = {
-            Primary = Color3.fromRGB(0, 120, 215),
-            Secondary = Color3.fromRGB(45, 45, 45),
-            Background = Color3.fromRGB(30, 30, 30),
-            Text = Color3.fromRGB(255, 255, 255),
-            TextDisabled = Color3.fromRGB(150, 150, 150),
-            Success = Color3.fromRGB(46, 204, 113),
-            Warning = Color3.fromRGB(230, 126, 34),
-            Error = Color3.fromRGB(231, 76, 60)
-        },
-        Fonts = {
-            Regular = Enum.Font.Gotham,
-            Bold = Enum.Font.GothamBold,
-            Light = Enum.Font.GothamMedium
-        },
-        Animations = {
-            Standard = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            Fast = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            Slow = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    -- Set defaults if not loaded
+    if not UIStyle then
+        print("UIStyle module not found, using defaults")
+        UIStyle = {
+            colors = {
+                accent = Color3.fromRGB(80, 150, 255),
+                accentLight = Color3.fromRGB(130, 180, 255),
+                accentDark = Color3.fromRGB(60, 120, 200),
+                text = Color3.fromRGB(240, 240, 255),
+                backgroundLight = Color3.fromRGB(60, 60, 80),
+                success = Color3.fromRGB(80, 240, 120),
+                warning = Color3.fromRGB(255, 200, 80),
+                error = Color3.fromRGB(255, 80, 80)
+            },
+            fonts = {
+                button = Enum.Font.GothamMedium
+            },
+            fontSizes = {
+                button = 16
+            },
+            borderRadius = {
+                medium = UDim.new(0, 8)
+            },
+            animation = {
+                durationShort = 0.2,
+                easeOut = Enum.EasingStyle.Quad,
+                dirOut = Enum.EasingDirection.Out
+            }
         }
-    }
+    end
 end
 
--- Module table
+-- Load dependencies on require
+loadDependencies()
+
+-- The ButtonFactory module
 local ButtonFactory = {}
 
--- Button configuration defaults
-local DEFAULT_CONFIG = {
-    buttonHeight = 40,
-    cornerRadius = 8,
-    primaryColor = UIStyle.Colors.Primary,
-    secondaryColor = UIStyle.Colors.Secondary,
-    textColor = UIStyle.Colors.Text,
-    disabledColor = Color3.fromRGB(100, 100, 100),
-    disabledTextColor = UIStyle.Colors.TextDisabled,
-    font = UIStyle.Fonts.Regular,
-    fontSize = 16,
-    padding = 10,
-    hoverBrightnessChange = 0.1,
-    pressBrightnessChange = 0.2,
-    animationInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-}
-
--- Helper function to adjust color brightness
-local function adjustBrightness(color, amount)
-    local h, s, v = color:ToHSV()
-    return Color3.fromHSV(h, s, math.clamp(v + amount, 0, 1))
+-- Utility function to create UI corner
+local function createCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = radius or (UIStyle.borderRadius and UIStyle.borderRadius.medium) or UDim.new(0, 8)
+    corner.Parent = parent
+    return corner
 end
 
--- Add hover and press effects to a button
-local function addButtonEffects(button, properties, isDisabled)
-    if isDisabled then
-        return
+-- Default hover effect for buttons
+local function applyHoverEffect(button, options)
+    options = options or {}
+    
+    if not button then return end
+    
+    local defaultColor = button.BackgroundColor3
+    local hoverColor
+    
+    if options.hoverColor then
+        hoverColor = options.hoverColor
+    else
+        -- Make hover color slightly lighter
+        hoverColor = Color3.new(
+            math.min(defaultColor.R + 0.1, 1),
+            math.min(defaultColor.G + 0.1, 1),
+            math.min(defaultColor.B + 0.1, 1)
+        )
     end
     
-    local normalColor = button.BackgroundColor3
-    local hoverColor = adjustBrightness(normalColor, DEFAULT_CONFIG.hoverBrightnessChange)
-    local pressColor = adjustBrightness(normalColor, -DEFAULT_CONFIG.pressBrightnessChange)
-    
-    -- Create tweens for state changes
-    local hoverTween = TweenService:Create(
-        button, 
-        DEFAULT_CONFIG.animationInfo, 
-        {BackgroundColor3 = hoverColor}
-    )
-    
-    local normalTween = TweenService:Create(
-        button, 
-        DEFAULT_CONFIG.animationInfo, 
-        {BackgroundColor3 = normalColor}
-    )
-    
-    local pressTween = TweenService:Create(
-        button, 
-        DEFAULT_CONFIG.animationInfo, 
-        {BackgroundColor3 = pressColor}
-    )
-    
-    -- Connect events
-    button.MouseEnter:Connect(function()
-        if button.Selectable then
-            hoverTween:Play()
-        end
-    end)
-    
-    button.MouseLeave:Connect(function()
-        if button.Selectable then
-            normalTween:Play()
-        end
-    end)
-    
-    button.MouseButton1Down:Connect(function()
-        if button.Selectable then
-            pressTween:Play()
-        end
-    end)
-    
-    button.MouseButton1Up:Connect(function()
-        if button.Selectable then
-            if button.IsHovered and button:IsA("GuiObject") then
-                hoverTween:Play()
-            else
-                normalTween:Play()
-            end
-        end
-    end)
-    
-    -- Connect callback if provided
-    if properties.callback then
-        button.Activated:Connect(properties.callback)
+    local function onHover()
+        -- Animate to hover color
+        button:TweenBackgroundColor3(
+            hoverColor,
+            UIStyle.animation and UIStyle.animation.dirOut or Enum.EasingDirection.Out,
+            UIStyle.animation and UIStyle.animation.easeOut or Enum.EasingStyle.Quad,
+            UIStyle.animation and UIStyle.animation.durationShort or 0.2
+        )
     end
+    
+    local function onHoverEnd()
+        -- Animate back to default color
+        button:TweenBackgroundColor3(
+            defaultColor,
+            UIStyle.animation and UIStyle.animation.dirOut or Enum.EasingDirection.Out,
+            UIStyle.animation and UIStyle.animation.easeOut or Enum.EasingStyle.Quad,
+            UIStyle.animation and UIStyle.animation.durationShort or 0.2
+        )
+    end
+    
+    button.MouseEnter:Connect(onHover)
+    button.MouseLeave:Connect(onHoverEnd)
 end
 
--- Create a basic button
-function ButtonFactory:createButton(properties)
-    properties = properties or {}
+-- Create a simple button
+function ButtonFactory:createButton(options)
+    options = options or {}
     
+    -- Create the button
     local button = Instance.new("TextButton")
-    button.Size = properties.size or UDim2.new(0, 200, 0, DEFAULT_CONFIG.buttonHeight)
-    button.Position = properties.position or UDim2.new(0, 0, 0, 0)
-    button.AnchorPoint = properties.anchorPoint or Vector2.new(0, 0)
-    button.BackgroundColor3 = properties.backgroundColor or DEFAULT_CONFIG.primaryColor
+    button.Name = options.name or "Button"
+    button.Size = options.size or UDim2.new(0, 200, 0, 40)
+    button.Position = options.position or UDim2.new(0.5, -100, 0.5, -20)
+    button.AnchorPoint = options.anchorPoint or Vector2.new(0, 0)
+    button.BackgroundColor3 = options.color or (UIStyle.colors and UIStyle.colors.accent) or Color3.fromRGB(80, 150, 255)
+    button.TextColor3 = options.textColor or (UIStyle.colors and UIStyle.colors.text) or Color3.fromRGB(240, 240, 255)
+    button.Font = options.font or (UIStyle.fonts and UIStyle.fonts.button) or Enum.Font.GothamMedium
+    button.TextSize = options.textSize or (UIStyle.fontSizes and UIStyle.fontSizes.button) or 16
+    button.Text = options.text or "Button"
     button.BorderSizePixel = 0
-    button.TextColor3 = properties.textColor or DEFAULT_CONFIG.textColor
-    button.Font = properties.font or DEFAULT_CONFIG.font
-    button.TextSize = properties.textSize or DEFAULT_CONFIG.fontSize
-    button.AutoButtonColor = false
-    button.Text = properties.text or "Button"
-    button.Name = properties.name or "Button"
-    button.ZIndex = properties.zIndex or 1
-    button.Selectable = not properties.disabled
-    
-    -- Apply disabled appearance if needed
-    if properties.disabled then
-        button.BackgroundColor3 = DEFAULT_CONFIG.disabledColor
-        button.TextColor3 = DEFAULT_CONFIG.disabledTextColor
-    end
+    button.AutoButtonColor = false -- We'll handle hover effects ourselves
     
     -- Add corner radius
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, properties.cornerRadius or DEFAULT_CONFIG.cornerRadius)
-    corner.Parent = button
+    createCorner(button, options.cornerRadius)
     
-    -- Add padding if needed
-    if properties.padding then
-        local padding = Instance.new("UIPadding")
-        padding.PaddingLeft = UDim.new(0, properties.padding)
-        padding.PaddingRight = UDim.new(0, properties.padding)
-        padding.Parent = button
-    end
-    
-    -- Add button effects (hover, press)
-    addButtonEffects(button, properties, properties.disabled)
-    
-    -- Set parent
-    if properties.parent then
-        button.Parent = properties.parent
-    end
-    
-    return button
-end
-
--- Create a primary action button (highlighted, important actions)
-function ButtonFactory:createPrimaryButton(properties)
-    properties = properties or {}
-    properties.backgroundColor = properties.backgroundColor or DEFAULT_CONFIG.primaryColor
-    properties.font = properties.font or UIStyle.Fonts.Bold
-    
-    return self:createButton(properties)
-end
-
--- Create a secondary action button (less important actions)
-function ButtonFactory:createSecondaryButton(properties)
-    properties = properties or {}
-    properties.backgroundColor = properties.backgroundColor or DEFAULT_CONFIG.secondaryColor
-    
-    return self:createButton(properties)
-end
-
--- Create a danger button (destructive actions)
-function ButtonFactory:createDangerButton(properties)
-    properties = properties or {}
-    properties.backgroundColor = properties.backgroundColor or UIStyle.Colors.Error
-    
-    return self:createButton(properties)
-end
-
--- Create a success button (confirmations, completions)
-function ButtonFactory:createSuccessButton(properties)
-    properties = properties or {}
-    properties.backgroundColor = properties.backgroundColor or UIStyle.Colors.Success
-    
-    return self:createButton(properties)
-end
-
--- Create an icon button (square button with an icon)
-function ButtonFactory:createIconButton(properties)
-    properties = properties or {}
-    local size = properties.size or UDim2.new(0, DEFAULT_CONFIG.buttonHeight, 0, DEFAULT_CONFIG.buttonHeight)
-    properties.size = size
-    
-    local button = self:createButton(properties)
-    button.Text = ""
-    
-    -- Create icon
-    local icon = Instance.new("TextLabel")
-    icon.Name = "Icon"
-    icon.Size = UDim2.new(1, 0, 1, 0)
-    icon.BackgroundTransparency = 1
-    icon.Text = properties.icon or "🔍"
-    icon.TextColor3 = properties.textColor or DEFAULT_CONFIG.textColor
-    icon.Font = properties.iconFont or UIStyle.Fonts.Regular
-    icon.TextSize = properties.iconSize or (size.Y.Offset * 0.6)
-    icon.Parent = button
-    
-    -- Apply disabled appearance if needed
-    if properties.disabled then
-        icon.TextColor3 = DEFAULT_CONFIG.disabledTextColor
-    end
-    
-    return button
-end
-
--- Create a toggle button (on/off state)
-function ButtonFactory:createToggleButton(properties)
-    properties = properties or {}
-    
-    -- Create container frame
-    local container = Instance.new("Frame")
-    container.Size = properties.size or UDim2.new(0, 200, 0, DEFAULT_CONFIG.buttonHeight)
-    container.Position = properties.position or UDim2.new(0, 0, 0, 0)
-    container.BackgroundTransparency = 1
-    container.Name = properties.name or "ToggleButton"
-    
-    -- Initial state
-    local isOn = properties.initialState or false
-    
-    -- Create toggle background
-    local toggleBg = Instance.new("Frame")
-    toggleBg.Name = "ToggleBackground"
-    toggleBg.Size = UDim2.new(0, 50, 0, 26)
-    toggleBg.Position = UDim2.new(0, 0, 0.5, -13)
-    toggleBg.BackgroundColor3 = isOn and DEFAULT_CONFIG.primaryColor or DEFAULT_CONFIG.secondaryColor
-    toggleBg.BorderSizePixel = 0
-    toggleBg.Parent = container
-    
-    -- Add corner radius to toggle background
-    local cornerBg = Instance.new("UICorner")
-    cornerBg.CornerRadius = UDim.new(0, 13)
-    cornerBg.Parent = toggleBg
-    
-    -- Create toggle indicator
-    local indicator = Instance.new("Frame")
-    indicator.Name = "Indicator"
-    indicator.Size = UDim2.new(0, 20, 0, 20)
-    indicator.Position = UDim2.new(isOn and 1 or 0, isOn and -23 or 3, 0.5, -10)
-    indicator.BackgroundColor3 = DEFAULT_CONFIG.textColor
-    indicator.BorderSizePixel = 0
-    indicator.Parent = toggleBg
-    
-    -- Add corner radius to indicator
-    local cornerIndicator = Instance.new("UICorner")
-    cornerIndicator.CornerRadius = UDim.new(0, 10)
-    cornerIndicator.Parent = indicator
-    
-    -- Add label if provided
-    if properties.text then
-        local label = Instance.new("TextLabel")
-        label.Name = "Label"
-        label.Size = UDim2.new(1, -60, 1, 0)
-        label.Position = UDim2.new(0, 60, 0, 0)
-        label.BackgroundTransparency = 1
-        label.Text = properties.text
-        label.TextColor3 = properties.textColor or DEFAULT_CONFIG.textColor
-        label.Font = properties.font or DEFAULT_CONFIG.font
-        label.TextSize = properties.textSize or DEFAULT_CONFIG.fontSize
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = container
-    end
-    
-    -- Create click detector
-    local button = Instance.new("TextButton")
-    button.Name = "ToggleButton"
-    button.Size = UDim2.new(1, 0, 1, 0)
-    button.BackgroundTransparency = 1
-    button.Text = ""
-    button.Parent = container
-    
-    -- Toggle functionality
-    button.Activated:Connect(function()
-        if properties.disabled then
-            return
-        end
-        
-        isOn = not isOn
-        
-        -- Animate state change
-        TweenService:Create(
-            toggleBg, 
-            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            { BackgroundColor3 = isOn and DEFAULT_CONFIG.primaryColor or DEFAULT_CONFIG.secondaryColor }
-        ):Play()
-        
-        TweenService:Create(
-            indicator,
-            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            { Position = UDim2.new(isOn and 1 or 0, isOn and -23 or 3, 0.5, -10) }
-        ):Play()
-        
-        -- Call callback if provided
-        if properties.callback then
-            properties.callback(isOn)
-        end
-    end)
-    
-    -- Apply disabled appearance if needed
-    if properties.disabled then
-        toggleBg.BackgroundColor3 = DEFAULT_CONFIG.disabledColor
-        indicator.BackgroundColor3 = DEFAULT_CONFIG.disabledTextColor
-        if container:FindFirstChild("Label") then
-            container.Label.TextColor3 = DEFAULT_CONFIG.disabledTextColor
-        end
-    end
-    
-    -- Set parent
-    if properties.parent then
-        container.Parent = properties.parent
-    end
-    
-    -- Add functions to control the toggle
-    container.setOn = function(on)
-        if isOn ~= on then
-            button.Activated:Fire() -- Trigger the toggle
-        end
-    end
-    
-    container.isOn = function()
-        return isOn
-    end
-    
-    return container
-end
-
--- Create a pill-shaped button
-function ButtonFactory:createPillButton(properties)
-    properties = properties or {}
-    properties.cornerRadius = math.huge -- Effectively makes it pill-shaped
-    
-    return self:createButton(properties)
-end
-
--- Create a text-only button (no background)
-function ButtonFactory:createTextButton(properties)
-    properties = properties or {}
-    
-    local button = self:createButton(properties)
-    button.BackgroundTransparency = 1
-    
-    return button
-end
-
--- Create a dropdown menu button
-function ButtonFactory:createDropdownButton(properties)
-    properties = properties or {}
-    
-    local container = Instance.new("Frame")
-    container.Size = properties.size or UDim2.new(0, 200, 0, DEFAULT_CONFIG.buttonHeight)
-    container.Position = properties.position or UDim2.new(0, 0, 0, 0)
-    container.BackgroundTransparency = 1
-    container.Name = properties.name or "DropdownButton"
-    
-    -- Create the main button
-    local mainButton = self:createButton({
-        size = UDim2.new(1, 0, 1, 0),
-        backgroundColor = properties.backgroundColor or DEFAULT_CONFIG.primaryColor,
-        text = properties.text or "Dropdown",
-        font = properties.font or DEFAULT_CONFIG.font,
-        textSize = properties.textSize or DEFAULT_CONFIG.fontSize,
-        disabled = properties.disabled,
-        parent = container
+    -- Add hover effect
+    applyHoverEffect(button, {
+        hoverColor = options.hoverColor
     })
     
-    -- Add dropdown arrow
-    local arrow = Instance.new("TextLabel")
-    arrow.Name = "Arrow"
-    arrow.Size = UDim2.new(0, 20, 0, 20)
-    arrow.Position = UDim2.new(1, -25, 0.5, -10)
-    arrow.BackgroundTransparency = 1
-    arrow.Text = "▼"
-    arrow.TextColor3 = DEFAULT_CONFIG.textColor
-    arrow.Font = DEFAULT_CONFIG.font
-    arrow.TextSize = DEFAULT_CONFIG.fontSize
-    arrow.Parent = mainButton
-    
-    -- Create dropdown container
-    local dropdownContainer = Instance.new("Frame")
-    dropdownContainer.Name = "DropdownContainer"
-    dropdownContainer.Size = UDim2.new(1, 0, 0, 0)
-    dropdownContainer.Position = UDim2.new(0, 0, 1, 0)
-    dropdownContainer.BackgroundColor3 = DEFAULT_CONFIG.secondaryColor
-    dropdownContainer.BorderSizePixel = 0
-    dropdownContainer.Visible = false
-    dropdownContainer.ZIndex = 10
-    dropdownContainer.Parent = container
-    
-    -- Add corner radius to dropdown container
-    local cornerDD = Instance.new("UICorner")
-    cornerDD.CornerRadius = UDim.new(0, DEFAULT_CONFIG.cornerRadius)
-    cornerDD.Parent = dropdownContainer
-    
-    -- Add list layout
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 2)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = dropdownContainer
-    
-    -- Dropdown state
-    local isOpen = false
-    local options = properties.options or {}
-    local selectedOption = properties.defaultOption or options[1] or ""
-    
-    -- Update button text
-    mainButton.Text = selectedOption
-    
-    -- Add options to dropdown
-    for i, option in ipairs(options) do
-        local optionButton = self:createButton({
-            size = UDim2.new(1, 0, 0, DEFAULT_CONFIG.buttonHeight - 4),
-            backgroundColor = DEFAULT_CONFIG.secondaryColor,
-            text = option,
-            font = properties.font or DEFAULT_CONFIG.font,
-            textSize = (properties.textSize or DEFAULT_CONFIG.fontSize) - 2,
-            cornerRadius = DEFAULT_CONFIG.cornerRadius - 2,
-            parent = dropdownContainer,
-            zIndex = 11
-        })
+    -- Add shadow if not disabled
+    if options.shadow ~= false then
+        local shadow = Instance.new("Frame")
+        shadow.Name = "Shadow"
+        shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+        shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        shadow.BackgroundTransparency = 0.6
+        shadow.BorderSizePixel = 0
+        shadow.Position = UDim2.new(0.5, 0, 0.5, 4)
+        shadow.Size = UDim2.new(1, 4, 1, 4)
+        shadow.ZIndex = button.ZIndex - 1
         
-        optionButton.LayoutOrder = i
-        
-        -- Option click behavior
-        optionButton.Activated:Connect(function()
-            selectedOption = option
-            mainButton.Text = option
-            
-            -- Close dropdown
-            isOpen = false
-            dropdownContainer.Visible = false
-            
-            -- Rotate arrow back
-            TweenService:Create(
-                arrow,
-                DEFAULT_CONFIG.animationInfo,
-                { Rotation = 0 }
-            ):Play()
-            
-            -- Call callback if provided
-            if properties.callback then
-                properties.callback(option)
-            end
-        end)
+        createCorner(shadow, options.cornerRadius)
+        shadow.Parent = button
     end
     
-    -- Toggle dropdown visibility
-    mainButton.Activated:Connect(function()
-        if properties.disabled then
-            return
+    -- Add icon if specified
+    if options.icon and IconSet then
+        local iconPosition = options.iconPosition or "left"
+        local padding = options.iconPadding or 5
+        
+        local icon = Instance.new("ImageLabel")
+        icon.Name = "Icon"
+        icon.Size = options.iconSize or UDim2.new(0, 20, 0, 20)
+        icon.BackgroundTransparency = 1
+        icon.Image = IconSet[options.icon] or options.icon
+        icon.ImageColor3 = options.iconColor or button.TextColor3
+        
+        -- Position based on iconPosition
+        if iconPosition == "left" then
+            icon.Position = UDim2.new(0, padding, 0.5, -10)
+            button.TextXAlignment = Enum.TextXAlignment.Center
+        elseif iconPosition == "right" then
+            icon.Position = UDim2.new(1, -(20 + padding), 0.5, -10)
+            button.TextXAlignment = Enum.TextXAlignment.Center
+        elseif iconPosition == "top" then
+            icon.Position = UDim2.new(0.5, -10, 0, padding)
+            button.TextXAlignment = Enum.TextXAlignment.Center
+            button.TextYAlignment = Enum.TextYAlignment.Bottom
+        elseif iconPosition == "bottom" then
+            icon.Position = UDim2.new(0.5, -10, 1, -(20 + padding))
+            button.TextXAlignment = Enum.TextXAlignment.Center
+            button.TextYAlignment = Enum.TextYAlignment.Top
         end
         
-        isOpen = not isOpen
-        
-        -- Animation for arrow rotation
-        TweenService:Create(
-            arrow,
-            DEFAULT_CONFIG.animationInfo,
-            { Rotation = isOpen and 180 or 0 }
-        ):Play()
-        
-        -- Set dropdown container size and visibility
-        if isOpen then
-            dropdownContainer.Visible = true
-            dropdownContainer.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y)
-        else
-            dropdownContainer.Visible = false
-        end
-    end)
-    
-    -- Click outside to close dropdown
-    local closingConnection
-    local function setupCloseCheck()
-        if isOpen and not closingConnection then
-            closingConnection = game:GetService("UserInputService").InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local dropdownAbsPos = dropdownContainer.AbsolutePosition
-                    local dropdownAbsSize = dropdownContainer.AbsoluteSize
-                    local buttonAbsPos = mainButton.AbsolutePosition
-                    local buttonAbsSize = mainButton.AbsoluteSize
-                    
-                    local mousePos = input.Position
-                    local mouseX, mouseY = mousePos.X, mousePos.Y
-                    
-                    -- Check if click is outside dropdown and button
-                    local inDropdown = 
-                        mouseX >= dropdownAbsPos.X and 
-                        mouseX <= dropdownAbsPos.X + dropdownAbsSize.X and 
-                        mouseY >= dropdownAbsPos.Y and 
-                        mouseY <= dropdownAbsPos.Y + dropdownAbsSize.Y
-                    
-                    local inButton = 
-                        mouseX >= buttonAbsPos.X and 
-                        mouseX <= buttonAbsPos.X + buttonAbsSize.X and 
-                        mouseY >= buttonAbsPos.Y and 
-                        mouseY <= buttonAbsPos.Y + buttonAbsSize.Y
-                    
-                    if not inDropdown and not inButton then
-                        isOpen = false
-                        dropdownContainer.Visible = false
-                        
-                        -- Rotate arrow back
-                        TweenService:Create(
-                            arrow,
-                            DEFAULT_CONFIG.animationInfo,
-                            { Rotation = 0 }
-                        ):Play()
-                        
-                        -- Disconnect the connection
-                        if closingConnection then
-                            closingConnection:Disconnect()
-                            closingConnection = nil
-                        end
-                    end
-                end
-            end)
-        end
+        icon.Parent = button
     end
     
-    -- Monitor dropdown open state
-    container:GetPropertyChangedSignal("Parent"):Connect(function()
-        if container.Parent and isOpen then
-            setupCloseCheck()
-        end
-    end)
-    
-    dropdownContainer:GetPropertyChangedSignal("Visible"):Connect(function()
-        if dropdownContainer.Visible then
-            setupCloseCheck()
-        elseif closingConnection then
-            closingConnection:Disconnect()
-            closingConnection = nil
-        end
-    end)
-    
-    -- Apply disabled appearance if needed
-    if properties.disabled then
-        arrow.TextColor3 = DEFAULT_CONFIG.disabledTextColor
+    -- Connect callback if provided
+    if options.callback and typeof(options.callback) == "function" then
+        button.MouseButton1Click:Connect(options.callback)
     end
     
-    -- Set parent
-    if properties.parent then
-        container.Parent = properties.parent
+    -- Add button to parent if specified
+    if options.parent then
+        button.Parent = options.parent
     end
     
-    -- Add methods to control the dropdown
-    container.select = function(option)
-        for _, optionButton in ipairs(dropdownContainer:GetChildren()) do
-            if optionButton:IsA("TextButton") and optionButton.Text == option then
-                optionButton.Activated:Fire()
-                return true
-            end
-        end
-        return false
-    end
-    
-    container.getSelected = function()
-        return selectedOption
-    end
-    
-    container.setOptions = function(newOptions)
-        -- Clear existing options
-        for _, child in ipairs(dropdownContainer:GetChildren()) do
-            if child:IsA("TextButton") then
-                child:Destroy()
-            end
-        end
-        
-        -- Add new options
-        options = newOptions
-        for i, option in ipairs(options) do
-            local optionButton = ButtonFactory:createButton({
-                size = UDim2.new(1, 0, 0, DEFAULT_CONFIG.buttonHeight - 4),
-                backgroundColor = DEFAULT_CONFIG.secondaryColor,
-                text = option,
-                font = properties.font or DEFAULT_CONFIG.font,
-                textSize = (properties.textSize or DEFAULT_CONFIG.fontSize) - 2,
-                cornerRadius = DEFAULT_CONFIG.cornerRadius - 2,
-                parent = dropdownContainer,
-                zIndex = 11
-            })
-            
-            optionButton.LayoutOrder = i
-            
-            -- Option click behavior
-            optionButton.Activated:Connect(function()
-                selectedOption = option
-                mainButton.Text = option
-                
-                -- Close dropdown
-                isOpen = false
-                dropdownContainer.Visible = false
-                
-                -- Rotate arrow back
-                TweenService:Create(
-                    arrow,
-                    DEFAULT_CONFIG.animationInfo,
-                    { Rotation = 0 }
-                ):Play()
-                
-                -- Call callback if provided
-                if properties.callback then
-                    properties.callback(option)
-                end
-            end)
-        end
-        
-        -- Set selected option
-        if #options > 0 then
-            selectedOption = options[1]
-            mainButton.Text = selectedOption
-        else
-            selectedOption = ""
-            mainButton.Text = properties.text or "Dropdown"
-        end
-    end
-    
-    return container
+    return button
 end
 
--- Return the module
+-- Create an icon button (just icon, no text)
+function ButtonFactory:createIconButton(options)
+    options = options or {}
+    local size = options.size or 40
+    
+    local newOptions = {
+        name = options.name or "IconButton",
+        size = UDim2.new(0, size, 0, size),
+        position = options.position,
+        anchorPoint = options.anchorPoint,
+        color = options.color or (UIStyle.colors and UIStyle.colors.backgroundLight) or Color3.fromRGB(60, 60, 80),
+        icon = options.icon or "fallback",
+        iconSize = UDim2.new(0, size * 0.6, 0, size * 0.6),
+        iconPosition = "center", -- Custom position handled below
+        iconColor = options.iconColor or (UIStyle.colors and UIStyle.colors.text) or Color3.fromRGB(240, 240, 255),
+        text = "",
+        callback = options.callback,
+        parent = options.parent,
+        cornerRadius = options.cornerRadius or UDim.new(0, size / 4),
+        shadow = options.shadow
+    }
+    
+    local button = self:createButton(newOptions)
+    
+    -- Adjust the icon position to be centered
+    local icon = button:FindFirstChild("Icon")
+    if icon then
+        icon.Position = UDim2.new(0.5, -icon.Size.X.Offset / 2, 0.5, -icon.Size.Y.Offset / 2)
+    end
+    
+    return button
+end
+
+-- Create a primary action button
+function ButtonFactory:createPrimaryButton(options)
+    options = options or {}
+    options.color = options.color or (UIStyle.colors and UIStyle.colors.accent) or Color3.fromRGB(80, 150, 255)
+    options.textColor = options.textColor or (UIStyle.colors and UIStyle.colors.text) or Color3.fromRGB(240, 240, 255)
+    options.name = options.name or "PrimaryButton"
+    
+    return self:createButton(options)
+end
+
+-- Create a secondary action button
+function ButtonFactory:createSecondaryButton(options)
+    options = options or {}
+    options.color = options.color or (UIStyle.colors and UIStyle.colors.backgroundLight) or Color3.fromRGB(60, 60, 80)
+    options.textColor = options.textColor or (UIStyle.colors and UIStyle.colors.text) or Color3.fromRGB(240, 240, 255)
+    options.name = options.name or "SecondaryButton"
+    
+    return self:createButton(options)
+end
+
+-- Create a danger/destructive action button
+function ButtonFactory:createDangerButton(options)
+    options = options or {}
+    options.color = options.color or (UIStyle.colors and UIStyle.colors.error) or Color3.fromRGB(255, 80, 80)
+    options.textColor = options.textColor or (UIStyle.colors and UIStyle.colors.text) or Color3.fromRGB(240, 240, 255)
+    options.name = options.name or "DangerButton"
+    
+    return self:createButton(options)
+end
+
+-- Create a success action button
+function ButtonFactory:createSuccessButton(options)
+    options = options or {}
+    options.color = options.color or (UIStyle.colors and UIStyle.colors.success) or Color3.fromRGB(80, 240, 120)
+    options.textColor = options.textColor or (UIStyle.colors and UIStyle.colors.text) or Color3.fromRGB(240, 240, 255)
+    options.name = options.name or "SuccessButton"
+    
+    return self:createButton(options)
+end
+
+-- Create a warning action button
+function ButtonFactory:createWarningButton(options)
+    options = options or {}
+    options.color = options.color or (UIStyle.colors and UIStyle.colors.warning) or Color3.fromRGB(255, 200, 80)
+    options.textColor = options.textColor or (UIStyle.colors and UIStyle.colors.text) or Color3.fromRGB(240, 240, 255)
+    options.name = options.name or "WarningButton"
+    
+    return self:createButton(options)
+end
+
+-- Register with ClientRegistry if available
+local function registerWithClientRegistry()
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if not shared then return end
+    
+    local clientRegistryModule = shared:FindFirstChild("ClientRegistry")
+    if not clientRegistryModule then return end
+    
+    local success, clientRegistry = pcall(function()
+        return require(clientRegistryModule)
+    end)
+    
+    if success and clientRegistry and typeof(clientRegistry.registerUIComponent) == "function" then
+        clientRegistry:registerUIComponent("ButtonFactory", ButtonFactory)
+        print("ButtonFactory registered with ClientRegistry")
+    end
+end
+
+-- Try to register with ClientRegistry
+task.spawn(registerWithClientRegistry)
+
 return ButtonFactory

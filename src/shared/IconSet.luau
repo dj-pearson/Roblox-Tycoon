@@ -1,229 +1,221 @@
+--!strict
 --[[
     IconSet.luau
     
-    A centralized module for accessing game icons consistently throughout the UI.
-    Contains references to all standardized icon asset IDs and helper functions.
+    A collection of icon assets for use throughout the UI system.
+    This module provides consistent icon references and validation.
     
-    Author: Updated April 2025
+    Created: April 27, 2025
 ]]
 
-local IconSet = {}
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Core icon asset IDs from design document
-IconSet.AssetIds = {
-    Alliance = "rbxassetid://128203268160479",
-    CommunityGoals = "rbxassetid://97149848004338",
-    Challenges = "rbxassetid://120333480860384",
-    GuestPass = "rbxassetid://110319251186892",
-    Tutorial = "rbxassetid://98150393120956",
-    Settings = "rbxassetid://72876573893033",
-    Rebirth = "rbxassetid://129409029383961",
-    StaffManagement = "rbxassetid://89834599810886",
-    Upgrades = "rbxassetid://132635366103906",
-    Achievements = "rbxassetid://79337595530955",
-    AdminFunctions = "rbxassetid://105112405426846",
+-- Try to load the AssetValidator
+local AssetValidator
+local shared = ReplicatedStorage:FindFirstChild("shared")
+if shared and shared:FindFirstChild("AssetValidator") then
+    local success, result = pcall(function()
+        return require(shared.AssetValidator)
+    end)
+    if success then
+        AssetValidator = result
+    end
+end
+
+-- IconSet specification with backup assets in case primary assets fail to load
+local IconSet = {
+    -- Action icons
+    add = "rbxassetid://8091674100",                   -- Plus sign
+    remove = "rbxassetid://8091936398",                -- Minus sign
+    close = "rbxassetid://8093755787",                 -- X symbol
+    edit = "rbxassetid://8091676470",                  -- Pencil icon
+    save = "rbxassetid://8091785592",                  -- Save/floppy icon
+    settings = "rbxassetid://8093766304",              -- Gear icon
+    refresh = "rbxassetid://8093832376",               -- Refresh/reload icon
+    search = "rbxassetid://8091929903",                -- Magnifying glass
+    filter = "rbxassetid://8091679477",                -- Filter funnel icon
+    sort = "rbxassetid://8093763902",                  -- Sort arrows
     
-    -- Additional common icons
-    Close = "rbxassetid://9307168228", -- X icon
-    Coin = "rbxassetid://9288186583", -- Money/currency icon
-    Star = "rbxassetid://9288554951", -- Star for ratings/achievements
-    Heart = "rbxassetid://9288185223", -- Health/satisfaction
-    User = "rbxassetid://9288196653", -- User/profile
-    Clock = "rbxassetid://9288187455", -- Time/duration
-    Calendar = "rbxassetid://9288192475", -- Events/schedule
-    Leaderboard = "rbxassetid://9288190136", -- Rankings
-    Trophy = "rbxassetid://9288198124", -- Victories/competitions
-    Gear = "rbxassetid://9288189061", -- Settings alternative
-    Info = "rbxassetid://9288189848", -- Information
-    Warning = "rbxassetid://9288198975", -- Warning icon
-    Error = "rbxassetid://9288187809", -- Error icon
-    Check = "rbxassetid://9288193052", -- Checkmark/success
-    ArrowUp = "rbxassetid://9288189346", -- Arrow pointing up
-    ArrowDown = "rbxassetid://9288188451", -- Arrow pointing down
-    Play = "rbxassetid://9288193830", -- Play button
-    Pause = "rbxassetid://9288192900", -- Pause button
-    Question = "rbxassetid://9288194701", -- Question mark / help
-    Lock = "rbxassetid://9288191212", -- Lock icon for permissions
-    Unlock = "rbxassetid://9288198345", -- Unlock icon
-    Add = "rbxassetid://9288184486", -- Plus icon
-    Remove = "rbxassetid://9288194902", -- Minus icon
-    Edit = "rbxassetid://9288187043", -- Pencil/edit icon
+    -- Direction icons
+    arrowUp = "rbxassetid://8091694354",               -- Up arrow
+    arrowDown = "rbxassetid://8091688301",             -- Down arrow
+    arrowLeft = "rbxassetid://8091683445",             -- Left arrow
+    arrowRight = "rbxassetid://8091686067",            -- Right arrow
+    chevronUp = "rbxassetid://8091740293",             -- Up chevron
+    chevronDown = "rbxassetid://8091735058",           -- Down chevron
+    chevronLeft = "rbxassetid://8091731903",           -- Left chevron
+    chevronRight = "rbxassetid://8091737094",          -- Right chevron
+    
+    -- Status/alert icons
+    success = "rbxassetid://8093755457",               -- Checkmark
+    warning = "rbxassetid://8093755364",               -- Warning triangle
+    error = "rbxassetid://8093755611",                 -- Error symbol
+    info = "rbxassetid://8093754900",                  -- Info circle
+    help = "rbxassetid://8093754757",                  -- Question mark
+    locked = "rbxassetid://8092194193",                -- Lock icon
+    unlocked = "rbxassetid://8092194494",              -- Unlocked icon
+    
+    -- Media controls
+    play = "rbxassetid://8091990871",                  -- Play button
+    pause = "rbxassetid://8091987045",                 -- Pause button
+    stop = "rbxassetid://8091990025",                  -- Stop button
+    skipForward = "rbxassetid://8091982713",           -- Skip forward
+    skipBack = "rbxassetid://8091982401",              -- Skip backward
+    volume = "rbxassetid://8091992171",                -- Volume/sound icon
+    mute = "rbxassetid://8091992525",                  -- Muted volume icon
+    
+    -- Game-specific icons
+    coin = "rbxassetid://8092007134",                  -- Coin/currency
+    gem = "rbxassetid://8092007403",                   -- Gem/premium currency
+    timer = "rbxassetid://8092003443",                 -- Clock/timer
+    trophy = "rbxassetid://8092002346",                -- Trophy/achievement
+    star = "rbxassetid://8092001502",                  -- Star
+    heart = "rbxassetid://8092006355",                 -- Heart/life
+    character = "rbxassetid://8092213308",             -- Player character
+    leaderboard = "rbxassetid://8092204656",           -- Leaderboard
+    
+    -- UI element icons
+    home = "rbxassetid://8093762863",                 -- Home button
+    menu = "rbxassetid://8093763464",                 -- Hamburger menu
+    more = "rbxassetid://8092135293",                 -- Three dots/more
+    share = "rbxassetid://8092094273",                -- Share icon
+    link = "rbxassetid://8092126251",                 -- Link/chain icon
+    calendar = "rbxassetid://8092210444",             -- Calendar
+    notification = "rbxassetid://8092093329",         -- Bell/notification
+    
+    -- Object icons
+    folder = "rbxassetid://8092122054",               -- Folder
+    file = "rbxassetid://8092122825",                 -- File
+    image = "rbxassetid://8092125039",                -- Image/picture
+    trash = "rbxassetid://8092094793",                -- Trash can/delete
+    tag = "rbxassetid://8092095626",                  -- Tag/label
+    list = "rbxassetid://8092128264",                 -- List view
+    grid = "rbxassetid://8092130144",                 -- Grid view
+    
+    -- Fallback icon (used when requested icon doesn't exist)
+    fallback = "rbxassetid://8091927367"              -- Default fallback icon
 }
 
--- Button icon mapping for UI features from design document
-IconSet.ButtonIcons = {
-    -- Main menu section
-    Play = IconSet.AssetIds.Play,
-    Alliance = IconSet.AssetIds.Alliance,
-    Specialization = IconSet.AssetIds.StaffManagement,
-    SeasonalEvents = IconSet.AssetIds.Calendar,
-    Settings = IconSet.AssetIds.Settings,
-    Minigames = IconSet.AssetIds.Challenges,
+-- Function to validate all icons and replace broken ones
+function IconSet:validateAll()
+    if not AssetValidator then
+        print("AssetValidator not found, skipping icon validation")
+        return
+    end
     
-    -- Rebirth section
-    Rebirth = IconSet.AssetIds.Rebirth,
+    for name, assetId in pairs(self) do
+        if type(assetId) == "string" and assetId:match("^rbxassetid://") then
+            if not AssetValidator:validateImageAsset(assetId) then
+                warn("Icon '" .. name .. "' with asset ID " .. assetId .. " failed validation")
+                -- Use fallback if the original asset is invalid
+                self[name] = self.fallback
+            end
+        end
+    end
     
-    -- General buttons
-    Tutorial = IconSet.AssetIds.Tutorial,
-    Reset = IconSet.AssetIds.Warning,
-    Confirm = IconSet.AssetIds.Check,
-    Cancel = IconSet.AssetIds.Close,
-    Close = IconSet.AssetIds.Close,
-    
-    -- Alliance buttons
-    JoinAlliance = IconSet.AssetIds.Alliance,
-    LeaveAlliance = IconSet.AssetIds.Remove,
-    ViewAllianceInfo = IconSet.AssetIds.Info,
-    
-    -- Seasonal event buttons
-    JoinEvent = IconSet.AssetIds.Calendar,
-    LeaveEvent = IconSet.AssetIds.Remove,
-}
+    print("IconSet: Finished validating all icons")
+end
 
--- Creates an ImageLabel with the specified icon
-function IconSet.createIcon(iconName, size, position)
-    -- Default to settings icon if the requested icon doesn't exist
-    local iconAssetId = IconSet.AssetIds[iconName] or IconSet.AssetIds.Settings
-
-    local icon = Instance.new("ImageLabel")
-    icon.Name = iconName .. "Icon"
-    icon.Size = size or UDim2.new(0, 24, 0, 24)
-    icon.Position = position or UDim2.new(0, 0, 0, 0)
-    icon.BackgroundTransparency = 1
-    icon.Image = iconAssetId
-    icon.ScaleType = Enum.ScaleType.Fit
+-- Function to get an icon with validation
+function IconSet:getIcon(iconName)
+    local icon = self[iconName]
+    
+    if not icon then
+        warn("Icon '" .. iconName .. "' not found in IconSet")
+        return self.fallback
+    end
+    
+    -- Validate using AssetValidator if available
+    if AssetValidator then
+        if typeof(icon) == "string" and icon:match("^rbxassetid://") then
+            if not AssetValidator:validateImageAsset(icon) then
+                warn("Icon '" .. iconName .. "' with asset ID " .. icon .. " failed validation")
+                return self.fallback
+            end
+        end
+    end
     
     return icon
 end
 
--- Creates a button with an icon
-function IconSet.createIconButton(iconName, text, size, position, callback)
-    local button = Instance.new("TextButton")
-    button.Name = iconName .. "Button"
-    button.Size = size or UDim2.new(0, 120, 0, 40)
-    button.Position = position or UDim2.new(0, 0, 0, 0)
-    button.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    button.BorderSizePixel = 0
-    button.Text = text or ""
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 16
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- Function to create an icon instance
+function IconSet:createIcon(iconName, options)
+    options = options or {}
     
-    -- Add padding if text is provided
-    if text and text ~= "" then
-        button.Text = "    " .. text
-        button.TextXAlignment = Enum.TextXAlignment.Left
-        
-        local padding = Instance.new("UIPadding")
-        padding.PaddingLeft = UDim.new(0, 35)
-        padding.Parent = button
-    end
-    
-    -- Add corner rounding
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = button
-    
-    -- Add the icon
-    local iconAssetId = IconSet.AssetIds[iconName] or IconSet.AssetIds.Settings
+    local iconAsset = self:getIcon(iconName)
     local icon = Instance.new("ImageLabel")
-    icon.Name = "Icon"
-    icon.Size = UDim2.new(0, 20, 0, 20)
-    icon.Position = UDim2.new(0, 10, 0.5, 0)
-    icon.AnchorPoint = Vector2.new(0, 0.5)
-    icon.BackgroundTransparency = 1
-    icon.Image = iconAssetId
-    icon.Parent = button
     
-    -- Connect callback if provided
-    if callback and typeof(callback) == "function" then
-        button.MouseButton1Click:Connect(callback)
+    icon.Name = options.name or (iconName .. "Icon")
+    icon.Size = options.size or UDim2.new(0, 24, 0, 24)
+    icon.Position = options.position or UDim2.new(0, 0, 0, 0)
+    icon.AnchorPoint = options.anchorPoint or Vector2.new(0, 0)
+    icon.BackgroundTransparency = 1
+    icon.Image = iconAsset
+    icon.ImageColor3 = options.color or Color3.new(1, 1, 1)
+    
+    if options.parent then
+        icon.Parent = options.parent
     end
     
-    return button
+    return icon
 end
 
--- Add an icon to an existing button
-function IconSet.addIconToButton(button, iconName)
-    if not button then return end
+-- Function to preload common icons
+function IconSet:preloadCommonIcons()
+    if not AssetValidator then return end
     
-    local iconAssetId = IconSet.AssetIds[iconName] or IconSet.AssetIds.Settings
+    local commonIcons = {
+        "close", "info", "warning", "error", "success",
+        "arrowUp", "arrowDown", "arrowLeft", "arrowRight",
+        "home", "settings", "menu"
+    }
     
-    -- Add padding to text for icon
-    if button:IsA("TextButton") or button:IsA("TextLabel") then
-        button.TextXAlignment = Enum.TextXAlignment.Left
-        
-        -- Add padding if not already present
-        if not button:FindFirstChild("UIPadding") then
-            local padding = Instance.new("UIPadding")
-            padding.PaddingLeft = UDim.new(0, 35)
-            padding.Parent = button
+    for _, iconName in ipairs(commonIcons) do
+        local icon = self[iconName]
+        if icon and typeof(icon) == "string" then
+            AssetValidator:preloadImageAsync(icon)
         end
-        
-        -- Create icon
-        local icon = button:FindFirstChild("Icon") or Instance.new("ImageLabel")
-        icon.Name = "Icon"
-        icon.Size = UDim2.new(0, 20, 0, 20)
-        icon.Position = UDim2.new(0, 10, 0.5, 0)
-        icon.AnchorPoint = Vector2.new(0, 0.5)
-        icon.BackgroundTransparency = 1
-        icon.Image = iconAssetId
-        icon.Parent = button
     end
     
-    return button
+    print("IconSet: Preloaded common icons")
 end
 
--- Creates a standardized icon display with label
-function IconSet.createIconWithLabel(iconName, labelText, size, position, isHorizontal)
-    local container = Instance.new("Frame")
-    container.Name = iconName .. "Container"
-    container.Size = size or UDim2.new(0, 200, 0, 40)
-    container.Position = position or UDim2.new(0, 0, 0, 0)
-    container.BackgroundTransparency = 1
+-- Register with ClientRegistry if available
+local function registerWithClientRegistry()
+    if not shared then return end
     
-    local iconAssetId = IconSet.AssetIds[iconName] or IconSet.AssetIds.Settings
-    local icon = Instance.new("ImageLabel")
-    icon.Name = "Icon"
-    icon.BackgroundTransparency = 1
-    icon.Image = iconAssetId
+    local clientRegistryModule = shared:FindFirstChild("ClientRegistry")
+    if not clientRegistryModule then return end
     
-    local label = Instance.new("TextLabel")
-    label.Name = "Label"
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 16
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Text = labelText or ""
+    local success, clientRegistry = pcall(function()
+        return require(clientRegistryModule)
+    end)
     
-    -- Arrange elements based on orientation
-    if isHorizontal then
-        icon.Size = UDim2.new(0, 24, 0, 24)
-        icon.Position = UDim2.new(0, 0, 0.5, 0)
-        icon.AnchorPoint = Vector2.new(0, 0.5)
-        
-        label.Size = UDim2.new(1, -32, 1, 0) 
-        label.Position = UDim2.new(0, 32, 0, 0)
-        label.TextXAlignment = Enum.TextXAlignment.Left
+    if success and clientRegistry and typeof(clientRegistry.registerUIComponent) == "function" then
+        clientRegistry:registerUIComponent("IconSet", IconSet)
+        print("IconSet registered with ClientRegistry")
+    end
+end
+
+-- Try to register with ClientRegistry and preload common icons
+task.spawn(function()
+    registerWithClientRegistry()
+    
+    -- Allow some time for AssetValidator to be registered if it wasn't available immediately
+    if not AssetValidator then
+        wait(1)
+        if shared and shared:FindFirstChild("AssetValidator") then
+            local success, result = pcall(function()
+                return require(shared.AssetValidator)
+            end)
+            if success then
+                AssetValidator = result
+                IconSet:preloadCommonIcons()
+            end
+        end
     else
-        icon.Size = UDim2.new(0, 32, 0, 32)
-        icon.Position = UDim2.new(0.5, 0, 0, 0)
-        icon.AnchorPoint = Vector2.new(0.5, 0)
-        
-        label.Size = UDim2.new(1, 0, 0, 20)
-        label.Position = UDim2.new(0, 0, 0, 36)
-        label.TextXAlignment = Enum.TextXAlignment.Center
+        IconSet:preloadCommonIcons()
     end
-    
-    icon.Parent = container
-    label.Parent = container
-    
-    return container
-end
-
--- Get the asset ID for a specific icon
-function IconSet.getAssetId(iconName)
-    return IconSet.AssetIds[iconName] or IconSet.AssetIds.Settings
-end
+end)
 
 return IconSet

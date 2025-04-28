@@ -62,22 +62,22 @@ end
 
 -- Safe DataStore call with retries
 local function safeDataStoreCall(func)
-	local success, result
+	local success, errorMsg
 	local attempts = 0
 
 	repeat
 		attempts = attempts + 1
-		success, result = pcall(func)
+		success, errorMsg = pcall(func)
 
 		if not success then
 			-- Wait with exponential backoff
 			local waitTime = math.min(2^attempts, 30)
-			log("DataStore call failed:", result, "- Retrying in", waitTime, "seconds (Attempt", attempts, "of", CONFIG.maxRetries, ")")
+			log("DataStore call failed:", errorMsg, "- Retrying in", waitTime, "seconds (Attempt", attempts, "of", CONFIG.maxRetries, ")")
 			task.wait(waitTime)
 		end
 	until success or attempts >= CONFIG.maxRetries
 
-	return success, result
+	return success, errorMsg
 end
 
 -- Initialize the DataStores
@@ -122,12 +122,12 @@ function DataManager.loadData(player)
 	local data
 
 	-- Try to load data
-	local success, result = safeDataStoreCall(function()
+	local success, dataResult = safeDataStoreCall(function()
 		return DataManager.dataStore:GetAsync(key)
 	end)
 
-	if success and result then
-		data = result
+	if success and dataResult then
+		data = dataResult
 		log("Loaded data for", player.Name)
 	else
 		-- Create default data for new player
@@ -139,9 +139,9 @@ function DataManager.loadData(player)
 	if (data.dataVersion or 0) < CONFIG.defaultData.dataVersion then
 		log("Migrating data from version", data.dataVersion or 0, "to", CONFIG.defaultData.dataVersion)
 		-- Fill in missing fields from the default data
-		for key, defaultValue in pairs(CONFIG.defaultData) do
-			if data[key] == nil then
-				data[key] = deepCopy(defaultValue)
+		for dataKey, defaultValue in pairs(CONFIG.defaultData) do
+			if data[dataKey] == nil then
+				data[dataKey] = deepCopy(defaultValue)
 			end
 		end
 		data.dataVersion = CONFIG.defaultData.dataVersion
@@ -179,7 +179,7 @@ function DataManager.saveData(player, immediately)
 	data.lastSaveTime = os.time()
 
 	-- Try to save data
-	local success, result = safeDataStoreCall(function()
+	local success = safeDataStoreCall(function()
 		DataManager.dataStore:SetAsync(key, data)
 		return true
 	end)
@@ -472,7 +472,8 @@ function DataManager.restorePurchasedEquipment(player)
 	local tileIds = {}
 	for idStr in pairs(data.equipmentPurchased) do
 		local id = tonumber(idStr)
-		if id then
+		-- Only add valid positive IDs - ID 0 is known to cause issues
+		if id and id > 0 then
 			table.insert(tileIds, id)
 		end
 	end
@@ -486,7 +487,7 @@ function DataManager.restorePurchasedEquipment(player)
 	local restoredCount = 0
 
 	-- Restore each tile with a small delay
-	for i, id in ipairs(tileIds) do
+	for _, id in ipairs(tileIds) do
 		task.wait(0.2) -- Small delay to avoid overwhelming the server
 
 		-- Check if item with this ID already exists
@@ -505,7 +506,8 @@ function DataManager.restorePurchasedEquipment(player)
 			if id == 1 then
 				part = buyTileSystem.spawnBuyTile(id)
 			else
-				part = buyTileSystem.spawnGymPart(id)
+				-- Pass player as first argument, since the function expects it
+				part = buyTileSystem.spawnGymPart(player, id)
 			end
 
 			if part then
