@@ -7,22 +7,32 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local doubleMemberProductId = 3269228815
 local doubleMemberDuration = 600 -- 10 minutes in seconds
 
--- Remote Event to trigger the effect
+-- Remote Events for system communication
 local doubleRevenueEvent = Instance.new("RemoteEvent")
 doubleRevenueEvent.Name = "DoubleRevenueEvent"
 doubleRevenueEvent.Parent = ReplicatedStorage
+
+-- Create a remote event to trigger UI from touching the model
+local showDoubleMemberUIEvent = Instance.new("RemoteEvent")
+showDoubleMemberUIEvent.Name = "ShowDoubleMemberUIEvent"
+showDoubleMemberUIEvent.Parent = ReplicatedStorage
 
 -- Find the DoubleMember model in ServerStorage > GymParts
 local gymPartsFolder = ServerStorage:WaitForChild("GymParts")
 local doubleMemberModel = gymPartsFolder:FindFirstChild("DoubleMember")
 
+-- Also check for DoubleMember model in the workspace
 if not doubleMemberModel then
-    warn("DoubleMember model not found in ServerStorage > GymParts!")
+    doubleMemberModel = Workspace:FindFirstChild("DoubleMember")
+end
+
+if not doubleMemberModel then
+    warn("DoubleMember model not found in ServerStorage > GymParts or Workspace!")
 end
 
 -- Function to calculate the base revenue
@@ -84,26 +94,50 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
     return Enum.ProductPurchaseDecision.NotProcessedYet
 end
 
--- Display purchase button to player when they join
-Players.PlayerAdded:Connect(function(player)
-    if RunService:IsServer() then
-        local playerGui = player:WaitForChild("PlayerGui")
-        local buttonFrame = Instance.new("ScreenGui")
-        buttonFrame.Name = "DoubleRevenueGui"
-        buttonFrame.Parent = playerGui
-        local purchaseButton = Instance.new("TextButton")
-        purchaseButton.Name = "PurchaseDoubleRevenue"
-        purchaseButton.Text = "Double Revenue"
-        purchaseButton.Size = UDim2.new(0.2,0,0.1,0)
-        purchaseButton.Position = UDim2.new(0.4,0,0.4,0)
-        purchaseButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
-        purchaseButton.TextColor3 = Color3.fromRGB(255,255,255)
-        purchaseButton.Parent = buttonFrame
-
-        purchaseButton.MouseButton1Click:Connect(function()
-            MarketplaceService:PromptProductPurchase(player, doubleMemberProductId)
-        end)
+-- Setup the DoubleMember model's Touched event if it exists
+if doubleMemberModel then
+    -- Find the primary part or use the first part
+    local primaryPart = doubleMemberModel.PrimaryPart
+    
+    if not primaryPart and doubleMemberModel:IsA("Model") then
+        -- Try to find any part in the model
+        for _, part in pairs(doubleMemberModel:GetDescendants()) do
+            if part:IsA("BasePart") then
+                primaryPart = part
+                break
+            end
+        end
     end
+    
+    if primaryPart then
+        -- Set up the Touched event
+        primaryPart.Touched:Connect(function(hit)
+            local character = hit.Parent
+            local player = Players:GetPlayerFromCharacter(character)
+            
+            if player then
+                -- Fire client event to show the UI
+                showDoubleMemberUIEvent:FireClient(player)
+                print("Fired showDoubleMemberUIEvent for player:", player.Name)
+            end
+        end)
+        
+        print("DoubleMember touch event set up successfully")
+    else
+        warn("No primary part found in DoubleMember model")
+    end
+else
+    warn("DoubleMember model not found, touch event not set up")
+end
+
+-- Add a chat command for testing (can be removed in production)
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        if message:lower() == "/doublerevenue" then
+            showDoubleMemberUIEvent:FireClient(player)
+            print("Fired showDoubleMemberUIEvent from chat command for player:", player.Name)
+        end
+    end)
 end)
 
 --[[
