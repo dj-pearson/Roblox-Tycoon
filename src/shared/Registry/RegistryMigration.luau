@@ -459,7 +459,7 @@ function RegistryMigration.createServerRegistryWrapper(config: MigrationConfig)
         end
         
         return legacyRegistry.getSystem(name)
-    }
+    end
     
     return legacyRegistry
 end

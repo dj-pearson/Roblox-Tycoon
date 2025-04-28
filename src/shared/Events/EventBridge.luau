@@ -224,7 +224,7 @@ function EventBridge:_setupRemotes()
             self:_handleServerBatch(eventBatch, true) -- true = player-specific
         end)
     end
-}
+end
 
 -- Connect to existing events
 function EventBridge:_connectEvents()
@@ -239,7 +239,7 @@ function EventBridge:_connectEvents()
             local subscription = ServerEvents:subscribeMultiple(serverEvents, function(event)
                 self:_bridgeServerEvent(event)
                 return true
-            })
+            end)
             
             table.insert(self.subscriptions, subscription)
         end
@@ -256,12 +256,12 @@ function EventBridge:_connectEvents()
             local subscription = ClientEvents:subscribeMultiple(clientEvents, function(event)
                 self:_bridgeClientEvent(event)
                 return true
-            })
+            end)
             
             table.insert(self.subscriptions, subscription)
         end
     end
-}
+end
 
 -- Bridge a server event to clients
 function EventBridge:_bridgeServerEvent(event: Event)
@@ -327,7 +327,7 @@ function EventBridge:_bridgeServerEvent(event: Event)
             self.stats.batchesSent += 1
         end
     end
-}
+end
 
 -- Bridge a client event to the server
 function EventBridge:_bridgeClientEvent(event: Event)
@@ -361,7 +361,7 @@ function EventBridge:_bridgeClientEvent(event: Event)
         self.stats.eventsSent += 1
         self.stats.batchesSent += 1
     end
-}
+end
 
 -- Send a client event batch to the server
 function EventBridge:_sendClientBatch()
@@ -385,7 +385,7 @@ function EventBridge:_sendClientBatch()
     self.stats.batchesSent += 1
     
     self:_debug("Sent client batch with", #batch, "events")
-}
+end
 
 -- Send a server event batch to all clients
 function EventBridge:_sendServerBatch()
@@ -409,7 +409,7 @@ function EventBridge:_sendServerBatch()
     self.stats.batchesSent += 1
     
     self:_debug("Sent server batch with", #batch, "events to all clients")
-}
+end
 
 -- Send a player-specific event batch
 function EventBridge:_sendPlayerBatch(player: Player)
@@ -434,7 +434,7 @@ function EventBridge:_sendPlayerBatch(player: Player)
     self.stats.batchesSent += 1
     
     self:_debug("Sent player batch with", #batch, "events to", player.Name)
-}
+end
 
 -- Handle a batch from client to server
 function EventBridge:_handleClientBatch(player: Player, eventBatch: {any})
@@ -469,7 +469,7 @@ function EventBridge:_handleClientBatch(player: Player, eventBatch: {any})
         
         self:_debug("Bridged client event:", transmitEvent.id, "from player", player.Name)
     end
-}
+end
 
 -- Handle a batch from server to client
 function EventBridge:_handleServerBatch(eventBatch: {any}, isPlayerSpecific: boolean?)
@@ -517,7 +517,7 @@ function EventBridge:_handleServerBatch(eventBatch: {any}, isPlayerSpecific: boo
         
         self:_debug("Bridged server event:", transmitEvent.id)
     end
-}
+end
 
 --[[ Public API ]]--
 
@@ -531,18 +531,18 @@ function EventBridge:allowClientEvent(eventId: string)
         local subscription = ClientEvents:subscribe(eventId, function(event)
             self:_bridgeClientEvent(event)
             return true
-        })
+        end)
         
         table.insert(self.subscriptions, subscription)
     end
-}
+end
 
 -- Allow multiple client events
 function EventBridge:allowClientEvents(eventIds: {string})
     for _, eventId in ipairs(eventIds) do
         self:allowClientEvent(eventId)
     end
-}
+end
 
 -- Allow a server event to be sent to clients
 function EventBridge:allowServerEvent(eventId: string)
@@ -554,30 +554,30 @@ function EventBridge:allowServerEvent(eventId: string)
         local subscription = ServerEvents:subscribe(eventId, function(event)
             self:_bridgeServerEvent(event)
             return true
-        })
+        end)
         
         table.insert(self.subscriptions, subscription)
     end
-}
+end
 
 -- Allow multiple server events
 function EventBridge:allowServerEvents(eventIds: {string})
     for _, eventId in ipairs(eventIds) do
         self:allowServerEvent(eventId)
     end
-}
+end
 
 -- Disallow a client event
 function EventBridge:disallowClientEvent(eventId: string)
     self.allowedClientEvents[eventId] = nil
     self:_debug("Disallowing client event:", eventId)
-}
+end
 
 -- Disallow a server event
 function EventBridge:disallowServerEvent(eventId: string)
     self.allowedServerEvents[eventId] = nil
     self:_debug("Disallowing server event:", eventId)
-}
+end
 
 -- Set batch configuration
 function EventBridge:configureBatching(enabled: boolean, interval: number?)
@@ -585,12 +585,12 @@ function EventBridge:configureBatching(enabled: boolean, interval: number?)
     if interval then
         self.batchInterval = interval
     end
-}
+end
 
 -- Get event bridge statistics
 function EventBridge:getStats()
     return table.clone(self.stats)
-}
+end
 
 -- Return the module
 return EventBridge

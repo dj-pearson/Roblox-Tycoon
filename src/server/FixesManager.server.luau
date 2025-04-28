@@ -230,7 +230,7 @@ return API
         fixesAPI.Parent = shared
         log("Created FixesAPI in shared folder")
     end
-}
+end
 
 -- Create client-server remotes
 local function createRemotes()
@@ -296,7 +296,7 @@ local function createRemotes()
             modules.TycoonFolderFixer.fixPlayerTycoon(player)
         end
     end)
-}
+end
 
 -- Fix Tycoon structure for a player
 local function fixTycoonStructure(player)
@@ -352,7 +352,7 @@ local function setupPlayerHandlers()
             fixTycoonStructure(player)
         end)
     end
-}
+end
 
 -- Initialize and set up the manager
 local function initialize()
@@ -392,7 +392,7 @@ local function initialize()
     }
     
     log("FixesManager initialization complete")
-}
+end
 
 -- Run initialization
 initialize()

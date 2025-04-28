@@ -520,7 +520,7 @@ local function initialize()
     end
     
     log("BuyTileSystem initialized successfully")
-}
+end
 
 -- Initialize the system
 initialize()

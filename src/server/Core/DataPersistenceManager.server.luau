@@ -622,7 +622,7 @@ function DataPersistenceManager.connectEvents()
         -- Allow time for saves to complete
         task.wait(5)
     end)
-}
+end
 
 -- Initialize the system
 DataPersistenceManager.init()

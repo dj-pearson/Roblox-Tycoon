@@ -643,7 +643,7 @@ local function createStatusObjects()
         timestamp = timestampValue,
         runFunction = checkFunction
     }
-}
+end
 
 -- Setup periodic diagnostics
 local function setupPeriodicDiagnostics()
@@ -692,7 +692,7 @@ local function setupPeriodicDiagnostics()
             statusObjects.timestamp.Value = os.time()
         end
     end)
-}
+end
 
 -- Run setup
 setupPeriodicDiagnostics()

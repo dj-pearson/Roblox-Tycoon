@@ -103,7 +103,7 @@ local function addError(errorInfo)
     end
     
     return errorInfo
-}
+end
 
 -- Process client error report
 local function processClientError(player, errorInfo)
@@ -115,7 +115,7 @@ local function processClientError(player, errorInfo)
     
     -- Add to collection
     return addError(errorInfo)
-}
+end
 
 -- Set up client error reporting
 local function setupClientErrorReporting()
@@ -144,7 +144,7 @@ local function setupClientErrorReporting()
     end)
     
     log("Client error reporting set up successfully")
-}
+end
 
 -- Generate error report
 local function generateErrorReport()
@@ -212,7 +212,7 @@ local function generateErrorReport()
     end
     
     return report
-}
+end
 
 -- Update error statistics in ReplicatedStorage
 local function updateErrorStats()
@@ -263,7 +263,7 @@ local function updateErrorStats()
     end
     
     errorStats.Parent = errorBridge
-}
+end
 
 -- Set up periodic tasks
 local function setupPeriodicTasks()
@@ -283,7 +283,7 @@ local function setupPeriodicTasks()
             log("Error report generated with", report.totalErrors, "total errors")
         end
     end)
-}
+end
 
 -- Initialize the error collector
 local function initialize()
@@ -296,7 +296,7 @@ local function initialize()
     setupPeriodicTasks()
     
     log("ErrorCollector initialized successfully")
-}
+end
 
 -- Run initialization
 initialize()

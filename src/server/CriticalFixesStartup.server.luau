@@ -196,7 +196,7 @@ local function fixCoreRegistry()
         
         print("🛠️ [CriticalFixesStartup] Created basic CoreRegistry remotes")
     end
-}
+end
 
 -- Fix DataPersistence by ensuring it's loaded
 local function ensureDataPersistence()
@@ -228,7 +228,7 @@ local function ensureDataPersistence()
     if not dataManager then
         print("🛠️ [CriticalFixesStartup] DataManager not found, it should be created by our fixes")
     end
-}
+end
 
 -- Fix client registry issues from server
 local function ensureClientRegistry()
@@ -337,7 +337,7 @@ return ClientRegistry
         clientRegistry.Parent = sharedFolder
         print("🛠️ [CriticalFixesStartup] Created ClientRegistry in shared folder")
     end
-}
+end
 
 -- Set up player joining event
 local function setupPlayerEvents()
@@ -354,7 +354,7 @@ local function setupPlayerEvents()
             fixTycoonStructure(player)
         end)
     end
-}
+end
 
 -- Run all fixes in the correct order
 local function runAllFixes()
@@ -376,7 +376,7 @@ local function runAllFixes()
     setupPlayerEvents()
     
     print("🛠️ [CriticalFixesStartup] All critical fixes applied!")
-}
+end
 
 -- Run the fixes
 runAllFixes()

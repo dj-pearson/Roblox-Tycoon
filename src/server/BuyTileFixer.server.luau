@@ -65,7 +65,7 @@ local function getOrCreateFolder(folderName, parent)
     end
     
     return folder
-}
+end
 
 -- Get GymParts folder
 local function getGymPartsFolder()
@@ -78,7 +78,7 @@ local function getGymPartsFolder()
     end
     
     return gymPartsFolder
-}
+end
 
 -- Get BuyTiles folder
 local function getBuyTilesFolder()
@@ -91,7 +91,7 @@ local function getBuyTilesFolder()
     end
     
     return buyTilesFolder
-}
+end
 
 -- Find gym part by ID with multiple search strategies
 local function findGymPart(id)
@@ -134,7 +134,7 @@ local function findGymPart(id)
     
     log("Could not find gym part with ID:", id)
     return nil
-}
+end
 
 -- Create default gym part
 local function createDefaultGymPart(id)
@@ -179,7 +179,7 @@ local function createDefaultGymPart(id)
     
     log("Created default gym part for ID:", id)
     return model
-}
+end
 
 -- Patch original BuyTile system if it exists
 local function patchBuyTileSystem()
@@ -330,19 +330,19 @@ local function createDefaultGymPart(id)
     return model
 end
 ]]
-        }
+end
         
         -- If we have patched source, update the module
         if patchedSource then
             buyTileModule.Source = patchedSource
             log("Successfully patched BuyTile system")
             return true
-        }
-    }
+        end
+    end
     
     log("Could not patch BuyTile system, may not have the expected structure")
     return false
-}
+end
 
 -- Create or ensure default gym parts exist
 local function ensureDefaultGymParts()
@@ -357,7 +357,7 @@ local function ensureDefaultGymParts()
             createDefaultGymPart(id)
         end
     end
-}
+end
 
 -- Find the original BuyTile system
 local function findBuyTileSystem()
@@ -378,7 +378,7 @@ local function findBuyTileSystem()
     
     log("Could not find BuyTile system module")
     return nil
-}
+end
 
 -- Monkey patch the BuyTile system's functions
 local function monkeyPatch()
@@ -458,10 +458,10 @@ local function monkeyPatch()
                 end
                 
                 log("Successfully monkey patched spawnGymPart at runtime")
-            }
-        }
-    }
-}
+            end
+        end
+    end
+end
 
 -- Main function to fix BuyTile system
 local function fixBuyTileSystem()
@@ -483,7 +483,7 @@ local function fixBuyTileSystem()
     end
     
     log("BuyTile system fix complete")
-}
+end
 
 -- Run the fix
 fixBuyTileSystem()

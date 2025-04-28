@@ -43,7 +43,7 @@ local function recordTest(name, passed, details)
     end
     
     return passed
-}
+end
 
 -- Find the BuyTile system
 local function findBuyTileSystem()
@@ -73,7 +73,7 @@ local function findBuyTileSystem()
     
     warn("[BuyTileFixesTest] Could not find BuyTile system")
     return nil
-}
+end
 
 -- Find the BuyTileFixer
 local function findBuyTileFixer()
@@ -103,7 +103,7 @@ local function findBuyTileFixer()
     
     warn("[BuyTileFixesTest] Could not find BuyTileFixer")
     return nil
-}
+end
 
 -- Test finding gym parts
 local function testFindGymParts()
@@ -154,7 +154,7 @@ local function testFindGymParts()
         
         task.wait(CONFIG.waitBetweenTests)
     end
-}
+end
 
 -- Test spawning gym parts
 local function testSpawnGymParts()
@@ -219,7 +219,7 @@ local function testSpawnGymParts()
     
     -- Clean up
     tempContainer:Destroy()
-}
+end
 
 -- Test gym parts folder
 local function testGymPartsFolder()
@@ -270,7 +270,7 @@ local function testGymPartsFolder()
     end
     
     recordTest("GymPart ID 1 Exists", foundPart1, "GymPart with ID 1 not found")
-}
+end
 
 -- Run all tests
 local function runAllTests()
@@ -293,7 +293,7 @@ local function runAllTests()
     resultsValue.Parent = script
     
     return results
-}
+end
 
 -- Wait a moment for everything to load before testing
 task.wait(3)

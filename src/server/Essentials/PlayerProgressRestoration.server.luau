@@ -137,7 +137,7 @@ local function getRestorationState(player)
     end
     
     return playerRestorationState[player.UserId]
-}
+end
 
 -- Check if player data needs restoration
 local function needsRestoration(player)
@@ -337,7 +337,7 @@ local function scheduleIntegrityCheck(player)
             log("No restoration needed for " .. player.Name .. ": " .. reason)
         end
     end)
-}
+end
 
 -- Handle player joining
 local function onPlayerAdded(player)
@@ -350,14 +350,14 @@ local function onPlayerAdded(player)
     if CONFIG.AUTO_RECOVERY_ENABLED then
         scheduleIntegrityCheck(player)
     end
-}
+end
 
 -- Handle player leaving
 local function onPlayerRemoving(player)
     -- Clean up restoration state
     playerRestorationState[player.UserId] = nil
     log("Cleaned up restoration state for " .. player.Name)
-}
+end
 
 -- Connect player events
 Players.PlayerAdded:Connect(onPlayerAdded)

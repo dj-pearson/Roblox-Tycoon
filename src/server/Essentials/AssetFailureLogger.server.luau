@@ -164,7 +164,7 @@ local function generateSummaryReport()
     end
     
     return report
-}
+end
 
 -- Save failure data to DataStore
 local function saveFailureData()
@@ -208,7 +208,7 @@ local function saveFailureData()
         warn("[AssetFailureLogger] Failed to save report: " .. tostring(result))
         return false
     end
-}
+end
 
 -- Upload report to external server if configured
 local function uploadReportToServer()
@@ -232,7 +232,7 @@ local function uploadReportToServer()
         warn("[AssetFailureLogger] Failed to upload report: " .. tostring(result))
         return false
     end
-}
+end
 
 -- Print a summary to the output
 local function printSummaryReport()
@@ -250,7 +250,7 @@ local function printSummaryReport()
     end
     
     log("================================")
-}
+end
 
 -- Set up event handler for client reports
 local function setupEventHandler()
@@ -269,7 +269,7 @@ local function setupEventHandler()
     end)
     
     log("Asset failure report handler connected")
-}
+end
 
 -- Schedule periodic reporting
 local function scheduleReporting()
@@ -291,7 +291,7 @@ local function scheduleReporting()
     end)
     
     log("Scheduled periodic reporting every " .. CONFIG.REPORT_INTERVAL .. " seconds")
-}
+end
 
 -- Initialize the system
 local function initialize()
@@ -301,7 +301,7 @@ local function initialize()
     scheduleReporting()
     
     log("Asset Failure Logger initialized successfully")
-}
+end
 
 -- Initialize automatically
 initialize()

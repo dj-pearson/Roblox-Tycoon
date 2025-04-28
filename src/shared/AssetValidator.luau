@@ -318,7 +318,7 @@ local function validateAsset(asset, options)
     loadingPromises[assetId] = nil
     
     return validationSuccess
-}
+end
 
 -- Validate multiple assets
 local function validateAssets(assets, options)
@@ -352,7 +352,7 @@ local function validateAssets(assets, options)
     end
     
     return false
-}
+end
 
 -- Preload common assets
 local function preloadCommonAssets()
@@ -405,7 +405,7 @@ local function preloadCommonAssets()
     end
     
     log("Common asset preloading complete")
-}
+end
 
 -- Get fallback asset for type
 local function getFallbackAsset(assetType)
@@ -420,7 +420,7 @@ local function getFallbackAsset(assetType)
     
     -- For types without fallbacks, return nil
     return nil
-}
+end
 
 -- Initialize the module
 local function initialize()
@@ -435,7 +435,7 @@ local function initialize()
     end)
     
     log("AssetValidator initialized")
-}
+end
 
 -- Initialize
 initialize()
