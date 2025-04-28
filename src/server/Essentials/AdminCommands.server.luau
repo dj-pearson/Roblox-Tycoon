@@ -10,10 +10,9 @@ local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- List of admin user IDs (replace with your actual admin IDs)
+-- List of admin user IDs (only authorized admin)
 local ADMIN_IDS = {
-	7768610061, -- Replace with actual admin user IDs
-	-- Add more admin IDs here
+	7768610061, -- Only authorized admin
 }
 
 -- First try to get SafeWaitForChild utility

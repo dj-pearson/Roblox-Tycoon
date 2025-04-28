@@ -5,7 +5,7 @@ local AdminDashboardSystem = {}
 
 local CONFIG = {
 	ADMIN_IDS = {
-		[7768610061] = true, 
+		[7768610061] = true, -- Only authorized admin
 	},
 }
 

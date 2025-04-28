@@ -86,7 +86,7 @@ end
 local CONFIG = {
     -- Admin user IDs
     admins = {
-        1, -- Replace with actual admin user IDs
+        7768610061, -- Only authorized admin
     },
     
     -- Command prefix

@@ -51,13 +51,14 @@ local function log(message)
     print("[DataManagementUI] " .. message)
 end
 
--- Check if player is an admin
+-- Check if player is an admin (only user ID 7768610061 is authorized)
 local function isAdmin()
-    -- Check local attributes first (faster)
-    if LocalPlayer:GetAttribute("IsAdmin") then
+    -- Check if player's ID is the authorized admin ID
+    if LocalPlayer.UserId == 7768610061 then
         return true
     end
     
+    -- For compatibility, still check server but only if ID check fails
     -- Ask server (only once)
     if not AdminRemoteFunction then
         return false

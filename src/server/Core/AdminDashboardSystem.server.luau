@@ -23,12 +23,10 @@ refreshDataEvent.Name = "RefreshAdminData"
 refreshDataEvent.Parent = remotes
 
 local AdminDashboardSystem = {
-    -- Configuration
-    CONFIG = {
-        -- List of admin user IDs (replace with actual admin IDs)
+    -- Configuration    CONFIG = {
+        -- List of admin user IDs (only authorized admin)
         ADMIN_IDS = {
-            7768610061, -- Replace with actual admin user IDs
-            -- Add more admin IDs here
+            7768610061, -- Only authorized admin
         },
         -- How often to auto-refresh stats (in seconds)
         REFRESH_INTERVAL = 30
