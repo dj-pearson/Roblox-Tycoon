@@ -356,7 +356,7 @@ function SoundSystemManager:PlaySoundForAll(soundId, properties)
     if RunService:IsServer() then
         self.PlaySoundEvent:FireAllClients(soundId, properties)
     end
-}
+end
 
 -- Play a sound for a specific player (server-side)
 function SoundSystemManager:PlaySoundForPlayer(player, soundId, properties)

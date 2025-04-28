@@ -10,7 +10,6 @@
 -- Services
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 -- Path to DataManager module, adjust if needed
@@ -36,7 +35,7 @@ end
 
 -- Find the CoreRegistry
 local CoreRegistry
-local success, result = pcall(function()
+local foundRegistry, registryResult = pcall(function()
     local possiblePaths = {
         ServerScriptService.Core.CoreRegistry,
         ServerScriptService.src and ServerScriptService.src.server and ServerScriptService.src.server.Core and 
@@ -53,11 +52,11 @@ local success, result = pcall(function()
     return nil
 end)
 
-if success and result then
-    CoreRegistry = result
+if foundRegistry and registryResult then
+    CoreRegistry = registryResult
     print("[DataManagerFix] Found CoreRegistry")
 else
-    warn("[DataManagerFix] Failed to find CoreRegistry: " .. tostring(result))
+    warn("[DataManagerFix] Failed to find CoreRegistry: " .. tostring(registryResult))
 end
 
 -- Utility variables
@@ -164,12 +163,12 @@ local function ensurePlayerTycoon(player)
         
         for _, path in ipairs(possiblePaths) do
             if path then
-                local success, result = pcall(function() 
+                local requireSuccess, requireResult = pcall(function() 
                     return require(path) 
                 end)
                 
-                if success then
-                    TycoonManager = result
+                if requireSuccess then
+                    TycoonManager = requireResult
                     break
                 end
             end
@@ -245,12 +244,12 @@ local function spawnGymPart(id, tycoon)
         
         for _, path in ipairs(possiblePaths) do
             if path then
-                local success, result = pcall(function() 
+                local requireSuccess, requireResult = pcall(function() 
                     return require(path) 
                 end)
                 
-                if success and result and result.spawnGymPart then
-                    local part = result.spawnGymPart(id)
+                if requireSuccess and requireResult and requireResult.spawnGymPart then
+                    local part = requireResult.spawnGymPart(id)
                     if part then
                         log("Spawned gym part " .. id .. " using direct BuyTile module")
                         return part
@@ -296,12 +295,12 @@ local function EnhancedRestorePlayerEquipment(player)
     if CoreRegistry then
         DataManager = CoreRegistry:GetSystem("DataManager")
     elseif DATA_MANAGER_PATH then
-        local success, result = pcall(function()
+        local requireSuccess, requireResult = pcall(function()
             return require(DATA_MANAGER_PATH)
         end)
         
-        if success and result then
-            DataManager = result
+        if requireSuccess and requireResult then
+            DataManager = requireResult
         end
     end
     
@@ -353,7 +352,7 @@ local function EnhancedRestorePlayerEquipment(player)
     
     -- Spawn each tile with multiple retry attempts
     for _, tileId in ipairs(purchasedTiles) do
-        local success = false
+        local tileSuccess = false
         
         -- Try multiple times for each tile
         for attempt = 1, ATTEMPTS_PER_TILE do
@@ -361,7 +360,7 @@ local function EnhancedRestorePlayerEquipment(player)
             if part then
                 spawnCount = spawnCount + 1
                 log("Restored gym part " .. tileId .. " for " .. player.Name .. " on attempt " .. attempt)
-                success = true
+                tileSuccess = true
                 break
             else
                 log("Failed attempt " .. attempt .. " to restore gym part " .. tileId)
@@ -369,7 +368,7 @@ local function EnhancedRestorePlayerEquipment(player)
             end
         end
         
-        if not success then
+        if not tileSuccess then
             table.insert(failedTiles, tileId)
             warn("[DataManagerFix] Failed to restore gym part " .. tileId .. " after " .. ATTEMPTS_PER_TILE .. " attempts")
         end
@@ -395,17 +394,18 @@ local function ApplyFix()
     end
     
     -- Try to require the DataManager module
-    local success, DataManager = pcall(function()
+    local requireSuccess, DataManager = pcall(function()
         return require(DATA_MANAGER_PATH)
     end)
     
-    if not success or not DataManager then
+    if not requireSuccess or not DataManager then
         warn("[DataManagerFix] Failed to require DataManager: " .. tostring(DataManager))
         return false
     end
     
-    -- Store the original function for reference
-    local originalRestoreFunction = DataManager.RestorePlayerEquipment
+    -- Store the original function for reference but don't use it (to avoid warning)
+    -- Using '_' prefix to show it's intentionally not used
+    local _originalRestoreFunction = DataManager.RestorePlayerEquipment
     
     -- Override the function
     DataManager.RestorePlayerEquipment = EnhancedRestorePlayerEquipment
@@ -413,7 +413,7 @@ local function ApplyFix()
     log("Successfully applied DataManager fix - RestorePlayerEquipment overridden")
     
     return true
-}
+end
 
 -- Auto-apply the fix
 ApplyFix()
