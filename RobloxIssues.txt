@@ -99,6 +99,264 @@
 - ❌ SafeRequire module still not found, causing issues with module loading
 - ❌ Core folder structures incomplete or missing
 
+## Tycoon Folder Structure Issues (❌ NEW - April 28, 2025)
+
+**Error Message:**
+- `Value is not a valid member of Folder "Players.Xdjpearsonx.Tycoon"`
+- `Value is not a valid member of Folder "Xdjpearsonx.Tycoon"`
+
+**Context:** Player tycoon data folders are missing or improperly structured, affecting multiple systems.
+
+**Impact:** Critical. Prevents proper functioning of:
+- Front desk management
+- Data persistence
+- Equipment restoration
+- Tycoon validation
+
+**Frequency:** Occurs consistently during gameplay for all players.
+
+**Specific Affected Systems:**
+- FrontDeskPrompt (Line 199)
+- GymTycoonDataManager (Lines 257, 459)
+- UnifiedTycoonSystem (Line 372)
+
+**Stack Traces:**
+- Consistent errors in FrontDeskPrompt:199 → updateFrontDeskDisplay → Line 449
+- GymTycoonDataManager:257 → updateDataFromPlayer → saveData → Line 704
+- GymTycoonDataManager:459 → restorePurchasedEquipment → Line 670
+- UnifiedTycoonSystem:372 during periodic tycoon validation checks
+
+**Root Cause Analysis:**
+1. Tycoon folder structure not being properly created for player
+2. Player data initialization may be failing
+3. Data persistence/loading system not properly setting up required structures
+
+**Action Plan:**
+1. Implement proper Tycoon folder initialization for new players
+2. Add folder validation and auto-creation in affected systems
+3. Review player data initialization process
+4. Create fallback mechanisms when folders don't exist
+
+## BuyTile System Errors (❌ NEW - April 28, 2025)
+
+**Error Message:**
+- `[BuyTile] Could not find gym part with ID: 1`
+- `[BuyTile] Failed to spawn Gym Part for ID: 1`
+
+**Context:** When players purchase tiles, the system fails to spawn the corresponding gym parts.
+
+**Impact:** High. Players can purchase tiles but don't receive the corresponding gym equipment or structures.
+
+**Frequency:** Occurs when players purchase tiles.
+
+**Observed Behavior:**
+- BuyTile purchase works (money transaction)
+- Milestone achievement triggers ("First Steps")
+- Next BuyTile is correctly spawned (BuyTile 2)
+- But the actual gym part for ID 1 fails to spawn
+
+**Root Cause Analysis:**
+1. Gym parts collection may be missing or not properly indexed
+2. Path to gym parts may be incorrect 
+3. Gym part model for ID 1 may be missing or corrupted
+
+**Action Plan:**
+1. Verify existence of gym part models in correct locations
+2. Add diagnostic logging to trace search paths
+3. Implement fallback models when specific parts aren't found
+4. Review and fix the gym part spawning logic
+
+## Asset Loading Failures (❌ NEW - April 28, 2025)
+
+**Error Message:**
+- `Failed to load sound rbxassetid://9048378264: Asset type does not match requested type`
+- `Failed to load sound rbxassetid://9125601193: Asset type does not match requested type`
+
+**Context:** Audio assets are failing to load properly.
+
+**Impact:** Medium. Affects sound effects and potentially player feedback.
+
+**Frequency:** Consistent on specific audio assets.
+
+**Status:**
+- Sound System initialization reports: `[Phase3ClientLoader] - Sound System: FAILED`
+- Asset Diagnostics reports: `[Phase3ClientLoader] Asset Stats - Success: 0.0%, Loaded: 0, Failed: 0`
+- SoundSystemManager and SoundAssetValidator not found or failed to load
+
+**Root Cause Analysis:**
+1. Audio assets may have been changed or deleted
+2. Asset IDs may be incorrect or pointing to non-sound assets
+3. Sound system modules missing or failing to initialize
+
+**Action Plan:**
+1. Validate all sound asset IDs
+2. Implement the missing SoundSystemManager and SoundAssetValidator
+3. Add error handling for missing sound assets
+4. Consider replacing problematic sound assets with working alternatives
+
+## Dynamic Economy System Status (✅ WORKING - April 28, 2025)
+
+**Observation:**
+- `Price adjusted for: RawMaterial. New Price: 2.701800438313184`
+- `Price adjusted for: Membership. New Price: 54.03600876626366`
+- `Price adjusted for: Equipment. New Price: 27.01800438313183`
+- `Price adjusted for: Energy. New Price: 5.403600876626368`
+- `Price adjusted for: FinishedGood. New Price: 10.807201753252736`
+
+**Context:** Dynamic economy adjusts prices periodically based on in-game activity.
+
+**Impact:** Positive. The system is functioning as expected.
+
+**Pattern:**
+- Consistent price adjustments occurring approximately every 10 seconds
+- Price fluctuations follow expected patterns (gradual changes)
+- All expected commodity types being adjusted (RawMaterial, Membership, Equipment, Energy, FinishedGood)
+
+**Status:** 
+- ✅ Dynamic economy system functioning correctly
+- ✅ Price adjustments occurring at expected intervals
+- ✅ All commodity types included in adjustments
+
+## Data Persistence Failures (❌ NEW - April 28, 2025)
+
+**Error Message:**
+- `[DataAccessLayer] Saved 0 player data records during shutdown`
+- `Value is not a valid member of Folder "Xdjpearsonx.Tycoon"`
+
+**Context:** The data persistence layer is failing to save player data.
+
+**Impact:** Critical. Player progress is not being saved between sessions.
+
+**Frequency:** Every time a player leaves or the server shuts down.
+
+**Stack Trace:**
+- GymTycoonDataManager:257 → updateDataFromPlayer → saveData → Line 704 during player departure
+- DataAccessLayer reports saving 0 player data records during shutdown
+
+**Root Cause Analysis:**
+1. Player data structure (Tycoon folder) is missing or malformed
+2. DataAccessLayer not properly finding player data to save
+3. Data format or expected structure may have changed
+4. Connection to data store may be failing
+
+**Action Plan:**
+1. Ensure proper initialization of player data structures on join
+2. Add error handling and recovery in DataAccessLayer
+3. Implement data structure verification before save attempts
+4. Add diagnostic logging to track data flow during save operations
+5. Create backup save mechanisms for critical player data
+
+## CoreRegistry System Failure (❌ NEW - April 28, 2025)
+
+**Error Message:**
+- `[CoreRegistryFeedback] Initial status: CoreRegistry UNAVAILABLE`
+- `[CoreRegistryFeedback] CoreRegistry check failed (2/3)`
+
+**Context:** CoreRegistry is a fundamental system for module registration and dependency management.
+
+**Impact:** Critical. Many systems rely on CoreRegistry for initialization and communication.
+
+**Frequency:** Occurs consistently on game start.
+
+**Status:**
+- CoreRegistry health monitoring reporting UNAVAILABLE status
+- Failed check 2/3 indicates persistent failure after multiple attempts
+- Path registration attempts failing with lack of capability error
+
+**Related Errors:**
+- `The current thread cannot write 'Source' (lacking capability PluginOrOpenCloud)`
+- Path registration failures in PathRegistration script
+
+**Root Cause Analysis:**
+1. CoreRegistry module may be missing or incorrectly implemented
+2. Security permissions issue with the PathRegistration system
+3. Dependency chain issues preventing proper initialization
+
+**Action Plan:**
+1. Review and fix CoreRegistry implementation
+2. Ensure proper permissions for path registration
+3. Analyze dependency chain for initialization order issues
+4. Implement fallback mechanism when CoreRegistry is unavailable
+
+## Client System Missing Components (❌ NEW - April 28, 2025)
+
+**Error Message:**
+- `ClientRegistry.getSystem: System not found - table: 0x004641f7732c1eff`
+- `Shared is not a valid member of PlayerScripts "Players.Xdjpearsonx.PlayerScripts"`
+
+**Context:** Client-side systems are missing critical components and shared modules.
+
+**Impact:** High. UI systems and client functionality severely limited.
+
+**Frequency:** Multiple occurrences throughout gameplay.
+
+**Specific Issues:**
+- ClientRegistry failing to find registered systems
+- Missing shared folder in PlayerScripts
+- Multiple UI initialization failures
+- AdminDashboardClient failing with "Infinite yield possible" errors
+
+**Root Cause Analysis:**
+1. Client initialization sequence may be broken
+2. Shared folder not being properly replicated or created
+3. ClientRegistry not properly initializing before system queries
+4. AdminRemotes not found in ReplicatedStorage
+
+**Action Plan:**
+1. Ensure proper creation of Shared folder in PlayerScripts
+2. Fix ClientRegistry initialization and system registration
+3. Implement proper initialization sequence for client systems
+4. Create AdminRemotes folder in ReplicatedStorage
+5. Add error handling and fallbacks for client systems
+
+## Summary and Prioritization (April 28, 2025)
+
+### Critical Issues Requiring Immediate Attention
+1. **Tycoon Folder Structure Issues** - Preventing core gameplay functionality and data persistence
+   * Impact: Game-breaking for all players
+   * Priority: HIGHEST
+
+2. **Data Persistence Failures** - Player progress not being saved
+   * Impact: Game-breaking, player frustration and progress loss
+   * Priority: HIGHEST
+
+3. **CoreRegistry System Failure** - Fundamental system for module registration
+   * Impact: Widespread dependencies affected
+   * Priority: HIGH
+
+### High Priority Issues
+1. **GymAutomationLoader Failures** (REGRESSION) - Automation system not functioning
+   * Impact: Reduced functionality and broken gameplay features
+   * Priority: HIGH
+
+2. **BuyTile System Errors** - Players can't receive purchased gym parts
+   * Impact: Core gameplay loop broken
+   * Priority: HIGH
+
+3. **Client System Missing Components** - UI and client systems failing
+   * Impact: Poor player experience, limited functionality
+   * Priority: HIGH
+
+### Medium Priority Issues
+1. **Asset Loading Failures** - Sound assets not loading
+   * Impact: Reduced immersion, missing audio feedback
+   * Priority: MEDIUM
+
+### Working Systems to Preserve
+1. **Dynamic Economy System** - Functioning correctly
+   * Continue to monitor for stability
+
+### Recommended Action Sequence
+1. Fix Tycoon folder structure creation and validation
+2. Implement data persistence error handling and recovery
+3. Resolve CoreRegistry availability issues
+4. Restore GymAutomationLoader functionality
+5. Fix BuyTile system and gym part spawning
+6. Address client system component initialization
+7. Resolve asset loading failures
+
+Each issue should be addressed with proper logging, error handling, and validation to prevent regressions.
+
 **Recommended Next Steps:**
 1. Create missing modules in the expected folder structure
 2. Implement timeouts on all WaitForChild calls to prevent infinite yields

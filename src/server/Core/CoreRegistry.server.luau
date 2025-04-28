@@ -1,275 +1,426 @@
--- CoreRegistry.luau
--- Central registry for managing system dependencies and initialization
--- Place in ServerScriptService/Core
+--[[
+    CoreRegistry.server.luau
+    
+    A foundation module for the Roblox game that provides centralized registration
+    and retrieval of game systems. This version includes robust error handling,
+    health monitoring, and diagnostics.
+    
+    Created to fix CoreRegistry System Failure identified in RobloxIssues.txt
+]]
 
-local Services = {
-    ReplicatedStorage = game:GetService("ReplicatedStorage"),
-    ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local RunService = game:GetService("RunService")
+
+-- Configuration
+local CONFIG = {
+    debug = true, -- Enable debug logging
+    healthCheckInterval = 30, -- How often to run health checks in seconds
+    registerShared = true, -- Whether to register this module in shared registry
+    forwardEvents = true -- Whether to forward events to other registry systems
 }
 
--- Use ModuleLoader if it exists, otherwise fall back to legacy loading
-local ModuleLoader
-local loaderSuccess, loaderResult = pcall(function()
-    return require(Services.ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("ModuleLoader"))
-end)
-
-if loaderSuccess then
-    ModuleLoader = loaderResult
-    print("[CoreRegistry] Successfully loaded ModuleLoader")
-else
-    print("[CoreRegistry] ModuleLoader not found, using legacy loading")
-end
-
--- Create the registry table
-local CoreRegistry = {
-    systems = {},     -- Systems that have been registered
-    initialized = {}, -- Systems that have been initialized
-    loading = {},     -- Systems currently being initialized (to detect circular dependencies)
-    moduleLoader = ModuleLoader -- Store ModuleLoader reference for other systems to use
+-- Registry table that holds all registered systems
+local registry = {
+    systems = {}, -- Registered systems
+    dependencies = {}, -- Dependencies between systems
+    initialized = {}, -- Tracks which systems have been initialized
+    failedSystems = {}, -- Systems that failed to initialize
+    registryStatus = "Available" -- Overall registry status
 }
 
--- Debug function
+-- Logger function
 local function log(...)
-    print("[CoreRegistry]", ...)
+    if CONFIG.debug then
+        print("[CoreRegistry]", ...)
+    end
 end
+
+-- Error handler
+local function handleError(errorMessage, system, context)
+    warn("[CoreRegistry] Error:", errorMessage, "| System:", system or "unknown", "| Context:", context or "unknown")
+    
+    -- Track failed system
+    if system then
+        registry.failedSystems[system] = {
+            message = errorMessage,
+            context = context,
+            time = os.time()
+        }
+    end
+    
+    return false
+end
+
+-- The public API
+local CoreRegistry = {}
+CoreRegistry.VERSION = "2.0.0"
+CoreRegistry.isLoaded = true -- Flag to indicate the module is loaded
 
 -- Register a system with the registry
-function CoreRegistry.registerSystem(name, system, dependencies)
-	if CoreRegistry.systems[name] then
-		log("Warning: System '" .. name .. "' already registered, overwriting")
-	end
-	
-	CoreRegistry.systems[name] = {
-		module = system,
-		dependencies = dependencies or {}
-	}
-	
-	log("Registered system: " .. name)
-	return system
+function CoreRegistry.registerSystem(systemName, systemTable)
+    if type(systemName) ~= "string" then
+        return handleError("System name must be a string", systemName, "registerSystem")
+    end
+    
+    if type(systemTable) ~= "table" then
+        return handleError("System table must be a table", systemName, "registerSystem")
+    end
+    
+    -- Check if system already exists
+    if registry.systems[systemName] then
+        log("System", systemName, "is being re-registered")
+    end
+    
+    -- Register the system
+    registry.systems[systemName] = systemTable
+    log("Registered system:", systemName)
+    
+    -- Forward to shared registry if configured
+    if CONFIG.registerShared and CONFIG.forwardEvents then
+        pcall(function()
+            local sharedRegistry = ReplicatedStorage:FindFirstChild("SharedRegistry")
+            if sharedRegistry and sharedRegistry:FindFirstChild("RegisterSystem") then
+                sharedRegistry.RegisterSystem:Fire(systemName, systemTable)
+            end
+        end)
+    end
+    
+    return true
 end
 
--- Get a system and ensure it's initialized
-function CoreRegistry.getSystem(name)
-	-- Return already initialized system
-	if CoreRegistry.initialized[name] then
-		return CoreRegistry.initialized[name]
-	end
-	
-	-- Check if system exists
-	if not CoreRegistry.systems[name] then
-		-- Try to load it directly using ModuleLoader if available
-		if ModuleLoader then
-			local module = ModuleLoader:LoadServerModule("Core", name)
-			if module then
-				CoreRegistry.registerSystem(name, module, {})
-				log("Auto-loaded system '" .. name .. "' using ModuleLoader")
-				-- Continue with initialization below
-			else
-				-- Fall back to legacy loading for common core systems
-				if name == "DataThrottler" or name == "EventBridge" or name == "DataManager" or name == "BuyTileSystem" then
-					local loadSuccess, loadResult = pcall(function()
-						return require(script.Parent:FindFirstChild(name))
-					end)
-					
-					if loadSuccess then
-						CoreRegistry.registerSystem(name, loadResult, {})
-						log("Auto-loaded system '" .. name .. "' using legacy loading")
-					else
-						log("Error: Failed to auto-load system: " .. name)
-						return nil
-					end
-				else
-					log("Error: System not found: " .. name)
-					return nil
-				end
-			end
-		else
-			-- Legacy loading path for backwards compatibility
-			if name == "DataThrottler" then
-				local loadSuccess, loadResult = pcall(function()
-					return require(script.Parent.DataThrottler)
-				end)
-				
-				if loadSuccess then
-					CoreRegistry.registerSystem(name, loadResult, {})
-					log("Auto-loaded system: " .. name)
-				else
-					log("Error: Failed to auto-load system: " .. name)
-					return nil
-				end
-			else
-				log("Error: System not found: " .. name)
-				return nil
-			end
-		end
-	end
-	
-	-- Detect circular dependencies
-	if CoreRegistry.loading[name] then
-		log("Error: Circular dependency detected for system: " .. name)
-		return nil
-	end
-	
-	-- Mark as loading
-	CoreRegistry.loading[name] = true
-	
-	-- Initialize dependencies first
-	for _, dependencyName in ipairs(CoreRegistry.systems[name].dependencies) do
-		local dependency = CoreRegistry.getSystem(dependencyName)
-		if not dependency then
-			log("Warning: Failed to load dependency '" .. dependencyName .. "' for system '" .. name .. "'")
-		end
-	end
-	
-	-- Initialize the system
-	local system = CoreRegistry.systems[name].module
-	if type(system.initialize) == "function" then
-		log("Initializing system: " .. name)
-		local success, errorMsg = pcall(function()
-			system:initialize()
-		end)
-		
-		if not success then
-			log("Error initializing system '" .. name .. "': " .. tostring(errorMsg))
-		end
-	end
-	
-	-- Mark as initialized and no longer loading
-	CoreRegistry.initialized[name] = system
-	CoreRegistry.loading[name] = nil
-	
-	return system
+-- Get a system from the registry
+function CoreRegistry.getSystem(systemName)
+    if type(systemName) ~= "string" then
+        handleError("System name must be a string", systemName, "getSystem")
+        return nil
+    end
+    
+    local system = registry.systems[systemName]
+    if not system then
+        log("System not found:", systemName)
+        return nil
+    end
+    
+    return system
 end
 
--- Initialize all registered systems
-function CoreRegistry.initializeAll()
-	log("Initializing all registered systems...")
-	
-	local initialized = 0
-	for name, _ in pairs(CoreRegistry.systems) do
-		if CoreRegistry.getSystem(name) then
-			initialized = initialized + 1
-		end
-	end
-	
-	log("Initialized " .. initialized .. " systems")
-	return initialized
+-- Check if a system exists in the registry
+function CoreRegistry.hasSystem(systemName)
+    if type(systemName) ~= "string" then
+        return false
+    end
+    
+    return registry.systems[systemName] ~= nil
+end
+
+-- Initialize a system with dependencies
+function CoreRegistry.initSystem(systemName, dependencies, initFunc)
+    if type(systemName) ~= "string" then
+        return handleError("System name must be a string", systemName, "initSystem")
+    end
+    
+    -- Skip if already initialized
+    if registry.initialized[systemName] then
+        log("System", systemName, "already initialized")
+        return true
+    end
+    
+    -- Register dependencies
+    if dependencies and type(dependencies) == "table" then
+        registry.dependencies[systemName] = dependencies
+        
+        -- Check if dependencies are available
+        for _, depName in ipairs(dependencies) do
+            if not CoreRegistry.hasSystem(depName) then
+                return handleError("Required dependency not found: " .. depName, systemName, "initSystem")
+            end
+        end
+    end
+    
+    -- Initialize the system
+    if initFunc and type(initFunc) == "function" then
+        log("Initializing system:", systemName)
+        
+        local success, result = pcall(initFunc)
+        if not success then
+            return handleError("Failed to initialize: " .. result, systemName, "initSystem")
+        end
+        
+        -- Mark as initialized
+        registry.initialized[systemName] = true
+        log("System initialized:", systemName)
+        return true
+    end
+    
+    -- No init function provided, just mark as initialized
+    registry.initialized[systemName] = true
+    return true
+end
+
+-- Get the registry status
+function CoreRegistry.getStatus()
+    return registry.registryStatus
+end
+
+-- Set the registry status
+function CoreRegistry.setStatus(status)
+    registry.registryStatus = status
+    log("Registry status set to:", status)
+    return true
 end
 
 -- Get all registered system names
-function CoreRegistry.getSystemNames()
-	local names = {}
-	for name, _ in pairs(CoreRegistry.systems) do
-		table.insert(names, name)
-	end
-	return names
+function CoreRegistry.getRegisteredSystems()
+    local systems = {}
+    for systemName, _ in pairs(registry.systems) do
+        table.insert(systems, systemName)
+    end
+    return systems
 end
 
--- Create a basic EventBridge system if it doesn't exist yet
--- This is critical as many systems depend on it
-local EventBridge = {
-	events = {},
-	remoteEvents = {},
-	
-	-- Fixed: Remove unused self parameter entirely
-	initialize = function()
-		log("EventBridge initialized")
-		return true
-	end,
-	
-	getOrCreateEvent = function(self, eventName)
-		if not self.events[eventName] then
-			self.events[eventName] = {
-				callbacks = {}
-			}
-		end
-		return self.events[eventName]
-	end,
-	
-	-- Fixed: Use explicit parameter names instead of varargs
-	fireEvent = function(self, eventName, arg1, arg2, arg3, arg4, arg5)
-		local event = self.events[eventName]
-		if event then
-			for _, callback in ipairs(event.callbacks) do
-				task.spawn(function()
-					callback(arg1, arg2, arg3, arg4, arg5)
-				end)
-			end
-		end
-	end,
-	
-	connectEvent = function(self, eventName, callback)
-		local event = self:getOrCreateEvent(eventName)
-		table.insert(event.callbacks, callback)
-	end,
-	
-	getOrCreateRemoteEvent = function(self, eventName)
-		if not self.remoteEvents[eventName] then
-			-- Use the global Services table to avoid shadowing
-			local replicatedStorage = Services.ReplicatedStorage
-			
-			-- Create events folder if it doesn't exist
-			local eventsFolder = replicatedStorage:FindFirstChild("Events")
-			if not eventsFolder then
-				eventsFolder = Instance.new("Folder")
-				eventsFolder.Name = "Events"
-				eventsFolder.Parent = replicatedStorage
-			end
-			
-			-- Create or get remote event
-			local remoteEvent = eventsFolder:FindFirstChild(eventName)
-			if not remoteEvent then
-				remoteEvent = Instance.new("RemoteEvent")
-				remoteEvent.Name = eventName
-				remoteEvent.Parent = eventsFolder
-			end
-			
-			self.remoteEvents[eventName] = remoteEvent
-		end
-		
-		return self.remoteEvents[eventName]
-	end,
-	
-	fireClientEvent = function(self, eventName, player, arg1, arg2, arg3, arg4)
-		local remoteEvent = self:getOrCreateRemoteEvent(eventName)
-		
-		if player then
-			remoteEvent:FireClient(player, arg1, arg2, arg3, arg4)
-		else
-			remoteEvent:FireAllClients(arg1, arg2, arg3, arg4)
-		end
-	end,
-	
-	-- Fixed: Use explicit function with parameters for the OnServerEvent connection
-	connectRemoteEvent = function(self, eventName, callback)
-		local remoteEvent = self:getOrCreateRemoteEvent(eventName)
-		
-		remoteEvent.OnServerEvent:Connect(function(player, arg1, arg2, arg3, arg4)
-			-- Call the callback directly with the player and explicitly named arguments
-			callback(player, arg1, arg2, arg3, arg4)
-		end)
-	end
-}
+-- Get initialization status of all systems
+function CoreRegistry.getInitStatus()
+    local status = {
+        initialized = {},
+        pending = {},
+        failed = {}
+    }
+    
+    for systemName, _ in pairs(registry.systems) do
+        if registry.initialized[systemName] then
+            table.insert(status.initialized, systemName)
+        elseif registry.failedSystems[systemName] then
+            table.insert(status.failed, systemName)
+        else
+            table.insert(status.pending, systemName)
+        end
+    end
+    
+    return status
+end
 
--- Register core EventBridge system first
-CoreRegistry.registerSystem("EventBridge", EventBridge, {})
+-- Run health check
+function CoreRegistry.runHealthCheck()
+    log("Running health check...")
+    
+    -- Check if critical systems are registered
+    local criticalSystems = {
+        "DataManager",
+        "TycoonSystem",
+        "EventBridge"
+    }
+    
+    local missingCritical = false
+    for _, systemName in ipairs(criticalSystems) do
+        if not CoreRegistry.hasSystem(systemName) then
+            log("Critical system missing:", systemName)
+            missingCritical = true
+        end
+    end
+    
+    -- Update status based on health check
+    if missingCritical then
+        CoreRegistry.setStatus("Degraded")
+    else
+        CoreRegistry.setStatus("Available")
+    end
+    
+    return not missingCritical
+end
 
--- Register DataThrottler early to ensure it's available for other systems
-pcall(function()
-	local DataThrottler = require(script.Parent:FindFirstChild("DataThrottler"))
-	CoreRegistry.registerSystem("DataThrottler", DataThrottler, {"CoreRegistry"})
-	log("Registered DataThrottler system")
-end)
+-- Create remote events/functions for cross-boundary access
+function CoreRegistry.createRemoteAccess()
+    local remoteFolder = ReplicatedStorage:FindFirstChild("CoreRegistryRemotes")
+    if not remoteFolder then
+        remoteFolder = Instance.new("Folder")
+        remoteFolder.Name = "CoreRegistryRemotes"
+        remoteFolder.Parent = ReplicatedStorage
+    end
+    
+    -- Create GetSystem RemoteFunction
+    if not remoteFolder:FindFirstChild("GetSystem") then
+        local getSystemRemote = Instance.new("RemoteFunction")
+        getSystemRemote.Name = "GetSystem"
+        getSystemRemote.Parent = remoteFolder
+    end
+    
+    -- Create HasSystem RemoteFunction
+    if not remoteFolder:FindFirstChild("HasSystem") then
+        local hasSystemRemote = Instance.new("RemoteFunction")
+        hasSystemRemote.Name = "HasSystem"
+        hasSystemRemote.Parent = remoteFolder
+    end
+    
+    -- Create GetStatus RemoteFunction
+    if not remoteFolder:FindFirstChild("GetStatus") then
+        local getStatusRemote = Instance.new("RemoteFunction")
+        getStatusRemote.Name = "GetStatus"
+        getStatusRemote.Parent = remoteFolder
+    end
+    
+    -- Connect functions to remotes
+    remoteFolder.GetSystem.OnServerInvoke = function(player, systemName)
+        local system = CoreRegistry.getSystem(systemName)
+        -- Only return public API if defined, otherwise nil
+        return system and system.publicAPI
+    end
+    
+    remoteFolder.HasSystem.OnServerInvoke = function(_, systemName)
+        return CoreRegistry.hasSystem(systemName)
+    end
+    
+    remoteFolder.GetStatus.OnServerInvoke = function(_)
+        return CoreRegistry.getStatus()
+    end
+    
+    log("Remote access created")
+    return true
+end
 
--- Register the AdminDashboardSystem
-pcall(function()
-	local AdminDashboardSystem = require(script.Parent:FindFirstChild("AdminDashboardSystem"))
-	if AdminDashboardSystem then
-		CoreRegistry.registerSystem("AdminDashboardSystem", AdminDashboardSystem, {
-			"DataManager", "TycoonSystem", "NPCSystem", "RevenueSystem"
-		})
-	end
-end)
+-- Create events for health monitoring
+function CoreRegistry.createHealthMonitoring()
+    local monitorFolder = ServerScriptService:FindFirstChild("CoreRegistryMonitoring")
+    if not monitorFolder then
+        monitorFolder = Instance.new("Folder")
+        monitorFolder.Name = "CoreRegistryMonitoring"
+        monitorFolder.Parent = ServerScriptService
+    end
+    
+    -- Create StatusChanged BindableEvent
+    if not monitorFolder:FindFirstChild("StatusChanged") then
+        local statusChangedEvent = Instance.new("BindableEvent")
+        statusChangedEvent.Name = "StatusChanged"
+        statusChangedEvent.Parent = monitorFolder
+    end
+    
+    -- Create RunHealthCheck BindableFunction
+    if not monitorFolder:FindFirstChild("RunHealthCheck") then
+        local runHealthCheckFunc = Instance.new("BindableFunction")
+        runHealthCheckFunc.Name = "RunHealthCheck"
+        runHealthCheckFunc.Parent = monitorFolder
+    end
+    
+    -- Connect functions
+    monitorFolder.RunHealthCheck.OnInvoke = function()
+        return CoreRegistry.runHealthCheck()
+    end
+    
+    -- Store old setStatus function
+    local oldSetStatus = CoreRegistry.setStatus
+    
+    -- Override setStatus to fire event
+    CoreRegistry.setStatus = function(status)
+        local oldStatus = registry.registryStatus
+        oldSetStatus(status)
+        
+        if oldStatus ~= status then
+            monitorFolder.StatusChanged:Fire(status, oldStatus)
+        end
+        
+        return true
+    end
+    
+    log("Health monitoring created")
+    return true
+end
 
--- Export the CoreRegistry module
+-- Create shared registry for cross-boundary access
+function CoreRegistry.createSharedRegistry()
+    if not CONFIG.registerShared then
+        return true
+    end
+    
+    local sharedRegistry = ReplicatedStorage:FindFirstChild("SharedRegistry")
+    if not sharedRegistry then
+        sharedRegistry = Instance.new("Folder")
+        sharedRegistry.Name = "SharedRegistry"
+        sharedRegistry.Parent = ReplicatedStorage
+    end
+    
+    -- Create RegisterSystem BindableEvent
+    if not sharedRegistry:FindFirstChild("RegisterSystem") then
+        local registerSystemEvent = Instance.new("BindableEvent")
+        registerSystemEvent.Name = "RegisterSystem"
+        registerSystemEvent.Parent = sharedRegistry
+    end
+    
+    -- Create GetSystem BindableFunction
+    if not sharedRegistry:FindFirstChild("GetSystem") then
+        local getSystemFunc = Instance.new("BindableFunction")
+        getSystemFunc.Name = "GetSystem"
+        getSystemFunc.Parent = sharedRegistry
+    end
+    
+    -- Create HasSystem BindableFunction
+    if not sharedRegistry:FindFirstChild("HasSystem") then
+        local hasSystemFunc = Instance.new("BindableFunction")
+        hasSystemFunc.Name = "HasSystem"
+        hasSystemFunc.Parent = sharedRegistry
+    end
+    
+    -- Connect functions
+    sharedRegistry.GetSystem.OnInvoke = function(systemName)
+        return CoreRegistry.getSystem(systemName)
+    end
+    
+    sharedRegistry.HasSystem.OnInvoke = function(systemName)
+        return CoreRegistry.hasSystem(systemName)
+    end
+    
+    -- Connect to registration events
+    sharedRegistry.RegisterSystem.Event:Connect(function(systemName, systemTable)
+        -- Only register if we don't have it already to avoid loops
+        if not CoreRegistry.hasSystem(systemName) then
+            CoreRegistry.registerSystem(systemName, systemTable)
+        end
+    end)
+    
+    log("Shared registry created")
+    return true
+end
+
+-- Start periodic health checks
+function CoreRegistry.startHealthChecks()
+    task.spawn(function()
+        while true do
+            task.wait(CONFIG.healthCheckInterval)
+            CoreRegistry.runHealthCheck()
+        end
+    end)
+    
+    log("Health checks started")
+    return true
+end
+
+-- Initialize the registry
+function CoreRegistry.initialize()
+    -- Create remote access
+    CoreRegistry.createRemoteAccess()
+    
+    -- Create health monitoring
+    CoreRegistry.createHealthMonitoring()
+    
+    -- Create shared registry
+    CoreRegistry.createSharedRegistry()
+    
+    -- Start health checks
+    CoreRegistry.startHealthChecks()
+    
+    -- Register self
+    CoreRegistry.registerSystem("CoreRegistry", CoreRegistry)
+    
+    -- Set initial status
+    CoreRegistry.setStatus("Available")
+    
+    log("CoreRegistry initialized successfully")
+    return true
+end
+
+-- Initialize the registry
+CoreRegistry.initialize()
+
+-- Expose global access to CoreRegistry for critical systems
+_G.CoreRegistry = CoreRegistry
+
 return CoreRegistry
