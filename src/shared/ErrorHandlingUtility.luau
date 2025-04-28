@@ -56,7 +56,7 @@ local function formatError(errorType, message, source, additionalInfo)
     }
     
     return formattedError
-}
+end
 
 -- Report an error
 local function reportError(level, errorInfo)
@@ -119,7 +119,7 @@ local function reportError(level, errorInfo)
     end
     
     return errorInfo
-}
+end
 
 -- Create specific error reporting functions
 local function generateErrorFunction(level, errorType)
@@ -127,7 +127,7 @@ local function generateErrorFunction(level, errorType)
         local errorInfo = formatError(errorType, message, source, additionalInfo)
         return reportError(level, errorInfo)
     end
-}
+end
 
 -- Create error report system
 local errorReporter = {}
@@ -137,7 +137,7 @@ for typeName, errorType in pairs(CONFIG.errorTypes) do
     errorReporter["report" .. errorType] = generateErrorFunction(CONFIG.errorLevels.ERROR, errorType)
     errorReporter["reportCritical" .. errorType] = generateErrorFunction(CONFIG.errorLevels.CRITICAL, errorType)
     errorReporter["warn" .. errorType] = generateErrorFunction(CONFIG.errorLevels.WARNING, errorType)
-}
+end
 
 -- Create error bridge if it doesn't exist
 local function setupErrorBridge()
@@ -193,7 +193,7 @@ local function setupErrorBridge()
             historyValue.Value = result
         end
     end)
-}
+end
 
 -- Safe error handling with recovery options
 local function safeCall(func, ...)
@@ -210,7 +210,7 @@ local function safeCall(func, ...)
     end
     
     return true, result
-}
+end
 
 -- Safe requiring of modules
 local function safeRequire(moduleScript)
@@ -233,7 +233,7 @@ local function safeRequire(moduleScript)
     end
     
     return true, result
-}
+end
 
 -- Initialize the module
 setupErrorBridge()
