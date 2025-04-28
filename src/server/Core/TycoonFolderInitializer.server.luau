@@ -224,6 +224,28 @@ local function validateTycoonFolder(player)
         end
     end
     
+    -- Create default value instances for critical systems that were causing errors
+    local dataFolder = SafeWaitForChild.wait(tycoonFolder, "Data", 1, true)
+    if dataFolder then
+        -- FrontDeskDisplay - fix for "Value is not a valid member of Folder" error
+        local frontDeskData = dataFolder:FindFirstChild("FrontDeskDisplay")
+        if not frontDeskData then
+            frontDeskData = Instance.new("StringValue")
+            frontDeskData.Name = "FrontDeskDisplay"
+            frontDeskData.Value = "Welcome to your gym!"
+            frontDeskData.Parent = dataFolder
+        end
+        
+        -- TycoonId - needed for validation checks
+        local tycoonIdValue = dataFolder:FindFirstChild("TycoonId")
+        if not tycoonIdValue then
+            tycoonIdValue = Instance.new("StringValue")
+            tycoonIdValue.Name = "TycoonId"
+            tycoonIdValue.Value = player.Name
+            tycoonIdValue.Parent = dataFolder
+        end
+    end
+    
     print("TycoonFolderInitializer: Validated and fixed tycoon folder structure for " .. player.Name)
     return tycoonFolder
 end

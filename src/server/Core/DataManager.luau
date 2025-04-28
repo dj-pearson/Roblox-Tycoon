@@ -353,40 +353,75 @@ function DataManager.savePlayerData(player)
     data.statistics.playtime = data.statistics.playtime + (os.time() - data.lastLogin)
     data.lastLogin = os.time()
     
-    -- Try to save to DataStore
-    local success, result
+    -- Check for the DataAccessLayer for enhanced saving
+    local dataAccessLayerModule = findModule("DataAccessLayer")
+    local DataAccessLayer = dataAccessLayerModule and safeRequire(dataAccessLayerModule)
     
-    for retry = 1, MAX_RETRIES do
-        success, result = pcall(function()
-            return dataStore:SetAsync("Player_" .. player.UserId, data)
-        end)
+    if DataAccessLayer and typeof(DataAccessLayer.saveData) == "function" then
+        -- Use the enhanced DataAccessLayer
+        local saveSuccess = DataAccessLayer.saveData(
+            DATA_STORE_NAME, 
+            "Player_" .. player.UserId, 
+            data, 
+            {
+                retryCount = MAX_RETRIES,
+                retryDelay = RETRY_DELAY,
+                metadata = {
+                    playerName = player.Name,
+                    saveTime = os.time()
+                }
+            }
+        )
         
-        if success then
-            break
-        else
-            warn("DataManager: Failed to save data for " .. player.Name .. " - " .. tostring(result) .. " (Attempt " .. retry .. "/" .. MAX_RETRIES .. ")")
-            task.wait(RETRY_DELAY)
-        end
-    end
-    
-    savingInProgress[player.UserId] = nil
-    
-    -- Notify that data was saved or failed to save
-    if EventBridge.fireEvent then
-        if success then
+        savingInProgress[player.UserId] = nil
+        
+        -- Notify that data was scheduled for saving
+        if EventBridge.fireEvent then
             EventBridge.fireEvent("DataManager_PlayerDataSaved", {
                 player = player,
-                success = true
-            })
-        else
-            EventBridge.fireEvent("DataManager_PlayerDataError", {
-                player = player,
-                error = "Failed to save data after " .. MAX_RETRIES .. " attempts"
+                success = saveSuccess,
+                usingAdvancedLayer = true
             })
         end
+        
+        return saveSuccess
+    else
+        -- Fall back to direct DataStore usage
+        local success, result
+        
+        for retry = 1, MAX_RETRIES do
+            success, result = pcall(function()
+                return dataStore:SetAsync("Player_" .. player.UserId, data)
+            end)
+            
+            if success then
+                break
+            else
+                warn("DataManager: Failed to save data for " .. player.Name .. " - " .. tostring(result) .. " (Attempt " .. retry .. "/" .. MAX_RETRIES .. ")")
+                task.wait(RETRY_DELAY)
+            end
+        end
+        
+        savingInProgress[player.UserId] = nil
+        
+        -- Notify that data was saved or failed to save
+        if EventBridge.fireEvent then
+            if success then
+                EventBridge.fireEvent("DataManager_PlayerDataSaved", {
+                    player = player,
+                    success = true,
+                    usingAdvancedLayer = false
+                })
+            else
+                EventBridge.fireEvent("DataManager_PlayerDataError", {
+                    player = player,
+                    error = "Failed to save data after " .. MAX_RETRIES .. " attempts"
+                })
+            end
+        end
+        
+        return success
     end
-    
-    return success
 end
 
 -- Save all player data
@@ -633,11 +668,13 @@ function DataManager.spawnGymPart(player, tile, gymPartId)
         return false
     end
     
-    -- Look for the gym part in ServerStorage
+    -- Create GymParts folder if it doesn't exist
     local gymPartsFolder = ServerStorage:FindFirstChild("GymParts")
     if not gymPartsFolder then
-        warn("DataManager: GymParts folder not found in ServerStorage")
-        return false
+        gymPartsFolder = Instance.new("Folder")
+        gymPartsFolder.Name = "GymParts"
+        gymPartsFolder.Parent = ServerStorage
+        warn("DataManager: GymParts folder not found in ServerStorage, created a new one")
     end
     
     -- Find the gym part model
@@ -646,12 +683,41 @@ function DataManager.spawnGymPart(player, tile, gymPartId)
     -- First try direct lookup
     gymPartModel = gymPartsFolder:FindFirstChild(gymPartId)
     
-    -- If not found, search recursively
+    -- Try numeric ID conversion if the ID looks like a string number
+    if not gymPartModel and tonumber(gymPartId) then
+        gymPartModel = gymPartsFolder:FindFirstChild(tostring(tonumber(gymPartId)))
+    end
+    
+    -- If not found, search recursively by name
     if not gymPartModel then
-        for _, folder in ipairs(gymPartsFolder:GetDescendants()) do
-            if folder:IsA("Folder") then
+        for _, item in ipairs(gymPartsFolder:GetDescendants()) do
+            if item:IsA("Model") or item:IsA("Part") then
+                if item.Name == gymPartId or item.Name == tostring(tonumber(gymPartId)) then
+                    gymPartModel = item
+                    break
+                end
+            end
+        end
+    end
+    
+    -- Search by tag if tags are being used
+    if not gymPartModel then
+        local CollectionService = game:GetService("CollectionService")
+        local taggedParts = CollectionService:GetTagged("GymPart_"..gymPartId)
+        if #taggedParts > 0 then
+            gymPartModel = taggedParts[1]
+        end
+    end
+    
+    -- If still not found, check for standard parts by ID
+    if not gymPartModel then
+        -- Look in predefined categories
+        local categories = {"Weights", "Cardio", "Machines", "Amenities", "Furniture", "Standard"}
+        for _, category in ipairs(categories) do
+            local folder = gymPartsFolder:FindFirstChild(category)
+            if folder then
                 gymPartModel = folder:FindFirstChild(gymPartId)
-                if gymPartModel then
+                if gymPartModel then 
                     break
                 end
             end
@@ -662,23 +728,54 @@ function DataManager.spawnGymPart(player, tile, gymPartId)
     if not gymPartModel then
         warn("DataManager: Could not find gym part with ID: " .. gymPartId)
         
-        -- Try to use a fallback system if available
+        -- Create a default part as ultimate fallback
+        local defaultPart = Instance.new("Part")
+        defaultPart.Name = "DefaultGymPart_" .. gymPartId
+        defaultPart.Anchored = true
+        defaultPart.Size = Vector3.new(4, 1, 4)
+        defaultPart.BrickColor = BrickColor.new("Bright blue")
+        defaultPart.Material = Enum.Material.Plastic
+        
+        -- Add a SurfaceGui with a label
+        local surfaceGui = Instance.new("SurfaceGui")
+        surfaceGui.Parent = defaultPart
+        surfaceGui.Face = Enum.NormalId.Top
+        
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Parent = surfaceGui
+        textLabel.BackgroundTransparency = 1
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.Text = "Gym Part " .. gymPartId
+        textLabel.TextScaled = true
+        
+        -- Use this as the model
+        gymPartModel = defaultPart
+        
+        -- Also try custom fallback if available
         if DataManager.useFallbackGymPart then
             print("DataManager: Using fallback spawnGymPart for ID: " .. gymPartId)
-            return DataManager.useFallbackGymPart(player, tile, gymPartId)
+            local success = DataManager.useFallbackGymPart(player, tile, gymPartId)
+            if success then
+                return true
+            end
         end
-        
-        return false
     end
     
     -- Clone and position the model
     local model = gymPartModel:Clone()
     model.Name = gymPartId
     
-    -- Position at the tile
-    model:SetPrimaryPartCFrame(tile.CFrame)
+    -- Position at the tile (handle different model types)
+    if model:IsA("Model") and model.PrimaryPart then
+        model:SetPrimaryPartCFrame(tile.CFrame)
+    else
+        -- For parts or models without PrimaryPart
+        model.CFrame = tile.CFrame + Vector3.new(0, model:IsA("Part") and model.Size.Y/2 or 0, 0)
+    end
+    
     model.Parent = tile
     
+    print("DataManager: Successfully spawned gym part with ID: " .. gymPartId)
     return true
 end
 

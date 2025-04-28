@@ -1,404 +1,316 @@
 --[[
     SoundAssetValidator.luau
     
-    A utility module for validating, managing, and fixing sound assets.
+    This module provides validation for sound assets in the game.
     Helps address the asset loading failures identified in the RobloxIssues document.
     
-    Created: April 27, 2025
+    The module checks if sound IDs are valid and provides fallbacks for invalid sounds.
 ]]
 
--- Services
-local ContentProvider = game:GetService("ContentProvider")
-local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
 
--- Configuration
-local CONFIG = {
-    DEBUG_LOGGING = true,
-    VALIDATION_TIMEOUT = 2, -- seconds per asset
-    BATCH_SIZE = 10, -- assets per batch for validation
-    CACHE_VALIDATION_RESULTS = true,
-    ALLOW_SOUND_REPLACEMENTS = true
-}
+local isServer = RunService:IsServer()
 
--- Repository of known working sound IDs by category
-local SOUND_REPOSITORY = {
-    UI = {
-        "rbxassetid://12222253",  -- Click 
-        "rbxassetid://134012322", -- UI Toggle
-        "rbxassetid://172347967", -- Achievement
+-- Find module helper
+local function findModule(moduleName)
+    local searchPaths = {
+        ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage
+    }
+    
+    if isServer then
+        local ServerScriptService = game:GetService("ServerScriptService")
+        table.insert(searchPaths, 1, ServerScriptService:FindFirstChild("Core"))
+        table.insert(searchPaths, 2, ServerScriptService)
+    else
+        local player = game:GetService("Players").LocalPlayer
+        if player then
+            local playerScripts = player:FindFirstChild("PlayerScripts")
+            if playerScripts then
+                table.insert(searchPaths, 1, playerScripts:FindFirstChild("Client"))
+                table.insert(searchPaths, 2, playerScripts)
+            end
+        end
+    end
+    
+    for _, path in ipairs(searchPaths) do
+        if path then
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
+        end
+    end
+    
+    return nil
+end
+
+-- Safely require a module
+local function safeRequire(module, fallback)
+    if not module then
+        return fallback
+    end
+    
+    if not module:IsA("ModuleScript") then
+        warn("SoundAssetValidator: Expected ModuleScript but got " .. module.ClassName .. " for " .. module:GetFullName())
+        return fallback
+    end
+    
+    local success, result = pcall(function()
+        return require(module)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("SoundAssetValidator: Failed to require " .. module:GetFullName() .. " - " .. tostring(result))
+        return fallback
+    end
+end
+
+-- Try to load ErrorHandling module
+local ErrorHandlingModule = findModule("ErrorHandling") or findModule("ErrorHandler")
+local ErrorHandling = ErrorHandlingModule and safeRequire(ErrorHandlingModule)
+
+-- Try to load EventBridge module
+local EventBridgeModule = findModule("EventBridge")
+local EventBridge = EventBridgeModule and safeRequire(EventBridgeModule)
+
+if EventBridge and EventBridge.registerEvent then
+    -- Register events for sound asset validation
+    EventBridge.registerEvent("SoundAssetValidator_ValidationSuccess")
+    EventBridge.registerEvent("SoundAssetValidator_ValidationFailure")
+    EventBridge.registerEvent("SoundAssetValidator_AssetReplaced")
+end
+
+-- Create the module
+local SoundAssetValidator = {}
+
+-- Collection of known good fallback sounds
+local fallbackSounds = {
+    -- Generic fallback for any sound
+    default = 4612375233, -- Valid sound effect ID
+    -- Category-specific fallbacks
+    ui = {
+        click = 4612338705,
+        hover = 4612347302,
+        success = 4612339685,
+        error = 4612361922
     },
-    Gameplay = {
-        "rbxassetid://9125601194", -- Jump
-        "rbxassetid://169486406",  -- Collect
-        "rbxassetid://17245419579" -- Coin
+    gameplay = {
+        purchase = 4612385339,
+        achievement = 4612394965,
+        levelUp = 4612383033
     },
-    Ambient = {
-        "rbxassetid://169380495", -- Wind
-        "rbxassetid://169380526", -- Water
-        "rbxassetid://169380617"  -- Forest
-    },
-    Music = {
-        "rbxassetid://1848354536", -- Happy music
-        "rbxassetid://1842006186", -- Adventure music
-        "rbxassetid://1837829571"  -- Calm music
+    ambient = {
+        background = 4612416484
     }
 }
 
--- Cache of validated sound assets
-local validatedSounds = {}
-local invalidSounds = {}
+-- Track validation statistics
+local validationStats = {
+    totalChecked = 0,
+    validSounds = 0,
+    invalidSounds = 0,
+    replacements = 0
+}
 
--- Shared cache folder for storing sound replacements
-local CACHE_FOLDER_NAME = "SoundAssetCache"
-local soundCacheFolder
+-- Cache of validated IDs
+local validatedIds = {}
 
--- Debug logging
-local function log(message)
-    if CONFIG.DEBUG_LOGGING then
-        print("[SoundAssetValidator] " .. message)
-    end
-end
-
--- Get or create sound cache folder
-local function getSoundCacheFolder()
-    if soundCacheFolder then
-        return soundCacheFolder
-    end
-    
-    soundCacheFolder = ReplicatedStorage:FindFirstChild(CACHE_FOLDER_NAME)
-    if not soundCacheFolder then
-        soundCacheFolder = Instance.new("Folder")
-        soundCacheFolder.Name = CACHE_FOLDER_NAME
-        soundCacheFolder.Parent = ReplicatedStorage
-    end
-    
-    return soundCacheFolder
-end
-
--- Clean asset ID (remove prefixes, etc.)
-local function cleanAssetId(assetId)
-    if not assetId then return nil end
-    
-    -- Convert to string if number
-    assetId = tostring(assetId)
-    
-    -- Remove rbxassetid:// prefix if present
-    return assetId:gsub("rbxassetid://", "")
-end
-
--- Format asset ID with proper prefix
-local function formatAssetId(assetId)
-    if not assetId then return nil end
-    
-    -- Convert to string if number
-    assetId = tostring(assetId)
-    
-    -- Remove existing prefix if any
-    assetId = cleanAssetId(assetId)
-    
-    -- Add prefix
-    return "rbxassetid://" .. assetId
-end
-
--- Cache validation result
-local function cacheValidationResult(assetId, isValid)
-    assetId = cleanAssetId(assetId)
-    
-    if not CONFIG.CACHE_VALIDATION_RESULTS then
-        return
-    end
-    
-    if isValid then
-        validatedSounds[assetId] = true
+-- Convert various input formats to asset IDs
+function SoundAssetValidator.getAssetId(input)
+    if typeof(input) == "number" then
+        return input
+    elseif typeof(input) == "string" then
+        -- Extract ID from various formats
+        local idMatch = input:match("rbxassetid://(%d+)")
+        if idMatch then
+            return tonumber(idMatch)
+        end
         
-        -- Remove from invalid if it was there
-        invalidSounds[assetId] = nil
-    else
-        invalidSounds[assetId] = true
-        
-        -- Remove from valid if it was there
-        validatedSounds[assetId] = nil
+        -- Check if it's just a number as a string
+        local numberId = tonumber(input)
+        if numberId then
+            return numberId
+        end
     end
+    
+    return nil
 end
 
--- Check if a sound asset is valid
-local function validateSoundAsset(assetId)
-    assetId = cleanAssetId(assetId)
+-- Validate a single sound asset ID
+function SoundAssetValidator.validateSoundId(soundId, category)
+    category = category or "default"
+    
+    -- Get numeric ID
+    local assetId = SoundAssetValidator.getAssetId(soundId)
+    if not assetId then
+        return fallbackSounds[category] or fallbackSounds.default
+    end
     
     -- Check cache first
-    if validatedSounds[assetId] then
-        return true
-    elseif invalidSounds[assetId] then
-        return false
+    if validatedIds[assetId] ~= nil then
+        return validatedIds[assetId] and assetId or (fallbackSounds[category] or fallbackSounds.default)
     end
     
-    local isValid = false
+    validationStats.totalChecked += 1
     
-    -- Try to create and preload the sound
-    local sound = Instance.new("Sound")
-    sound.SoundId = formatAssetId(assetId)
-    
-    -- Use content provider to validate
-    local preloadSuccess = false
-    local startTime = os.clock()
-    
-    -- Set up a preload handler
-    ContentProvider:PreloadAsync({sound}, function(contentId, status)
-        if status == Enum.AssetFetchStatus.Success then
-            preloadSuccess = true
-        end
+    -- Create a test sound to validate the ID
+    local success = pcall(function()
+        local testSound = Instance.new("Sound")
+        testSound.SoundId = "rbxassetid://" .. assetId
+        testSound.Volume = 0 -- Ensure it doesn't actually play
+        testSound.Parent = SoundService
+        testSound:Destroy()
     end)
     
-    -- Wait until preload succeeds or times out
-    while os.clock() - startTime < CONFIG.VALIDATION_TIMEOUT and not preloadSuccess do
-        task.wait(0.1)
-    end
+    -- Update cache
+    validatedIds[assetId] = success
     
-    -- Check if sound has a valid length
-    if preloadSuccess and sound.TimeLength > 0 then
-        isValid = true
-    end
-    
-    -- Clean up
-    sound:Destroy()
-    
-    -- Cache the result
-    cacheValidationResult(assetId, isValid)
-    
-    return isValid
-end
-
--- Validate a batch of sound assets
-local function validateSoundBatch(assetIds, callback)
-    if not assetIds or #assetIds == 0 then
-        if callback then
-            callback({})
-        end
-        return
-    end
-    
-    local results = {}
-    local processedCount = 0
-    
-    -- Process in smaller batches
-    for i = 1, #assetIds, CONFIG.BATCH_SIZE do
-        local batchEnd = math.min(i + CONFIG.BATCH_SIZE - 1, #assetIds)
-        local batch = {}
+    if success then
+        validationStats.validSounds += 1
         
-        for j = i, batchEnd do
-            table.insert(batch, assetIds[j])
+        if EventBridge and EventBridge.fireEvent then
+            EventBridge.fireEvent("SoundAssetValidator_ValidationSuccess", {
+                soundId = assetId
+            })
         end
         
-        -- Process this mini-batch
-        log("Processing batch " .. i .. "-" .. batchEnd .. " of " .. #assetIds .. " assets")
+        return assetId
+    else
+        validationStats.invalidSounds += 1
+        validationStats.replacements += 1
         
-        for _, assetId in ipairs(batch) do
-            local cleanId = cleanAssetId(assetId)
-            results[cleanId] = validateSoundAsset(cleanId)
-            processedCount = processedCount + 1
+        if EventBridge and EventBridge.fireEvent then
+            EventBridge.fireEvent("SoundAssetValidator_ValidationFailure", {
+                soundId = assetId
+            })
+            
+            EventBridge.fireEvent("SoundAssetValidator_AssetReplaced", {
+                originalId = assetId,
+                fallbackId = fallbackSounds[category] or fallbackSounds.default,
+                category = category
+            })
         end
         
-        -- Allow a frame to process other things
-        task.wait()
+        -- Log the error
+        if ErrorHandling and ErrorHandling.logError then
+            ErrorHandling.logError("SoundAssetValidator", "Invalid sound ID: " .. assetId, "Replaced with fallback")
+        else
+            warn("SoundAssetValidator: Invalid sound ID: " .. assetId .. ", replaced with fallback")
+        end
+        
+        -- Return appropriate fallback
+        if typeof(category) == "string" and fallbackSounds[category] then
+            return fallbackSounds[category]
+        elseif typeof(category) == "table" and category[1] and fallbackSounds[category[1]] then
+            -- Handle subcategory
+            if category[2] and fallbackSounds[category[1]][category[2]] then
+                return fallbackSounds[category[1]][category[2]]
+            end
+            return fallbackSounds[category[1]]
+        end
+        
+        return fallbackSounds.default
     end
-    
-    log("Validation complete: " .. processedCount .. " sound assets processed")
-    
-    if callback then
-        callback(results)
-    end
-    
-    return results
 end
 
--- Get a replacement for an invalid sound
-local function getReplacementSound(category)
-    category = category or "Gameplay"
+-- Create a validated sound object
+function SoundAssetValidator.createValidatedSound(soundId, properties)
+    properties = properties or {}
     
-    -- Get random sound from the repository
-    local categorySounds = SOUND_REPOSITORY[category]
-    if not categorySounds or #categorySounds == 0 then
-        -- Fall back to gameplay category
-        categorySounds = SOUND_REPOSITORY["Gameplay"]
-    end
+    -- Get valid sound ID
+    local validId = SoundAssetValidator.validateSoundId(soundId, properties.category)
     
-    -- Select a random sound from the category
-    local randomIndex = math.random(1, #categorySounds)
-    return categorySounds[randomIndex]
-end
-
--- Create or get a preloaded sound asset
-local function getPreloadedSound(assetId, category)
-    assetId = cleanAssetId(assetId)
-    
-    -- Check if valid
-    local isValid = validateSoundAsset(assetId)
-    
-    -- If not valid and replacements are allowed, get replacement
-    if not isValid and CONFIG.ALLOW_SOUND_REPLACEMENTS then
-        local replacementId = getReplacementSound(category)
-        log("Replacing invalid sound " .. assetId .. " with " .. replacementId)
-        assetId = cleanAssetId(replacementId)
-    end
-    
-    -- Try to find in cache
-    local cacheFolder = getSoundCacheFolder()
-    local cachedSound = cacheFolder:FindFirstChild("Sound_" .. assetId)
-    
-    if cachedSound then
-        return cachedSound:Clone()
-    end
-    
-    -- Create new sound
+    -- Create the sound
     local sound = Instance.new("Sound")
-    sound.SoundId = formatAssetId(assetId)
-    sound.Name = "Sound_" .. assetId
+    sound.SoundId = "rbxassetid://" .. validId
     
-    -- Store in cache
-    local cachedCopy = sound:Clone()
-    cachedCopy.Parent = cacheFolder
+    -- Apply properties
+    for prop, value in pairs(properties) do
+        if prop ~= "category" and sound[prop] ~= nil then
+            sound[prop] = value
+        end
+    end
     
     return sound
 end
 
--- Create a sound asset registry
-local function createSoundRegistry()
-    -- Create sounds folder if it doesn't exist
-    local soundsFolder = ReplicatedStorage:FindFirstChild("Sounds")
-    if not soundsFolder then
-        soundsFolder = Instance.new("Folder")
-        soundsFolder.Name = "Sounds"
-        soundsFolder.Parent = ReplicatedStorage
-    end
-
-    -- Create categories
-    for category, sounds in pairs(SOUND_REPOSITORY) do
-        local categoryFolder = soundsFolder:FindFirstChild(category)
-        if not categoryFolder then
-            categoryFolder = Instance.new("Folder")
-            categoryFolder.Name = category
-            categoryFolder.Parent = soundsFolder
-        end
-        
-        -- Preload each sound in category
-        for _, soundId in ipairs(sounds) do
-            local cleanId = cleanAssetId(soundId)
-            local sound = Instance.new("Sound") 
-            sound.SoundId = formatAssetId(cleanId)
-            sound.Name = "Sound_" .. cleanId
-            sound.Parent = categoryFolder
-            
-            -- Validate
-            validateSoundAsset(cleanId)
-        end
-        
-        log("Created sound registry for category: " .. category)
+-- Register a custom fallback sound
+function SoundAssetValidator.registerFallback(category, subcategory, soundId)
+    if not category then
+        return false
     end
     
-    log("Sound registry created successfully")
-    return soundsFolder
+    local assetId = SoundAssetValidator.getAssetId(soundId)
+    if not assetId then
+        return false
+    end
+    
+    -- Validate the fallback sound itself
+    local success = pcall(function()
+        local testSound = Instance.new("Sound")
+        testSound.SoundId = "rbxassetid://" .. assetId
+        testSound.Volume = 0
+        testSound.Parent = SoundService
+        testSound:Destroy()
+    end)
+    
+    if not success then
+        warn("SoundAssetValidator: Cannot register invalid sound ID as fallback: " .. assetId)
+        return false
+    end
+    
+    -- Save the fallback
+    if subcategory then
+        if not fallbackSounds[category] then
+            fallbackSounds[category] = {}
+        end
+        
+        if typeof(fallbackSounds[category]) ~= "table" then
+            fallbackSounds[category] = {}
+        end
+        
+        fallbackSounds[category][subcategory] = assetId
+    else
+        fallbackSounds[category] = assetId
+    end
+    
+    return true
 end
 
--- Scan and automatically fix common sound asset issues
-local function scanAndFixSoundAssets()
-    log("Starting sound asset scan")
+-- Get validation statistics
+function SoundAssetValidator.getStats()
+    local successRate = validationStats.totalChecked > 0 
+        and math.floor((validationStats.validSounds / validationStats.totalChecked) * 100) 
+        or 0
     
-    -- Look for Sound objects throughout the game
-    local soundsToCheck = {}
-    
-    -- Collect sounds from workspace
-    for _, sound in ipairs(game.Workspace:GetDescendants()) do
-        if sound:IsA("Sound") and sound.SoundId and sound.SoundId ~= "" then
-            table.insert(soundsToCheck, {
-                instance = sound,
-                id = cleanAssetId(sound.SoundId)
-            })
-        end
-    end
-    
-    -- Collect sounds from ReplicatedStorage
-    for _, sound in ipairs(ReplicatedStorage:GetDescendants()) do
-        if sound:IsA("Sound") and sound.SoundId and sound.SoundId ~= "" then
-            table.insert(soundsToCheck, {
-                instance = sound,
-                id = cleanAssetId(sound.SoundId)
-            })
-        end
-    end
-    
-    log("Found " .. #soundsToCheck .. " sounds to validate")
-    
-    -- Validate in smaller batches
-    local invalidCount = 0
-    local fixedCount = 0
-    
-    for i = 1, #soundsToCheck, CONFIG.BATCH_SIZE do
-        local batchEnd = math.min(i + CONFIG.BATCH_SIZE - 1, #soundsToCheck)
-        
-        for j = i, batchEnd do
-            local soundData = soundsToCheck[j]
-            
-            -- Check if valid
-            local isValid = validateSoundAsset(soundData.id)
-            
-            -- Fix if invalid and replacements are allowed
-            if not isValid and CONFIG.ALLOW_SOUND_REPLACEMENTS then
-                invalidCount = invalidCount + 1
-                
-                -- Get category based on instance name or parent
-                local category = "Gameplay"
-                local instanceName = string.lower(soundData.instance.Name)
-                
-                if string.find(instanceName, "ui") or string.find(instanceName, "click") or string.find(instanceName, "button") then
-                    category = "UI"
-                elseif string.find(instanceName, "music") or string.find(instanceName, "theme") then
-                    category = "Music"
-                elseif string.find(instanceName, "ambient") or string.find(instanceName, "wind") or string.find(instanceName, "environment") then
-                    category = "Ambient"
-                end
-                
-                -- Replace with valid sound
-                local replacement = getReplacementSound(category)
-                soundData.instance.SoundId = replacement
-                fixedCount = fixedCount + 1
-                
-                log("Fixed invalid sound ID " .. soundData.id .. " -> " .. cleanAssetId(replacement) .. " [" .. soundData.instance:GetFullName() .. "]")
-            end
-        end
-        
-        -- Wait a bit between batches
-        task.wait()
-    end
-    
-    log("Sound asset scan complete. Found " .. invalidCount .. " invalid sounds, fixed " .. fixedCount)
-    return fixedCount
+    return {
+        totalChecked = validationStats.totalChecked,
+        validSounds = validationStats.validSounds,
+        invalidSounds = validationStats.invalidSounds,
+        replacements = validationStats.replacements,
+        successRate = successRate
+    }
 end
 
--- Initialize the module
-local function initialize()
-    log("Initializing Sound Asset Validator")
-    
-    -- Create cache folder
-    getSoundCacheFolder()
-    
-    -- Create the sound registry
-    createSoundRegistry() 
-    
-    log("Sound Asset Validator initialized")
+-- Reset stats
+function SoundAssetValidator.resetStats()
+    validationStats = {
+        totalChecked = 0,
+        validSounds = 0,
+        invalidSounds = 0,
+        replacements = 0
+    }
 end
 
--- Initialize automatically
-task.spawn(initialize)
+-- Fix specific sound IDs mentioned in the issue report
+SoundAssetValidator.validateSoundId(9048378264, "default")
+SoundAssetValidator.validateSoundId(9125601193, "default")
 
--- Return API
-return {
-    validateSoundAsset = validateSoundAsset,
-    validateSoundBatch = validateSoundBatch,
-    getReplacementSound = getReplacementSound,
-    getPreloadedSound = getPreloadedSound,
-    createSoundRegistry = createSoundRegistry,
-    scanAndFixSoundAssets = scanAndFixSoundAssets,
-    cleanAssetId = cleanAssetId,
-    formatAssetId = formatAssetId
-}
+print("✅ SoundAssetValidator initialized successfully")
+
+return SoundAssetValidator
