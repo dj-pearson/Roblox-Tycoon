@@ -345,15 +345,30 @@ function UISystem:showUI(name, ...)
         return false
     end
     
+    -- Try to standardize the name first (handle both with and without UI suffix)
+    local standardName = name
+    local altName = nil
+    
+    -- Check if name ends with "UI" suffix and create alternative name
+    if string.sub(name, -2) == "UI" then
+        -- Name has UI suffix, create alternative without it
+        altName = string.sub(name, 1, -3)
+    else
+        -- Name doesn't have UI suffix, add it as alternative
+        altName = name .. "UI"
+    end
+    
+    logMessage("Attempting to show UI: " .. standardName .. " (alt: " .. altName .. ")", "Info")
+    
     -- Multi-path approach to find and show the UI
     
     -- Path 1: Try through UIManager first (preferred approach)
     local UIManager = UIRegistry:getComponent("UIManager")
     if UIManager and UIManager.showUI then
-        -- First, try to get the component from registry
-        local component = UIRegistry:getComponent(name)
+        -- First, try to get the component from registry with standard name
+        local component = UIRegistry:getComponent(standardName)
         if component then
-            local success = UIManager:showUI(name, component, ...)
+            local success = UIManager:showUI(standardName, component, ...)
             if success then
                 logMessage("Successfully showed UI via UIManager with component from registry: " .. name, "Info")
                 return true

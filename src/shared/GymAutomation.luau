@@ -6,12 +6,15 @@
     Author: Updated April 28, 2025
 ]]
 
-local ServerScriptService = game:GetService("ServerScriptService")
+-- Services
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+-- Module variables
+local GymAutomationManager = nil
 
 -- Try to require GymAutomationManager
-local GymAutomationManager
 local function getGymAutomationManager()
     if GymAutomationManager then
         return GymAutomationManager
@@ -19,8 +22,12 @@ local function getGymAutomationManager()
     
     -- Try to find the module in different locations
     local searchPaths = {
-        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("server") and ReplicatedStorage.src.server:FindFirstChild("GymAutomationManager"),
-        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("GymAutomationManager"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("server") and
+            ReplicatedStorage.src.server:FindFirstChild("GymAutomationManager"),
+        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and
+            ServerStorage.src.server:FindFirstChild("GymAutomationManager"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and
+            ServerScriptService.src.server:FindFirstChild("GymAutomationManager"),
         ServerStorage:FindFirstChild("GymAutomation") and ServerStorage.GymAutomation:FindFirstChild("GymAutomationManager"),
         script.Parent and script.Parent:FindFirstChild("GymAutomationManager")
     }
@@ -41,11 +48,10 @@ local function getGymAutomationManager()
     return nil
 end
 
--- Simplified API
-local GymAutomation = {
-    initialized = false,
-    VERSION = "1.0.0",
-}
+-- Create API
+local GymAutomation = {}
+GymAutomation.initialized = false
+GymAutomation.VERSION = "1.0.0"
 
 -- Initialize the module
 function GymAutomation.initialize()
