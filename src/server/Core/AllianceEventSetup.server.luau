@@ -1,128 +1,128 @@
---[[
-    AllianceEventSetup.server.luau
-    
-    Creates all alliance-related remote events at startup to prevent
-    "Infinite yield possible on WaitForChild" errors specifically for the Alliance system.
-    
-    Created: April 25, 2025
-]]
+-- AllianceEventSetup.server.luau
+-- Creates alliance-specific events early to prevent infinite yield errors
+-- Created: April 28, 2025
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Try to load SafeWaitForChild
-local SafeWaitForChild
-local success, result = pcall(function()
-    local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
-    if sharedFolder and sharedFolder:FindFirstChild("SafeWaitForChild") then
-        return require(sharedFolder.SafeWaitForChild)
-    end
-    return nil
-end)
+-- Constants and configuration
+local DEBUG = true
+local EVENT_FOLDER_NAME = "AllianceEvents"
 
-if success then
-    SafeWaitForChild = result
-    print("[AllianceEventSetup] Loaded SafeWaitForChild module")
-else
-    print("[AllianceEventSetup] SafeWaitForChild not found, using fallbacks")
+-- Local logging function
+local function log(message, level)
+	level = level or "Info"
+	if not DEBUG and level ~= "Error" then return end
+	print(string.format("[AllianceEventSetup][%s] %s", level, message))
 end
 
--- Helper function to ensure a folder exists
-local function ensureFolderExists(parent, name)
-    if SafeWaitForChild then
-        return SafeWaitForChild.ensureFolder(parent, name)
-    end
-    
-    local folder = parent:FindFirstChild(name)
-    if not folder then
-        folder = Instance.new("Folder")
-        folder.Name = name
-        folder.Parent = parent
-        print("[AllianceEventSetup] Created folder: " .. name)
-    end
-    return folder
+-- Create remote events for alliances
+local function createAllianceEvents()
+	log("Setting up alliance events...")
+	
+	-- Create the events folder in ReplicatedStorage if it doesn't exist
+	local eventsFolder = ReplicatedStorage:FindFirstChild(EVENT_FOLDER_NAME)
+	if not eventsFolder then
+		eventsFolder = Instance.new("Folder")
+		eventsFolder.Name = EVENT_FOLDER_NAME
+		eventsFolder.Parent = ReplicatedStorage
+		log("Created events folder: " .. EVENT_FOLDER_NAME)
+	end
+	
+	-- Define all the alliance events that need to be created
+	local allianceEvents = {
+		"AllianceCreated",
+		"AllianceInvite",
+		"AllianceJoined",
+		"AllianceLeft",
+		"AllianceDisbanded",
+		"AllianceMessageSent",
+		"AllianceRoleChanged",
+		"AllianceMemberKicked",
+		"AllianceCompetitionStarted",
+		"AllianceCompetitionEnded",
+		"AllianceCompetitionScoreUpdated"
+	}
+	
+	-- Create each event if it doesn't exist already
+	for _, eventName in ipairs(allianceEvents) do
+		if not eventsFolder:FindFirstChild(eventName) then
+			local remoteEvent = Instance.new("RemoteEvent")
+			remoteEvent.Name = eventName
+			remoteEvent.Parent = eventsFolder
+			log("Created remote event: " .. eventName)
+		end
+	end
+	
+	-- Create a signal to indicate that all alliance events are ready
+	local signal = Instance.new("BoolValue")
+	signal.Name = "AllianceEventsReady"
+	signal.Value = true
+	signal.Parent = eventsFolder
+	
+	log("Alliance events setup complete")
+	return eventsFolder
 end
 
--- Helper function to create a remote event
-local function createRemoteEvent(parent, name)
-    local event = parent:FindFirstChild(name)
-    if event and event:IsA("RemoteEvent") then
-        print("[AllianceEventSetup] Found existing event: " .. name)
-        return event
-    end
-    
-    event = Instance.new("RemoteEvent")
-    event.Name = name
-    event.Parent = parent
-    print("[AllianceEventSetup] Created event: " .. name)
-    return event
+-- Create additional alliance value objects
+local function createAllianceValues()
+	log("Setting up alliance values...")
+	
+	-- Get the events folder
+	local eventsFolder = ReplicatedStorage:FindFirstChild(EVENT_FOLDER_NAME)
+	if not eventsFolder then
+		log("Events folder not found, creating it")
+		eventsFolder = Instance.new("Folder")
+		eventsFolder.Name = EVENT_FOLDER_NAME
+		eventsFolder.Parent = ReplicatedStorage
+	end
+	
+	-- Create alliance configuration values
+	local configValues = {
+		-- Alliance limits
+		{ name = "MaxAllianceMembers", type = "IntValue", value = 50 },
+		{ name = "MaxAlliancesPerPlayer", type = "IntValue", value = 1 },
+		{ name = "MinAllianceNameLength", type = "IntValue", value = 3 },
+		{ name = "MaxAllianceNameLength", type = "IntValue", value = 20 },
+		
+		-- Alliance features
+		{ name = "AllianceChatEnabled", type = "BoolValue", value = true },
+		{ name = "AllianceCompetitionsEnabled", type = "BoolValue", value = true },
+		{ name = "AllianceBonusesEnabled", type = "BoolValue", value = true },
+		
+		-- Alliance costs
+		{ name = "AllianceCreationCost", type = "IntValue", value = 10000 }
+	}
+	
+	-- Create a config folder if it doesn't exist
+	local configFolder = eventsFolder:FindFirstChild("Config")
+	if not configFolder then
+		configFolder = Instance.new("Folder")
+		configFolder.Name = "Config"
+		configFolder.Parent = eventsFolder
+		log("Created alliance config folder")
+	end
+	
+	-- Create each value if it doesn't exist
+	for _, valueInfo in ipairs(configValues) do
+		if not configFolder:FindFirstChild(valueInfo.name) then
+			local valueObj = Instance.new(valueInfo.type)
+			valueObj.Name = valueInfo.name
+			valueObj.Value = valueInfo.value
+			valueObj.Parent = configFolder
+			log("Created alliance config value: " .. valueInfo.name)
+		end
+	end
+	
+	log("Alliance values setup complete")
+	return configFolder
 end
 
--- Ensure there's a folder for alliance events
-local allianceFolder = ensureFolderExists(ReplicatedStorage, "AllianceEvents")
+-- Initialize event and value setup
+local allianceEvents = createAllianceEvents()
+local allianceValues = createAllianceValues()
 
--- List of alliance-related events
-local allianceEvents = {
-    "CreateAlliance",
-    "DeleteAlliance",
-    "InviteToAlliance",
-    "AcceptInvitation",
-    "DeclineInvitation",
-    "LeaveAlliance",
-    "KickFromAlliance",
-    "PromoteMember",
-    "DemoteMember",
-    "PlayerAddedToAlliance",
-    "PlayerRemovedFromAlliance",
-    "AllianceUpdated",
-    "RequestAllianceData",
-    "AllianceDataResponse"
-}
+log("Alliance system initialization complete")
 
--- Create all alliance events
-for _, eventName in ipairs(allianceEvents) do
-    createRemoteEvent(allianceFolder, eventName)
-end
-
--- Create direct events in ReplicatedStorage for backward compatibility
--- These were mentioned in the issues list as causing infinite yield errors
-createRemoteEvent(ReplicatedStorage, "PlayerAddedToAllianceEvent")
-createRemoteEvent(ReplicatedStorage, "PlayerRemovedFromAllianceEvent")
-
--- Try to register with CoreRegistry if available
-local CoreRegistry
-success, result = pcall(function()
-    if ServerScriptService:FindFirstChild("Core") and
-       ServerScriptService.Core:FindFirstChild("CoreRegistry") then
-        return require(ServerScriptService.Core.CoreRegistry)
-    end
-    return nil
-end)
-
-if success and result then
-    CoreRegistry = result
-    print("[AllianceEventSetup] Found CoreRegistry, registering events")
-    
-    -- Try to get EventBridge
-    local EventBridge = CoreRegistry:GetSystem("EventBridge")
-    if EventBridge then
-        -- Register all events with EventBridge
-        for _, eventName in ipairs(allianceEvents) do
-            if typeof(EventBridge.registerRemoteEvent) == "function" then
-                EventBridge:registerRemoteEvent(eventName, allianceFolder[eventName])
-                print("[AllianceEventSetup] Registered event with EventBridge: " .. eventName)
-            end
-        end
-        
-        -- Register backward compatibility events
-        EventBridge:registerRemoteEvent("PlayerAddedToAllianceEvent", ReplicatedStorage.PlayerAddedToAllianceEvent)
-        EventBridge:registerRemoteEvent("PlayerRemovedFromAllianceEvent", ReplicatedStorage.PlayerRemovedFromAllianceEvent)
-    end
-end
-
-print("[AllianceEventSetup] All alliance events created successfully")
-
-return {
-    allianceEvents = allianceEvents,
-    allianceFolder = allianceFolder
-}
+-- Return the events folder
+return allianceEvents

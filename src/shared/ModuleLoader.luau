@@ -16,6 +16,13 @@ local ModuleLoader = {
 	_loadAttempts = {}, -- Track how many times we've tried to load a module
 	_version = VERSION,
 	_nameToPaths = {}, -- Mapping from module names to possible paths
+	_dependencies = {}, -- Track dependencies between modules
+	_loadErrors = {}, -- Track errors during module loading
+	_stats = {
+		hits = 0, -- Cache hits
+		misses = 0, -- Cache misses
+		errors = 0 -- Error count
+	}
 }
 
 -- Local logging function
@@ -104,8 +111,11 @@ function ModuleLoader:LoadModule(pathString)
 	
 	-- Check if we've already loaded this module
 	if self._loadedModules[pathString] then
+		self._stats.hits += 1
 		return self._loadedModules[pathString]
 	end
+	
+	self._stats.misses += 1
 	
 	-- Track loading attempts
 	self._loadAttempts[pathString] = (self._loadAttempts[pathString] or 0) + 1
@@ -113,21 +123,27 @@ function ModuleLoader:LoadModule(pathString)
 	-- Check if we're trying to load this module too many times
 	if self._loadAttempts[pathString] > MAX_REQUIRE_DEPTH then
 		log("Circular dependency detected for: " .. pathString, "Error")
+		self._stats.errors += 1
+		self._loadErrors[pathString] = "Circular dependency"
 		return nil, "Circular dependency"
 	end
 	
 	-- Resolve the path to a ModuleScript instance
-	local moduleScript, error = self:ResolveModulePath(pathString)
+	local moduleScript, errorMsg = self:ResolveModulePath(pathString)
 	if not moduleScript then
-		log("Failed to resolve module path: " .. pathString .. " - " .. error, "Warning")
-		return nil, error
+		log("Failed to resolve module path: " .. pathString .. " - " .. errorMsg, "Warning")
+		self._stats.errors += 1
+		self._loadErrors[pathString] = errorMsg
+		return nil, errorMsg
 	end
 	
 	-- Require the module
-	local module, error = safeRequire(moduleScript)
+	local module, requireError = safeRequire(moduleScript)
 	if not module then
-		log("Failed to require module: " .. pathString .. " - " .. error, "Warning")
-		return nil, error
+		log("Failed to require module: " .. pathString .. " - " .. requireError, "Warning")
+		self._stats.errors += 1
+		self._loadErrors[pathString] = requireError
+		return nil, requireError
 	end
 	
 	-- Cache the loaded module
@@ -251,15 +267,132 @@ function ModuleLoader:RegisterCommonPaths()
 	log("Registered common module paths")
 end
 
+-- Register a dependency between modules
+function ModuleLoader:RegisterDependency(moduleName, dependencyName)
+	if not moduleName or not dependencyName then return false end
+	
+	if not self._dependencies[moduleName] then
+		self._dependencies[moduleName] = {}
+	end
+	
+	-- Add the dependency if it's not already registered
+	local deps = self._dependencies[moduleName]
+	for _, dep in ipairs(deps) do
+		if dep == dependencyName then
+			return true -- Already registered
+		end
+	end
+	
+	table.insert(deps, dependencyName)
+	log("Registered dependency: " .. moduleName .. " depends on " .. dependencyName)
+	return true
+end
+
+-- Get all dependencies for a module
+function ModuleLoader:GetDependencies(moduleName)
+	return self._dependencies[moduleName] or {}
+end
+
+-- Check if loading a module would create a circular dependency
+function ModuleLoader:WouldCreateCircularDependency(moduleName, dependencyChain)
+	dependencyChain = dependencyChain or {}
+	
+	-- If the module is already in the dependency chain, it would create a circular dependency
+	for _, mod in ipairs(dependencyChain) do
+		if mod == moduleName then
+			return true, dependencyChain
+		end
+	end
+	
+	-- Add this module to the dependency chain
+	local newChain = table.clone(dependencyChain)
+	table.insert(newChain, moduleName)
+	
+	-- Check all dependencies of this module
+	local dependencies = self:GetDependencies(moduleName)
+	for _, depName in ipairs(dependencies) do
+		local wouldCreateCircular, chain = self:WouldCreateCircularDependency(depName, newChain)
+		if wouldCreateCircular then
+			return true, chain
+		end
+	end
+	
+	return false, nil
+end
+
+-- Get diagnostics about the ModuleLoader state
+function ModuleLoader:GetDiagnostics()
+	local loadedModuleCount = 0
+	for _ in pairs(self._loadedModules) do
+		loadedModuleCount += 1
+	end
+	
+	local registeredPathCount = 0
+	for _, paths in pairs(self._nameToPaths) do
+		registeredPathCount += #paths
+	end
+	
+	local dependencyCount = 0
+	for _, deps in pairs(self._dependencies) do
+		dependencyCount += #deps
+	end
+	
+	local errorCount = 0
+	for _ in pairs(self._loadErrors) do
+		errorCount += 1
+	end
+	
+	return {
+		version = self._version,
+		loadedModules = loadedModuleCount,
+		registeredPaths = registeredPathCount,
+		dependencies = dependencyCount,
+		errors = errorCount,
+		stats = self._stats
+	}
+end
+
+-- Get all loaded modules
+function ModuleLoader:GetLoadedModules()
+	local modules = {}
+	for path, module in pairs(self._loadedModules) do
+		modules[path] = module
+	end
+	return modules
+end
+
+-- Get all loading errors
+function ModuleLoader:GetLoadErrors()
+	return self._loadErrors
+end
+
+-- Attempt to reload a failed module
+function ModuleLoader:RetryFailedModule(pathStringOrName)
+	if not pathStringOrName then return nil, "Path string or name is nil" end
+	
+	-- Clear any cached errors for this module
+	self._loadErrors[pathStringOrName] = nil
+	
+	-- Clear any cached instances of this module
+	self._loadedModules[pathStringOrName] = nil
+	
+	-- Try loading the module again
+	return self:GetModule(pathStringOrName)
+end
+
 -- Initialize the ModuleLoader
 do
 	log("Initializing ModuleLoader v" .. VERSION)
 	ModuleLoader:RegisterCommonPaths()
+	-- Register new paths for newly created modules
+	ModuleLoader:RegisterPath("UIComponents", "ReplicatedStorage.shared.UIComponents")
+	ModuleLoader:RegisterPath("AssetValidator", "ReplicatedStorage.shared.AssetValidator")
+	ModuleLoader:RegisterPath("UIRegistry", "ReplicatedStorage.shared.UIRegistry")
+	ModuleLoader:RegisterPath("SystemDiagnostics", "ReplicatedStorage.shared.SystemDiagnostics")
+	ModuleLoader:RegisterPath("SafeRequireModule", "ReplicatedStorage.shared.SafeRequireModule")
 	
-	-- Make ModuleLoader available via _G for debugging
-	if _G then
-		_G.__ModuleLoader = ModuleLoader
-	end
+	-- Log initialization success
+	log("ModuleLoader successfully initialized")
 end
 
 -- Return the ModuleLoader instance

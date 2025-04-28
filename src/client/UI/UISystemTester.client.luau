@@ -1,507 +1,488 @@
---!strict
---[[
-    UISystemTester.client.luau
-    
-    A tool for testing UI systems and components.
-    This script tests the availability and functionality of UI-related modules
-    and components to ensure they are properly initialized.
-    
-    Created: April 25, 2025
-    Fixed: April 27, 2025 - Removed _G usage and fixed parameter issues
-]]
+-- UISystemTester.client.luau
+-- Tests the UI system components to ensure they're available and working
+-- Created: April 28, 2025
 
--- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-
--- Constants
-local DEBUG_ENABLED = true
-local UI_TEST_DELAY = 5 -- Wait a few seconds for systems to initialize
-
--- Local variables
 local LocalPlayer = Players.LocalPlayer
-local tests = {}
-local testResults = {
-    passed = 0,
-    failed = 0,
-    warnings = 0,
-    total = 0,
-    details = {}
+
+-- Constants and configuration
+local VERSION = "1.0.0"
+local DEBUG = true
+local TEST_DELAY = 0.2 -- Seconds between tests
+
+-- Local logging function
+local function log(message, level)
+	level = level or "Info"
+	if not DEBUG and level ~= "Error" and level ~= "Success" then return end
+	
+	local prefix = "[UISystemTester]"
+	if level == "Success" then
+		print(prefix .. " ✓ " .. message)
+	elseif level == "Error" then
+		print(prefix .. " ✗ " .. message)
+	else
+		print(prefix .. " " .. message)
+	end
+end
+
+-- UI System Tester object
+local UISystemTester = {
+	_version = VERSION,
+	_testResults = {},
+	_testCount = 0,
+	_passCount = 0,
+	_failCount = 0,
 }
 
--- ClientBootstrap reference - this will be located without using _G
-local ClientBootstrap = nil
-
--- Debug logging
-local function log(message)
-    if DEBUG_ENABLED then
-        print("[UISystemTester] " .. message)
-    end
+-- Function to find a module in multiple locations
+local function findModule(moduleName)
+	-- Check in ReplicatedStorage.shared
+	local shared = ReplicatedStorage:FindFirstChild("shared")
+	if shared and shared:FindFirstChild(moduleName) then
+		return shared:FindFirstChild(moduleName)
+	end
+	
+	-- Check in ReplicatedStorage.src.shared
+	local src = ReplicatedStorage:FindFirstChild("src")
+	if src and src:FindFirstChild("shared") and src.shared:FindFirstChild(moduleName) then
+		return src.shared:FindFirstChild(moduleName)
+	end
+	
+	-- Check in ReplicatedStorage root
+	if ReplicatedStorage:FindFirstChild(moduleName) then
+		return ReplicatedStorage:FindFirstChild(moduleName)
+	end
+	
+	-- Check in LocalPlayer.PlayerScripts
+	if LocalPlayer and LocalPlayer:FindFirstChild("PlayerScripts") and 
+	   LocalPlayer.PlayerScripts:FindFirstChild(moduleName) then
+		return LocalPlayer.PlayerScripts:FindFirstChild(moduleName)
+	end
+	
+	-- Check in ReplicatedStorage.UIModules
+	local uiModules = ReplicatedStorage:FindFirstChild("UIModules")
+	if uiModules and uiModules:FindFirstChild(moduleName) then
+		return uiModules:FindFirstChild(moduleName)
+	end
+	
+	return nil
 end
 
-local function warn_log(message)
-    warn("[UISystemTester] " .. message)
-    testResults.warnings += 1
+-- Function to safely require a module
+local function safeRequire(module)
+	if not module then
+		return nil, "Module is nil"
+	end
+	
+	if not module:IsA("ModuleScript") then
+		return nil, "Not a ModuleScript"
+	end
+	
+	local success, result = pcall(function()
+		return require(module)
+	end)
+	
+	if success then
+		return result, nil
+	else
+		return nil, result
+	end
 end
 
--- Safe require utility
-local function requireSafely(module)
-    if not module then
-        return nil
-    end
-    
-    local success, result = pcall(function()
-        return require(module)
-    end)
-    
-    if not success then
-        warn_log("Failed to require " .. tostring(module:GetFullName()) .. ": " .. tostring(result))
-        return nil
-    end
-    
-    return result
+-- Function to record test result
+function UISystemTester:RecordResult(testName, passed, errorMessage)
+	self._testCount = self._testCount + 1
+	
+	if passed then
+		self._passCount = self._passCount + 1
+		log(testName .. ": Test passed", "Success")
+	else
+		self._failCount = self._failCount + 1
+		log(testName .. ": " .. (errorMessage or "Test failed"), "Error")
+	end
+	
+	table.insert(self._testResults, {
+		testName = testName,
+		passed = passed,
+		errorMessage = errorMessage,
+		timestamp = os.time()
+	})
+	
+	return passed
 end
 
--- Find a module in multiple possible locations
-local function findModule(searchPaths)
-    if not searchPaths or #searchPaths == 0 then
-        return nil
-    end
-    
-    -- Search all paths
-    for _, pathFn in ipairs(searchPaths) do
-        local modulePath = pathFn()
-        if modulePath and typeof(modulePath) == "Instance" and modulePath:IsA("ModuleScript") then
-            return modulePath
-        end
-    end
-    
-    return nil
+-- Test if a module exists
+function UISystemTester:TestModuleExists(moduleName)
+	log("Testing if " .. moduleName .. " exists")
+	
+	-- Look for the module
+	local moduleScript = findModule(moduleName)
+	if not moduleScript then
+		return self:RecordResult(moduleName .. " Exists", false, moduleName .. " not found through any method")
+	end
+	
+	-- Try to require it
+	local module, errorMessage = safeRequire(moduleScript)
+	if not module then
+		return self:RecordResult(moduleName .. " Exists", false, moduleName .. " module not found")
+	end
+	
+	return self:RecordResult(moduleName .. " Exists", true)
 end
 
--- Add a test
-local function addTest(name, testFn, group)
-    table.insert(tests, {
-        name = name,
-        fn = testFn,
-        group = group or "General"
-    })
+-- Test if a module function exists
+function UISystemTester:TestModuleFunction(moduleName, functionName)
+	log("Testing if " .. moduleName .. "." .. functionName .. " exists")
+	
+	-- Look for the module
+	local moduleScript = findModule(moduleName)
+	if not moduleScript then
+		return self:RecordResult(moduleName .. "." .. functionName, false, moduleName .. " not found")
+	end
+	
+	-- Try to require it
+	local module, errorMessage = safeRequire(moduleScript)
+	if not module then
+		return self:RecordResult(moduleName .. "." .. functionName, false, "Failed to require " .. moduleName .. ": " .. tostring(errorMessage))
+	end
+	
+	-- Check if the function exists
+	if type(module[functionName]) ~= "function" then
+		return self:RecordResult(moduleName .. "." .. functionName, false, functionName .. " is not a function in " .. moduleName)
+	end
+	
+	return self:RecordResult(moduleName .. "." .. functionName, true)
 end
 
--- Print test report
-local function printTestReport()
-    log("\n======= UI SYSTEM TEST REPORT =======")
-    log("Tests Run: " .. testResults.total)
-    log("Tests Passed: " .. testResults.passed)
-    log("Tests Failed: " .. testResults.failed)
-    log("Warnings: " .. testResults.warnings)
-    log("Pass Rate: " .. math.floor(testResults.passed / testResults.total * 100) .. "%")
-    log("------------------------------------")
-    
-    -- Group results by category
-    local groupResults = {}
-    
-    for _, detail in ipairs(testResults.details) do
-        if not groupResults[detail.group] then
-            groupResults[detail.group] = {
-                passed = 0,
-                total = 0
-            }
-        end
-        
-        groupResults[detail.group].total += 1
-        if detail.passed then
-            groupResults[detail.group].passed += 1
-        end
-    end
-    
-    -- Print group results
-    for group, results in pairs(groupResults) do
-        local passRate = math.floor(results.passed / results.total * 100)
-        log(group .. ": " .. results.passed .. "/" .. results.total .. " tests passed (" .. passRate .. "%)")
-    end
-    
-    log("\nFailed Tests:")
-    for _, detail in ipairs(testResults.details) do
-        if not detail.passed then
-            local errorInfo = detail.error and (": " .. detail.error) or ""
-            log("✗ " .. detail.name .. errorInfo)
-        end
-    end
+-- Test if a ClientRegistry exists and is properly initialized
+function UISystemTester:TestClientRegistry()
+	log("Testing ClientRegistry")
+	
+	-- Look for the ClientRegistry module
+	local clientRegistryModule = findModule("ClientRegistry")
+	if not clientRegistryModule then
+		return self:RecordResult("ClientRegistry Exists", false, "ClientRegistry not found through any method")
+	end
+	
+	-- Try to require it
+	local clientRegistry, errorMessage = safeRequire(clientRegistryModule)
+	if not clientRegistry then
+		return self:RecordResult("ClientRegistry Exists", false, "Failed to require ClientRegistry: " .. tostring(errorMessage))
+	end
+	
+	-- Check if it has the expected methods
+	if type(clientRegistry.Register) ~= "function" then
+		return self:RecordResult("ClientRegistry Exists", false, "ClientRegistry lacks Register method")
+	end
+	
+	if type(clientRegistry.Get) ~= "function" then
+		return self:RecordResult("ClientRegistry Exists", false, "ClientRegistry lacks Get method")
+	end
+	
+	return self:RecordResult("ClientRegistry Exists", true)
 end
 
--- Find the ClientBootstrap object (without using _G)
-local function findClientBootstrap()
-    -- Look in PlayerScripts.Client
-    if LocalPlayer and 
-        LocalPlayer.PlayerScripts and 
-        LocalPlayer.PlayerScripts:FindFirstChild("Client") then
-            
-        local bootstrapModule = LocalPlayer.PlayerScripts.Client:FindFirstChild("ClientBootstrap")
-        
-        if bootstrapModule and bootstrapModule:IsA("ModuleScript") then
-            local bootstrap = requireSafely(bootstrapModule)
-            if bootstrap and typeof(bootstrap) == "table" then
-                return bootstrap
-            end
-        end
-    end
-    
-    -- Look in PlayerScripts
-    if LocalPlayer and LocalPlayer.PlayerScripts then
-        local bootstrapScript = LocalPlayer.PlayerScripts:FindFirstChild("ClientBootstrap")
-        -- This is likely a LocalScript, not a ModuleScript, so we can't require it
-        -- But we can check if it exposed its API through a Value object
-        if bootstrapScript then
-            local apiValue = bootstrapScript:FindFirstChild("BootstrapAPI")
-            if apiValue and apiValue:IsA("ObjectValue") and apiValue.Value then
-                local api = apiValue.Value
-                if api:IsA("ModuleScript") then
-                    return requireSafely(api)
-                end
-            end
-        end
-    end
-    
-    -- Look for a shared API singleton
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if shared then
-        local bootstrapAPI = shared:FindFirstChild("ClientBootstrapAPI")
-        if bootstrapAPI and bootstrapAPI:IsA("ModuleScript") then
-            return requireSafely(bootstrapAPI)
-        end
-    end
-    
-    return nil
+-- Test if UIComponents exists and is properly initialized
+function UISystemTester:TestUIComponents()
+	log("Testing UIComponents")
+	
+	-- Look for the UIComponents module
+	local uiComponentsModule = findModule("UIComponents")
+	if not uiComponentsModule then
+		return self:RecordResult("UIComponents Exists", false, "UIComponents not found through any method")
+	end
+	
+	-- Try to require it
+	local uiComponents, errorMessage = safeRequire(uiComponentsModule)
+	if not uiComponents then
+		return self:RecordResult("UIComponents Exists", false, "Failed to require UIComponents: " .. tostring(errorMessage))
+	end
+	
+	-- Check if it has the expected methods
+	if type(uiComponents.CreateButton) ~= "function" then
+		return self:RecordResult("UIComponents Exists", false, "UIComponents lacks CreateButton method")
+	end
+	
+	return self:RecordResult("UIComponents Exists", true)
 end
 
--- Run tests
-local function runTests()
-    log("Running UI system tests...")
-    testResults.total = #tests
-    
-    -- Sort tests by group
-    table.sort(tests, function(a, b)
-        if a.group == b.group then
-            return a.name < b.name
-        end
-        return a.group < b.group
-    end)
-    
-    -- Run each test
-    for _, test in ipairs(tests) do
-        log("Running test: " .. test.name)
-        
-        local success, result = pcall(test.fn)
-        
-        local testPassed
-        if success then
-            testPassed = result
-        else
-            testPassed = false
-            warn_log("Test error: " .. tostring(result))
-        end
-        
-        -- Record result
-        if testPassed then
-            testResults.passed += 1
-            log("✓ " .. test.name .. ": PASSED")
-        else
-            testResults.failed += 1
-            warn_log("✗ " .. test.name .. ": FAILED")
-        end
-        
-        -- Store detail
-        table.insert(testResults.details, {
-            name = test.name,
-            passed = testPassed,
-            group = test.group,
-            error = not success and tostring(result) or nil
-        })
-    end
-    
-    -- Show report
-    printTestReport()
+-- Test if AssetValidator exists and is properly initialized
+function UISystemTester:TestAssetValidator()
+	log("Testing AssetValidator")
+	
+	-- Look for the AssetValidator module
+	local assetValidatorModule = findModule("AssetValidator")
+	if not assetValidatorModule then
+		return self:RecordResult("AssetValidator Exists", false, "AssetValidator not found through any method")
+	end
+	
+	-- Try to require it
+	local assetValidator, errorMessage = safeRequire(assetValidatorModule)
+	if not assetValidator then
+		return self:RecordResult("AssetValidator Exists", false, "Failed to require AssetValidator: " .. tostring(errorMessage))
+	end
+	
+	-- Check if it has the expected methods
+	if type(assetValidator.ValidateAsset) ~= "function" then
+		return self:RecordResult("AssetValidator Exists", false, "AssetValidator lacks ValidateAsset method")
+	end
+	
+	return self:RecordResult("AssetValidator Exists", true)
 end
 
---------------------------------------------------------
--- TEST DEFINITIONS
---------------------------------------------------------
+-- Test if UIRegistry exists and is properly initialized
+function UISystemTester:TestUIRegistry()
+	log("Testing UIRegistry")
+	
+	-- Look for the UIRegistry module
+	local uiRegistryModule = findModule("UIRegistry")
+	if not uiRegistryModule then
+		return self:RecordResult("UIRegistry Exists", false, "UIRegistry not found")
+	end
+	
+	-- Try to require it
+	local uiRegistry, errorMessage = safeRequire(uiRegistryModule)
+	if not uiRegistry then
+		return self:RecordResult("UIRegistry Exists", false, "Failed to require UIRegistry: " .. tostring(errorMessage))
+	end
+	
+	-- Check if it has the expected methods
+	if type(uiRegistry.RegisterComponent) ~= "function" then
+		return self:RecordResult("UIRegistry Exists", false, "UIRegistry lacks RegisterComponent method")
+	end
+	
+	return self:RecordResult("UIRegistry Exists", true)
+end
 
--- First, try to find ClientBootstrap
-ClientBootstrap = findClientBootstrap()
+-- Test if ModuleLoader exists and is properly initialized
+function UISystemTester:TestModuleLoader()
+	log("Testing ModuleLoader")
+	
+	-- Look for the ModuleLoader module
+	local moduleLoaderModule = findModule("ModuleLoader")
+	if not moduleLoaderModule then
+		return self:RecordResult("ModuleLoader Exists", false, "ModuleLoader module not found")
+	end
+	
+	-- Try to require it
+	local moduleLoader, errorMessage = safeRequire(moduleLoaderModule)
+	if not moduleLoader then
+		return self:RecordResult("ModuleLoader Exists", false, "Failed to require ModuleLoader: " .. tostring(errorMessage))
+	end
+	
+	-- Check if it has the expected methods
+	if type(moduleLoader.LoadModule) ~= "function" then
+		return self:RecordResult("ModuleLoader Exists", false, "ModuleLoader lacks LoadModule method")
+	end
+	
+	return self:RecordResult("ModuleLoader Exists", true)
+end
 
--- Test if ModuleLoader exists
-addTest("ModuleLoader Exists", function()
-    local moduleLoaderModule = findModule({
-        function() return ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoader") end
-    })
-    
-    if not moduleLoaderModule then
-        return false
-    end
-    
-    local moduleLoader = requireSafely(moduleLoaderModule)
-    return moduleLoader ~= nil
-end, "ModuleLoader Exists")
+-- Test if ClientBootstrap exists and is properly initialized
+function UISystemTester:TestClientBootstrap()
+	log("Testing ClientBootstrap")
+	
+	local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
+	if not playerScripts then
+		return self:RecordResult("ClientBootstrap Exists", false, "PlayerScripts not found")
+	end
+	
+	-- Look for the ClientBootstrap module
+	local clientBootstrapModule = playerScripts:FindFirstChild("ClientBootstrap")
+	if not clientBootstrapModule then
+		return self:RecordResult("ClientBootstrap Exists", false, "ClientBootstrap not found in PlayerScripts")
+	end
+	
+	-- Check if it's been initialized
+	if _G.__ClientBootstrap then
+		return self:RecordResult("ClientBootstrap Exists", true)
+	else
+		return self:RecordResult("ClientBootstrap Exists", false, "ClientBootstrap exists but is not initialized")
+	end
+end
 
--- Test if ClientRegistry exists
-addTest("ClientRegistry Exists", function()
-    -- Try different methods to find ClientRegistry
-    local clientRegistry
-    
-    -- Method 1: Look in ClientBootstrap
-    if ClientBootstrap and ClientBootstrap.ClientRegistry then
-        clientRegistry = ClientBootstrap.ClientRegistry
-    end
-    
-    -- Method 2: Look in shared folder
-    if not clientRegistry then
-        local clientRegistryModule = findModule({
-            function() return ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ClientRegistry") end,
-            function() return LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("ClientRegistry") end
-        })
-        
-        if clientRegistryModule then
-            clientRegistry = requireSafely(clientRegistryModule)
-        end
-    end
-    
-    if not clientRegistry then
-        return false
-    end
-    
-    return true
-end, "ClientRegistry Exists")
+-- Run a basic UI rendering test
+function UISystemTester:TestUIRendering()
+	log("Testing UI rendering capability")
+	
+	local success = pcall(function()
+		-- Create a temporary ScreenGui
+		local gui = Instance.new("ScreenGui")
+		gui.Name = "UITestGui"
+		gui.ResetOnSpawn = false
+		
+		-- Add a basic UI element
+		local frame = Instance.new("Frame")
+		frame.Size = UDim2.new(0, 100, 0, 100)
+		frame.Position = UDim2.new(0.5, -50, 0.5, -50)
+		frame.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
+		frame.Parent = gui
+		
+		-- Add a label
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 0, 30)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.fromRGB(255, 255, 255)
+		label.Font = Enum.Font.Gotham
+		label.TextSize = 14
+		label.Text = "UI Test"
+		label.Parent = frame
+		
+		-- Parent to PlayerGui
+		gui.Parent = LocalPlayer:FindFirstChild("PlayerGui")
+		
+		-- Destroy after a brief moment
+		spawn(function()
+			wait(1)
+			gui:Destroy()
+		end)
+	end)
+	
+	return self:RecordResult("UI Rendering", success, success and nil or "Failed to create test UI")
+end
 
--- Test if UIComponents exists
-addTest("UIComponents Exists", function()
-    -- Try different methods to find UIComponents
-    local uiComponents
-    
-    -- Method 1: Look in ClientBootstrap
-    if ClientBootstrap and ClientBootstrap.UIComponents then
-        uiComponents = ClientBootstrap.UIComponents
-    end
-    
-    -- Method 2: Look in shared folder
-    if not uiComponents then
-        local uiComponentsModule = findModule({
-            function() return ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("UIComponents") end,
-            function() return LocalPlayer.PlayerScripts.Client.UI:FindFirstChild("UIComponents") end
-        })
-        
-        if uiComponentsModule then
-            uiComponents = requireSafely(uiComponentsModule)
-        end
-    end
-    
-    if not uiComponents then
-        return false
-    end
-    
-    return true
-end, "UIComponents Exists")
+-- Test a basic UIComponents function if available
+function UISystemTester:TestUIComponentsFunction()
+	log("Testing UIComponents functionality")
+	
+	-- Look for the UIComponents module
+	local uiComponentsModule = findModule("UIComponents")
+	if not uiComponentsModule then
+		return self:RecordResult("UIComponents Function", false, "UIComponents not found")
+	end
+	
+	-- Try to require it
+	local uiComponents, errorMessage = safeRequire(uiComponentsModule)
+	if not uiComponents then
+		return self:RecordResult("UIComponents Function", false, "Failed to require UIComponents")
+	end
+	
+	-- Try to create a button
+	local success = pcall(function()
+		local button = uiComponents:CreateButton("Test Button")
+		if button then
+			-- Success!
+			spawn(function()
+				wait(1)
+				button:Destroy()
+			end)
+		else
+			error("Button creation returned nil")
+		end
+	end)
+	
+	return self:RecordResult("UIComponents Function", success, success and nil or "Failed to create button with UIComponents")
+end
 
--- Test if AssetValidator exists
-addTest("AssetValidator Exists", function()
-    -- Try to find AssetValidator
-    local assetValidatorModule = findModule({
-        function() return ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("AssetValidator") end,
-        function() return LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("AssetValidator") end
-    })
-    
-    if not assetValidatorModule then
-        return false
-    end
-    
-    local assetValidator = requireSafely(assetValidatorModule)
-    return assetValidator ~= nil
-end, "AssetValidator Exists")
+-- Run a comprehensive UI system test
+function UISystemTester:TestUISystem()
+	self._testResults = {}
+	self._testCount = 0
+	self._passCount = 0
+	self._failCount = 0
+	
+	log("Starting UI system tests")
+	
+	-- Schedule the tests to run in sequence
+	spawn(function()
+		-- Core modules
+		self:TestModuleLoader()
+		wait(TEST_DELAY)
+		self:TestClientRegistry()
+		wait(TEST_DELAY)
+		self:TestClientBootstrap()
+		wait(TEST_DELAY)
+		
+		-- UI modules
+		self:TestUIComponents()
+		wait(TEST_DELAY)
+		self:TestAssetValidator()
+		wait(TEST_DELAY)
+		self:TestUIRegistry()
+		wait(TEST_DELAY)
+		
+		-- Module functions
+		self:TestModuleFunction("UIComponents", "CreateButton")
+		wait(TEST_DELAY)
+		self:TestModuleFunction("AssetValidator", "ValidateAsset")
+		wait(TEST_DELAY)
+		self:TestModuleFunction("UIRegistry", "RegisterComponent")
+		wait(TEST_DELAY)
+		
+		-- Functional tests
+		self:TestUIRendering()
+		wait(TEST_DELAY)
+		self:TestUIComponentsFunction()
+		wait(TEST_DELAY)
+		
+		-- Output a summary
+		self:PrintSummary()
+	end)
+end
 
--- Test UIRegistry functionality
-addTest("UIRegistry.UIStyle", function()
-    -- Find ClientRegistry
-    local clientRegistry
-    
-    if ClientBootstrap and ClientBootstrap.ClientRegistry then
-        clientRegistry = ClientBootstrap.ClientRegistry
-    else
-        local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
-                                     ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
-        if clientRegistryModule then
-            clientRegistry = requireSafely(clientRegistryModule)
-        end
-    end
-    
-    if not clientRegistry then
-        return false
-    end
-    
-    -- Check if getUIComponent exists
-    if typeof(clientRegistry.getUIComponent) ~= "function" then
-        return false
-    end
-    
-    -- Check for UIStyle
-    local uiStyle = clientRegistry:getUIComponent("UIStyle")
-    return uiStyle ~= nil
-end, "UIRegistry")
+-- Get test results
+function UISystemTester:GetResults()
+	return self._testResults
+end
 
--- Test IconSet
-addTest("UIRegistry.IconSet", function()
-    -- Find ClientRegistry
-    local clientRegistry
-    
-    if ClientBootstrap and ClientBootstrap.ClientRegistry then
-        clientRegistry = ClientBootstrap.ClientRegistry
-    else
-        local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
-                                     ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
-        if clientRegistryModule then
-            clientRegistry = requireSafely(clientRegistryModule)
-        end
-    end
-    
-    if not clientRegistry then
-        return false
-    end
-    
-    -- Check if getUIComponent exists
-    if typeof(clientRegistry.getUIComponent) ~= "function" then
-        return false
-    end
-    
-    -- Check for IconSet
-    local iconSet = clientRegistry:getUIComponent("IconSet")
-    return iconSet ~= nil
-end, "UIRegistry")
+-- Get test statistics
+function UISystemTester:GetStats()
+	return {
+		total = self._testCount,
+		passed = self._passCount,
+		failed = self._failCount,
+		passRate = self._testCount > 0 and (self._passCount / self._testCount * 100) or 0
+	}
+end
 
--- Test ButtonFactory
-addTest("UIRegistry.ButtonFactory", function()
-    -- Find ClientRegistry
-    local clientRegistry
-    
-    if ClientBootstrap and ClientBootstrap.ClientRegistry then
-        clientRegistry = ClientBootstrap.ClientRegistry
-    else
-        local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
-                                     ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
-        if clientRegistryModule then
-            clientRegistry = requireSafely(clientRegistryModule)
-        end
-    end
-    
-    if not clientRegistry then
-        return false
-    end
-    
-    -- Check if getUIComponent exists
-    if typeof(clientRegistry.getUIComponent) ~= "function" then
-        return false
-    end
-    
-    -- Check for ButtonFactory
-    local buttonFactory = clientRegistry:getUIComponent("ButtonFactory")
-    return buttonFactory ~= nil
-end, "UIRegistry")
+-- Print a summary of the test results
+function UISystemTester:PrintSummary()
+	local stats = self:GetStats()
+	log("Tests Run: " .. stats.total .. ", Tests Passed: " .. stats.passed .. ", Tests Failed: " .. stats.failed)
+	log("Pass Rate: " .. math.floor(stats.passRate) .. "%")
+end
 
--- Test DialogFactory
-addTest("UIRegistry.DialogFactory", function()
-    -- Find ClientRegistry
-    local clientRegistry
-    
-    if ClientBootstrap and ClientBootstrap.ClientRegistry then
-        clientRegistry = ClientBootstrap.ClientRegistry
-    else
-        local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
-                                     ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
-        if clientRegistryModule then
-            clientRegistry = requireSafely(clientRegistryModule)
-        end
-    end
-    
-    if not clientRegistry then
-        return false
-    end
-    
-    -- Check if getUIComponent exists
-    if typeof(clientRegistry.getUIComponent) ~= "function" then
-        return false
-    end
-    
-    -- Check for DialogFactory
-    local dialogFactory = clientRegistry:getUIComponent("DialogFactory")
-    return dialogFactory ~= nil
-end, "UIRegistry")
+-- Update ClientRegistry with test results if available
+function UISystemTester:UpdateClientRegistry()
+	-- Look for the ClientRegistry module
+	local clientRegistryModule = findModule("ClientRegistry")
+	if not clientRegistryModule then
+		return false
+	end
+	
+	-- Try to require it
+	local clientRegistry, errorMessage = safeRequire(clientRegistryModule)
+	if not clientRegistry then
+		return false
+	end
+	
+	-- Register the test results
+	if type(clientRegistry.Register) == "function" then
+		clientRegistry:Register("UISystemTester", self)
+		clientRegistry:Register("UITestResults", self:GetResults())
+		clientRegistry:Register("UITestStats", self:GetStats())
+		return true
+	end
+	
+	return false
+end
 
--- Test if UIRegistry exists
-addTest("UIRegistry Exists", function()
-    -- Find ClientRegistry
-    local clientRegistry
-    
-    if ClientBootstrap and ClientBootstrap.ClientRegistry then
-        clientRegistry = ClientBootstrap.ClientRegistry
-    else
-        local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
-                                     ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
-        if clientRegistryModule then
-            clientRegistry = requireSafely(clientRegistryModule)
-        end
-    end
-    
-    return clientRegistry ~= nil
-end, "UIRegistry")
+-- Run the tests automatically when the module is first required
+do
+	log("UISystemTester v" .. VERSION .. " initialized")
+	
+	-- Make the tester accessible globally for debugging
+	if _G then
+		_G.__UISystemTester = UISystemTester
+	end
+	
+	-- Run the tests after a short delay to ensure everything else has loaded
+	spawn(function()
+		wait(3) -- Wait a few seconds for other systems to initialize
+		UISystemTester:TestUISystem()
+		UISystemTester:UpdateClientRegistry()
+	end)
+end
 
--- Test if UIRegistry can show notifications
-addTest("UIRegistry Can Show Notifications", function()
-    -- Find ClientRegistry
-    local clientRegistry
-    
-    if ClientBootstrap and ClientBootstrap.ClientRegistry then
-        clientRegistry = ClientBootstrap.ClientRegistry
-    else
-        local clientRegistryModule = ReplicatedStorage:FindFirstChild("shared") and 
-                                     ReplicatedStorage.shared:FindFirstChild("ClientRegistry")
-        if clientRegistryModule then
-            clientRegistry = requireSafely(clientRegistryModule)
-        end
-    end
-    
-    if not clientRegistry then
-        return false
-    end
-    
-    -- Try to find DialogFactory
-    local dialogFactory = clientRegistry:getUIComponent("DialogFactory")
-    
-    -- If not found, try UIComponents
-    if not dialogFactory then
-        local uiComponents = clientRegistry:getUIComponent("UIComponents")
-        
-        if uiComponents and typeof(uiComponents.createNotification) == "function" then
-            -- We can create notifications through UIComponents
-            return true
-        end
-    elseif dialogFactory and typeof(dialogFactory.createNotification) == "function" then
-        -- We can create notifications through DialogFactory
-        return true
-    end
-    
-    -- Try to find UIComponents directly
-    local uiComponents
-    if ClientBootstrap and ClientBootstrap.UIComponents then
-        uiComponents = ClientBootstrap.UIComponents
-    end
-    
-    if uiComponents and typeof(uiComponents.createNotification) == "function" then
-        return true
-    end
-    
-    return false
-end, "UIRegistry")
-
--- Set up tests to run after a delay
-task.delay(UI_TEST_DELAY, function()
-    runTests()
-end)
+return UISystemTester
