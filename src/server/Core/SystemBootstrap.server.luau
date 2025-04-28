@@ -1,268 +1,234 @@
 --[[
     SystemBootstrap.server.luau
-    This script is responsible for initializing all core systems in the correct order.
-    It ensures that dependencies are properly resolved and handles initialization failures.
     
-    Created to fix critical "SystemBootstrap Critical Failures" reported in RobloxIssues.txt
+    Initializes all core systems in the correct order to ensure proper dependencies.
+    Sets up the server environment with proper dependencies and error handling.
+    
+    Created as part of the CoreRegistry fix documented in CoreRegistry_Fix_Solution.md
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- First, ensure required paths exist
-local function ensurePath(parent, pathArray)
-    local current = parent
-    for _, name in ipairs(pathArray) do
-        local child = current:FindFirstChild(name)
-        if not child then
-            child = Instance.new("Folder")
-            child.Name = name
-            child.Parent = current
-            print("SystemBootstrap: Created folder " .. name .. " in " .. current:GetFullName())
-        end
-        current = child
-    end
-    return current
-end
-
--- Create required folders
-local coreFolder = ensurePath(ServerScriptService, {"Core"})
-local sharedFolder = ensurePath(ReplicatedStorage, {"shared"})
-
--- Helper function for safely requiring modules
-local function safeRequire(modulePath, timeout)
-    local startTime = os.clock()
-    timeout = timeout or 5
-    
-    -- Quick check if module exists
-    if typeof(modulePath) ~= "Instance" then
-        return nil
-    end
-    
-    -- Try to require the module
-    local success, result = pcall(function()
-        return require(modulePath)
-    end)
-    
-    if not success then
-        warn("SystemBootstrap: Failed to require module: " .. modulePath:GetFullName() .. " - " .. tostring(result))
-        return nil
-    end
-    
-    return result
-end
-
--- Find module across different paths
+-- Look for a module
 local function findModule(moduleName)
     local searchPaths = {
-        coreFolder,
+        ServerScriptService:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("Server"),
         ServerScriptService,
-        sharedFolder,
+        ReplicatedStorage:FindFirstChild("shared"),
         ReplicatedStorage
     }
     
     for _, path in ipairs(searchPaths) do
-        local module = path:FindFirstChild(moduleName)
-        if module and module:IsA("ModuleScript") then
-            return module
+        if path then
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
         end
     end
     
     return nil
 end
 
-print("SystemBootstrap: Starting system initialization...")
+-- Safely require a module
+local function safeRequire(moduleInstance, fallback)
+    if not moduleInstance then
+        return fallback
+    end
+    
+    if not moduleInstance:IsA("ModuleScript") then
+        warn("SystemBootstrap: Expected ModuleScript but got " .. moduleInstance.ClassName .. " for " .. moduleInstance:GetFullName())
+        return fallback
+    end
+    
+    local success, result = pcall(function()
+        return require(moduleInstance)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("SystemBootstrap: Failed to require " .. moduleInstance:GetFullName() .. " - " .. tostring(result))
+        return fallback
+    end
+end
 
--- Define systems to initialize in order
+print("SystemBootstrap: Starting server systems initialization")
+
+-- Stage 1: Core Registry and Module Loading
+local CoreRegistry, ModuleLoader
+
+-- Load CoreRegistry first (most critical dependency)
+local coreRegistryModule = findModule("CoreRegistry")
+if coreRegistryModule then
+    CoreRegistry = safeRequire(coreRegistryModule)
+    
+    if CoreRegistry then
+        print("SystemBootstrap: CoreRegistry loaded successfully")
+        
+        -- Initialize if needed
+        if typeof(CoreRegistry.initialize) == "function" and not CoreRegistry.isInitialized then
+            CoreRegistry.initialize()
+        end
+    else
+        warn("SystemBootstrap[Error] CRITICAL: Required system failed: CoreRegistry")
+    end
+else
+    warn("SystemBootstrap[Error] CRITICAL: CoreRegistry module not found")
+end
+
+-- Load ModuleLoader next
+local moduleLoaderModule = findModule("ModuleLoader")
+if moduleLoaderModule then
+    ModuleLoader = safeRequire(moduleLoaderModule)
+    
+    if ModuleLoader then
+        print("SystemBootstrap: ModuleLoader loaded successfully")
+        
+        -- Register with CoreRegistry
+        if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
+            CoreRegistry.registerSystem("ModuleLoader", ModuleLoader)
+        end
+    else
+        warn("SystemBootstrap[Error] CRITICAL: Required system failed: ModuleLoader")
+    end
+else
+    warn("SystemBootstrap[Error] CRITICAL: ModuleLoader module not found")
+end
+
+-- Stage 2: Data and Path Management
 local systems = {
-    {
-        name = "FolderSetup",
-        required = true,
-        dependencies = {},
-        initFunction = function()
-            local setupModule = findModule("FolderSetup")
-            if setupModule then
-                -- It's a script, not a module, so it should run automatically
-                return true
-            end
-            return false
-        end
-    },
-    {
-        name = "CoreRegistry",
-        required = true,
-        dependencies = {},
-        initFunction = function()
-            local coreRegistry = safeRequire(findModule("CoreRegistry"))
-            if coreRegistry and coreRegistry.initialize then
-                local success = coreRegistry.initialize()
-                if success then
-                    print("SystemBootstrap: CoreRegistry initialized successfully")
-                    return true
-                end
-            end
-            return false
-        end
-    },
-    {
-        name = "ModuleLoader",
-        required = true,
-        dependencies = {},
-        initFunction = function()
-            local moduleLoader = safeRequire(findModule("ModuleLoader"))
-            if moduleLoader and moduleLoader.addSearchPath then
-                -- Add standard search paths
-                moduleLoader.addSearchPath(coreFolder)
-                moduleLoader.addSearchPath(sharedFolder)
-                
-                print("SystemBootstrap: ModuleLoader initialized successfully")
-                return true
-            end
-            return false
-        end
-    },
-    {
-        name = "SafeRequireModule",
-        required = true,
-        dependencies = {"ModuleLoader"},
-        initFunction = function()
-            local safeRequireModule = safeRequire(findModule("SafeRequire"))
-            if safeRequireModule and type(safeRequireModule) == "function" then
-                print("SystemBootstrap: SafeRequireModule initialized successfully")
-                _G.SafeRequire = safeRequireModule
-                return true
-            end
-            return false
-        end
-    },
-    {
-        name = "DataManager",
-        required = true,
-        dependencies = {"CoreRegistry"},
-        initFunction = function()
-            local coreRegistry = safeRequire(findModule("CoreRegistry"))
-            if not coreRegistry then
-                return false
-            end
-            
-            local dataManager = safeRequire(findModule("DataManager"))
-            if dataManager and coreRegistry.registerSystem then
-                coreRegistry.registerSystem("DataManager", dataManager)
-                
-                if dataManager.initialize then
-                    local success = dataManager.initialize()
-                    if success then
-                        print("SystemBootstrap: DataManager initialized successfully")
-                        return true
-                    end
-                    return false
-                end
-                return true
-            end
-            return false
-        end
-    },
-    {
-        name = "EventBridge",
-        required = false,
-        dependencies = {"CoreRegistry"},
-        initFunction = function()
-            local coreRegistry = safeRequire(findModule("CoreRegistry"))
-            if not coreRegistry then
-                return false
-            end
-            
-            local eventBridge = safeRequire(findModule("EventBridge"))
-            if eventBridge and coreRegistry.registerSystem then
-                coreRegistry.registerSystem("EventBridge", eventBridge)
-                
-                if eventBridge.initialize then
-                    local success = eventBridge.initialize()
-                    if success then
-                        print("SystemBootstrap: EventBridge initialized successfully")
-                        return true
-                    end
-                    return false
-                end
-                return true
-            end
-            return false
-        end
-    },
-    {
-        name = "GymAutomation",
-        required = false,
-        dependencies = {"CoreRegistry", "ModuleLoader"},
-        initFunction = function()
-            -- Rely on the GymAutomationLoader script to handle this
-            -- Just check if the module exists and can be accessed
-            local moduleLoader = safeRequire(findModule("ModuleLoader"))
-            if moduleLoader then
-                local gymAutomation = moduleLoader.loadModule("GymAutomation")
-                if gymAutomation then
-                    print("SystemBootstrap: GymAutomation found")
-                    return true
-                end
-            end
-            
-            print("SystemBootstrap: GymAutomation not found, will be loaded separately")
-            return true -- Not required, so return true anyway
-        end
-    }
+    -- Core infrastructure (highest priority)
+    {name = "DataManager", required = true, dependencies = {"CoreRegistry"}},
+    {name = "PathRegistration", required = true, dependencies = {"CoreRegistry"}},
+    {name = "EventBridge", required = true, dependencies = {"CoreRegistry"}},
+    
+    -- Game systems (high priority)
+    {name = "TycoonManager", required = true, dependencies = {"DataManager"}},
+    {name = "EconomySystem", required = true, dependencies = {"DataManager"}},
+    {name = "PlayerProgressionSystem", required = true, dependencies = {"DataManager", "TycoonManager"}},
+    
+    -- Feature systems (medium priority)
+    {name = "GymAutomationManager", required = false, dependencies = {"TycoonManager"}},
+    {name = "MemberSatisfactionSystem", required = false, dependencies = {"TycoonManager"}},
+    {name = "StaffManagementSystem", required = false, dependencies = {"TycoonManager", "EconomySystem"}},
+    
+    -- Support systems (lowest priority)
+    {name = "TutorialManager", required = false, dependencies = {}},
+    {name = "AnalyticsManager", required = false, dependencies = {}},
+    {name = "LocalizationManager", required = false, dependencies = {}}
 }
 
--- Track initialization status
-local systemStatus = {}
-local allRequiredSucceeded = true
+-- Initialize systems in order
+local initializedSystems = {}
 
--- Helper function to initialize a system
-local function initializeSystem(system)
-    if systemStatus[system.name] ~= nil then
-        return systemStatus[system.name]
+for _, systemInfo in ipairs(systems) do
+    print("SystemBootstrap: Initializing " .. systemInfo.name)
+    
+    -- Check dependencies
+    local dependenciesMet = true
+    for _, dependencyName in ipairs(systemInfo.dependencies) do
+        if not initializedSystems[dependencyName] then
+            warn("SystemBootstrap[Error] Required dependency failed: " .. dependencyName .. " for system: " .. systemInfo.name)
+            dependenciesMet = false
+            break
+        end
     end
     
-    -- Check dependencies first
-    for _, dependency in ipairs(system.dependencies) do
-        local dependencySucceeded = false
+    if not dependenciesMet then
+        if systemInfo.required then
+            warn("SystemBootstrap[Error] Cannot initialize required system: " .. systemInfo.name)
+        else
+            print("SystemBootstrap: Skipping non-critical system due to missing dependencies: " .. systemInfo.name)
+        end
+        continue
+    end
+    
+    -- Try to initialize the system
+    local systemModule = findModule(systemInfo.name)
+    if systemModule then
+        local system = safeRequire(systemModule)
         
-        -- Find the dependency in our systems list
-        for _, depSystem in ipairs(systems) do
-            if depSystem.name == dependency then
-                dependencySucceeded = initializeSystem(depSystem)
-                break
+        if system then
+            -- Register with CoreRegistry
+            if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
+                CoreRegistry.registerSystem(systemInfo.name, system)
+            end
+            
+            -- Call initialize if it exists
+            if typeof(system.initialize) == "function" then
+                local success, result = pcall(function()
+                    return system.initialize()
+                end)
+                
+                if success and result ~= false then
+                    print("SystemBootstrap: Successfully initialized " .. systemInfo.name)
+                    initializedSystems[systemInfo.name] = system
+                    
+                    -- Mark as initialized in CoreRegistry
+                    if CoreRegistry and typeof(CoreRegistry.markInitialized) == "function" then
+                        CoreRegistry.markInitialized(systemInfo.name)
+                    end
+                else
+                    warn("SystemBootstrap[Error] Failed to initialize " .. systemInfo.name .. ": " .. tostring(result))
+                    if systemInfo.required then
+                        warn("SystemBootstrap[Error] This is a required system and may impact game functionality")
+                    end
+                end
+            else
+                -- If no initialize method, consider it initialized
+                print("SystemBootstrap: Registered " .. systemInfo.name .. " (no initialization method)")
+                initializedSystems[systemInfo.name] = system
+                
+                -- Mark as initialized in CoreRegistry
+                if CoreRegistry and typeof(CoreRegistry.markInitialized) == "function" then
+                    CoreRegistry.markInitialized(systemInfo.name)
+                end
+            end
+        else
+            warn("SystemBootstrap[Error] Failed to require " .. systemInfo.name)
+            if systemInfo.required then
+                warn("SystemBootstrap[Error] This is a required system and may impact game functionality")
             end
         end
-        
-        if not dependencySucceeded then
-            warn("[SystemBootstrap][Error] Required dependency failed: " .. dependency .. " for system: " .. system.name)
-            systemStatus[system.name] = false
-            return false
+    else
+        warn("SystemBootstrap[Error] Could not find module: " .. systemInfo.name)
+        if systemInfo.required then
+            warn("SystemBootstrap[Error] This is a required system and may impact game functionality")
+        end
+    end
+end
+
+-- Count successful initializations
+local successCount = 0
+local requiredSuccessCount = 0
+local requiredTotal = 0
+
+for _, systemInfo in ipairs(systems) do
+    if initializedSystems[systemInfo.name] then
+        successCount += 1
+        if systemInfo.required then
+            requiredSuccessCount += 1
         end
     end
     
-    -- Initialize the system
-    local success = system.initFunction()
-    systemStatus[system.name] = success
-    
-    if not success then
-        warn("[SystemBootstrap][Error] Failed to initialize " .. (system.required and "required " or "") .. "system: " .. system.name)
-        if system.required then
-            warn("[SystemBootstrap][Error] CRITICAL: Required system failed: " .. system.name)
-            allRequiredSucceeded = false
-        end
+    if systemInfo.required then
+        requiredTotal += 1
     end
-    
-    return success
 end
 
--- Initialize all systems
-for _, system in ipairs(systems) do
-    initializeSystem(system)
-end
+-- Report results
+local successRate = math.floor((successCount / #systems) * 100)
+local requiredSuccessRate = requiredTotal > 0 and math.floor((requiredSuccessCount / requiredTotal) * 100) or 0
 
--- Check if all required systems initialized successfully
-if allRequiredSucceeded then
-    print("✅ SystemBootstrap: All required systems initialized successfully!")
+print("SystemBootstrap: Initialization complete")
+print("SystemBootstrap: Total systems initialized: " .. successCount .. "/" .. #systems .. " (" .. successRate .. "%)")
+print("SystemBootstrap: Required systems initialized: " .. requiredSuccessCount .. "/" .. requiredTotal .. " (" .. requiredSuccessRate .. "%)")
+
+if requiredSuccessRate < 100 then
+    warn("SystemBootstrap[Warning] Not all required systems were initialized. Game functionality may be limited.")
 else
-    warn("[SystemBootstrap][Error] CRITICAL: Some required systems failed to initialize. Game may not function correctly.")
+    print("✅ SystemBootstrap: All required systems initialized successfully")
 end

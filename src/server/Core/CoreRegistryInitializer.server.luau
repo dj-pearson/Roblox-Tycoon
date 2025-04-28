@@ -1,184 +1,185 @@
--- CoreRegistryInitializer.server.luau
--- Early-loading script to ensure CoreRegistry is available
--- Created: April 28, 2025
+--[[
+    CoreRegistryInitializer.server.luau
+    
+    This script initializes the CoreRegistry system early in the game lifecycle 
+    to ensure proper availability for other systems. It handles errors gracefully
+    and provides fallback mechanisms when core components are missing.
+    
+    Created as part of the CoreRegistry fix documented in CoreRegistry_Fix_Solution.md
+]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Constants and configuration
-local CORE_REGISTRY_PATH = ServerScriptService:WaitForChild("Core", 5)
-local TIMEOUT = 5 -- seconds to wait before creating fallback
-local VERSION = "1.0.0"
-local DEBUG = true -- Set to true for verbose logging
+-- Initialize once flag
+local initialized = false
+local initializationAttempts = 0
+local MAX_ATTEMPTS = 3
 
--- Local logging function
-local function log(message, level)
-	level = level or "Info"
-	if not DEBUG and level ~= "Error" then return end
-	print(string.format("[CoreRegistryInitializer][%s] %s", level, message))
+-- Safe require function with timeout
+local function safeRequire(module, fallback)
+    if not module then
+        return fallback
+    end
+    
+    if not module:IsA("ModuleScript") then
+        warn("CoreRegistryInitializer: Expected ModuleScript but got " .. module.ClassName .. " for " .. module:GetFullName())
+        return fallback
+    end
+    
+    local success, result = pcall(function()
+        return require(module)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("CoreRegistryInitializer: Failed to require " .. module:GetFullName() .. " - " .. tostring(result))
+        return fallback
+    end
 end
 
--- Create folders if they don't exist
-local function ensureFolderExists(parent, name)
-	if not parent:FindFirstChild(name) then
-		local folder = Instance.new("Folder")
-		folder.Name = name
-		folder.Parent = parent
-		log("Created folder: " .. parent.Name .. "/" .. name, "Warning")
-	end
-	return parent:FindFirstChild(name)
+-- Find module helper
+local function findModule(moduleName)
+    -- Search paths in priority order
+    local searchPaths = {
+        ServerScriptService:FindFirstChild("Core"),
+        ServerScriptService,
+        ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage
+    }
+    
+    for _, path in ipairs(searchPaths) do
+        if path then
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
+        end
+    end
+    
+    return nil
 end
 
--- Initialize required folders
-log("Starting CoreRegistry initialization")
-local Core = ensureFolderExists(ServerScriptService, "Core")
-
--- Create a CoreRegistry if one doesn't exist
-local function createCoreRegistry()
-	log("Creating CoreRegistry module", "Warning")
-	
-	local coreRegistry = Instance.new("ModuleScript")
-	coreRegistry.Name = "CoreRegistry"
-	coreRegistry.Parent = Core
-	
-	-- Basic implementation of CoreRegistry
-	coreRegistry.Source = [[
-		-- CoreRegistry Module
-		-- Auto-generated fallback implementation
-		-- Generated: ]] .. os.date("%Y-%m-%d %H:%M:%S") .. [[
-		
-		local CoreRegistry = {
-			_registered = {},
-			_version = "]] .. VERSION .. [[",
-			_isFallback = true,
-			_loaded = os.clock(),
-			_health = "OPERATIONAL",
-		}
-		
-		-- Register a module or system with the CoreRegistry
-		function CoreRegistry:Register(name, module)
-			if self._registered[name] then
-				warn("CoreRegistry: Overwriting existing registration for " .. name)
-			end
-			self._registered[name] = module
-			print("CoreRegistry: Registered " .. name)
-			return true
-		end
-		
-		-- Get a registered module or system
-		function CoreRegistry:Get(name)
-			return self._registered[name]
-		end
-		
-		-- Check if a module or system is registered
-		function CoreRegistry:HasSystem(name)
-			return self._registered[name] ~= nil
-		end
-		
-		-- Get all registered modules and systems
-		function CoreRegistry:GetAll()
-			return self._registered
-		end
-		
-		-- Get registry version
-		function CoreRegistry:GetVersion()
-			return self._version
-		end
-		
-		-- Health check
-		function CoreRegistry:HealthCheck()
-			return {
-				status = self._health,
-				version = self._version,
-				isFallback = self._isFallback,
-				uptime = os.clock() - self._loaded,
-				registeredCount = #self:GetRegisteredNames(),
-			}
-		end
-		
-		-- Get list of registered names
-		function CoreRegistry:GetRegisteredNames()
-			local names = {}
-			for name, _ in pairs(self._registered) do
-				table.insert(names, name)
-			end
-			return names
-		end
-		
-		-- For diagnostics and debugging
-		function CoreRegistry:__tostring()
-			return "CoreRegistry (v" .. self._version .. ")" .. 
-				" | Status: " .. self._health .. 
-				" | Systems: " .. #self:GetRegisteredNames()
-		end
-		
-		return CoreRegistry
-	]]
-	
-	return coreRegistry
+-- Safe wait for child with timeout
+local function safeWaitForChild(parent, childName, timeout)
+    timeout = timeout or 5 -- Default timeout of 5 seconds
+    
+    -- Quick check
+    local child = parent:FindFirstChild(childName)
+    if child then return child end
+    
+    -- Use timeout to prevent infinite yield
+    local startTime = os.clock()
+    while not child and (os.clock() - startTime) < timeout do
+        child = parent:FindFirstChild(childName)
+        if child then break end
+        task.wait(0.1)
+    end
+    
+    return child
 end
 
--- Try to find the existing CoreRegistry, or create a fallback
+-- Ensure a path exists
+local function ensurePath(parent, pathArray)
+    local current = parent
+    for _, name in ipairs(pathArray) do
+        local child = current:FindFirstChild(name)
+        if not child then
+            child = Instance.new("Folder")
+            child.Name = name
+            child.Parent = current
+        end
+        current = child
+    end
+    return current
+end
+
+-- Initialize the CoreRegistry
 local function initializeCoreRegistry()
-	local coreRegistry
-	
-	-- Try to find existing CoreRegistry
-	if Core:FindFirstChild("CoreRegistry") then
-		coreRegistry = Core:FindFirstChild("CoreRegistry")
-		log("Found existing CoreRegistry module")
-	else
-		-- Create a new CoreRegistry module
-		coreRegistry = createCoreRegistry()
-		log("Created fallback CoreRegistry module", "Warning")
-	end
-	
-	-- Make sure we have a valid module
-	local success, registry = pcall(function()
-		return require(coreRegistry)
-	end)
-	
-	if success then
-		-- CoreRegistry loaded successfully
-		log("CoreRegistry loaded successfully: v" .. registry:GetVersion())
-		
-		-- Global access for debugging
-		_G.__CoreRegistry = registry
-		_G.CoreRegistry = registry
-		
-		-- Create a health check feedback system
-		spawn(function()
-			while wait(5) do
-				local health = registry:HealthCheck()
-				log("CoreRegistry health: " .. health.status .. " | Systems: " .. health.registeredCount)
-			end
-		end)
-		
-		return registry
-	else
-		-- Failed to load CoreRegistry
-		warn("Failed to load CoreRegistry: " .. registry)
-		return nil
-	end
+    if initialized then
+        return true
+    end
+    
+    initializationAttempts += 1
+    
+    -- Create necessary folders
+    ensurePath(ServerScriptService, {"Core"})
+    ensurePath(ReplicatedStorage, {"shared"})
+    
+    print("CoreRegistryInitializer: Initializing CoreRegistry (attempt " .. initializationAttempts .. "/" .. MAX_ATTEMPTS .. ")")
+    
+    -- Try to get CoreRegistry module
+    local coreRegistryModule = findModule("CoreRegistry")
+    if not coreRegistryModule then
+        warn("CoreRegistryInitializer: Could not find CoreRegistry module")
+        
+        if initializationAttempts < MAX_ATTEMPTS then
+            -- Schedule retry
+            task.delay(1, initializeCoreRegistry)
+            return false
+        else
+            warn("CoreRegistryInitializer: Failed to initialize CoreRegistry after " .. MAX_ATTEMPTS .. " attempts")
+            return false
+        end
+    end
+    
+    -- Load CoreRegistry
+    local CoreRegistry = safeRequire(coreRegistryModule)
+    if not CoreRegistry then
+        warn("CoreRegistryInitializer: CoreRegistry module found but failed to require")
+        
+        if initializationAttempts < MAX_ATTEMPTS then
+            -- Schedule retry
+            task.delay(1, initializeCoreRegistry)
+            return false
+        else
+            warn("CoreRegistryInitializer: Failed to initialize CoreRegistry after " .. MAX_ATTEMPTS .. " attempts")
+            return false
+        end
+    end
+    
+    -- Initialize CoreRegistry
+    if CoreRegistry.initialize then
+        local success = CoreRegistry.initialize()
+        if not success then
+            warn("CoreRegistryInitializer: CoreRegistry.initialize() returned false")
+            
+            if initializationAttempts < MAX_ATTEMPTS then
+                -- Schedule retry
+                task.delay(1, initializeCoreRegistry)
+                return false
+            else
+                warn("CoreRegistryInitializer: Failed to initialize CoreRegistry after " .. MAX_ATTEMPTS .. " attempts")
+                return false
+            end
+        end
+    end
+    
+    -- Make sure ModuleLoader is available
+    local moduleLoaderModule = findModule("ModuleLoader")
+    local ModuleLoader = nil
+    
+    if moduleLoaderModule then
+        ModuleLoader = safeRequire(moduleLoaderModule)
+    end
+    
+    if ModuleLoader then
+        print("CoreRegistryInitializer: Registered ModuleLoader with CoreRegistry")
+        CoreRegistry.registerSystem("ModuleLoader", ModuleLoader)
+    else
+        warn("CoreRegistryInitializer: ModuleLoader not found, some dependencies may fail to load")
+    end
+    
+    -- Check if CoreRegistry is available globally
+    if not _G.CoreRegistry then
+        _G.CoreRegistry = CoreRegistry
+    end
+    
+    print("✅ CoreRegistryInitializer: CoreRegistry successfully initialized!")
+    initialized = true
+    return true
 end
 
--- Initialize CoreRegistry
-local CoreRegistry = initializeCoreRegistry()
-
--- Create a shared variable to signal that CoreRegistry is ready
-local signal = Instance.new("BoolValue")
-signal.Name = "CoreRegistryAvailable"
-signal.Value = CoreRegistry ~= nil
-signal.Parent = ReplicatedStorage
-
--- Add a changed event to the signal
-signal.Changed:Connect(function(newValue)
-	if newValue then
-		log("CoreRegistry is now available", "Info")
-	else
-		log("CoreRegistry is now unavailable", "Error")
-	end
-end)
-
-log("CoreRegistry initialization complete. Status: " .. (signal.Value and "AVAILABLE" or "UNAVAILABLE"))
-
-return CoreRegistry
+-- Initialize CoreRegistry when script runs
+initializeCoreRegistry()

@@ -1,11 +1,11 @@
 --[[
     FolderSetup.server.luau
     
-    This script runs first to ensure all required folder structures exist in the game.
-    It prevents "Infinite yield possible on WaitForChild" errors by creating folders
-    that other scripts expect to find.
+    This script ensures that all necessary folder structures exist early in the game lifecycle.
+    It prevents "Infinite yield possible on WaitForChild" errors by creating required folders
+    before other scripts try to access them.
     
-    This script has the highest RunContext.Priority to ensure it runs before other scripts.
+    Created as part of the CoreRegistry fix documented in CoreRegistry_Fix_Solution.md
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -13,125 +13,86 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local Players = game:GetService("Players")
 
--- Configuration
-local CONFIG = {
-    debug = true,
-    folders = {
-        -- ReplicatedStorage folders
-        {parent = ReplicatedStorage, name = "shared"},
-        {parent = ReplicatedStorage, name = "src"},
-        {parent = ReplicatedStorage, name = "EventBridge"},
-        {parent = ReplicatedStorage, name = "CoreRegistryRemotes"},
-        {parent = ReplicatedStorage, name = "AccruedDues"},
-        
-        -- ServerScriptService folders
-        {parent = ServerScriptService, name = "Core"},
-        {parent = ServerScriptService, name = "Server"},
-        {parent = ServerScriptService, name = "GymAutomation"},
-        {parent = ServerScriptService, name = "Tests"},
-        
-        -- ServerStorage folders
-        {parent = ServerStorage, name = "GymParts"},
-        {parent = ServerStorage, name = "BuyTiles"},
-        {parent = ServerStorage, name = "Modules"}
-    },
-    
-    -- Specific nested folder paths
-    nestedPaths = {
-        "ReplicatedStorage.shared.Data",
-        "ReplicatedStorage.src.shared",
-        "ServerScriptService.Core.Registry",
-        "ServerStorage.Modules.Data"
-    }
-}
-
--- Debug logger
-local function log(...)
-    if CONFIG.debug then
-        print("[FolderSetup]", ...)
-    end
-end
-
--- Create a folder if it doesn't exist
-local function ensureFolder(parent, name)
-    if not parent then
-        log("Parent is nil for folder:", name)
-        return nil
-    end
-    
-    local folder = parent:FindFirstChild(name)
-    
-    if folder and not folder:IsA("Folder") then
-        log("Found", name, "but it's not a Folder, it's a", folder.ClassName, "- recreating it")
-        folder:Destroy()
-        folder = nil
-    end
-    
-    if not folder then
-        folder = Instance.new("Folder")
-        folder.Name = name
-        folder.Parent = parent
-        log("Created folder:", name, "in", parent:GetFullName())
-    end
-    
-    return folder
-end
-
--- Create a nested folder path
-local function createPath(pathString)
-    local parts = pathString:split(".")
-    local current = game
-    
-    for i, part in ipairs(parts) do
-        current = ensureFolder(current, part)
-        if not current then
-            log("Failed to create path at part", i, ":", part, "in", pathString)
-            return nil
+-- Ensure a path exists
+local function ensurePath(parent, pathArray)
+    local current = parent
+    for _, name in ipairs(pathArray) do
+        local child = current:FindFirstChild(name)
+        if not child then
+            child = Instance.new("Folder")
+            child.Name = name
+            child.Parent = current
+            print("FolderSetup: Created folder " .. name .. " in " .. current:GetFullName())
         end
+        current = child
     end
-    
-    log("Created full path:", pathString)
     return current
 end
 
--- Create initial folder structure
-log("Setting up required folder structure...")
+print("FolderSetup: Starting essential folder structure creation")
 
--- Create main folders
-for _, folderInfo in ipairs(CONFIG.folders) do
-    ensureFolder(folderInfo.parent, folderInfo.name)
-end
+-- Server-side critical paths
+ensurePath(ServerScriptService, {"Core"})
+ensurePath(ServerScriptService, {"Server", "Systems"})
+ensurePath(ServerScriptService, {"Server", "Tests"})
+ensurePath(ServerScriptService, {"Server", "GymAutomation"})
+ensurePath(ServerScriptService, {"Server", "DataManagement"})
+ensurePath(ServerScriptService, {"Server", "TycoonManagement"})
+ensurePath(ServerScriptService, {"Server", "Events"})
 
--- Create nested paths
-for _, path in ipairs(CONFIG.nestedPaths) do
-    createPath(path)
-end
+-- Shared folders
+ensurePath(ReplicatedStorage, {"shared"})
+ensurePath(ReplicatedStorage, {"shared", "Systems"})
+ensurePath(ReplicatedStorage, {"shared", "Utils"})
+ensurePath(ReplicatedStorage, {"shared", "Types"})
+ensurePath(ReplicatedStorage, {"shared", "Constants"})
+ensurePath(ReplicatedStorage, {"UIModules"})
+ensurePath(ReplicatedStorage, {"RemoteEvents"})
+ensurePath(ReplicatedStorage, {"RemoteFunctions"})
 
--- Listen for player added events to ensure Tycoon folder structure
-Players.PlayerAdded:Connect(function(player)
-    -- Wait a moment for the player to fully load
-    task.delay(0.5, function()
-        -- Ensure player has basic folders needed
-        ensureFolder(player, "Tycoon")
+-- Server storage paths
+ensurePath(ServerStorage, {"MemberSatisfactionSystem"})
+ensurePath(ServerStorage, {"Assets"})
+ensurePath(ServerStorage, {"Data"})
+ensurePath(ServerStorage, {"GymParts"})
+
+-- Handle player-specific folder creation
+local function setupPlayerFolders(player)
+    -- Required during gameplay
+    task.spawn(function()
+        local folder = Instance.new("Folder")
+        folder.Name = "Tycoon"
+        folder.Parent = player
         
-        -- Delayed check for more player structures (after other scripts might have created values)
-        task.delay(2, function()
-            -- Get existing Tycoon value or folder
-            local tycoon = player:FindFirstChild("Tycoon")
-            
-            -- If Tycoon exists but isn't a folder or ObjectValue, something's wrong
-            if tycoon and not (tycoon:IsA("Folder") or tycoon:IsA("ObjectValue")) then
-                log("Tycoon for", player.Name, "is not a Folder or ObjectValue, it's a", tycoon.ClassName)
-                -- Don't destroy it, let the TycoonFolderFixer handle it
-            end
-        end)
+        -- Create essential tycoon subfolders
+        ensurePath(folder, {"Data"})
+        ensurePath(folder, {"Equipment"})
+        ensurePath(folder, {"Staff"})
+        ensurePath(folder, {"Customers"})
+        ensurePath(folder, {"Stats"})
+        
+        print("FolderSetup: Created Tycoon folder structure for " .. player.Name)
     end)
-end)
+    
+    -- Setup PlayerScripts folders
+    task.spawn(function()
+        local playerScripts = player:FindFirstChild("PlayerScripts")
+        if playerScripts then
+            ensurePath(playerScripts, {"Core"})
+            ensurePath(playerScripts, {"Client"})
+            ensurePath(playerScripts, {"Client", "Systems"})
+            ensurePath(playerScripts, {"Client", "UI"})
+            ensurePath(playerScripts, {"shared"})
+        end
+    end)
+end
 
-log("Folder setup complete")
+-- Set up folders for existing players
+for _, player in pairs(Players:GetPlayers()) do
+    setupPlayerFolders(player)
+end
 
--- Return a simple API that other scripts can use
-return {
-    ensureFolder = ensureFolder,
-    createPath = createPath
-}
+-- Set up folders for new players
+Players.PlayerAdded:Connect(setupPlayerFolders)
+
+print("✅ FolderSetup: Essential folder structure creation complete")

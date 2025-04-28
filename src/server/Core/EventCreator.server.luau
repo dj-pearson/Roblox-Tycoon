@@ -1,154 +1,163 @@
 --[[
     EventCreator.server.luau
     
-    Creates all required remote events early in game lifecycle
-    to prevent "Infinite yield possible on WaitForChild" errors
-    for events.
+    Creates all required remote events early in game lifecycle to prevent
+    "Infinite yield possible on WaitForChild" for events.
     
-    Created: April 27, 2025
+    Created as part of the CoreRegistry fix documented in CoreRegistry_Fix_Solution.md
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
--- Configuration
-local CONFIG = {
-    DEBUG_LOGGING = true
-}
-
--- Debug logging
-local function log(message)
-    if CONFIG.DEBUG_LOGGING then
-        print("[EventCreator] " .. message)
-    end
-end
+local ServerScriptService = game:GetService("ServerScriptService")
 
 -- List of events to create
-local EVENTS_TO_CREATE = {
-    -- Core events
-    { name = "PlaySoundEvent", className = "RemoteEvent", parent = ReplicatedStorage },
+local events = {
+    -- Core game events
+    "PlayerDataUpdate",
+    "TycoonUpdate",
+    "UINotification",
+    "EquipmentPurchase",
+    "StaffHire",
+    "CustomerInteraction",
     
-    -- Player events
-    { name = "PlayerDataLoaded", className = "RemoteEvent", parent = ReplicatedStorage },
-    { name = "PlayerDataUpdated", className = "RemoteEvent", parent = ReplicatedStorage },
-    { name = "PlayerMoneyChanged", className = "RemoteEvent", parent = ReplicatedStorage },
+    -- Economy events
+    "TransactionComplete",
+    "ResourceUpdate",
+    "PriceUpdate",
     
-    -- Tycoon events
-    { name = "TycoonUpdated", className = "RemoteEvent", parent = ReplicatedStorage },
-    { name = "TycoonPurchased", className = "RemoteEvent", parent = ReplicatedStorage },
-    { name = "TycoonCollected", className = "RemoteEvent", parent = ReplicatedStorage },
+    -- Gym events
+    "GymEquipmentInteraction",
+    "WorkoutComplete",
+    "MemberSatisfactionChange",
     
-    -- UI events
-    { name = "UINotification", className = "RemoteEvent", parent = ReplicatedStorage },
-    { name = "UIUpdate", className = "RemoteEvent", parent = ReplicatedStorage },
-    { name = "UIAction", className = "RemoteEvent", parent = ReplicatedStorage },
-    
-    -- Game events
-    { name = "GameStateChanged", className = "RemoteEvent", parent = ReplicatedStorage }
+    -- System events
+    "SystemStatus",
+    "ErrorReport",
+    "DebugCommand"
 }
 
--- Create an instance if it doesn't exist
-local function createIfMissing(parent, name, className)
-    if not parent then return nil end
+-- List of RemoteFunctions to create
+local remoteFunctions = {
+    "GetPlayerData",
+    "PurchaseEquipment",
+    "HireStaff",
+    "UpgradeTycoon",
+    "RequestTycoonData"
+}
+
+-- List of folders to create for organization
+local eventFolders = {
+    "UI",
+    "Tycoon",
+    "Economy",
+    "Alliance",
+    "SystemEvents"
+}
+
+-- Define events that belong in specific folders
+local folderEvents = {
+    UI = {
+        "OpenMenu",
+        "CloseMenu",
+        "UIResponse",
+        "UpdateUI",
+        "NotifyPlayer",
+        "ShowTooltip",
+        "HideTooltip"
+    },
     
-    -- Check if the instance already exists
-    local instance = parent:FindFirstChild(name)
-    if instance then
-        log("Instance already exists: " .. name .. " in " .. parent:GetFullName())
-        return instance
-    end
+    Tycoon = {
+        "PlaceFurniture",
+        "MoveFurniture",
+        "SellFurniture",
+        "ExpandTycoon",
+        "UpgradeTycoon",
+        "RemodelTycoon"
+    },
     
-    -- Create the instance
-    instance = Instance.new(className)
-    instance.Name = name
-    instance.Parent = parent
+    Economy = {
+        "BankDeposit",
+        "BankWithdrawal",
+        "LoanRequest",
+        "InvestmentUpdate",
+        "MarketPriceChange"
+    },
     
-    log("Created " .. className .. ": " .. name .. " in " .. parent:GetFullName())
-    return instance
+    Alliance = {
+        "JoinAlliance",
+        "LeaveAlliance",
+        "AllianceInvite",
+        "AllianceChat",
+        "AllianceResourceShare"
+    },
+    
+    SystemEvents = {
+        "ClientReady",
+        "ServerRestart",
+        "PerformanceReport",
+        "FeatureFlag",
+        "VersionCheck"
+    }
+}
+
+print("EventCreator: Starting remote events creation")
+
+-- Ensure RemoteEvents folder exists
+local remoteEvents = ReplicatedStorage:FindFirstChild("RemoteEvents")
+if not remoteEvents then
+    remoteEvents = Instance.new("Folder")
+    remoteEvents.Name = "RemoteEvents"
+    remoteEvents.Parent = ReplicatedStorage
 end
 
--- Create an event folder if it doesn't exist
-local function getOrCreateEventsFolder()
-    -- Check if Events folder already exists
-    local events = ReplicatedStorage:FindFirstChild("Events")
-    if events and events:IsA("Folder") then
-        return events
-    end
-    
-    -- Create Events folder
-    events = Instance.new("Folder")
-    events.Name = "Events"
-    events.Parent = ReplicatedStorage
-    
-    log("Created Events folder in ReplicatedStorage")
-    return events
+-- Ensure RemoteFunctions folder exists
+local remoteFunctionsFolder = ReplicatedStorage:FindFirstChild("RemoteFunctions")
+if not remoteFunctionsFolder then
+    remoteFunctionsFolder = Instance.new("Folder")
+    remoteFunctionsFolder.Name = "RemoteFunctions"
+    remoteFunctionsFolder.Parent = ReplicatedStorage
 end
 
--- Create all events
-local function createAllEvents()
-    log("Creating all required events...")
-    
-    -- Make sure Events folder exists
-    local eventsFolder = getOrCreateEventsFolder()
-    
-    -- Create each event
-    for _, eventInfo in ipairs(EVENTS_TO_CREATE) do
-        -- Use specified parent or default to Events folder
-        local parent = eventInfo.parent or eventsFolder
-        createIfMissing(parent, eventInfo.name, eventInfo.className)
+-- Create main RemoteEvents
+for _, eventName in ipairs(events) do
+    local existing = remoteEvents:FindFirstChild(eventName)
+    if not existing then
+        local event = Instance.new("RemoteEvent")
+        event.Name = eventName
+        event.Parent = remoteEvents
     end
-    
-    log("All required events created")
 end
 
--- Register event creation with CoreRegistry
-local function registerWithCoreRegistry()
-    -- Check if CoreRegistry is available
-    if _G.CoreRegistry then
-        log("Registering with CoreRegistry")
-        _G.CoreRegistry.registerSystem("EventCreator", {
-            createEvent = function(eventName, parent)
-                parent = parent or ReplicatedStorage
-                return createIfMissing(parent, eventName, "RemoteEvent")
-            end,
-            
-            createFunction = function(functionName, parent)
-                parent = parent or ReplicatedStorage
-                return createIfMissing(parent, functionName, "RemoteFunction")
-            end,
-            
-            initialize = function()
-                log("EventCreator initialized through CoreRegistry")
-                return true
+-- Create main RemoteFunctions
+for _, functionName in ipairs(remoteFunctions) do
+    local existing = remoteFunctionsFolder:FindFirstChild(functionName)
+    if not existing then
+        local func = Instance.new("RemoteFunction")
+        func.Name = functionName
+        func.Parent = remoteFunctionsFolder
+    end
+end
+
+-- Create event folders and their events
+for _, folderName in ipairs(eventFolders) do
+    local folder = remoteEvents:FindFirstChild(folderName)
+    if not folder then
+        folder = Instance.new("Folder")
+        folder.Name = folderName
+        folder.Parent = remoteEvents
+    end
+    
+    -- Create events in this folder
+    if folderEvents[folderName] then
+        for _, eventName in ipairs(folderEvents[folderName]) do
+            local existing = folder:FindFirstChild(eventName)
+            if not existing then
+                local event = Instance.new("RemoteEvent")
+                event.Name = eventName
+                event.Parent = folder
             end
-        }, {})
+        end
     end
 end
 
--- Initialize
-local function initialize()
-    log("Initializing event creation...")
-    
-    -- Create all events
-    createAllEvents()
-    
-    -- Register with CoreRegistry
-    registerWithCoreRegistry()
-    
-    log("Event creation complete")
-end
-
--- Run initialization
-initialize()
-
--- Return API for anyone requiring this module
-return {
-    createEvent = function(eventName, parent)
-        parent = parent or ReplicatedStorage
-        return createIfMissing(parent, eventName, "RemoteEvent")
-    end,
-    
-    createFunction = function(functionName, parent)
-        parent = parent or ReplicatedStorage
-        return createIfMissing(parent, functionName, "RemoteFunction")
-    end
-}
+print("✅ EventCreator: Remote events creation complete (created " .. #events .. " main events, " .. #remoteFunctions .. " functions, and events in " .. #eventFolders .. " folders)")

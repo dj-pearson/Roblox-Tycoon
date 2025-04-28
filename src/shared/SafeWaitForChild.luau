@@ -1,135 +1,119 @@
 --[[
     SafeWaitForChild.luau
-    A utility module for safely waiting for child instances with timeout handling.
-    This prevents "Infinite yield possible on WaitForChild" errors by using timeouts.
     
-    Created to fix critical "Module Loading and WaitForChild Errors" reported in RobloxIssues.txt
+    Utility module to safely wait for child instances with timeout protection.
+    Prevents infinite yield errors by providing fallback mechanisms when children
+    don't appear within the specified timeout period.
+    
+    Created as part of the CoreRegistry fix documented in CoreRegistry_Fix_Solution.md
 ]]
 
 local SafeWaitForChild = {}
 
--- Wait for a child with a timeout to prevent infinite yield
-function SafeWaitForChild.waitForChild(parent, childName, timeout, warningEnabled)
-    timeout = timeout or 5
-    warningEnabled = warningEnabled ~= false  -- Default to true if not specified
+-- Default timeout in seconds
+SafeWaitForChild.DEFAULT_TIMEOUT = 5
+
+-- SafeWaitForChild with timeout and optional creation
+function SafeWaitForChild.wait(parent, childName, timeout, createIfMissing, instanceType)
+    if not parent then
+        warn("SafeWaitForChild: Parent is nil")
+        return nil
+    end
     
-    -- Quick check first (most efficient)
+    if typeof(parent) ~= "Instance" then
+        warn("SafeWaitForChild: Parent is not an Instance")
+        return nil
+    end
+    
+    timeout = timeout or SafeWaitForChild.DEFAULT_TIMEOUT
+    
+    -- Quick check first
     local child = parent:FindFirstChild(childName)
-    if child then return child end
-    
-    -- Use timeout to prevent infinite yield
-    local startTime = os.clock()
-    
-    -- Try to use WaitForChild with timeout
-    local success, result = pcall(function()
-        return parent:WaitForChild(childName, timeout)
-    end)
-    
-    -- If successful, return the result
-    if success and result then
-        return result
+    if child then
+        return child
     end
     
-    -- Manual polling as fallback
-    child = parent:FindFirstChild(childName)
+    -- Wait with timeout
+    local startTime = os.clock()
     while not child and (os.clock() - startTime) < timeout do
-        task.wait(0.1)
         child = parent:FindFirstChild(childName)
+        if child then
+            break
+        end
+        task.wait(0.1)
     end
     
-    -- Warning if enabled and child not found
-    if not child and warningEnabled then
-        warn("SafeWaitForChild: Timeout waiting for " .. childName .. " in " .. parent:GetFullName())
-    end
-    
-    return child
-end
-
--- Wait for a list of children with timeouts
-function SafeWaitForChild.waitForChildren(parent, childNames, timeout, warningEnabled)
-    timeout = timeout or 5
-    warningEnabled = warningEnabled ~= false
-    
-    local results = {}
-    local startTime = os.clock()
-    local remainingTime = timeout
-    
-    for _, childName in ipairs(childNames) do
-        -- Calculate remaining time for this child
-        remainingTime = math.max(0.1, timeout - (os.clock() - startTime))
-        
-        -- Wait for this child with the remaining time
-        results[childName] = SafeWaitForChild.waitForChild(
-            parent, 
-            childName, 
-            remainingTime, 
-            warningEnabled
-        )
-    end
-    
-    return results
-end
-
--- Try to create a child if it doesn't exist and we have permission
-function SafeWaitForChild.waitOrCreate(parent, childName, instanceType, timeout)
-    timeout = timeout or 5
-    
-    -- Try to wait for the child first
-    local child = SafeWaitForChild.waitForChild(parent, childName, timeout, false)
-    
-    -- If child doesn't exist, try to create it
-    if not child then
+    -- Create if requested and still missing
+    if not child and createIfMissing then
         local success, result = pcall(function()
-            child = Instance.new(instanceType)
-            child.Name = childName
-            child.Parent = parent
-            return child
+            local newChild
+            
+            if instanceType then
+                newChild = Instance.new(instanceType)
+            else
+                newChild = Instance.new("Folder")
+            end
+            
+            newChild.Name = childName
+            newChild.Parent = parent
+            return newChild
         end)
         
         if success then
             child = result
+            print("SafeWaitForChild: Created " .. childName .. " in " .. parent:GetFullName())
         else
             warn("SafeWaitForChild: Failed to create " .. childName .. " in " .. parent:GetFullName() .. ": " .. tostring(result))
         end
     end
     
+    -- Log warning if still not found
+    if not child then
+        warn("SafeWaitForChild: Timed out waiting for " .. childName .. " in " .. parent:GetFullName() .. " after " .. timeout .. " seconds")
+    end
+    
     return child
 end
 
--- Check if we can access a child at a nested path
-function SafeWaitForChild.resolvePath(rootInstance, path, timeout, createMissing)
-    timeout = timeout or 5
-    createMissing = createMissing or false
+-- Safely wait and require a ModuleScript
+function SafeWaitForChild.waitAndRequire(parent, childName, timeout, fallback)
+    local module = SafeWaitForChild.wait(parent, childName, timeout)
     
-    if typeof(rootInstance) ~= "Instance" then
-        warn("SafeWaitForChild.resolvePath: Invalid root instance")
+    if not module then
+        return fallback
+    end
+    
+    if not module:IsA("ModuleScript") then
+        warn("SafeWaitForChild.waitAndRequire: Found " .. childName .. " but it's not a ModuleScript")
+        return fallback
+    end
+    
+    local success, result = pcall(function()
+        return require(module)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("SafeWaitForChild.waitAndRequire: Failed to require " .. childName .. ": " .. tostring(result))
+        return fallback
+    end
+end
+
+-- Safely navigate a path with individual timeouts
+function SafeWaitForChild.navigatePath(startParent, pathArray, timeout, createMissing)
+    if not startParent or typeof(startParent) ~= "Instance" then
+        warn("SafeWaitForChild.navigatePath: Invalid start parent")
         return nil
     end
     
-    if type(path) == "string" then
-        path = string.split(path, ".")
-    end
+    local current = startParent
+    timeout = timeout or SafeWaitForChild.DEFAULT_TIMEOUT
+    local perElementTimeout = timeout / #pathArray
     
-    if type(path) ~= "table" or #path == 0 then
-        return rootInstance
-    end
-    
-    local current = rootInstance
-    local startTime = os.clock()
-    local remainingTime = timeout
-    
-    for i, segment in ipairs(path) do
-        -- Calculate remaining time for this segment
-        remainingTime = math.max(0.1, timeout - (os.clock() - startTime))
-        
-        if createMissing then
-            current = SafeWaitForChild.waitOrCreate(current, segment, "Folder", remainingTime)
-        else
-            current = SafeWaitForChild.waitForChild(current, segment, remainingTime)
-        end
-        
+    for _, name in ipairs(pathArray) do
+        current = SafeWaitForChild.wait(current, name, perElementTimeout, createMissing)
         if not current then
-            warn("SafeWaitForChild.resolvePath: Failed to resolve path at segment " .. i .. ": " .. segment)
             return nil
         end
     end

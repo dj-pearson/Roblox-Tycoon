@@ -1,219 +1,210 @@
---!strict
 --[[
     ModuleLoaderHelper.luau
     
-    Helper utility for loading modules consistently across both server and client.
-    Provides a simplified interface for finding and requiring modules with error handling.
+    Helper utility for loading modules across both server and client.
+    Provides consistent interface for requiring modules with error handling.
     
-    Created: April 27, 2025
+    Created as part of the CoreRegistry fix documented in CoreRegistry_Fix_Solution.md
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- Configuration
-local CONFIG = {
-    DEBUG_MODE = true,
-    DEFAULT_TIMEOUT = 5
+local isServer = RunService:IsServer()
+local ServerScriptService = isServer and game:GetService("ServerScriptService") or nil
+
+-- The module
+local ModuleLoaderHelper = {}
+
+-- Version information
+ModuleLoaderHelper.VERSION = "1.0.0"
+
+-- Default search paths
+local defaultSearchPaths = {
+    ReplicatedStorage:FindFirstChild("shared"),
+    ReplicatedStorage
 }
 
--- Internal state
-local moduleCache = {}
-local coreRegistry = nil
-local moduleLoader = nil
-
--- Logging
-local function log(message)
-    if CONFIG.DEBUG_MODE then
-        print("[ModuleLoaderHelper] " .. message)
-    end
+-- Add server paths if on server
+if isServer then
+    table.insert(defaultSearchPaths, 1, ServerScriptService:FindFirstChild("Core"))
+    table.insert(defaultSearchPaths, 2, ServerScriptService)
 end
 
--- Get shared folder with retry
-local function getSharedFolder()
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if shared then
-        return shared
-    end
+-- Safely wait for child with timeout
+function ModuleLoaderHelper.waitForChild(parent, childName, timeout)
+    timeout = timeout or 5 -- Default timeout of 5 seconds
     
-    -- Try to wait for it with timeout
+    -- Quick check
+    local child = parent:FindFirstChild(childName)
+    if child then return child end
+    
+    -- Use timeout to prevent infinite yield
     local startTime = os.clock()
-    while os.clock() - startTime < CONFIG.DEFAULT_TIMEOUT do
-        shared = ReplicatedStorage:FindFirstChild("shared")
-        if shared then
-            return shared
-        end
+    while not child and (os.clock() - startTime) < timeout do
+        child = parent:FindFirstChild(childName)
+        if child then break end
         task.wait(0.1)
     end
     
-    warn("[ModuleLoaderHelper] Failed to find shared folder")
-    return nil
+    return child
 end
 
--- Safe require utility (inline implementation to avoid circular dependencies)
-local function safeRequire(module, fallback)
-    if not module then
-        return fallback
-    end
+-- Find a module by name in search paths
+function ModuleLoaderHelper.findModule(moduleName, searchPaths)
+    searchPaths = searchPaths or defaultSearchPaths
     
-    if not module:IsA("ModuleScript") then
-        return fallback
-    end
-    
-    local success, result = pcall(function()
-        return require(module)
-    end)
-    
-    if success then
-        return result
-    else
-        warn("[ModuleLoaderHelper] Failed to require " .. module:GetFullName() .. ": " .. tostring(result))
-        return fallback
-    end
-end
-
--- Get the ModuleLoader reference
-local function getModuleLoader()
-    if moduleLoader then
-        return moduleLoader
-    end
-    
-    local shared = getSharedFolder()
-    if not shared then
-        warn("[ModuleLoaderHelper] Shared folder not found")
-        return nil
-    end
-    
-    local moduleLoaderScript = shared:FindFirstChild("ModuleLoader")
-    if not moduleLoaderScript then
-        warn("[ModuleLoaderHelper] ModuleLoader not found")
-        return nil
-    end
-    
-    moduleLoader = safeRequire(moduleLoaderScript)
-    return moduleLoader
-end
-
--- Get module using either ModuleLoader or direct require
-local function getModule(moduleName, fallback)
-    -- Check cache first
-    if moduleCache[moduleName] then
-        return moduleCache[moduleName]
-    end
-    
-    -- Try using ModuleLoader first
-    local loader = getModuleLoader()
-    if loader and loader.LoadModule then
-        local module = loader.LoadModule(moduleName, fallback)
-        if module then
-            moduleCache[moduleName] = module
-            return module
-        end
-    end
-    
-    -- Fallback to direct require from shared folder
-    local shared = getSharedFolder()
-    if shared then
-        local moduleScript = shared:FindFirstChild(moduleName)
-        if moduleScript then
-            local module = safeRequire(moduleScript, fallback)
-            if module then
-                moduleCache[moduleName] = module
+    -- Search all paths
+    for _, path in ipairs(searchPaths) do
+        if path then
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
                 return module
             end
         end
     end
     
-    -- Try in ReplicatedStorage root as last resort
-    local rootModule = ReplicatedStorage:FindFirstChild(moduleName)
-    if rootModule then
-        local module = safeRequire(rootModule, fallback)
-        if module then
-            moduleCache[moduleName] = module
-            return module
-        end
-    end
-    
-    -- Return fallback if all else fails
-    return fallback
-end
-
--- Get the CoreRegistry instance
-local function getCoreRegistry()
-    -- Return cached instance if available
-    if coreRegistry then
-        return coreRegistry
-    end
-    
-    -- Check global registry first
-    if _G.CoreRegistry then
-        coreRegistry = _G.CoreRegistry
-        return coreRegistry
-    end
-    
-    -- Try to load through ModuleLoader
-    local loader = getModuleLoader()
-    if loader then
-        coreRegistry = loader.LoadModule("CoreRegistry")
-        if coreRegistry then
-            return coreRegistry
-        end
-    end
-      -- Try direct require from ServerScriptService.Core
-    local ServerScriptService = game:GetService("ServerScriptService")
-    if ServerScriptService:FindFirstChild("Core") then
-        local registryModule = ServerScriptService.Core:FindFirstChild("CoreRegistry")
-        if registryModule then
-            coreRegistry = safeRequire(registryModule)
-            if coreRegistry then
-                return coreRegistry
+    -- Try resolving a path like "folder.subfolder.module"
+    local parts = string.split(moduleName, ".")
+    if #parts > 1 then
+        for _, basePath in ipairs(searchPaths) do
+            local current = basePath
+            local found = true
+            
+            for i = 1, #parts - 1 do
+                current = current:FindFirstChild(parts[i])
+                if not current then
+                    found = false
+                    break
+                end
+            end
+            
+            if found then
+                local module = current:FindFirstChild(parts[#parts])
+                if module and module:IsA("ModuleScript") then
+                    return module
+                end
             end
         end
     end
     
-    warn("[ModuleLoaderHelper] CoreRegistry not found")
     return nil
 end
 
--- Get a system from CoreRegistry
-local function getSystem(systemName, fallback)
-    local registry = getCoreRegistry()
-    if not registry then
+-- Safe require with fallback
+function ModuleLoaderHelper.safeRequire(moduleInstance, fallback)
+    if not moduleInstance then
         return fallback
     end
     
-    if typeof(registry.getSystem) ~= "function" then
-        warn("[ModuleLoaderHelper] Invalid CoreRegistry - missing getSystem method")
+    if not moduleInstance:IsA("ModuleScript") then
+        warn("ModuleLoaderHelper: Expected ModuleScript but got " .. moduleInstance.ClassName .. " for " .. moduleInstance:GetFullName())
         return fallback
     end
     
-    return registry.getSystem(systemName) or fallback
+    local success, result = pcall(function()
+        return require(moduleInstance)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("ModuleLoaderHelper: Failed to require " .. moduleInstance:GetFullName() .. " - " .. tostring(result))
+        return fallback
+    end
 end
 
--- Register a system with CoreRegistry
-local function registerSystem(systemName, system, dependencies)
-    local registry = getCoreRegistry()
-    if not registry then
-        warn("[ModuleLoaderHelper] Cannot register system - CoreRegistry not found")
-        return false
-    end
-      if typeof(registry.registerSystem) ~= "function" then
-        warn("[ModuleLoaderHelper] Invalid CoreRegistry - missing registerSystem method")
-        return false
+-- Load a module by name
+function ModuleLoaderHelper.loadModule(moduleName, fallback, searchPaths)
+    -- Find the module
+    local module = ModuleLoaderHelper.findModule(moduleName, searchPaths)
+    
+    -- If not found, use fallback or warn
+    if not module then
+        if fallback ~= nil then
+            print("ModuleLoaderHelper.loadModule: Using fallback for " .. moduleName)
+            return fallback
+        else
+            warn("ModuleLoaderHelper.loadModule: Module not found - " .. moduleName)
+            return nil
+        end
     end
     
-    registry.registerSystem(systemName, system, dependencies)
-    return true
+    -- Try to require the module
+    return ModuleLoaderHelper.safeRequire(module, fallback)
 end
 
--- Return the module API
-return {
-    GetModule = getModule,
-    GetCoreRegistry = getCoreRegistry,
-    GetSystem = getSystem,
-    RegisterSystem = registerSystem,
-    SafeRequire = safeRequire,
-    SetDebugMode = function(enabled)
-        CONFIG.DEBUG_MODE = enabled
+-- Resolve a path string like "ReplicatedStorage.shared.ModuleLoader"
+function ModuleLoaderHelper.resolvePath(pathString)
+    if typeof(pathString) == "Instance" then
+        return pathString
     end
-}
+    
+    if type(pathString) ~= "string" then
+        return nil
+    end
+    
+    local parts = string.split(pathString, ".")
+    if #parts == 0 then
+        return nil
+    end
+    
+    -- See if the first part is a service name
+    local current
+    local success, service = pcall(function()
+        return game:GetService(parts[1])
+    end)
+    
+    if success and service then
+        current = service
+    else
+        -- Try finding it in the game
+        current = game:FindFirstChild(parts[1])
+        if not current then
+            warn("ModuleLoaderHelper.resolvePath: Failed to resolve path at part 1: " .. parts[1])
+            return nil
+        end
+    end
+    
+    -- Traverse the path
+    for i = 2, #parts do
+        current = ModuleLoaderHelper.waitForChild(current, parts[i], 1)
+        if not current then
+            warn("ModuleLoaderHelper.resolvePath: Failed to resolve path at part " .. i .. ": " .. parts[i])
+            return nil
+        end
+    end
+    
+    return current
+end
+
+-- Create folder hierarchy if it doesn't exist
+function ModuleLoaderHelper.ensurePath(parent, pathArray)
+    local current = parent
+    for _, name in ipairs(pathArray) do
+        local child = current:FindFirstChild(name)
+        if not child then
+            child = Instance.new("Folder")
+            child.Name = name
+            child.Parent = current
+        end
+        current = child
+    end
+    return current
+end
+
+-- Try to load a module that's part of the registry system
+function ModuleLoaderHelper.loadSystemModule(systemName, fallback)
+    -- Try to get the module loader
+    local ModuleLoader = _G.ModuleLoader
+    
+    -- If module loader is available, use it
+    if ModuleLoader and typeof(ModuleLoader.loadModule) == "function" then
+        return ModuleLoader.loadModule(systemName, fallback)
+    end
+    
+    -- Otherwise use our built-in module loading
+    return ModuleLoaderHelper.loadModule(systemName, fallback)
+end
+
+return ModuleLoaderHelper
