@@ -20,6 +20,7 @@ local CONFIG = {
     DEBUG_MODE = true,
     LOAD_DATA_FIX = true,
     LOAD_SOUND_FIX = true,
+    LOAD_ASSET_DIAGNOSTICS = true,
     AUTO_RUN = true
 }
 
@@ -169,18 +170,67 @@ function Phase3Loader:InitializeSoundFix()
     return true
 end
 
+-- Initialize asset diagnostics system
+function Phase3Loader:InitializeAssetDiagnostics()
+    if not CONFIG.LOAD_ASSET_DIAGNOSTICS then
+        log("Skipping asset diagnostics initialization (disabled in config)")
+        return false
+    end
+    
+    if not RunService:IsServer() then
+        log("Asset diagnostics initialization skipped (client-only)")
+        return false
+    end
+    
+    log("Initializing asset diagnostics system...")
+    
+    -- Check for AssetFailureLogger
+    local essentialsPath = ServerScriptService:FindFirstChild("Essentials")
+    if not essentialsPath then
+        essentialsPath = ensureFolder(ServerScriptService, "Essentials")
+        log("Created missing Essentials folder")
+    end
+    
+    local assetLoggerPath = essentialsPath:FindFirstChild("AssetFailureLogger")
+    if not assetLoggerPath or not moduleExists(assetLoggerPath) then
+        log("AssetFailureLogger not found or failed to load")
+        return false
+    end
+    
+    -- Create the report event if it doesn't exist
+    if not ReplicatedStorage:FindFirstChild("AssetLoadFailureReport") then
+        local reportEvent = Instance.new("RemoteEvent")
+        reportEvent.Name = "AssetLoadFailureReport"
+        reportEvent.Parent = ReplicatedStorage
+        log("Created AssetLoadFailureReport event")
+    end
+    
+    -- Load the module
+    local assetLogger = require(assetLoggerPath)
+    
+    if not assetLogger then
+        log("Failed to load AssetFailureLogger module")
+        return false
+    end
+    
+    log("Asset diagnostics system initialized")
+    return true
+end
+
 -- Initialize all fixes
 function Phase3Loader:Initialize()
     log("Initializing Phase 3 fixes...")
     
     local dataFixResult = self:InitializeDataFix()
     local soundFixResult = self:InitializeSoundFix()
+    local diagnosticsResult = self:InitializeAssetDiagnostics()
     
     log("Phase 3 initialization complete:")
     log("- Data Fix: " .. (dataFixResult and "SUCCESS" or "FAILED"))
     log("- Sound Fix: " .. (soundFixResult and "SUCCESS" or "FAILED"))
+    log("- Asset Diagnostics: " .. (diagnosticsResult and "SUCCESS" or "FAILED"))
     
-    return dataFixResult and soundFixResult
+    return dataFixResult and soundFixResult and diagnosticsResult
 end
 
 -- Auto-run if enabled
