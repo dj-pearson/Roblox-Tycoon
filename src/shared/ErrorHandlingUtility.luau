@@ -95,8 +95,7 @@ local function reportError(level, errorInfo)
             ))
         end
     end
-    
-    -- Send to remote receivers if available
+      -- Send to remote receivers if available
     local errorBridge = ReplicatedStorage:FindFirstChild("ErrorBridge")
     if errorBridge and errorBridge:FindFirstChild("ReportError") and level >= CONFIG.errorLevels.ERROR then
         -- Create a simplified version for remote sending
@@ -108,9 +107,14 @@ local function reportError(level, errorInfo)
             level = level
         }
         
-        -- Send over RemoteEvent if server
+        -- Send over appropriate event based on environment
         if RunService:IsServer() and errorBridge:FindFirstChild("ReportError"):IsA("BindableEvent") then
+            -- Server-side reporting
             errorBridge.ReportError:Fire(simplifiedError)
+        elseif RunService:IsClient() and errorBridge:FindFirstChild("ReportErrorToServer") and 
+               errorBridge.ReportErrorToServer:IsA("RemoteEvent") then
+            -- Client-side reporting to server
+            errorBridge.ReportErrorToServer:FireServer(simplifiedError)
         end
     end
     
@@ -145,16 +149,27 @@ local function setupErrorBridge()
         errorBridge.Parent = ReplicatedStorage
     end
     
-    -- Create report event
+    -- Create report event (server-side)
     local reportEvent = errorBridge:FindFirstChild("ReportError") or Instance.new("BindableEvent")
     reportEvent.Name = "ReportError"
     reportEvent.Parent = errorBridge
+    
+    -- Create client-to-server report event
+    local clientReportEvent = errorBridge:FindFirstChild("ReportErrorToServer") or Instance.new("RemoteEvent")
+    clientReportEvent.Name = "ReportErrorToServer"
+    clientReportEvent.Parent = errorBridge
     
     -- Create error history object
     local historyValue = errorBridge:FindFirstChild("ErrorHistory") or Instance.new("StringValue")
     historyValue.Name = "ErrorHistory"
     historyValue.Value = "[]" -- Empty JSON array
     historyValue.Parent = errorBridge
+    
+    -- Create client error history object
+    local clientHistoryValue = errorBridge:FindFirstChild("ClientErrorHistory") or Instance.new("StringValue")
+    clientHistoryValue.Name = "ClientErrorHistory"
+    clientHistoryValue.Value = "[]" -- Empty JSON array
+    clientHistoryValue.Parent = errorBridge
     
     -- Connect report event to history
     reportEvent.Event:Connect(function(errorInfo)
