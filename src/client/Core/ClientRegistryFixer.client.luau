@@ -133,88 +133,70 @@ local function createMinimalClientRegistry()
     if shared:FindFirstChild("ClientRegistry") then
         log("ClientRegistry already exists in shared folder")
         return requireSafely(shared.ClientRegistry)
-    end
-    
-    -- Create client registry source code
-    local sourceCode = [[
---[[
-    ClientRegistry (Minimal Version)
-    A central registry for client-side systems and UI components
-    Created by ClientRegistryFixer
-]]
-    
-local ClientRegistry = {
-    systems = {},
-    uiComponents = {},
-    initialized = false,
-    createdByFixer = true
-}
-
--- Register a client-side system
-function ClientRegistry:registerSystem(systemName, system)
-    self.systems[systemName] = system
-    print("[ClientRegistry] Registered system: " .. systemName)
-    return system
-end
-
--- Register a UI component
-function ClientRegistry:registerUIComponent(componentName, component)
-    self.uiComponents[componentName] = component
-    print("[ClientRegistry] Registered UI component: " .. componentName)
-    return component
-end
-
--- Get a system by name
-function ClientRegistry:getSystem(systemName)
-    return self.systems[systemName]
-end
-
--- Get a UI component by name
-function ClientRegistry:getUIComponent(componentName)
-    return self.uiComponents[componentName]
-end
-
--- Initialize the registry
-function ClientRegistry:initialize()
-    if self.initialized then
-        return
-    end
-    
-    print("[ClientRegistry] Initializing minimal ClientRegistry")
-    
-    -- Set up basic UI style for fallback
-    self:registerUIComponent("UIStyle", {
-        colors = {
-            background = Color3.fromRGB(40, 40, 60),
-            text = Color3.fromRGB(240, 240, 240),
-            accent = Color3.fromRGB(80, 160, 240)
-        },
-        fonts = {
-            header = Enum.Font.GothamBold,
-            body = Enum.Font.Gotham
-        },
-        padding = UDim.new(0, 8)
-    })
-    
-    -- Set up basic icon references for fallback
-    self:registerUIComponent("IconSet", {
-        close = "rbxassetid://8093755787",
-        settings = "rbxassetid://8093754726",
-        info = "rbxassetid://8093754900"
-    })
-    
-    self.initialized = true
-    print("[ClientRegistry] Initialization complete")
-end
-
--- Helper to check if a module exists/function
-function ClientRegistry:testRegistry()
-    print("[ClientRegistry] Registry test: OK")
-    return true
-end
-
-return ClientRegistry
-]]
+    end    -- Create client registry source code
+    local sourceCode = "-- ClientRegistry (Minimal Version)\n"
+    sourceCode = sourceCode .. "-- A central registry for client-side systems and UI components\n"
+    sourceCode = sourceCode .. "-- Created by ClientRegistryFixer\n\n"
+    sourceCode = sourceCode .. "local ClientRegistry = {\n"
+    sourceCode = sourceCode .. "    systems = {},\n"
+    sourceCode = sourceCode .. "    uiComponents = {},\n"
+    sourceCode = sourceCode .. "    initialized = false,\n"
+    sourceCode = sourceCode .. "    createdByFixer = true\n"
+    sourceCode = sourceCode .. "}\n\n"
+    sourceCode = sourceCode .. "-- Register a client-side system\n"
+    sourceCode = sourceCode .. "function ClientRegistry:registerSystem(systemName, system)\n"
+    sourceCode = sourceCode .. "    self.systems[systemName] = system\n"
+    sourceCode = sourceCode .. "    print(\"[ClientRegistry] Registered system: \" .. systemName)\n"
+    sourceCode = sourceCode .. "    return system\n"
+    sourceCode = sourceCode .. "end\n\n"
+    sourceCode = sourceCode .. "-- Register a UI component\n"
+    sourceCode = sourceCode .. "function ClientRegistry:registerUIComponent(componentName, component)\n"
+    sourceCode = sourceCode .. "    self.uiComponents[componentName] = component\n"
+    sourceCode = sourceCode .. "    print(\"[ClientRegistry] Registered UI component: \" .. componentName)\n"
+    sourceCode = sourceCode .. "    return component\n"
+    sourceCode = sourceCode .. "end\n\n"
+    sourceCode = sourceCode .. "-- Get a system by name\n"
+    sourceCode = sourceCode .. "function ClientRegistry:getSystem(systemName)\n"
+    sourceCode = sourceCode .. "    return self.systems[systemName]\n"
+    sourceCode = sourceCode .. "end\n\n"
+    sourceCode = sourceCode .. "-- Get a UI component by name\n"
+    sourceCode = sourceCode .. "function ClientRegistry:getUIComponent(componentName)\n"
+    sourceCode = sourceCode .. "    return self.uiComponents[componentName]\n"
+    sourceCode = sourceCode .. "end\n\n"
+    sourceCode = sourceCode .. "-- Initialize the registry\n"
+    sourceCode = sourceCode .. "function ClientRegistry:initialize()\n"
+    sourceCode = sourceCode .. "    if self.initialized then\n"
+    sourceCode = sourceCode .. "        return\n"
+    sourceCode = sourceCode .. "    end\n\n"
+    sourceCode = sourceCode .. "    print(\"[ClientRegistry] Initializing minimal ClientRegistry\")\n\n"
+    sourceCode = sourceCode .. "    -- Set up basic UI style for fallback\n"
+    sourceCode = sourceCode .. "    self:registerUIComponent(\"UIStyle\", {\n"
+    sourceCode = sourceCode .. "        colors = {\n"
+    sourceCode = sourceCode .. "            background = Color3.fromRGB(40, 40, 60),\n"
+    sourceCode = sourceCode .. "            text = Color3.fromRGB(240, 240, 240),\n"
+    sourceCode = sourceCode .. "            accent = Color3.fromRGB(80, 160, 240)\n"
+    sourceCode = sourceCode .. "        },\n"
+    sourceCode = sourceCode .. "        fonts = {\n"
+    sourceCode = sourceCode .. "            header = Enum.Font.GothamBold,\n"
+    sourceCode = sourceCode .. "            body = Enum.Font.Gotham\n"
+    sourceCode = sourceCode .. "        },\n"
+    sourceCode = sourceCode .. "        padding = UDim.new(0, 8)\n"
+    sourceCode = sourceCode .. "    })\n\n"
+    sourceCode = sourceCode .. "    -- Set up basic icon references for fallback\n"
+    sourceCode = sourceCode .. "    self:registerUIComponent(\"IconSet\", {\n"
+    sourceCode = sourceCode .. "        close = \"rbxassetid://8093755787\",\n"
+    sourceCode = sourceCode .. "        settings = \"rbxassetid://8093754726\",\n"
+    sourceCode = sourceCode .. "        info = \"rbxassetid://8093754900\"\n"
+    sourceCode = sourceCode .. "    })\n\n"
+    sourceCode = sourceCode .. "    self.initialized = true\n"
+    sourceCode = sourceCode .. "    print(\"[ClientRegistry] Initialization complete\")\n"
+    sourceCode = sourceCode .. "end\n\n"
+    sourceCode = sourceCode .. "-- Helper to check if a module exists/function\n"
+    sourceCode = sourceCode .. "function ClientRegistry:testRegistry()\n"
+    sourceCode = sourceCode .. "    print(\"[ClientRegistry] Registry test: OK\")\n"
+    sourceCode = sourceCode .. "    return true\n"
+    sourceCode = sourceCode .. "end\n\n"
+    sourceCode = sourceCode .. "return ClientRegistry"
 
     -- Create a new ClientRegistry
     local clientRegistryModule = Instance.new("ModuleScript")

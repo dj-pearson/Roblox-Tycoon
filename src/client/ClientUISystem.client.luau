@@ -247,99 +247,96 @@ function ClientUISystem:createClientRegistryFixer()
         
         coreFolder.Parent = clientFolder
     end
-    
-    -- Create the fixer module
+      -- Create the fixer module
     local fixerModule = Instance.new("ModuleScript")
     fixerModule.Name = "ClientRegistryFixer"
-    fixerModule.Source = [[
---!strict
---[[
-    ClientRegistryFixer.client.luau
-    
-    A utility to fix common ClientRegistry issues and ensure it's properly
-    initialized and accessible to all client scripts.
-    
-    Created: April 26, 2025
-]]
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
--- Create a minimal ClientRegistry
-local ClientRegistry = {
-    systems = {},
-    uiComponents = {},
-    initialized = false,
-    createdByFixer = true
-}
-
--- Register a client-side system
-function ClientRegistry:registerSystem(systemName, system)
-    self.systems[systemName] = system
-    print("[ClientRegistry] Registered system: " .. systemName)
-    return system
-end
-
--- Register a UI component
-function ClientRegistry:registerUIComponent(componentName, component)
-    self.uiComponents[componentName] = component
-    print("[ClientRegistry] Registered UI component: " .. componentName)
-    return component
-end
-
--- Get a system by name
-function ClientRegistry:getSystem(systemName)
-    return self.systems[systemName]
-end
-
--- Get a UI component by name
-function ClientRegistry:getUIComponent(componentName)
-    return self.uiComponents[componentName]
-end
-
--- Initialize the registry
-function ClientRegistry:initialize()
-    if self.initialized then
-        return
-    end
-    
-    print("[ClientRegistry] Initializing minimal ClientRegistry")
-    
-    -- Set up basic UI style for fallback
-    self:registerUIComponent("UIStyle", {
-        colors = {
-            background = Color3.fromRGB(40, 40, 60),
-            text = Color3.fromRGB(240, 240, 240),
-            accent = Color3.fromRGB(80, 160, 240)
-        },
-        fonts = {
-            header = Enum.Font.GothamBold,
-            body = Enum.Font.Gotham
-        }
-    })
-    
-    self.initialized = true
-    print("[ClientRegistry] Initialization complete")
-end
-
--- Helper to check if a module exists/function
-function ClientRegistry:testRegistry()
-    print("[ClientRegistry] Registry test: OK")
-    return true
-end
-
--- Create a shared reference
-local shared = ReplicatedStorage:FindFirstChild("shared")
-if shared then
-    local reference = Instance.new("ModuleScript")
-    reference.Name = "ClientRegistry"
-    reference.Source = "return require(game:GetService('Players').LocalPlayer.PlayerScripts.Client.Core.ClientRegistry)"
-    reference.Parent = shared
-end
-
-return ClientRegistry
-]]
+    fixerModule.Source = "--!strict\n" ..
+    "--[[\n" ..
+    "    ClientRegistryFixer.client.luau\n" ..
+    "    \n" ..
+    "    A utility to fix common ClientRegistry issues and ensure it's properly\n" ..
+    "    initialized and accessible to all client scripts.\n" ..
+    "    \n" ..
+    "    Created: April 26, 2025\n" ..
+    "--]]\n" ..
+    "\n" ..
+    "local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")\n" ..
+    "local Players = game:GetService(\"Players\")\n" ..
+    "local LocalPlayer = Players.LocalPlayer\n" ..
+    "\n" ..
+    "-- Create a minimal ClientRegistry\n" ..
+    "local ClientRegistry = {\n" ..
+    "    systems = {},\n" ..
+    "    uiComponents = {},\n" ..
+    "    initialized = false,\n" ..
+    "    createdByFixer = true\n" ..
+    "}\n" ..
+    "\n" ..
+    "-- Register a client-side system\n" ..
+    "function ClientRegistry:registerSystem(systemName, system)\n" ..
+    "    self.systems[systemName] = system\n" ..
+    "    print(\"[ClientRegistry] Registered system: \" .. systemName)\n" ..
+    "    return system\n" ..
+    "end\n" ..
+    "\n" ..
+    "-- Register a UI component\n" ..
+    "function ClientRegistry:registerUIComponent(componentName, component)\n" ..
+    "    self.uiComponents[componentName] = component\n" ..
+    "    print(\"[ClientRegistry] Registered UI component: \" .. componentName)\n" ..
+    "    return component\n" ..
+    "end\n" ..
+    "\n" ..
+    "-- Get a system by name\n" ..
+    "function ClientRegistry:getSystem(systemName)\n" ..
+    "    return self.systems[systemName]\n" ..
+    "end\n" ..
+    "\n" ..
+    "-- Get a UI component by name\n" ..
+    "function ClientRegistry:getUIComponent(componentName)\n" ..
+    "    return self.uiComponents[componentName]\n" ..
+    "end\n" ..
+    "\n" ..
+    "-- Initialize the registry\n" ..
+    "function ClientRegistry:initialize()\n" ..
+    "    if self.initialized then\n" ..
+    "        return\n" ..
+    "    end\n" ..
+    "    \n" ..
+    "    print(\"[ClientRegistry] Initializing minimal ClientRegistry\")\n" ..
+    "    \n" ..
+    "    -- Set up basic UI style for fallback\n" ..
+    "    self:registerUIComponent(\"UIStyle\", {\n" ..
+    "        colors = {\n" ..
+    "            background = Color3.fromRGB(40, 40, 60),\n" ..
+    "            text = Color3.fromRGB(240, 240, 240),\n" ..
+    "            accent = Color3.fromRGB(80, 160, 240)\n" ..
+    "        },\n" ..
+    "        fonts = {\n" ..
+    "            header = Enum.Font.GothamBold,\n" ..
+    "            body = Enum.Font.Gotham\n" ..
+    "        }\n" ..
+    "    })\n" ..
+    "    \n" ..
+    "    self.initialized = true\n" ..
+    "    print(\"[ClientRegistry] Initialization complete\")\n" ..
+    "end\n" ..
+    "\n" ..
+    "-- Helper to check if a module exists/function\n" ..
+    "function ClientRegistry:testRegistry()\n" ..
+    "    print(\"[ClientRegistry] Registry test: OK\")\n" ..
+    "    return true\n" ..
+    "end\n" ..
+    "\n" ..
+    "-- Create a shared reference\n" ..
+    "local shared = ReplicatedStorage:FindFirstChild(\"shared\")\n" ..
+    "if shared then\n" ..
+    "    local reference = Instance.new(\"ModuleScript\")\n" ..
+    "    reference.Name = \"ClientRegistry\"\n" ..
+    "    reference.Source = \"return require(game:GetService('Players').LocalPlayer.PlayerScripts.Client.Core.ClientRegistry)\"\n" ..
+    "    reference.Parent = shared\n" ..
+    "end\n" ..
+    "\n" ..
+    "return ClientRegistry"
     
     fixerModule.Parent = coreFolder
     log("Created ClientRegistryFixer at " .. fixerModule:GetFullName())

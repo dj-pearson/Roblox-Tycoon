@@ -20,6 +20,15 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local UserGameSettings = UserSettings():GetService("UserGameSettings")
 
+-- Forward declarations for helper functions
+local populateAudioSettings
+local populateGraphicsSettings
+local populateGameplaySettings
+local populateInterfaceSettings
+local saveSettings
+local updateUIFromSettings
+local applyAllSettings
+
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -64,7 +73,17 @@ local UIStyle = requireSafely(sharedFolder:FindFirstChild("UIStyle"))
 local ButtonFactory = requireSafely(sharedFolder:FindFirstChild("ButtonFactory"))
 local UIManager = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIManager"))
 local UIRegistry = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIRegistry"))
+local UIUtils = requireSafely(sharedFolder:FindFirstChild("UIUtils"))
 local ClientRegistry = requireSafely(clientCoreFolder and clientCoreFolder:FindFirstChild("ClientRegistry"))
+
+-- Forward declarations for helper functions
+local populateAudioSettings
+local populateGraphicsSettings
+local populateGameplaySettings
+local populateInterfaceSettings
+local updateUIFromSettings
+local saveSettings
+local applyAllSettings
 
 -- Create fallbacks for critical modules
 if not UIStyle then
@@ -249,8 +268,7 @@ local function createMainUI()
         callback = function()
             SettingsUI:hide()
             
-            -- Save settings when closing
-            saveSettings()
+            -- Save settings when closing            saveSettings()
         end
     })
     
@@ -652,7 +670,7 @@ end
 --[[ Tab Content Creation Functions ]]--
 
 -- Populate Audio settings tab
-local function populateAudioSettings(frame)
+populateAudioSettings = function(frame)
     -- Create category: Music
     createCategoryLabel(frame, "Music")
     
@@ -715,7 +733,7 @@ local function populateAudioSettings(frame)
 end
 
 -- Populate Graphics settings tab
-local function populateGraphicsSettings(frame)
+populateGraphicsSettings = function(frame)
     -- Create category: Quality
     createCategoryLabel(frame, "Quality")
     
@@ -762,7 +780,7 @@ local function populateGraphicsSettings(frame)
 end
 
 -- Populate Gameplay settings tab
-local function populateGameplaySettings(frame)
+populateGameplaySettings = function(frame)
     -- Create category: Tutorial
     createCategoryLabel(frame, "Tutorial")
     
@@ -834,7 +852,7 @@ local function populateGameplaySettings(frame)
 end
 
 -- Populate Interface settings tab
-local function populateInterfaceSettings(frame)
+populateInterfaceSettings = function(frame)
     -- Create category: Heads-Up Display
     createCategoryLabel(frame, "Heads-Up Display")
     
@@ -1050,11 +1068,10 @@ local function updateUIFromSettings()
     if uiElements.toggles["Show Notifications"] then
         uiElements.toggles["Show Notifications"].updateValue(settings.interface.notifications)
     end
-    
-    if uiElements.toggles["Enable Chat"] then
+      if uiElements.toggles["Enable Chat"] then
         uiElements.toggles["Enable Chat"].updateValue(settings.interface.chatEnabled)
     end
-}
+end
 
 --[[ Public API Functions ]]--
 
@@ -1164,7 +1181,10 @@ function SettingsUI:resetToDefaults()
 end
 
 -- Apply all current settings
-function SettingsUI:applyAllSettings()
+applyAllSettings = function()
+    if not ClientRegistry then
+        return
+    end
     if not ClientRegistry then
         return
     end
@@ -1251,12 +1271,11 @@ function SettingsUI:applyAllSettings()
             uiSystem.setNotificationsEnabled(settings.interface.notifications)
         end
     end
-    
-    local chatSystem = ClientRegistry.getSystem and ClientRegistry.getSystem("ChatSystem")
+      local chatSystem = ClientRegistry.getSystem and ClientRegistry.getSystem("ChatSystem")
     if chatSystem and chatSystem.setChatEnabled then
         chatSystem.setChatEnabled(settings.interface.chatEnabled)
     end
-}
+end
 
 -- Initialize the UI
 function SettingsUI:initialize()
