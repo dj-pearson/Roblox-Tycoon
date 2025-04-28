@@ -345,12 +345,57 @@ function UISystem:showUI(name, ...)
         return false
     end
     
+    -- Multi-path approach to find and show the UI
+    
+    -- Path 1: Try through UIManager first (preferred approach)
     local UIManager = UIRegistry:getComponent("UIManager")
     if UIManager and UIManager.showUI then
-        return UIManager:showUI(name, ...)
+        -- First, try to get the component from registry
+        local component = UIRegistry:getComponent(name)
+        if component then
+            local success = UIManager:showUI(name, component, ...)
+            if success then
+                logMessage("Successfully showed UI via UIManager with component from registry: " .. name, "Info")
+                return true
+            end
+        end
+        
+        -- Try showing by name directly
+        local success = UIManager:showUI(name, nil, ...)
+        if success then
+            logMessage("Successfully showed UI via UIManager direct path: " .. name, "Info")
+            return true
+        end
     end
     
-    logMessage("UIManager not found", "Warning")
+    -- Path 2: Get component directly and call show method
+    local component = UIRegistry:getComponent(name)
+    if component and component.show then
+        local success, result = pcall(function()
+            return component:show(...)
+        end)
+        
+        if success then
+            logMessage("Successfully showed UI via direct component show method: " .. name, "Info")
+            return true
+        else
+            logMessage("Error showing UI " .. name .. ": " .. tostring(result), "Warning")
+        end
+    end
+    
+    -- Path 3: Try global fallback
+    if _G[name] and _G[name].show then
+        local success, result = pcall(function()
+            return _G[name]:show(...)
+        end)
+        
+        if success then
+            logMessage("Successfully showed UI via global fallback: " .. name, "Info")
+            return true
+        end
+    end
+    
+    logMessage("Failed to show UI: " .. name .. " (tried all paths)", "Warning")
     return false
 end
 
