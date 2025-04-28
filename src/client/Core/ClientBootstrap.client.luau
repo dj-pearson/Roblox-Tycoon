@@ -1,417 +1,240 @@
---!strict
 --[[
     ClientBootstrap.client.luau
+    This script initializes the client-side systems in the proper order.
+    It handles client-side UI systems, component registration, and error recovery.
     
-    The main initialization script for the client-side systems.
-    
-    Created: April 25, 2025
-    
-    This script:
-    1. Initializes ClientRegistry before any other client systems
-    2. Adds robust error handling for failed system initializations
-    3. Implements a dependency management system for correct loading order
+    Created to fix critical "ClientBootstrap Initialization Failures" reported in RobloxIssues.txt
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
-local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer then
-    error("[ClientBootstrap] No LocalPlayer found")
-    return
-end
+local player = Players.LocalPlayer
 
--- Configuration
-local CONFIG = {
-    DEBUG_LOGGING = true,
-    RETRY_SYSTEM_INIT = true,
-    MAX_RETRIES = 3,
-    RETRY_DELAY = 1, -- seconds
-    LOAD_TIMEOUT = 10 -- seconds for the total bootstrap process
-}
+print("ClientBootstrap: Starting initialization...")
 
--- Find shared folder
-local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
-if not sharedFolder then
-    warn("[ClientBootstrap] Shared folder not found, creating one")
-    sharedFolder = Instance.new("Folder")
-    sharedFolder.Name = "shared"
-    sharedFolder.Parent = ReplicatedStorage
-end
-
--- System initialization state tracking
-local systemInitState = {
-    complete = false,
-    startTime = tick(),
-    initializedSystems = {},
-    failedSystems = {},
-    pendingSystems = {},
-    systemDependencies = {}
-}
-
--- Logging function
-local function log(message)
-    if CONFIG.DEBUG_LOGGING then
-        print("[ClientBootstrap] " .. message)
+-- First, ensure required paths exist
+local function ensurePath(parent, pathArray)
+    local current = parent
+    for _, name in ipairs(pathArray) do
+        local child = current:FindFirstChild(name)
+        if not child then
+            child = Instance.new("Folder")
+            child.Name = name
+            child.Parent = current
+            print("ClientBootstrap: Created folder " .. name .. " in " .. current:GetFullName())
+        end
+        current = child
     end
+    return current
 end
 
--- Safe require utility
-local function requireSafely(module)
-    if not module then
-        return nil
+-- Create required folders
+local sharedFolder = ensurePath(ReplicatedStorage, {"shared"})
+
+-- Helper function for safely requiring modules
+local function safeRequire(modulePath, fallback)
+    -- Check if module exists
+    if typeof(modulePath) ~= "Instance" then
+        return fallback
     end
     
+    -- Try to require the module
     local success, result = pcall(function()
-        return require(module)
+        return require(modulePath)
     end)
     
     if not success then
-        warn("[ClientBootstrap] Failed to require module: ", module:GetFullName())
-        return nil
+        warn("ClientBootstrap: Failed to require module: " .. modulePath:GetFullName() .. " - " .. tostring(result))
+        return fallback
     end
     
     return result
 end
 
--- Check if system is initialized
-local function isSystemInitialized(systemName)
-    return systemInitState.initializedSystems[systemName] ~= nil
-end
-
--- Register system dependencies
-local function registerSystemDependencies(systemName, dependencies)
-    if type(dependencies) ~= "table" then
-        return false
-    end
+-- Find module across different paths
+local function findModule(moduleName)
+    local searchPaths = {
+        player:WaitForChild("PlayerScripts", 5):FindFirstChild("Core"),
+        player:WaitForChild("PlayerScripts", 5),
+        sharedFolder,
+        ReplicatedStorage
+    }
     
-    systemInitState.systemDependencies[systemName] = dependencies
-    return true
-end
-
--- Check if all dependencies for a system are initialized
-local function areDependenciesMet(systemName)
-    local dependencies = systemInitState.systemDependencies[systemName]
-    if not dependencies then
-        return true -- No dependencies registered
-    end
-    
-    for _, dependency in ipairs(dependencies) do
-        if not isSystemInitialized(dependency) then
-            return false
-        end
-    end
-    
-    return true
-end
-
--- Try to get ModuleLoader
-local ModuleLoader = requireSafely(sharedFolder:FindFirstChild("ModuleLoader"))
-if not ModuleLoader then
-    warn("[ClientBootstrap] ModuleLoader not found, some system initialization may fail")
-end
-
--- Try to get ClientRegistryFixer
-local ClientRegistryFixer = nil
-if LocalPlayer.PlayerScripts:FindFirstChild("Client") and
-   LocalPlayer.PlayerScripts.Client:FindFirstChild("Core") and
-   LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("ClientRegistryFixer") then
-    ClientRegistryFixer = requireSafely(LocalPlayer.PlayerScripts.Client.Core.ClientRegistryFixer)
-end
-
-if not ClientRegistryFixer then
-    warn("[ClientBootstrap] ClientRegistryFixer not found, attempting to continue without it")
-end
-
--- Try to get ClientRegistry
-local ClientRegistry = nil
-
--- If we have ClientRegistryFixer, use it to ensure ClientRegistry exists
-if ClientRegistryFixer and typeof(ClientRegistryFixer.ensureClientRegistry) == "function" then
-    log("Getting ClientRegistry through ClientRegistryFixer")
-    ClientRegistry = ClientRegistryFixer.ensureClientRegistry()
-else
-    -- Try ModuleLoader first
-    if ModuleLoader and typeof(ModuleLoader.tryRequire) == "function" then
-        log("Trying to get ClientRegistry through ModuleLoader")
-        ClientRegistry = ModuleLoader.tryRequire("ClientRegistry")
-    end
-    
-    -- Try direct require as backup
-    if not ClientRegistry then
-        log("Trying to get ClientRegistry through direct require")
-        -- Try in ReplicatedStorage
-        if sharedFolder:FindFirstChild("ClientRegistry") then
-            ClientRegistry = requireSafely(sharedFolder.ClientRegistry)
-        end
-        
-        -- Try in PlayerScripts
-        if not ClientRegistry then
-            if LocalPlayer.PlayerScripts:FindFirstChild("Client") and 
-               LocalPlayer.PlayerScripts.Client:FindFirstChild("Core") and
-               LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("ClientRegistry") then
-                ClientRegistry = requireSafely(LocalPlayer.PlayerScripts.Client.Core.ClientRegistry)
+    for i, path in ipairs(searchPaths) do
+        if path then
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                return module
             end
         end
     end
     
-    if not ClientRegistry then
-        error("[ClientBootstrap] Failed to get ClientRegistry, cannot proceed with initialization")
-        return
-    end
+    return nil
 end
 
-log("ClientRegistry found, proceeding with system initialization")
-
--- Initialize a system
-local function initializeSystem(systemName, systemModule, dependencies)
-    -- Skip if already initialized
-    if isSystemInitialized(systemName) then
-        return true
-    end
+-- Safe wait for child with timeout
+local function safeWaitForChild(parent, childName, timeout)
+    timeout = timeout or 5
     
-    -- Register dependencies if provided
-    if dependencies then
-        registerSystemDependencies(systemName, dependencies)
-    end
+    -- Quick check first
+    local child = parent:FindFirstChild(childName)
+    if child then return child end
     
-    -- Check if dependencies are met
-    if not areDependenciesMet(systemName) then
-        systemInitState.pendingSystems[systemName] = systemModule
-        log("System " .. systemName .. " is waiting for dependencies")
-        return false
-    end
-    
-    log("Initializing system: " .. systemName)
-    
-    -- Try to initialize
-    local success = pcall(function()
-        -- If system has an initialize method, call it
-        if systemModule and typeof(systemModule.initialize) == "function" then
-            systemModule.initialize()
-        end
-        
-        -- Register with ClientRegistry if available
-        if ClientRegistry and typeof(ClientRegistry.registerSystem) == "function" then
-            ClientRegistry:registerSystem(systemName, systemModule)
-        end
+    -- Use timeout to prevent infinite yield
+    local startTime = os.clock()
+    local success, result = pcall(function()
+        return parent:WaitForChild(childName, timeout)
     end)
     
-    -- Track result
-    if success then
-        systemInitState.initializedSystems[systemName] = systemModule
-        log("Successfully initialized system: " .. systemName)
-        
-        -- Remove from pending if it was there
-        systemInitState.pendingSystems[systemName] = nil
-        
-        -- Check if we can initialize any pending systems now
-        for pendingName, pendingModule in pairs(systemInitState.pendingSystems) do
-            if areDependenciesMet(pendingName) then
-                -- Try to initialize this pending system
-                initializeSystem(pendingName, pendingModule)
-            end
-        end
-        
-        return true
-    else
-        systemInitState.failedSystems[systemName] = {
-            module = systemModule,
-            attempts = (systemInitState.failedSystems[systemName] and 
-                        systemInitState.failedSystems[systemName].attempts or 0) + 1
-        }
-        
-        warn("[ClientBootstrap] Failed to initialize system: " .. systemName)
-        
-        -- Retry if configured
-        if CONFIG.RETRY_SYSTEM_INIT and 
-           systemInitState.failedSystems[systemName].attempts < CONFIG.MAX_RETRIES then
-            log("Will retry initializing " .. systemName .. " in " .. CONFIG.RETRY_DELAY .. " seconds")
-            
-            task.delay(CONFIG.RETRY_DELAY, function()
-                initializeSystem(systemName, systemModule)
-            end)
-        end
-        
-        return false
+    if success and result then
+        return result
     end
+    
+    -- Manual polling as fallback
+    while not child and (os.clock() - startTime) < timeout do
+        task.wait(0.1)
+        child = parent:FindFirstChild(childName)
+    end
+    
+    if not child then
+        warn("ClientBootstrap: Timeout waiting for " .. childName .. " in " .. parent:GetFullName())
+    end
+    
+    return child
 end
 
--- Core systems to initialize in order
-local coreSystems = {
-    -- UIComponents with no dependencies
-    {
-        name = "UIComponents",
-        getModule = function()
-            return ModuleLoader and ModuleLoader.tryRequire("UIComponents") or
-                   requireSafely(sharedFolder:FindFirstChild("UIComponents"))
-        end,
-        dependencies = {}
-    },
+-- Initialize ClientRegistry
+local function initializeClientRegistry()
+    print("ClientBootstrap: Initializing ClientRegistry...")
     
-    -- AssetValidator with no dependencies
-    {
-        name = "AssetValidator",
-        getModule = function()
-            return ModuleLoader and ModuleLoader.tryRequire("AssetValidator") or
-                   requireSafely(sharedFolder:FindFirstChild("AssetValidator"))
-        end,
-        dependencies = {}
-    },
-    
-    -- UIRegistry depends on UIComponents
-    {
-        name = "UIRegistry",
-        getModule = function()
-            -- Try to find in PlayerScripts client folder
-            if LocalPlayer.PlayerScripts:FindFirstChild("Client") and 
-               LocalPlayer.PlayerScripts.Client:FindFirstChild("UI") and
-               LocalPlayer.PlayerScripts.Client.UI:FindFirstChild("UIRegistry") then
-                return requireSafely(LocalPlayer.PlayerScripts.Client.UI.UIRegistry)
-            end
-            
-            -- Fallback to ModuleLoader
-            return ModuleLoader and ModuleLoader.tryRequire("UIRegistry")
-        end,
-        dependencies = {"UIComponents"}
-    },
-    
-    -- AssetHealthDashboard depends on AssetValidator and UIRegistry
-    {
-        name = "AssetHealthDashboard",
-        getModule = function()
-            -- Try to find in PlayerScripts client folder
-            if LocalPlayer.PlayerScripts:FindFirstChild("Client") and 
-               LocalPlayer.PlayerScripts.Client:FindFirstChild("UI") and
-               LocalPlayer.PlayerScripts.Client.UI:FindFirstChild("AssetHealthDashboard") then
-                return requireSafely(LocalPlayer.PlayerScripts.Client.UI.AssetHealthDashboard)
-            end
-            
-            -- Fallback to ModuleLoader
-            return ModuleLoader and ModuleLoader.tryRequire("AssetHealthDashboard")
-        end,
-        dependencies = {"AssetValidator", "UIRegistry"}
-    },
-    
-    -- UISystemTester should be last as it tests all other systems
-    {
-        name = "UISystemTester",
-        getModule = function()
-            -- Try to find in PlayerScripts client folder
-            if LocalPlayer.PlayerScripts:FindFirstChild("Client") and 
-               LocalPlayer.PlayerScripts.Client:FindFirstChild("UI") and
-               LocalPlayer.PlayerScripts.Client.UI:FindFirstChild("UISystemTester") then
-                return requireSafely(LocalPlayer.PlayerScripts.Client.UI.UISystemTester)
-            end
-            
-            -- Fallback to ModuleLoader
-            return ModuleLoader and ModuleLoader.tryRequire("UISystemTester")
-        end,
-        dependencies = {"UIComponents", "UIRegistry", "AssetValidator"}
-    }
-}
-
--- Initialize core systems
-log("Starting core system initialization...")
-
--- First initialize systems in order of dependencies
-for _, system in ipairs(coreSystems) do
-    local systemModule = system.getModule()
-    if systemModule then
-        initializeSystem(system.name, systemModule, system.dependencies)
-    else
-        warn("[ClientBootstrap] Could not find module for system: " .. system.name)
-    end
-end
-
--- Wait for remaining pending systems to initialize
-task.spawn(function()
-    local startWaitTime = tick()
-    local maxWaitTime = CONFIG.LOAD_TIMEOUT
-    
-    while tick() - startWaitTime < maxWaitTime do
-        -- Count pending systems
-        local pendingCount = 0
-        for _ in pairs(systemInitState.pendingSystems) do
-            pendingCount += 1
+    local clientRegistryModule = findModule("ClientRegistry")
+    if not clientRegistryModule then
+        warn("ClientBootstrap: Could not find ClientRegistry module")
+        
+        -- Check if it exists but is not a ModuleScript
+        local badModule = sharedFolder:FindFirstChild("ClientRegistry")
+        if badModule and not badModule:IsA("ModuleScript") then
+            warn("ClientBootstrap: Found ClientRegistry but it's not a ModuleScript, it's a " .. badModule.ClassName)
         end
         
-        if pendingCount == 0 then
-            break
+        return nil
+    end
+    
+    local clientRegistry = safeRequire(clientRegistryModule)
+    if not clientRegistry then
+        warn("[ClientBootstrap] Failed to require module: " .. clientRegistryModule:GetFullName())
+        
+        -- Try to determine the specific error
+        local success, errorMessage = pcall(function()
+            return require(clientRegistryModule)
+        end)
+        
+        if not success then
+            warn("[ClientBootstrap] Failed to require module: " .. clientRegistryModule:GetFullName() .. " - " .. tostring(errorMessage))
         end
         
-        task.wait(0.5)
+        return nil
     end
     
-    -- Check for any systems that didn't initialize
-    local pendingCount = 0
-    local pendingSystems = {}
-    
-    for systemName in pairs(systemInitState.pendingSystems) do
-        pendingCount += 1
-        table.insert(pendingSystems, systemName)
+    if type(clientRegistry) ~= "table" or not clientRegistry.registerComponent then
+        warn("[ClientBootstrap] Failed to require module: " .. clientRegistryModule:GetFullName() .. " - Module code did not return exactly one value")
+        return nil
     end
     
-    if pendingCount > 0 then
-        warn("[ClientBootstrap] " .. pendingCount .. " systems did not initialize within timeout: " .. 
-              table.concat(pendingSystems, ", "))
+    if clientRegistry.initialize then
+        local success = clientRegistry.initialize()
+        if not success then
+            warn("ClientBootstrap: ClientRegistry initialization failed")
+            return nil
+        end
     end
     
-    -- Generate final report
-    local failedCount = 0
-    local failedSystems = {}
-    
-    for systemName in pairs(systemInitState.failedSystems) do
-        failedCount += 1
-        table.insert(failedSystems, systemName)
-    end
-    
-    local initCount = 0
-    local initializedSystems = {}
-    
-    for systemName in pairs(systemInitState.initializedSystems) do
-        initCount += 1
-        table.insert(initializedSystems, systemName)
-    end
-    
-    log("Initialization complete:")
-    log("- Initialized Systems: " .. initCount .. " (" .. table.concat(initializedSystems, ", ") .. ")")
-    
-    if failedCount > 0 then
-        warn("[ClientBootstrap] Failed Systems: " .. failedCount .. " (" .. table.concat(failedSystems, ", ") .. ")")
-    else
-        log("- All systems initialized successfully!")
-    end
-    
-    if pendingCount > 0 then
-        warn("[ClientBootstrap] Pending Systems: " .. pendingCount .. " (" .. table.concat(pendingSystems, ", ") .. ")")
-    else
-        log("- No pending systems remaining")
-    end
-    
-    systemInitState.complete = true
-    systemInitState.endTime = tick()
-    log("Total initialization time: " .. string.format("%.2f", systemInitState.endTime - systemInitState.startTime) .. " seconds")
-end)
-
--- Dynamic system loader function for other scripts to use
-local function initializeAdditionalSystem(systemName, systemModule, dependencies)
-    return initializeSystem(systemName, systemModule, dependencies)
+    print("ClientBootstrap: ClientRegistry initialized successfully")
+    return clientRegistry
 end
 
--- Return the bootstrap interface
-local ClientBootstrap = {
-    initializeSystem = initializeAdditionalSystem,
-    registerSystemDependencies = registerSystemDependencies,
-    isSystemInitialized = isSystemInitialized,
-    getSystemInitState = function() return systemInitState end,
-    getClientRegistry = function() return ClientRegistry end
-}
-
--- Register with ClientRegistry
-if ClientRegistry and typeof(ClientRegistry.registerSystem) == "function" then
-    ClientRegistry:registerSystem("ClientBootstrap", ClientBootstrap)
+-- Initialize ModuleLoader
+local function initializeModuleLoader()
+    print("ClientBootstrap: Initializing ModuleLoader...")
+    
+    local moduleLoaderModule = findModule("ModuleLoader")
+    if not moduleLoaderModule then
+        warn("ClientBootstrap: Could not find ModuleLoader module")
+        return nil
+    end
+    
+    local moduleLoader = safeRequire(moduleLoaderModule)
+    if not moduleLoader then
+        warn("[ClientBootstrap] Failed to require ModuleLoader module")
+        return nil
+    end
+    
+    -- Add standard search paths
+    if moduleLoader.addSearchPath then
+        moduleLoader.addSearchPath(player:WaitForChild("PlayerScripts", 5))
+        moduleLoader.addSearchPath(sharedFolder)
+    end
+    
+    print("ClientBootstrap: ModuleLoader initialized successfully")
+    return moduleLoader
 end
 
-return ClientBootstrap
+-- Initialize UIComponents
+local function initializeUIComponents(clientRegistry, moduleLoader)
+    print("ClientBootstrap: Initializing UIComponents...")
+    
+    local uiComponentsModule = findModule("UIComponents")
+    if not uiComponentsModule then
+        warn("[ClientBootstrap] ModuleLoader not found, some system initialization may fail")
+        return nil
+    end
+    
+    local uiComponents = safeRequire(uiComponentsModule)
+    if not uiComponents then
+        warn("[ClientBootstrap] Failed to require UIComponents module")
+        return nil
+    end
+    
+    if clientRegistry and uiComponents and clientRegistry.registerSystem then
+        clientRegistry.registerSystem("UIComponents", uiComponents)
+        print("ClientBootstrap: UIComponents registered with ClientRegistry")
+    end
+    
+    print("ClientBootstrap: UIComponents initialized successfully")
+    return uiComponents
+end
+
+-- Main initialization sequence
+local clientRegistry = initializeClientRegistry()
+if not clientRegistry then
+    warn("[ClientBootstrap] Failed to get ClientRegistry, cannot proceed with initialization")
+else
+    _G.ClientRegistry = clientRegistry
+end
+
+local moduleLoader = initializeModuleLoader()
+if not moduleLoader then
+    warn("[ClientBootstrap] ModuleLoader not found, some system initialization may fail")
+else
+    _G.ModuleLoader = moduleLoader
+end
+
+local uiComponents = initializeUIComponents(clientRegistry, moduleLoader)
+if not uiComponents then
+    warn("[ClientBootstrap] UIComponents not found, UI will not function properly")
+else
+    _G.UIComponents = uiComponents
+end
+
+-- Register completion so other scripts can check if bootstrapping is complete
+_G.ClientBootstrapComplete = true
+_G.ClientBootstrapFailed = not (clientRegistry and moduleLoader)
+
+print("ClientBootstrap: Initialization complete!")
+if _G.ClientBootstrapFailed then
+    warn("ClientBootstrap: Some critical systems failed to initialize. UI may not function correctly.")
+else
+    print("✅ ClientBootstrap: All systems initialized successfully!")
+end

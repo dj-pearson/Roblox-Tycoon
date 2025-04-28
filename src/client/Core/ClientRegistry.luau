@@ -1,140 +1,225 @@
--- ClientRegistry.luau
--- Client-side registry for UI components and client systems
--- Created: April 28, 2025
+--[[
+    ClientRegistry.luau
+    This module serves as the central client-side system registry.
+    It manages UI components, client systems, and their dependencies.
+    
+    Created to fix critical "ClientRegistry Module" issues reported in RobloxIssues.txt
+]]
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
--- Create a single ClientRegistry object
-local ClientRegistry = {
-	_registered = {},
-	_version = "1.0.0",
-	_loaded = os.clock(),
-	_health = "OPERATIONAL",
-	_systems = {},
-	_components = {},
+-- Internal state
+local components = {}
+local systems = {}
+local initializedSystems = {}
+local listeners = {}
+local isInitialized = false
+
+-- The module table
+local ClientRegistry = {}
+
+-- Version information
+ClientRegistry.VERSION = "1.0.0"
+ClientRegistry.isLoaded = true
+
+-- Constants
+ClientRegistry.STATUS = {
+    AVAILABLE = "AVAILABLE",
+    UNAVAILABLE = "UNAVAILABLE",
+    INITIALIZING = "INITIALIZING",
+    ERROR = "ERROR"
 }
 
--- Register a module or system with the ClientRegistry
-function ClientRegistry:Register(name, module)
-	if self._registered[name] then
-		warn("ClientRegistry: Overwriting existing registration for " .. name)
-	end
-	self._registered[name] = module
-	print("ClientRegistry: Registered " .. name)
-	return true
+-- Current status
+local status = ClientRegistry.STATUS.UNAVAILABLE
+
+-- Register a UI component with the registry
+function ClientRegistry.registerComponent(componentName, componentInstance)
+    if not componentName or type(componentName) ~= "string" then
+        warn("ClientRegistry.registerComponent: Invalid component name")
+        return false
+    end
+    
+    if components[componentName] then
+        warn("ClientRegistry.registerComponent: Component already registered - " .. componentName)
+        return false
+    end
+    
+    components[componentName] = componentInstance
+    print("ClientRegistry: Registered component - " .. componentName)
+    
+    -- Notify listeners of new component
+    for _, listener in ipairs(listeners) do
+        task.spawn(function()
+            listener(componentName, componentInstance, "component")
+        end)
+    end
+    
+    return true
 end
 
--- Register a UI component
-function ClientRegistry:RegisterComponent(name, component)
-	self._components[name] = component
-	self:Register("UI_" .. name, component) -- Also add to general registry
-	return true
+-- Get a registered component by name
+function ClientRegistry.getComponent(componentName)
+    if not componentName or not components[componentName] then
+        warn("ClientRegistry.getComponent: Component not found - " .. tostring(componentName))
+        return nil
+    end
+    
+    return components[componentName]
 end
 
--- Register a client system
-function ClientRegistry:RegisterSystem(name, system)
-	self._systems[name] = system
-	self:Register("System_" .. name, system) -- Also add to general registry
-	return true
+-- Register a client system with the registry
+function ClientRegistry.registerSystem(systemName, systemInstance)
+    if not systemName or type(systemName) ~= "string" then
+        warn("ClientRegistry.registerSystem: Invalid system name")
+        return false
+    end
+    
+    if systems[systemName] then
+        warn("ClientRegistry.registerSystem: System already registered - " .. systemName)
+        return false
+    end
+    
+    systems[systemName] = systemInstance
+    print("ClientRegistry: Registered system - " .. systemName)
+    
+    -- Notify listeners of new system
+    for _, listener in ipairs(listeners) do
+        task.spawn(function()
+            listener(systemName, systemInstance, "system")
+        end)
+    end
+    
+    return true
 end
 
--- Get a registered module or system
-function ClientRegistry:Get(name)
-	return self._registered[name]
+-- Get a registered system by name
+function ClientRegistry.getSystem(systemName)
+    if not systemName or not systems[systemName] then
+        warn("ClientRegistry.getSystem: System not found - " .. tostring(systemName))
+        return nil
+    end
+    
+    return systems[systemName]
 end
 
--- Get a UI component
-function ClientRegistry:GetComponent(name)
-	return self._components[name]
+-- Check if a component is registered
+function ClientRegistry.hasComponent(componentName)
+    return components[componentName] ~= nil
 end
 
--- Get a client system
-function ClientRegistry:GetSystem(name)
-	return self._systems[name]
+-- Check if a system is registered
+function ClientRegistry.hasSystem(systemName)
+    return systems[systemName] ~= nil
 end
 
--- Check if a module or system is registered
-function ClientRegistry:HasComponent(name)
-	return self._components[name] ~= nil
+-- Get all registered components
+function ClientRegistry.getAllComponents()
+    local allComponents = {}
+    for name, component in pairs(components) do
+        allComponents[name] = component
+    end
+    return allComponents
 end
 
--- Check if a client system is registered
-function ClientRegistry:HasSystem(name)
-	return self._systems[name] ~= nil
+-- Get all registered systems
+function ClientRegistry.getAllSystems()
+    local allSystems = {}
+    for name, system in pairs(systems) do
+        allSystems[name] = system
+    end
+    return allSystems
 end
 
--- Get all registered modules and systems
-function ClientRegistry:GetAll()
-	return self._registered
+-- Register a callback to be notified when new components/systems are registered
+function ClientRegistry.addListener(callback)
+    if type(callback) ~= "function" then
+        warn("ClientRegistry.addListener: Listener must be a function")
+        return false
+    end
+    
+    table.insert(listeners, callback)
+    return true
 end
 
--- Get all registered UI components
-function ClientRegistry:GetAllComponents()
-	return self._components
+-- Mark a system as initialized
+function ClientRegistry.markInitialized(systemName)
+    if not systemName or not systems[systemName] then
+        warn("ClientRegistry.markInitialized: System not found - " .. tostring(systemName))
+        return false
+    end
+    
+    initializedSystems[systemName] = true
+    print("ClientRegistry: Marked system as initialized - " .. systemName)
+    return true
 end
 
--- Get all registered client systems
-function ClientRegistry:GetAllSystems()
-	return self._systems
+-- Check if a system has been initialized
+function ClientRegistry.isSystemInitialized(systemName)
+    return initializedSystems[systemName] == true
 end
 
--- Get registry version
-function ClientRegistry:GetVersion()
-	return self._version
+-- Initialize the registry
+function ClientRegistry.initialize()
+    if isInitialized then
+        return true
+    end
+    
+    status = ClientRegistry.STATUS.INITIALIZING
+    print("ClientRegistry: Initializing...")
+    
+    -- Setup registry in _G for easy access
+    _G.ClientRegistry = ClientRegistry
+    
+    -- Check essential paths and create if missing
+    local function ensurePath(instance, path)
+        local current = instance
+        for _, name in ipairs(path) do
+            local child = current:FindFirstChild(name)
+            if not child then
+                child = Instance.new("Folder")
+                child.Name = name
+                child.Parent = current
+            end
+            current = child
+        end
+        return current
+    end
+    
+    -- Ensure shared folder exists in ReplicatedStorage
+    local shared = ensurePath(ReplicatedStorage, {"shared"})
+    
+    -- Set up listeners for component notifications
+    ClientRegistry.addListener(function(name, instance, entityType)
+        print("ClientRegistry: New " .. entityType .. " registered - " .. name)
+    end)
+    
+    -- Successfully initialized
+    isInitialized = true
+    status = ClientRegistry.STATUS.AVAILABLE
+    print("ClientRegistry: Initialization complete")
+    return true
 end
 
--- Health check
-function ClientRegistry:HealthCheck()
-	return {
-		status = self._health,
-		version = self._version,
-		uptime = os.clock() - self._loaded,
-		registeredCount = #self:GetRegisteredNames(),
-		componentsCount = #self:GetComponentNames(),
-		systemsCount = #self:GetSystemNames(),
-	}
+-- Get the current status of the registry
+function ClientRegistry.getStatus()
+    return status
 end
 
--- Get list of registered names
-function ClientRegistry:GetRegisteredNames()
-	local names = {}
-	for name, _ in pairs(self._registered) do
-		table.insert(names, name)
-	end
-	return names
+-- Set the current status
+function ClientRegistry.setStatus(newStatus)
+    if not ClientRegistry.STATUS[newStatus] then
+        warn("ClientRegistry.setStatus: Invalid status - " .. tostring(newStatus))
+        return false
+    end
+    
+    status = ClientRegistry.STATUS[newStatus]
+    return true
 end
 
--- Get list of registered component names
-function ClientRegistry:GetComponentNames()
-	local names = {}
-	for name, _ in pairs(self._components) do
-		table.insert(names, name)
-	end
-	return names
-end
+-- Initialize the registry on module load
+ClientRegistry.initialize()
 
--- Get list of registered system names
-function ClientRegistry:GetSystemNames()
-	local names = {}
-	for name, _ in pairs(self._systems) do
-		table.insert(names, name)
-	end
-	return names
-end
-
--- For diagnostics and debugging
-function ClientRegistry:__tostring()
-	return "ClientRegistry (v" .. self._version .. ")" .. 
-		" | Status: " .. self._health .. 
-		" | Systems: " .. #self:GetSystemNames() ..
-		" | Components: " .. #self:GetComponentNames()
-end
-
--- Make the registry accessible for debugging
-if _G then
-	_G.__ClientRegistry = ClientRegistry
-end
-
--- This line is crucial - return ONLY the ClientRegistry object
 return ClientRegistry

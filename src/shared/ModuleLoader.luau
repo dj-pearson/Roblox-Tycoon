@@ -1,399 +1,279 @@
--- ModuleLoader.luau
--- Utility for loading and managing modules across the game
--- Created: April 28, 2025
+--[[
+    ModuleLoader.luau
+    This module provides centralized module loading functionality with
+    robust error handling, caching, and path resolution.
+    
+    Created to fix critical "Module Loading and WaitForChild Errors" reported in RobloxIssues.txt
+]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
+local RunService = game:GetService("RunService")
 
--- Constants and configuration
-local VERSION = "1.0.0"
-local DEBUG = true 
-local MAX_REQUIRE_DEPTH = 10
-local DEFAULT_TIMEOUT = 5 -- seconds
+-- Determine if we're running on server or client
+local isServer = RunService:IsServer()
 
--- ModuleLoader object
-local ModuleLoader = {
-	_loadedModules = {}, -- Cache of loaded modules
-	_loadAttempts = {}, -- Track how many times we've tried to load a module
-	_version = VERSION,
-	_nameToPaths = {}, -- Mapping from module names to possible paths
-	_dependencies = {}, -- Track dependencies between modules
-	_loadErrors = {}, -- Track errors during module loading
-	_stats = {
-		hits = 0, -- Cache hits
-		misses = 0, -- Cache misses
-		errors = 0 -- Error count
-	}
+-- Module cache
+local moduleCache = {}
+
+-- Search paths
+local searchPaths = {
+    ReplicatedStorage:FindFirstChild("shared"),
+    ReplicatedStorage
 }
 
--- Local logging function
-local function log(message, level)
-	level = level or "Info"
-	if not DEBUG and level ~= "Error" then return end
-	print(string.format("[ModuleLoader][%s] %s", level, message))
+-- Add server-only paths if we're on the server
+if isServer then
+    table.insert(searchPaths, 1, ServerScriptService:FindFirstChild("Core"))
+    table.insert(searchPaths, 2, ServerScriptService)
+    table.insert(searchPaths, 3, ServerStorage)
 end
 
--- Safe require function that won't throw errors
-local function safeRequire(moduleScript)
-	if not moduleScript then
-		return nil, "Module is nil"
-	end
-	
-	if not moduleScript:IsA("ModuleScript") then
-		return nil, "Instance is not a ModuleScript, but " .. moduleScript.ClassName
-	end
-	
-	local success, result = pcall(function()
-		return require(moduleScript)
-	end)
-	
-	if success then
-		return result, nil
-	else
-		return nil, result
-	end
+-- The module table
+local ModuleLoader = {}
+
+-- Version information
+ModuleLoader.VERSION = "1.0.0"
+ModuleLoader.isLoaded = true
+
+-- Safe WaitForChild with timeout
+function ModuleLoader.waitForChild(parent, childName, timeout)
+    timeout = timeout or 5
+    
+    -- Quick check first
+    local child = parent:FindFirstChild(childName)
+    if child then return child end
+    
+    -- Use timeout to prevent infinite yield
+    local startTime = os.clock()
+    
+    while not child and (os.clock() - startTime) < timeout do
+        child = parent:FindFirstChild(childName)
+        if child then break end
+        task.wait(0.1)
+    end
+    
+    if not child then
+        warn("ModuleLoader.waitForChild: Timeout waiting for " .. childName .. " in " .. parent:GetFullName())
+    end
+    
+    return child
 end
 
--- Safe wait for child function with timeout
-local function safeWaitForChild(parent, childName, timeout)
-	timeout = timeout or DEFAULT_TIMEOUT
-	local startTime = os.clock()
-	
-	while os.clock() - startTime < timeout do
-		local child = parent:FindFirstChild(childName)
-		if child then
-			return child
-		end
-		wait(0.1)
-	end
-	
-	return nil -- Timed out
+-- Add a custom search path
+function ModuleLoader.addSearchPath(path)
+    if not path or typeof(path) ~= "Instance" then
+        warn("ModuleLoader.addSearchPath: Invalid path")
+        return false
+    end
+    
+    table.insert(searchPaths, 1, path)
+    return true
 end
 
--- Resolve a path string to a ModuleScript instance
-function ModuleLoader:ResolveModulePath(pathString)
-	if not pathString then
-		return nil, "Path string is nil"
-	end
-	
-	-- Check if we've already resolved this path
-	if self._resolvedPaths then
-		local cached = self._resolvedPaths[pathString]
-		if cached then
-			return cached
-		end
-	else
-		self._resolvedPaths = {}
-	end
-	
-	local pathParts = string.split(pathString, ".")
-	local current = game
-	
-	for i, part in ipairs(pathParts) do
-		current = safeWaitForChild(current, part, DEFAULT_TIMEOUT)
-		
-		if not current then
-			log("Failed to resolve path at part " .. i .. ": " .. part, "Warning")
-			return nil, "Failed to find part: " .. part
-		end
-	end
-	
-	-- Cache the resolved path
-	self._resolvedPaths[pathString] = current
-	
-	return current
+-- Get all current search paths
+function ModuleLoader.getSearchPaths()
+    return table.clone(searchPaths)
 end
 
--- Load a module by path string
-function ModuleLoader:LoadModule(pathString)
-	if not pathString then
-		return nil, "Path string is nil"
-	end
-	
-	-- Check if we've already loaded this module
-	if self._loadedModules[pathString] then
-		self._stats.hits += 1
-		return self._loadedModules[pathString]
-	end
-	
-	self._stats.misses += 1
-	
-	-- Track loading attempts
-	self._loadAttempts[pathString] = (self._loadAttempts[pathString] or 0) + 1
-	
-	-- Check if we're trying to load this module too many times
-	if self._loadAttempts[pathString] > MAX_REQUIRE_DEPTH then
-		log("Circular dependency detected for: " .. pathString, "Error")
-		self._stats.errors += 1
-		self._loadErrors[pathString] = "Circular dependency"
-		return nil, "Circular dependency"
-	end
-	
-	-- Resolve the path to a ModuleScript instance
-	local moduleScript, errorMsg = self:ResolveModulePath(pathString)
-	if not moduleScript then
-		log("Failed to resolve module path: " .. pathString .. " - " .. errorMsg, "Warning")
-		self._stats.errors += 1
-		self._loadErrors[pathString] = errorMsg
-		return nil, errorMsg
-	end
-	
-	-- Require the module
-	local module, requireError = safeRequire(moduleScript)
-	if not module then
-		log("Failed to require module: " .. pathString .. " - " .. requireError, "Warning")
-		self._stats.errors += 1
-		self._loadErrors[pathString] = requireError
-		return nil, requireError
-	end
-	
-	-- Cache the loaded module
-	self._loadedModules[pathString] = module
-	
-	-- Reset loading attempts
-	self._loadAttempts[pathString] = 0
-	
-	return module
+-- Clear module cache
+function ModuleLoader.clearCache(moduleName)
+    if moduleName then
+        moduleCache[moduleName] = nil
+    else
+        moduleCache = {}
+    end
 end
 
--- Load a module by name using registered paths
-function ModuleLoader:LoadModuleByName(moduleName)
-	if not moduleName then
-		return nil, "Module name is nil"
-	end
-	
-	-- Check if we have registered paths for this module
-	local paths = self._nameToPaths[moduleName]
-	if not paths or #paths == 0 then
-		log("No paths registered for module: " .. moduleName, "Warning")
-		return nil, "No paths registered"
-	end
-	
-	-- Try each path until we find one that works
-	for _, path in ipairs(paths) do
-		local module, error = self:LoadModule(path)
-		if module then
-			return module
-		end
-	end
-	
-	log("Failed to load module by name: " .. moduleName .. " - No valid paths found", "Warning")
-	return nil, "No valid paths found"
+-- Find a module by name across search paths
+function ModuleLoader.findModule(moduleName)
+    -- Check cache first
+    if moduleCache[moduleName] then
+        return moduleCache[moduleName].instance
+    end
+    
+    -- Search all paths
+    for _, path in ipairs(searchPaths) do
+        if path then
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
+        end
+    end
+    
+    -- Try resolving a path like "folder.subfolder.module"
+    local parts = string.split(moduleName, ".")
+    if #parts > 1 then
+        for _, basePath in ipairs(searchPaths) do
+            local current = basePath
+            local found = true
+            
+            for i = 1, #parts - 1 do
+                current = current:FindFirstChild(parts[i])
+                if not current then
+                    found = false
+                    break
+                end
+            end
+            
+            if found then
+                local module = current:FindFirstChild(parts[#parts])
+                if module and module:IsA("ModuleScript") then
+                    return module
+                end
+            end
+        end
+    end
+    
+    -- Not found
+    return nil
 end
 
--- Register a path for a module name
-function ModuleLoader:RegisterPath(moduleName, pathString)
-	if not moduleName or not pathString then
-		return false
-	end
-	
-	-- Initialize the paths array if it doesn't exist
-	if not self._nameToPaths[moduleName] then
-		self._nameToPaths[moduleName] = {}
-	end
-	
-	-- Add the path if it's not already registered
-	local paths = self._nameToPaths[moduleName]
-	for _, path in ipairs(paths) do
-		if path == pathString then
-			return true -- Already registered
-		end
-	end
-	
-	table.insert(paths, pathString)
-	log("Registered path for " .. moduleName .. ": " .. pathString)
-	
-	return true
+-- Load a module by name
+function ModuleLoader.loadModule(moduleName, fallback)
+    -- Check if already cached
+    if moduleCache[moduleName] then
+        return moduleCache[moduleName].value
+    end
+    
+    -- Find the module
+    local module = ModuleLoader.findModule(moduleName)
+    
+    -- If not found, use fallback or warn
+    if not module then
+        if fallback ~= nil then
+            print("ModuleLoader.loadModule: Using fallback for " .. moduleName)
+            moduleCache[moduleName] = {
+                instance = nil,
+                value = fallback
+            }
+            return fallback
+        else
+            warn("ModuleLoader.loadModule: Module not found - " .. moduleName)
+            return nil
+        end
+    end
+    
+    -- Try to require the module
+    local success, result = pcall(function()
+        return require(module)
+    end)
+    
+    -- Handle result
+    if success then
+        moduleCache[moduleName] = {
+            instance = module,
+            value = result
+        }
+        return result
+    else
+        warn("ModuleLoader.loadModule: Failed to require " .. moduleName .. " - " .. tostring(result))
+        if fallback ~= nil then
+            moduleCache[moduleName] = {
+                instance = module,
+                value = fallback
+            }
+            return fallback
+        else
+            return nil
+        end
+    end
 end
 
--- Get a loaded module
-function ModuleLoader:GetModule(pathStringOrName)
-	if not pathStringOrName then
-		return nil, "Path string or name is nil"
-	end
-	
-	-- Check if we've already loaded this module by path
-	if self._loadedModules[pathStringOrName] then
-		return self._loadedModules[pathStringOrName]
-	end
-	
-	-- Check if we have registered paths for this module name
-	if self._nameToPaths[pathStringOrName] then
-		return self:LoadModuleByName(pathStringOrName)
-	end
-	
-	-- Try to load the module by path
-	return self:LoadModule(pathStringOrName)
+-- Safe require with fallback
+function ModuleLoader.safeRequire(module, fallback)
+    if not module then
+        return fallback
+    end
+    
+    local success, result = pcall(function()
+        return require(module)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("ModuleLoader.safeRequire: Failed to require module - " .. tostring(result))
+        return fallback
+    end
 end
 
--- Clear the module cache
-function ModuleLoader:ClearCache(modulePath)
-	if modulePath then
-		-- Clear a specific module
-		self._loadedModules[modulePath] = nil
-		log("Cleared cache for module: " .. modulePath)
-	else
-		-- Clear all modules
-		self._loadedModules = {}
-		log("Cleared entire module cache")
-	end
+-- Resolve a path string like "ReplicatedStorage.shared.ModuleLoader"
+function ModuleLoader.resolvePath(pathString)
+    if typeof(pathString) == "Instance" then
+        return pathString
+    end
+    
+    if type(pathString) ~= "string" then
+        return nil
+    end
+    
+    local parts = string.split(pathString, ".")
+    if #parts == 0 then
+        return nil
+    end
+    
+    -- See if the first part is a service name
+    local current
+    local success, service = pcall(function()
+        return game:GetService(parts[1])
+    end)
+    
+    if success and service then
+        current = service
+    else
+        -- Try finding it in the game
+        current = game:FindFirstChild(parts[1])
+        if not current then
+            warn("ModuleLoader.resolvePath: Failed to resolve path at part 1: " .. parts[1])
+            return nil
+        end
+    end
+    
+    -- Traverse the path
+    for i = 2, #parts do
+        current = ModuleLoader.waitForChild(current, parts[i], 1)
+        if not current then
+            warn("ModuleLoader.resolvePath: Failed to resolve path at part " .. i .. ": " .. parts[i])
+            return nil
+        end
+    end
+    
+    return current
 end
 
--- Get the loader version
-function ModuleLoader:GetVersion()
-	return self._version
+-- Create folder hierarchy if it doesn't exist
+function ModuleLoader.ensurePath(parent, pathArray)
+    local current = parent
+    for _, name in ipairs(pathArray) do
+        local child = current:FindFirstChild(name)
+        if not child then
+            child = Instance.new("Folder")
+            child.Name = name
+            child.Parent = current
+        end
+        current = child
+    end
+    return current
 end
 
--- Register common module paths
-function ModuleLoader:RegisterCommonPaths()
-	-- Core modules
-	self:RegisterPath("CoreRegistry", "ServerScriptService.Core.CoreRegistry")
-	self:RegisterPath("ClientRegistry", "ReplicatedStorage.shared.ClientRegistry")
-	self:RegisterPath("ClientRegistry", "ReplicatedStorage.src.client.Core.ClientRegistry")
-	
-	-- UI modules
-	self:RegisterPath("UIComponents", "ReplicatedStorage.shared.UIComponents")
-	self:RegisterPath("UIComponents", "ReplicatedStorage.UIModules.UIComponent")
-	self:RegisterPath("UIComponents", "ReplicatedStorage.src.shared.UI.UIComponents")
-	
-	-- Utility modules
-	self:RegisterPath("SafeWaitForChild", "ReplicatedStorage.shared.SafeWaitForChild")
-	self:RegisterPath("SafeWaitForChild", "ReplicatedStorage.src.shared.Utils.SafeWaitForChild")
-	
-	-- System modules
-	self:RegisterPath("GymAutomationManager", "ServerStorage.GymAutomationManager")
-	self:RegisterPath("GymAutomationManager", "ServerScriptService.GymAutomation.GymAutomationManager")
-	self:RegisterPath("GymAutomationManager", "ServerScriptService.server.GymAutomation.GymAutomationManager")
-	
-	log("Registered common module paths")
+-- Register with CoreRegistry or ClientRegistry if available
+if isServer then
+    local CoreRegistry = ModuleLoader.safeRequire(ModuleLoader.findModule("CoreRegistry"))
+    if CoreRegistry and type(CoreRegistry.registerSystem) == "function" then
+        CoreRegistry.registerSystem("ModuleLoader", ModuleLoader)
+    end
+else
+    local ClientRegistry = ModuleLoader.safeRequire(ModuleLoader.findModule("ClientRegistry"))
+    if ClientRegistry and type(ClientRegistry.registerSystem) == "function" then
+        ClientRegistry.registerSystem("ModuleLoader", ModuleLoader)
+    end
 end
 
--- Register a dependency between modules
-function ModuleLoader:RegisterDependency(moduleName, dependencyName)
-	if not moduleName or not dependencyName then return false end
-	
-	if not self._dependencies[moduleName] then
-		self._dependencies[moduleName] = {}
-	end
-	
-	-- Add the dependency if it's not already registered
-	local deps = self._dependencies[moduleName]
-	for _, dep in ipairs(deps) do
-		if dep == dependencyName then
-			return true -- Already registered
-		end
-	end
-	
-	table.insert(deps, dependencyName)
-	log("Registered dependency: " .. moduleName .. " depends on " .. dependencyName)
-	return true
-end
+-- Make it globally available
+_G.ModuleLoader = ModuleLoader
 
--- Get all dependencies for a module
-function ModuleLoader:GetDependencies(moduleName)
-	return self._dependencies[moduleName] or {}
-end
-
--- Check if loading a module would create a circular dependency
-function ModuleLoader:WouldCreateCircularDependency(moduleName, dependencyChain)
-	dependencyChain = dependencyChain or {}
-	
-	-- If the module is already in the dependency chain, it would create a circular dependency
-	for _, mod in ipairs(dependencyChain) do
-		if mod == moduleName then
-			return true, dependencyChain
-		end
-	end
-	
-	-- Add this module to the dependency chain
-	local newChain = table.clone(dependencyChain)
-	table.insert(newChain, moduleName)
-	
-	-- Check all dependencies of this module
-	local dependencies = self:GetDependencies(moduleName)
-	for _, depName in ipairs(dependencies) do
-		local wouldCreateCircular, chain = self:WouldCreateCircularDependency(depName, newChain)
-		if wouldCreateCircular then
-			return true, chain
-		end
-	end
-	
-	return false, nil
-end
-
--- Get diagnostics about the ModuleLoader state
-function ModuleLoader:GetDiagnostics()
-	local loadedModuleCount = 0
-	for _ in pairs(self._loadedModules) do
-		loadedModuleCount += 1
-	end
-	
-	local registeredPathCount = 0
-	for _, paths in pairs(self._nameToPaths) do
-		registeredPathCount += #paths
-	end
-	
-	local dependencyCount = 0
-	for _, deps in pairs(self._dependencies) do
-		dependencyCount += #deps
-	end
-	
-	local errorCount = 0
-	for _ in pairs(self._loadErrors) do
-		errorCount += 1
-	end
-	
-	return {
-		version = self._version,
-		loadedModules = loadedModuleCount,
-		registeredPaths = registeredPathCount,
-		dependencies = dependencyCount,
-		errors = errorCount,
-		stats = self._stats
-	}
-end
-
--- Get all loaded modules
-function ModuleLoader:GetLoadedModules()
-	local modules = {}
-	for path, module in pairs(self._loadedModules) do
-		modules[path] = module
-	end
-	return modules
-end
-
--- Get all loading errors
-function ModuleLoader:GetLoadErrors()
-	return self._loadErrors
-end
-
--- Attempt to reload a failed module
-function ModuleLoader:RetryFailedModule(pathStringOrName)
-	if not pathStringOrName then return nil, "Path string or name is nil" end
-	
-	-- Clear any cached errors for this module
-	self._loadErrors[pathStringOrName] = nil
-	
-	-- Clear any cached instances of this module
-	self._loadedModules[pathStringOrName] = nil
-	
-	-- Try loading the module again
-	return self:GetModule(pathStringOrName)
-end
-
--- Initialize the ModuleLoader
-do
-	log("Initializing ModuleLoader v" .. VERSION)
-	ModuleLoader:RegisterCommonPaths()
-	-- Register new paths for newly created modules
-	ModuleLoader:RegisterPath("UIComponents", "ReplicatedStorage.shared.UIComponents")
-	ModuleLoader:RegisterPath("AssetValidator", "ReplicatedStorage.shared.AssetValidator")
-	ModuleLoader:RegisterPath("UIRegistry", "ReplicatedStorage.shared.UIRegistry")
-	ModuleLoader:RegisterPath("SystemDiagnostics", "ReplicatedStorage.shared.SystemDiagnostics")
-	ModuleLoader:RegisterPath("SafeRequireModule", "ReplicatedStorage.shared.SafeRequireModule")
-	
-	-- Log initialization success
-	log("ModuleLoader successfully initialized")
-end
-
--- Return the ModuleLoader instance
+print("✅ ModuleLoader initialized")
 return ModuleLoader
