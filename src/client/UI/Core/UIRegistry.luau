@@ -353,8 +353,7 @@ function UIRegistry:discoverUIModules()
         warn("UI folder not found for component discovery")
         return discovered
     end
-    
-    -- Helper function to search for modules
+      -- Helper function to search for modules
     local function searchForModules(folder)
         for _, child in ipairs(folder:GetChildren()) do
             if child:IsA("ModuleScript") then
@@ -368,14 +367,18 @@ function UIRegistry:discoverUIModules()
                     if result.initialize and (result.show or result.hide) then
                         local name = child.Name:gsub("%.luau$", ""):gsub("%.lua$", "")
                         
+                        print("Found UI module:", name)
+                        
                         -- Register the component
                         if self:registerComponent(name, result) then
                             table.insert(discovered, name)
+                            print("Successfully registered UI component:", name)
                         end
                     end
                 end
             elseif child:IsA("Folder") then
                 -- Recursively search subfolders
+                print("Searching for UI modules in subfolder:", child.Name)
                 searchForModules(child)
             end
         end

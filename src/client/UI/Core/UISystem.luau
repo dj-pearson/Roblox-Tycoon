@@ -178,6 +178,41 @@ local function initializeComponents()
         UIHub:initialize()
     end
     
+    -- Explicitly load MainMenuUI to ensure it's available
+    local clientFolder = srcFolder:FindFirstChild("client")
+    if clientFolder then
+        local uiFolder = clientFolder:FindFirstChild("UI")
+        if uiFolder then
+            local screensFolder = uiFolder:FindFirstChild("Screens")
+            if screensFolder then
+                local mainMenuModule = screensFolder:FindFirstChild("MainMenuUI")
+                if mainMenuModule and mainMenuModule:IsA("ModuleScript") then
+                    local success, mainMenuUI = pcall(function()
+                        return require(mainMenuModule)
+                    end)
+                    
+                    if success and mainMenuUI then
+                        if mainMenuUI.initialize then
+                            mainMenuUI:initialize()
+                        end
+                        
+                        -- Register with both names to ensure compatibility
+                        UIRegistry:registerComponent("MainMenuUI", mainMenuUI)
+                        UIRegistry:registerComponent("MainMenu", mainMenuUI) -- Also register as MainMenu
+                        
+                        logMessage("Explicitly loaded and registered MainMenuUI", "Info")
+                    else
+                        logMessage("Failed to load MainMenuUI module: " .. tostring(mainMenuUI), "Warning")
+                    end
+                else
+                    logMessage("MainMenuUI module not found in Screens folder", "Warning")
+                end
+            else
+                logMessage("Screens folder not found in UI folder", "Warning")
+            end
+        end
+    end
+    
     -- Auto-initialize discovered components
     local initialized, failed = UIRegistry:initializeAllComponents()
     
@@ -284,16 +319,22 @@ function UISystem:showMainMenu()
     
     local UIHub = UIRegistry:getComponent("UIHub")
     if UIHub and UIHub.showScreen then
-        return UIHub:showScreen("MainMenu")
+        return UIHub:showScreen("MainMenuUI")
     end
     
     -- Fallback if UIHub not available
-    local mainMenu = UIRegistry:getComponent("MainMenu")
+    local mainMenu = UIRegistry:getComponent("MainMenuUI")
     if mainMenu and mainMenu.show then
         return mainMenu:show()
     end
     
-    logMessage("Main menu component not found", "Warning")
+    -- Extra fallback for legacy naming
+    local legacyMainMenu = UIRegistry:getComponent("MainMenu")
+    if legacyMainMenu and legacyMainMenu.show then
+        return legacyMainMenu:show()
+    end
+    
+    logMessage("Main menu component not found - checked both MainMenuUI and MainMenu", "Warning")
     return false
 end
 

@@ -1098,16 +1098,23 @@ function MainMenuUI:initialize()
     
     -- Start status updates
     startStatusUpdates()
-    
-    -- Register with UIRegistry if available
+      -- Register with UIRegistry if available
     if UIRegistry and UIRegistry.registerComponent then
         UIRegistry:registerComponent("MainMenuUI", self)
+        UIRegistry:registerComponent("MainMenu", self) -- Also register as MainMenu for compatibility
+        print("MainMenuUI: Registered with UIRegistry as both MainMenuUI and MainMenu")
     end
     
     -- Register with UIManager if available
     if UIManager and UIManager.registerUI then
         UIManager:registerUI("MainMenuUI", self)
+        UIManager:registerUI("MainMenu", self) -- Also register as MainMenu for compatibility
+        print("MainMenuUI: Registered with UIManager as both MainMenuUI and MainMenu")
     end
+    
+    -- Create global access point for emergency fallback
+    _G.MainMenuUI = self
+    print("MainMenuUI: Created global access point _G.MainMenuUI")
     
     return self
 end
