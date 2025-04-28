@@ -2,24 +2,29 @@
 --[[
     SafeWaitForChild.luau
     
-    A utility module that provides safe replacements for WaitForChild to avoid
-    issues with timing and missing instances.
+    A utility module that provides safe methods for waiting for child instances
+    with timeout handling to prevent infinite yield errors.
     
-    Created: April 26, 2025
+    This module is a critical part of the infrastructure fixes and should be
+    placed in ReplicatedStorage.shared for access from both server and client scripts.
+    
+    Updated: April 27, 2025
 ]]
 
--- Configuration
-local DEFAULT_TIMEOUT = 5 -- Default timeout in seconds
-local DEBUG_MODE = false   -- Enable debug logging
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
--- Debug logging
+-- Configuration
+local DEBUG_MODE = false
+local DEFAULT_TIMEOUT = 5 -- seconds
+
 local function log(message)
     if DEBUG_MODE then
         print("[SafeWaitForChild] " .. message)
     end
 end
 
--- Safely wait for a child with timeout
+-- Main function to safely wait for a child with timeout
 local function SafeWaitForChild(parent, childName, timeout)
     if not parent then
         warn("[SafeWaitForChild] Parent is nil")
@@ -39,136 +44,172 @@ local function SafeWaitForChild(parent, childName, timeout)
         return child
     end
     
-    -- Wait with timeout
+    -- Set up connection to detect when child is added
+    local childAddedSignal
+    local foundChild = nil
+    
     local startTime = os.clock()
-    local connection
-    local result = nil
     
-    -- Create a promise-like mechanism
-    local complete = false
-    
-    connection = parent.ChildAdded:Connect(function(newChild)
-        if newChild.Name == childName then
-            result = newChild
-            complete = true
-            connection:Disconnect()
+    -- Use ChildAdded event for detection
+    childAddedSignal = parent.ChildAdded:Connect(function(addedChild)
+        if addedChild.Name == childName then
+            foundChild = addedChild
         end
     end)
     
-    -- Check again after connection (race condition prevention)
-    if not complete then
-        child = parent:FindFirstChild(childName)
-        if child then
-            complete = true
-            result = child
-            connection:Disconnect()
-        end
-    end
-    
-    -- Wait until complete or timeout
-    while not complete and (os.clock() - startTime) < timeout do
-        task.wait(0.1)
-    end
-    
-    -- Clean up if timed out
-    if not complete and connection then
-        connection:Disconnect()
-        warn("[SafeWaitForChild] Timed out waiting for " .. childName .. " in " .. parent:GetFullName())
-    end
-    
-    return result
-end
-
--- Safely wait for a descendant with timeout
-local function SafeWaitForDescendant(parent, descendantPath, timeout)
-    if not parent or not descendantPath then
-        return nil
-    end
-    
-    timeout = timeout or DEFAULT_TIMEOUT
-    local startTime = os.clock()
-    local remainingTime = timeout
-    local currentParent = parent
-    
-    -- Split the path
-    local pathParts = string.split(descendantPath, ".")
-    
-    -- Navigate through each part of the path
-    for i, childName in ipairs(pathParts) do
-        -- Calculate remaining timeout
-        remainingTime = timeout - (os.clock() - startTime)
-        if remainingTime <= 0 then
-            warn("[SafeWaitForDescendant] Timed out waiting for " .. descendantPath .. " at part " .. childName)
-            return nil
-        end
+    -- Try using WaitForChild with timeout
+    local success, result = pcall(function()
+        local co = coroutine.create(function()
+            return parent:WaitForChild(childName, timeout)
+        end)
         
-        -- Wait for this child
-        local child = SafeWaitForChild(currentParent, childName, remainingTime)
-        if not child then
-            return nil
-        end
+        local status, child = coroutine.resume(co)
         
-        currentParent = child
-    end
-    
-    return currentParent
-end
-
--- Create a multi-path finder that tries several paths
-local function SafeFindFirstInstance(paths, timeout)
-    if not paths or #paths == 0 then
-        return nil
-    end
-    
-    timeout = timeout or DEFAULT_TIMEOUT
-    local startTime = os.clock()
-    
-    for _, path in ipairs(paths) do
-        -- Skip empty paths
-        if not path or path == "" then
-            continue
-        end
-        
-        -- Calculate remaining timeout
-        local remainingTime = timeout - (os.clock() - startTime)
-        if remainingTime <= 0 then
-            warn("[SafeFindFirstInstance] Timed out searching for instance")
-            return nil
-        end
-        
-        -- Parse path - either a direct instance or a path string
-        if typeof(path) == "Instance" then
-            return path
-        elseif typeof(path) == "string" then
-            -- Split into segments
-            local segments = string.split(path, ".")
-            local current = game
-            local found = true
-            
-            -- Navigate through segments
-            for i, segment in ipairs(segments) do
-                current = SafeWaitForChild(current, segment, remainingTime / #segments)
-                
-                if not current then
-                    found = false
-                    break
-                end
+        if coroutine.status(co) == "dead" then
+            return child
+        else
+            -- Yield until timeout or child is found
+            local timeElapsed = 0
+            while timeElapsed < timeout and not foundChild do
+                task.wait(0.1)
+                timeElapsed = os.clock() - startTime
             end
             
-            if found then
-                return current
-            end
+            return foundChild
         end
+    end)
+    
+    -- Clean up connection
+    if childAddedSignal then
+        childAddedSignal:Disconnect()
     end
     
+    -- Return child if found
+    if success and result then
+        return result
+    end
+    
+    -- Log timeout
+    warn("[SafeWaitForChild] Timed out waiting for " .. childName .. " in " .. parent:GetFullName())
     return nil
 end
 
--- Return all functions
+-- Get or create a child with the specified class (useful for ensuring folders exist)
+local function getOrCreateChild(parent, childName, className)
+    if not parent then
+        warn("[SafeWaitForChild] Cannot create child, parent is nil")
+        return nil
+    end
+    
+    -- Look for existing child
+    local child = parent:FindFirstChild(childName)
+    if child then
+        return child
+    end
+    
+    -- Create new instance
+    log("Creating " .. className .. " '" .. childName .. "' in " .. parent:GetFullName())
+    local newChild = Instance.new(className)
+    newChild.Name = childName
+    newChild.Parent = parent
+    return newChild
+end
+
+-- Wait for a child at a specific path within a parent (e.g. "Folder1.Folder2.Target")
+local function waitForDescendant(parent, path, timeout)
+    if not parent or not path then
+        warn("[SafeWaitForChild] Invalid arguments to waitForDescendant")
+        return nil
+    end
+    
+    timeout = timeout or DEFAULT_TIMEOUT
+    local startTime = os.clock()
+    
+    -- Split path into segments
+    local segments = string.split(path, ".")
+    if #segments == 0 then
+        return nil
+    end
+    
+    -- Navigate through path segments
+    local current = parent
+    for i, segment in ipairs(segments) do
+        local remainingTime = timeout - (os.clock() - startTime)
+        if remainingTime <= 0 then
+            warn("[SafeWaitForChild] Timed out waiting for path: " .. path)
+            return nil
+        end
+        
+        current = SafeWaitForChild(current, segment, remainingTime / (#segments - i + 1))
+        if not current then
+            warn("[SafeWaitForChild] Failed to find segment '" .. segment .. "' in path: " .. path)
+            return nil
+        end
+    end
+    
+    return current
+end
+
+-- Create all folders in a path (e.g. "Folder1.Folder2.Folder3")
+local function createPath(parent, path)
+    if not parent or not path then
+        warn("[SafeWaitForChild] Invalid arguments to createPath")
+        return nil
+    end
+    
+    -- Split path into segments
+    local segments = string.split(path, ".")
+    if #segments == 0 then
+        return parent
+    end
+    
+    -- Create each folder in the path
+    local current = parent
+    for _, segment in ipairs(segments) do
+        current = getOrCreateChild(current, segment, "Folder")
+        if not current then
+            warn("[SafeWaitForChild] Failed to create path segment: " .. segment)
+            return nil
+        end
+    end
+    
+    return current
+end
+
+-- Get statistics about WaitForChild calls (for diagnostics)
+local yieldStats = {
+    totalCalls = 0,
+    successfulCalls = 0,
+    timeoutCalls = 0,
+    averageWaitTime = 0,
+    totalWaitTime = 0
+}
+
+local function getYieldStats()
+    return table.clone(yieldStats)
+end
+
+-- Ensure critical paths exist when module is loaded
+local function ensureCriticalPaths()
+    -- Create shared folder in ReplicatedStorage if it doesn't exist
+    getOrCreateChild(ReplicatedStorage, "shared", "Folder")
+    
+    -- Create Core folder in ServerScriptService if it doesn't exist
+    if game:GetService("RunService"):IsServer() then
+        getOrCreateChild(ServerScriptService, "Core", "Folder")
+    end
+end
+
+-- Run initialization
+ensureCriticalPaths()
+
+-- Return the module API
 return {
-    WaitForChild = SafeWaitForChild,
-    WaitForDescendant = SafeWaitForDescendant,
-    FindFirstInstance = SafeFindFirstInstance,
-    SetDebug = function(enabled) DEBUG_MODE = enabled end,
-    SetDefaultTimeout = function(timeout) DEFAULT_TIMEOUT = timeout end
+    waitForChild = SafeWaitForChild,
+    waitForDescendant = waitForDescendant,
+    getOrCreateChild = getOrCreateChild,
+    createPath = createPath,
+    getYieldStats = getYieldStats,
+    DEBUG_MODE = DEBUG_MODE,
+    DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
 }
