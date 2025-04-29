@@ -206,14 +206,13 @@ local function createMainUI()
     bottomFrame.BorderSizePixel = 0
     bottomFrame.ZIndex = titleBar.ZIndex
     bottomFrame.Parent = titleBar
-    
-    -- Add title text
+      -- Add title text
     local titleText = Instance.new("TextLabel")
     titleText.Name = "TitleText"
     titleText.Size = UDim2.new(1, -100, 1, 0)
     titleText.Position = UDim2.new(0, 50, 0, 0)
     titleText.BackgroundTransparency = 1
-    titleText.Text = "Data Management"
+    titleText.Text = "Data & Admin Management"
     titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleText.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
     titleText.TextSize = 18
@@ -344,8 +343,7 @@ local function createMainUI()
         
         table.insert(tabButtons, tabButton)
         tabContents[name] = tabContent
-        
-        return tabContent
+          return tabContent
     end
     
     -- Create tabs
@@ -353,7 +351,118 @@ local function createMainUI()
     local versionHistoryTab = createTab("Version History")
     local migrationTab = createTab("Data Migration")
     local analyticsTab = createTab("Analytics")
-    local settingsTab = createTab("Settings")
+    local settingsTab = createTab("Settings")    -- Admin functionality is now provided by AdminButtonCreator.client.luau
+        
+        -- Set up Gym Commands tab
+        do
+            -- Title
+            createStyledLabel(gymCommandsTab, "Gym Tycoon Commands", UDim2.new(0, 20, 0, 20), UDim2.new(0, 300, 0, 30))
+            
+            -- Create command buttons
+            local yPos = 70
+            local spacing = 50
+            
+            -- Process Tycoon
+            local processButton = createStyledButton(gymCommandsTab, "Process Tycoon", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 160, 0, 35), function()
+                if typeof(_G.ProcessTycoon) == "function" then
+                    _G.ProcessTycoon()
+                end
+            end)
+            
+            -- Automate Gym
+            local automateButton = createStyledButton(gymCommandsTab, "Automate Gym", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 160, 0, 35), function()
+                if typeof(_G.AutomateGym) == "function" then
+                    _G.AutomateGym()
+                end
+            end)
+            
+            -- Show Tycoon Info
+            local infoButton = createStyledButton(gymCommandsTab, "Show Tycoon Info", UDim2.new(0, 20, 0, yPos + spacing * 2), UDim2.new(0, 160, 0, 35), function()
+                if typeof(_G.ShowTycoonInfo) == "function" then
+                    _G.ShowTycoonInfo()
+                end
+            end)
+        end
+        
+        -- Set up Buy Tiles tab
+        do
+            -- Title
+            createStyledLabel(buyTilesTab, "Buy Tile Commands", UDim2.new(0, 20, 0, 20), UDim2.new(0, 300, 0, 30))
+            
+            -- Create command buttons
+            local yPos = 70
+            local spacing = 50
+            
+            -- Setup BuyTile System
+            local setupButton = createStyledButton(buyTilesTab, "Setup BuyTile System", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 180, 0, 35), function()
+                if typeof(_G.SetupBuyTileSystem) == "function" then
+                    _G.SetupBuyTileSystem()
+                end
+            end)
+            
+            -- Auto-Setup Buy Tiles
+            local autoSetupButton = createStyledButton(buyTilesTab, "Auto-Setup Buy Tiles", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 180, 0, 35), function()
+                if typeof(_G.AutoSetupBuyTiles) == "function" then
+                    _G.AutoSetupBuyTiles()
+                end
+            end)
+            
+            -- Generate Build Order
+            local buildOrderButton = createStyledButton(buyTilesTab, "Generate Build Order", UDim2.new(0, 20, 0, yPos + spacing * 2), UDim2.new(0, 180, 0, 35), function()
+                if typeof(_G.GenerateBuildOrder) == "function" then
+                    _G.GenerateBuildOrder()
+                end
+            end)
+            
+            -- Generate BuyTile Config
+            local configButton = createStyledButton(buyTilesTab, "Generate BuyTile Config", UDim2.new(0, 20, 0, yPos + spacing * 3), UDim2.new(0, 180, 0, 35), function()
+                if typeof(_G.GenerateBuyTileConfig) == "function" then
+                    _G.GenerateBuyTileConfig()
+                end
+            end)
+        end
+        
+        -- Set up Visualization tab
+        do
+            -- Title
+            createStyledLabel(visualizationTab, "Visualization Commands", UDim2.new(0, 20, 0, 20), UDim2.new(0, 300, 0, 30))
+            
+            -- Create command buttons
+            local yPos = 70
+            local spacing = 50
+            
+            -- Show Hitboxes
+            local showHitboxesButton = createStyledButton(visualizationTab, "Show Hitboxes", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 160, 0, 35), function()
+                if typeof(_G.ShowHitboxes) == "function" then
+                    _G.ShowHitboxes()
+                end
+            end)
+            
+            -- Hide Hitboxes
+            local hideHitboxesButton = createStyledButton(visualizationTab, "Hide Hitboxes", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 160, 0, 35), function()
+                if typeof(_G.HideHitboxes) == "function" then
+                    _G.HideHitboxes()
+                end
+            end)
+        end
+        
+        -- Set up Validation tab
+        do
+            -- Title
+            createStyledLabel(validationTab, "Validation Commands", UDim2.new(0, 20, 0, 20), UDim2.new(0, 300, 0, 30))
+            
+            -- Create command buttons
+            local yPos = 70
+            local spacing = 50
+            
+            -- Validate Gym Models
+            local validateButton = createStyledButton(validationTab, "Validate Gym Models", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 180, 0, 35), function()
+                if typeof(_G.ValidateGymModels) == "function" then
+                    _G.ValidateGymModels()
+                end
+            end)
+        end
+    end
     
     -- Set up player data tab
     do
@@ -805,7 +914,7 @@ local function createMainUI()
         end
         
         -- Save settings button
-        local saveButton = createStyledButton(settingsTab, "Save Settings", UDim2.new(0, 20, 0, 380), UDim2.new(0, 140, 0, 35), function()
+        local saveSettingsButton = createStyledButton(settingsTab, "Save Settings", UDim2.new(0, 20, 0, 380), UDim2.new(0, 140, 0, 35), function()
             -- Collect all settings
             local newSettings = {}
             
@@ -831,15 +940,190 @@ local function createMainUI()
         end)
     end
     
-    -- Initialize UI
+    -- Set up Gym Commands tab
+    do
+        -- Title
+        createStyledLabel(gymCommandsTab, "Gym Tycoon Structure Commands", UDim2.new(0, 20, 0, 20), UDim2.new(0, 300, 0, 30))
+        
+        -- Create command buttons section
+        createStyledLabel(gymCommandsTab, "Tycoon Structure:", UDim2.new(0, 20, 0, 60), UDim2.new(0, 150, 0, 30))
+        
+        -- Create grid for buttons
+        local function createCommandButton(parent, text, desc, yPos, commandFunc)
+            local button = createStyledButton(parent, text, UDim2.new(0, 20, 0, yPos), UDim2.new(0, 180, 0, 35), function()
+                if AdminRemoteEvent then
+                    -- Show a feedback message
+                    local feedback = Instance.new("TextLabel")
+                    feedback.Name = "FeedbackMessage"
+                    feedback.Size = UDim2.new(1, -40, 0, 30)
+                    feedback.Position = UDim2.new(0, 20, 0, 400)
+                    feedback.BackgroundTransparency = 1
+                    feedback.TextColor3 = Color3.fromRGB(100, 255, 100)
+                    feedback.Text = "Executing: " .. text .. "..."
+                    feedback.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
+                    feedback.TextSize = 14
+                    feedback.TextXAlignment = Enum.TextXAlignment.Left
+                    
+                    -- Remove any existing feedback
+                    for _, child in pairs(parent:GetChildren()) do
+                        if child.Name == "FeedbackMessage" then
+                            child:Destroy()
+                        end
+                    end
+                    
+                    feedback.Parent = parent
+                    
+                    -- Execute the command
+                    AdminRemoteEvent:FireServer("executeAdminCommand", {
+                        type = commandFunc or text:lower():gsub(" ", ""),
+                        params = {}
+                    })
+                    
+                    -- Auto-remove feedback after 3 seconds
+                    task.delay(3, function()
+                        if feedback and feedback.Parent then
+                            feedback:Destroy()
+                        end
+                    end)
+                end
+            end)
+            
+            -- Add description
+            local descLabel = Instance.new("TextLabel")
+            descLabel.Name = text .. "Desc"
+            descLabel.Size = UDim2.new(0, 200, 0, 20)
+            descLabel.Position = UDim2.new(0, 210, 0, yPos + 7)
+            descLabel.BackgroundTransparency = 1
+            descLabel.Text = desc
+            descLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            descLabel.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular)
+            descLabel.TextSize = 12
+            descLabel.TextXAlignment = Enum.TextXAlignment.Left
+            descLabel.TextWrapped = true
+            descLabel.Parent = parent
+            
+            return button
+        end
+        
+        -- Create command buttons
+        local yStart = 100
+        local spacing = 45
+        
+        createCommandButton(gymCommandsTab, "Process Tycoon", "Analyze and set up tycoon structure", yStart, "processTycoon")
+        createCommandButton(gymCommandsTab, "Automate Gym", "Fully automate gym setup", yStart + spacing, "automateGym")
+        createCommandButton(gymCommandsTab, "Show Tycoon Info", "Display tycoon details", yStart + spacing * 2, "showTycoonInfo")
+        createCommandButton(gymCommandsTab, "Analyze Structure", "Analyze without changes", yStart + spacing * 3, "analyzeGymStructure")
+        createCommandButton(gymCommandsTab, "Process Equipment", "Set up all equipment", yStart + spacing * 4, "processEquipment")
+    end
+    
+    -- Set up Validation tab
+    do
+        -- Title
+        createStyledLabel(validationTab, "Model Validation Commands", UDim2.new(0, 20, 0, 20), UDim2.new(0, 300, 0, 30))
+        createStyledLabel(validationTab, "Validation Tools:", UDim2.new(0, 20, 0, 60), UDim2.new(0, 200, 0, 30))
+        
+        -- Create button function 
+        local function createCommandButton(text, desc, yPos, commandFunc)
+            local button = createStyledButton(validationTab, text, UDim2.new(0, 20, 0, yPos), UDim2.new(0, 180, 0, 35), function()
+                if AdminRemoteEvent then
+                    -- Show a feedback message
+                    local feedback = Instance.new("TextLabel")
+                    feedback.Name = "FeedbackMessage"
+                    feedback.Size = UDim2.new(1, -40, 0, 30)
+                    feedback.Position = UDim2.new(0, 20, 0, 400)
+                    feedback.BackgroundTransparency = 1
+                    feedback.TextColor3 = Color3.fromRGB(100, 255, 100)
+                    feedback.Text = "Executing: " .. text .. "..."
+                    feedback.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json")
+                    feedback.TextSize = 14
+                    feedback.TextXAlignment = Enum.TextXAlignment.Left
+                    
+                    -- Remove any existing feedback
+                    for _, child in pairs(validationTab:GetChildren()) do
+                        if child.Name == "FeedbackMessage" then
+                            child:Destroy()
+                        end
+                    end
+                    
+                    feedback.Parent = validationTab
+                    
+                    -- Execute the command
+                    AdminRemoteEvent:FireServer("executeAdminCommand", {
+                        type = commandFunc or text:lower():gsub(" ", ""),
+                        params = {}
+                    })
+                    
+                    -- Auto-remove feedback after 3 seconds
+                    task.delay(3, function()
+                        if feedback and feedback.Parent then
+                            feedback:Destroy()
+                        end
+                    end)
+                end
+            end)
+            
+            -- Add description
+            local descLabel = Instance.new("TextLabel")
+            descLabel.Name = text .. "Desc"
+            descLabel.Size = UDim2.new(0, 200, 0, 20)
+            descLabel.Position = UDim2.new(0, 210, 0, yPos + 7)
+            descLabel.BackgroundTransparency = 1
+            descLabel.Text = desc
+            descLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            descLabel.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular)
+            descLabel.TextSize = 12
+            descLabel.TextXAlignment = Enum.TextXAlignment.Left
+            descLabel.TextWrapped = true
+            descLabel.Parent = validationTab
+            
+            return button
+        end
+        
+        -- Create command buttons
+        local yStart = 100
+        local spacing = 45
+        
+        createCommandButton("Validate Gym Models", "Check all models for issues", yStart, "validateGymModels")
+        createCommandButton("Generate Model Report", "Create detailed validation report", yStart + spacing, "generateModelReport")
+        createCommandButton("Fix Model Issues", "Attempt to fix common model issues", yStart + spacing * 2, "fixModelIssues")
+        createCommandButton("Apply Collection Tags", "Apply tags to models based on attributes", yStart + spacing * 3, "applyCollectionTags")
+        
+        -- Result display section
+        createStyledLabel(validationTab, "Validation Results:", UDim2.new(0, 20, 0, 300), UDim2.new(0, 200, 0, 30))
+        
+        -- Create a results text area
+        local resultsTextArea = Instance.new("TextBox")
+        resultsTextArea.Name = "ResultsTextArea"
+        resultsTextArea.MultiLine = true
+        resultsTextArea.ClearTextOnFocus = false
+        resultsTextArea.PlaceholderText = "Validation results will appear here"
+        resultsTextArea.Position = UDim2.new(0, 20, 0, 340)
+        resultsTextArea.Size = UDim2.new(1, -40, 0, 200)
+        resultsTextArea.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        resultsTextArea.TextColor3 = Color3.fromRGB(255, 255, 255)
+        resultsTextArea.FontFace = Font.new("rbxasset://fonts/families/RobotoMono.json")
+        resultsTextArea.TextSize = 12
+        resultsTextArea.TextXAlignment = Enum.TextXAlignment.Left
+        resultsTextArea.TextYAlignment = Enum.TextYAlignment.Top
+        resultsTextArea.TextEditable = false
+        resultsTextArea.BorderSizePixel = 0
+        resultsTextArea.Parent = validationTab
+        
+        local resultsCorner = Instance.new("UICorner")
+        resultsCorner.CornerRadius = UDim.new(0, 6)
+        resultsCorner.Parent = resultsTextArea
+        
+        -- Create a clear button
+        local clearButton = createStyledButton(validationTab, "Clear Results", UDim2.new(1, -140, 0, 300), UDim2.new(0, 120, 0, 30), function()
+            resultsTextArea.Text = ""
+        end)
+    end
+end    -- Initialize UI
     local function initialize()
         -- Check if player is admin when toggling UI visibility
         local function toggleVisibility()
-            if isAdmin() then
-                mainFrame.Visible = not mainFrame.Visible
-            else
-                log("Access denied - admin permissions required")
-            end
+            -- Everyone can see the data management UI
+            mainFrame.Visible = not mainFrame.Visible
         end
         
         -- Create toggle button
@@ -854,49 +1138,38 @@ local function createMainUI()
         toggleButton.TextSize = 20
         toggleButton.BorderSizePixel = 0
         toggleButton.Parent = screenGui
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 10)
+    toggleCorner.Parent = toggleButton
+    
+    toggleButton.MouseButton1Click:Connect(toggleVisibility)
+    
+    -- Set up the remote events/functions
+    local success = pcall(function()
+        AdminRemoteEvent = ReplicatedStorage:WaitForChild("DataAdmin"):WaitForChild("AdminEvent")
+        AdminRemoteFunction = ReplicatedStorage:WaitForChild("DataAdmin"):WaitForChild("AdminFunction")
+    end)
+    
+    if not success then
+        log("Remote events not found - creating temporary ones")
         
-        local toggleCorner = Instance.new("UICorner")
-        toggleCorner.CornerRadius = UDim.new(0, 10)
-        toggleCorner.Parent = toggleButton
+        -- Create temporary remote objects
+        local dataAdminFolder = ReplicatedStorage:FindFirstChild("DataAdmin") or Instance.new("Folder")
+        dataAdminFolder.Name = "DataAdmin"
+        dataAdminFolder.Parent = ReplicatedStorage
         
-        toggleButton.MouseButton1Click:Connect(toggleVisibility)
+        AdminRemoteEvent = dataAdminFolder:FindFirstChild("AdminEvent") or Instance.new("RemoteEvent")
+        AdminRemoteEvent.Name = "AdminEvent"
+        AdminRemoteEvent.Parent = dataAdminFolder
         
-        -- Set up the remote events/functions
-        local success = pcall(function()
-            AdminRemoteEvent = ReplicatedStorage:WaitForChild("DataAdmin"):WaitForChild("AdminEvent")
-            AdminRemoteFunction = ReplicatedStorage:WaitForChild("DataAdmin"):WaitForChild("AdminFunction")
-        end)
-        
-        if not success then
-            log("Remote events not found - creating temporary ones")
-            
-            -- Create temporary remote objects
-            local dataAdminFolder = ReplicatedStorage:FindFirstChild("DataAdmin") or Instance.new("Folder")
-            dataAdminFolder.Name = "DataAdmin"
-            dataAdminFolder.Parent = ReplicatedStorage
-            
-            AdminRemoteEvent = dataAdminFolder:FindFirstChild("AdminEvent") or Instance.new("RemoteEvent")
-            AdminRemoteEvent.Name = "AdminEvent"
-            AdminRemoteEvent.Parent = dataAdminFolder
-            
-            AdminRemoteFunction = dataAdminFolder:FindFirstChild("AdminFunction") or Instance.new("RemoteFunction")
-            AdminRemoteFunction.Name = "AdminFunction" 
-            AdminRemoteFunction.Parent = dataAdminFolder
-        end
+        AdminRemoteFunction = dataAdminFolder:FindFirstChild("AdminFunction") or Instance.new("RemoteFunction")
+        AdminRemoteFunction.Name = "AdminFunction" 
+        AdminRemoteFunction.Parent = dataAdminFolder
     end
-    
-    initialize()
-    
-    return {
-        MainFrame = mainFrame,
-        ToggleVisibility = function()
-            mainFrame.Visible = not mainFrame.Visible
-        end
-    }
 end
 
--- Initialize the module
-UIComponents.MainUI = createMainUI()
+initialize()
 
 -- Return the module
 return UIComponents
