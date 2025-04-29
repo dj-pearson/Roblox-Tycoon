@@ -34,17 +34,18 @@ local BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
 
 -- Progression order constants
 local STRUCTURE_BUILD_ORDER = {
-    "Walls", -- Walls first
-    "Floor", -- Then floors
-    "Ceiling", -- Then ceilings
+    "FrontDesk", -- Front Desk first (ID attribute 1)
+    "Walls", -- Walls next
     "Room", -- Then room-specific items
     "Equipment", -- Then equipment
     "Amenity", -- Then amenities
+    "Ceiling", -- Then ceilings
     "Stairs" -- Stairs last (to next floor)
 }
 
 local ROOM_PRIORITY = {
-    "Entrance", -- Entrance first
+    "FrontDesk", -- Front desk first
+    "Entrance", -- Entrance next
     "Main", -- Main areas
     "Cardio", -- Cardio zones
     "Strength", -- Strength training

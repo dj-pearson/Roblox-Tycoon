@@ -420,12 +420,97 @@ function AdminControlsUI.initialize()
 
 	AdminControlsUI.AdminDashboard = AdminDashboard
 end
-function AdminControlsUI.showAdminDashboard()
-	AdminControlsUI.AdminDashboard.Visible = true
+
+function AdminControlsUI.SetupAdminDashboard()
+    local adminDashboard = AdminControlsUI.AdminDashboard
+    if not adminDashboard then
+        warn("Admin dashboard not initialized")
+        return
+    end
+    
+    -- Create tabs container
+    local tabsContainer = Instance.new("Frame")
+    tabsContainer.Name = "TabsContainer"
+    tabsContainer.Size = UDim2.new(1, 0, 0.05, 0)
+    tabsContainer.Position = UDim2.new(0, 0, 0.1, 0)
+    tabsContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    tabsContainer.BorderSizePixel = 0
+    tabsContainer.Parent = adminDashboard
+    
+    -- Create content container
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "ContentContainer"
+    contentContainer.Size = UDim2.new(1, 0, 0.85, 0)
+    contentContainer.Position = UDim2.new(0, 0, 0.15, 0)
+    contentContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    contentContainer.BorderSizePixel = 0
+    contentContainer.Parent = adminDashboard
+    
+    -- Create tab buttons and content frames
+    local tabs = {"Players", "GameSettings", "ServerStats", "Commands", "AdminTools"}
+    local tabWidth = 1 / #tabs
+    
+    for i, tabName in ipairs(tabs) do
+        -- Create tab button
+        local tabButton = Instance.new("TextButton")
+        tabButton.Name = tabName .. "Tab"
+        tabButton.Text = tabName
+        tabButton.Size = UDim2.new(tabWidth, 0, 1, 0)
+        tabButton.Position = UDim2.new(tabWidth * (i-1), 0, 0, 0)
+        tabButton.Font = Enum.Font.GothamMedium
+        tabButton.TextSize = 14
+        tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tabButton.BackgroundColor3 = (i == 1) and UIStyle.Colors.TabActive or UIStyle.Colors.TabInactive
+        tabButton.BorderSizePixel = 0
+        tabButton.ZIndex = 16
+        tabButton.Parent = tabsContainer
+        
+        -- Add corner radius
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 4)
+        buttonCorner.Parent = tabButton
+        
+        -- Create content frame
+        local contentFrame = Instance.new("Frame")
+        contentFrame.Name = tabName .. "Content"
+        contentFrame.Size = UDim2.new(1, 0, 1, 0)
+        contentFrame.BackgroundTransparency = 1
+        contentFrame.Visible = (i == 1) -- First tab visible by default
+        contentFrame.Parent = contentContainer
+        
+        -- Store references
+        uiState.menuElements[tabName .. "Tab"] = tabButton
+        uiState.menuElements[tabName .. "Content"] = contentFrame
+        
+        -- Connect tab button
+        tabButton.MouseButton1Click:Connect(function()
+            AdminControlsUI:SwitchTab(tabName)
+        end)
+    end
+    
+    -- Create content for each tab
+    AdminControlsUI:CreatePlayersTab(uiState.menuElements.PlayersContent)
+    AdminControlsUI:CreateGameSettingsTab(uiState.menuElements.GameSettingsContent)
+    AdminControlsUI:CreateServerStatsTab(uiState.menuElements.ServerStatsContent)
+    AdminControlsUI:CreateCommandsTab(uiState.menuElements.CommandsContent)
+    AdminControlsUI:CreateAdminToolsTab(uiState.menuElements.AdminToolsContent)
+    
+    -- Select the first tab by default
+    AdminControlsUI:SwitchTab("Players")
+    
+    -- Store the main panels
+    uiState.menuElements.adminPanel = adminDashboard
+    uiState.menuElements.tabsContainer = tabsContainer
+    uiState.menuElements.contentContainer = contentContainer
 end
 
-function AdminControlsUI.hideAdminDashboard()
-	AdminControlsUI.AdminDashboard.Visible = false
+function AdminControlsUI.showAdminDashboard()
+	AdminControlsUI.AdminDashboard.Visible = true
+    
+    -- Setup tab system if not already set up
+    if not uiState.menuElements.adminPanel then
+        AdminControlsUI.SetupAdminDashboard()
+    end
 end
 
 
@@ -435,7 +520,7 @@ function AdminControlsUI:SwitchTab(tabId)
     uiState.currentTab = tabId
     
     -- Update tab button appearances
-    local tabs = {"Players", "GameSettings", "ServerStats", "Commands"}
+    local tabs = {"Players", "GameSettings", "ServerStats", "Commands", "AdminTools"}
     for _, tab in ipairs(tabs) do
         local tabButton = uiState.menuElements[tab .. "Tab"]
         local contentFrame = uiState.menuElements[tab .. "Content"]
@@ -826,8 +911,7 @@ function AdminControlsUI:CreateGameSettingsTab(parent)
         
         yOffset = yOffset + 60
     end
-    
-    -- Add save button at the bottom
+      -- Add save button at the bottom
     local saveButton = ButtonFactory.createIconButton("Check", "Save Settings", UDim2.new(0.3, 0, 0, 40), UDim2.new(0.5, -0.15 * parent.Size.X.Offset, 0, yOffset), function()
         -- Show confirmation before saving
         DialogFactory.createConfirmationDialog(
@@ -841,6 +925,31 @@ function AdminControlsUI:CreateGameSettingsTab(parent)
         )
     end, "success")
     saveButton.Parent = settingsContainer
+    
+    -- Add BuyTile setup button below save button
+    yOffset = yOffset + 60
+    local setupBuyTileButton = ButtonFactory.createIconButton("Refresh", "Setup BuyTile System", UDim2.new(0.6, 0, 0, 40), UDim2.new(0.2, 0, 0, yOffset), function()
+        -- Show confirmation before setting up BuyTile System
+        DialogFactory.createConfirmationDialog(
+            "Setup BuyTile System",
+            "Are you sure you want to run the BuyTile System setup? This will scan the GymParts folder and regenerate all tile data.",
+            function()
+                -- Execute the _G.SetupBuyTileSystem() function
+                local success, result = pcall(function()
+                    return _G.SetupBuyTileSystem()
+                end)
+                
+                if success and result then
+                    DialogFactory.createNotification("BuyTile System setup completed successfully!", 3, "success")
+                else
+                    DialogFactory.createNotification("BuyTile System setup failed: " .. tostring(result), 5, "error")
+                end
+            end,
+            nil,
+            { confirmText = "Setup" }
+        )
+    end, "primary")
+    setupBuyTileButton.Parent = settingsContainer
     
     -- Update canvas size
     settingsContainer.CanvasSize = UDim2.new(0, 0, 0, yOffset + 60)
@@ -1002,9 +1111,9 @@ function AdminControlsUI:CreateCommandsTab(parent)
     -- Add padding
     local padding = Instance.new("UIPadding")
     padding.PaddingLeft = UDim.new(0, 10)
-    padding.PaddingRight = UDim.new(0, 10)
-    padding.PaddingTop = UDim.new(0, 10)
-    padding.PaddingBottom = UDim.new(0, 10)
+    padding.PaddingRight = UDim2.new(0, 10)
+    padding.PaddingTop = UDim2.new(0, 10)
+    padding.PaddingBottom = UDim2.new(0, 10)
     padding.Parent = outputLog
     
     -- Add list layout
@@ -1058,7 +1167,7 @@ function AdminControlsUI:CreateCommandsTab(parent)
 end
 
 -- Add output to the command log
-function AdminControlsUI:AddCommandOutput(outputLog, prefix, message)
+function AdminControlsUI:AddCommandOutput(outputLog, type, message)
     if not outputLog then
         outputLog = uiState.menuElements.outputLog
         if not outputLog then return end
@@ -1070,8 +1179,8 @@ function AdminControlsUI:AddCommandOutput(outputLog, prefix, message)
     logEntry.Size = UDim2.new(1, 0, 0, 20)
     logEntry.BackgroundTransparency = 1
     logEntry.Font = UIStyle.Fonts.Mono
-    logEntry.Text = "[" .. prefix .. "] " .. message
-    logEntry.TextColor3 = prefix == "Error" and UIStyle.Colors.Danger or UIStyle.Colors.Text
+    logEntry.Text = "[" .. type .. "] " .. message
+    logEntry.TextColor3 = type == "Error" and UIStyle.Colors.Danger or UIStyle.Colors.Text
     logEntry.TextSize = UIStyle.TextSizes.Medium
     logEntry.TextXAlignment = Enum.TextXAlignment.Left
     logEntry.TextWrapped = true
@@ -1090,7 +1199,7 @@ function AdminControlsUI:AddCommandOutput(outputLog, prefix, message)
     return logEntry
 end
 
--- Execute a command
+-- Execute command
 function AdminControlsUI:ExecuteCommand(commandText)
     if not commandText or commandText == "" then return end
     
@@ -1210,5 +1319,1361 @@ function AdminControlsUI:ToggleAdminPanel()
     end
 end
 
+-- Create the AdminTools tab with commonly used admin commands
+function AdminControlsUI:CreateAdminToolsTab(parent)
+    -- Create a scrolling container for all the tools
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "AdminToolsScrollFrame"
+    scrollFrame.Size = UDim2.new(1, -20, 1, -20)
+    scrollFrame.Position = UDim2.new(0, 10, 0, 10)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 700) -- Will be adjusted based on content
+    scrollFrame.Parent = parent
 
-return AdminControlsUI
+    -- Store the output log for commands to use
+    local outputLog = uiState.menuElements.outputLog
+    
+    -- Add category title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -20, 0, 30)
+    titleLabel.Position = UDim2.new(0, 10, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = UIStyle.Fonts.Bold
+    titleLabel.Text = "Admin Tools"
+    titleLabel.TextColor3 = UIStyle.Colors.Text
+    titleLabel.TextSize = UIStyle.TextSizes.Large
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = scrollFrame
+    
+    -- Create UI layout
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 15)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = scrollFrame
+    
+    -- Add padding
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.PaddingRight = UDim2.new(0, 10)
+    padding.PaddingTop = UDim2.new(0, 10)
+    padding.PaddingBottom = UDim2.new(0, 10)
+    padding.Parent = scrollFrame
+
+    -- Function to create a command category
+    local function createCategory(name, description, layoutOrder)
+        local categoryFrame = Instance.new("Frame")
+        categoryFrame.Name = name .. "Category"
+        categoryFrame.Size = UDim2.new(1, 0, 0, 40)
+        categoryFrame.BackgroundColor3 = UIStyle.Colors.BackgroundLight
+        categoryFrame.BorderSizePixel = 0
+        categoryFrame.LayoutOrder = layoutOrder
+        
+        -- Add corner radius
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = categoryFrame
+        
+        -- Add category name
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, -20, 1, 0)
+        nameLabel.Position = UDim2.new(0, 10, 0, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Font = UIStyle.Fonts.Bold
+        nameLabel.Text = name
+        nameLabel.TextColor3 = UIStyle.Colors.Text
+        nameLabel.TextSize = UIStyle.TextSizes.Medium
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = categoryFrame
+        
+        -- Add description
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Size = UDim2.new(1, -20, 0, 30)
+        descLabel.Position = UDim2.new(0, 10, 1, 5)
+        descLabel.BackgroundTransparency = 1
+        descLabel.Font = UIStyle.Fonts.Italic
+        descLabel.Text = description
+        descLabel.TextColor3 = UIStyle.Colors.TextSecondary
+        descLabel.TextSize = UIStyle.TextSizes.Small
+        descLabel.TextWrapped = true
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.Parent = categoryFrame
+        
+        -- Create container for buttons
+        local buttonContainer = Instance.new("Frame")
+        buttonContainer.Name = "ButtonContainer"
+        buttonContainer.Size = UDim2.new(1, 0, 0, 0) -- Height will be adjusted based on content
+        buttonContainer.Position = UDim2.new(0, 0, 0, 80)
+        buttonContainer.BackgroundTransparency = 1
+        buttonContainer.AutomaticSize = Enum.AutomaticSize.Y
+        buttonContainer.Parent = categoryFrame
+        
+        -- Create grid layout for buttons
+        local gridLayout = Instance.new("UIGridLayout")
+        gridLayout.CellSize = UDim2.new(0.48, 0, 0, 45)
+        gridLayout.CellPadding = UDim2.new(0.04, 0, 0, 10)
+        gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        gridLayout.Parent = buttonContainer
+        
+        -- Adjust category frame size based on content
+        categoryFrame.Size = UDim2.new(1, 0, 0, 85) -- Base size plus padding
+        
+        return categoryFrame, buttonContainer
+    end
+
+    -- Function to create a command button in a category
+    local function createCommandButton(container, name, description, commandFunc, layoutOrder, buttonType)
+        buttonType = buttonType or "primary"
+        
+        local button = ButtonFactory.createButton(
+            name,
+            UDim2.new(1, 0, 0, 45),
+            UDim2.new(0, 0, 0, 0),
+            function()
+                -- Show confirmation dialog
+                DialogFactory.createConfirmationDialog(
+                    "Run Command: " .. name,
+                    description .. "\n\nAre you sure you want to execute this command?",
+                    function()
+                        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                        local remotes = ReplicatedStorage:FindFirstChild("AdminRemotes")
+                        
+                        if remotes then
+                            local executeCommand = remotes:FindFirstChild("ExecuteAdminCommand")
+                            if executeCommand then
+                                -- Log the command execution in the output
+                                if outputLog then
+                                    self:AddCommandOutput(outputLog, "System", "Running command: " .. name)
+                                end
+                                
+                                -- Show processing notification
+                                DialogFactory.createNotification("Executing command: " .. name, 2, "info")
+                                
+                                -- Execute the command
+                                local success, result = pcall(function()
+                                    return executeCommand:InvokeServer({
+                                        type = commandFunc,
+                                        params = {}
+                                    })
+                                end)
+                                
+                                -- Handle response
+                                if success and result then
+                                    if result.success then
+                                        DialogFactory.createNotification("Command executed successfully: " .. (result.message or ""), 3, "success")
+                                        
+                                        -- Add to output log
+                                        if outputLog then
+                                            self:AddCommandOutput(outputLog, "Success", "Command executed: " .. name .. "\n" .. (result.message or ""))
+                                        end
+                                    else
+                                        DialogFactory.createNotification("Command failed: " .. (result.message or "Unknown error"), 3, "error")
+                                        
+                                        -- Add to output log
+                                        if outputLog then
+                                            self:AddCommandOutput(outputLog, "Error", "Command failed: " .. name .. "\n" .. (result.message or ""))
+                                        end
+                                    end
+                                else
+                                    DialogFactory.createNotification("Failed to execute command. Check server logs.", 3, "error")
+                                    
+                                    -- Add to output log
+                                    if outputLog then
+                                        self:AddCommandOutput(outputLog, "Error", "Failed to execute command: " .. name)
+                                    end
+                                end
+                            end
+                        end
+                    end,
+                    nil,
+                    { confirmText = "Execute" }
+                )
+            end
+        )
+        button.LayoutOrder = layoutOrder
+        button.Parent = container
+        
+        -- Apply style based on button type
+        if buttonType == "danger" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonDanger
+        elseif buttonType == "warning" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonWarning
+        elseif buttonType == "success" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonSuccess
+        else
+            button.BackgroundColor3 = UIStyle.Colors.ButtonPrimary
+        end
+        
+        return button
+    end
+
+    -- Create categories and add buttons
+    
+    -- Tycoon Information Category
+    local infoCategory, infoButtons = createCategory("Tycoon Information", "View and analyze gym structure information", 100)
+    infoCategory.Parent = scrollFrame
+    
+    createCommandButton(infoButtons, "Show Tycoon Info", "Display detailed information about tycoon structure", "showTycoonInfo", 10)
+    createCommandButton(infoButtons, "Analyze Gym Structure", "Analyze gym structure without making changes", "analyzeGymStructure", 20)
+    createCommandButton(infoButtons, "Generate Model Report", "Create detailed validation report for models", "generateModelReport", 30)
+    createCommandButton(infoButtons, "Show Hitboxes", "Make hitboxes visible in the workspace", "showHitboxes", 40, "warning")
+    createCommandButton(infoButtons, "Hide Hitboxes", "Hide hitboxes in the workspace", "hideHitboxes", 50)
+    
+    -- Adjust the category size based on content
+    infoCategory.Size = UDim2.new(1, 0, 0, infoButtons.Position.Y.Offset + infoButtons.AbsoluteSize.Y + 20)
+    
+    -- Tycoon Automation Category
+    local autoCategory, autoButtons = createCategory("Tycoon Automation", "Automate tycoon setup and configuration", 200)
+    autoCategory.Parent = scrollFrame
+    autoCategory.Position = UDim2.new(0, 0, 0, infoCategory.AbsoluteSize.Y + infoCategory.AbsolutePosition.Y + 20)
+    
+    createCommandButton(autoButtons, "Automate Gym", "Fully automate gym setup and configuration", "automateGym", 10, "success")
+    createCommandButton(autoButtons, "Auto-Setup Buy Tiles", "Automatically set up all buy tiles", "autoSetupBuyTiles", 20, "success")
+    createCommandButton(autoButtons, "Generate Build Order", "Create logical build order for tiles", "generateBuildOrder", 30)
+    createCommandButton(autoButtons, "Process Equipment", "Process all equipment and set up attributes", "processEquipment", 40)
+    createCommandButton(autoButtons, "Generate Hitboxes", "Create hitboxes for BuyTile interaction", "generateHitboxes", 50)
+    
+    -- Adjust the category size based on content
+    autoCategory.Size = UDim2.new(1, 0, 0, autoButtons.Position.Y.Offset + autoButtons.AbsoluteSize.Y + 20)
+    
+    -- Model Validation Category
+    local validationCategory, validationButtons = createCategory("Model Validation", "Validate and fix model issues", 300)
+    validationCategory.Parent = scrollFrame
+    validationCategory.Position = UDim2.new(0, 0, 0, autoCategory.AbsoluteSize.Y + autoCategory.AbsolutePosition.Y + 20)
+    
+    createCommandButton(validationButtons, "Validate Gym Models", "Check all models for common issues", "validateGymModels", 10)
+    createCommandButton(validationButtons, "Fix Model Issues", "Attempt to fix common model issues", "fixModelIssues", 20, "warning")
+    createCommandButton(validationButtons, "Apply Collection Tags", "Apply tags to models based on attributes", "applyCollectionTags", 30)
+    createCommandButton(validationButtons, "Generate Equipment Config", "Create equipment configuration from models", "generateEquipmentConfig", 40)
+    createCommandButton(validationButtons, "Generate UI Config", "Create UI configuration from UI elements", "generateUIConfig", 50)
+    
+    -- Adjust the category size based on content
+    validationCategory.Size = UDim2.new(1, 0, 0, validationButtons.Position.Y.Offset + validationButtons.AbsoluteSize.Y + 20)
+    
+    -- Set final canvas size based on all content
+    local totalHeight = validationCategory.AbsoluteSize.Y + validationCategory.AbsolutePosition.Y - scrollFrame.AbsolutePosition.Y + 30
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+    
+    return parent
+end
+
+-- Execute command
+function AdminControlsUI:ExecuteCommand(commandText)
+    if not commandText or commandText == "" then return end
+    
+    local outputLog = uiState.menuElements.outputLog
+    if not outputLog then return end
+    
+    -- Add the command to the log
+    self:AddCommandOutput(outputLog, "Command", commandText)
+    
+    -- Parse the command
+    local args = commandText:split(" ")
+    local command = args[1]:lower()
+    table.remove(args, 1)
+    
+    -- Process commands
+    if command == "help" then
+        self:AddCommandOutput(outputLog, "Help", "Available commands: help, kick [player], ban [player], shutdown, heal [player], clear")
+    elseif command == "kick" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: kick [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been kicked")
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "ban" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: ban [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been banned")
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "shutdown" then
+        -- Add confirmation dialog for shutdown
+        DialogFactory.createConfirmationDialog(
+            "Confirm Shutdown",
+            "Are you sure you want to shut down the server? All players will be disconnected.",
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown initiated")
+                -- In a real implementation, this would call server-side admin functions
+            end,
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown cancelled")
+            end,
+            {
+                confirmText = "Shut Down",
+                cancelText = "Cancel"
+            }
+        )
+    elseif command == "heal" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: heal [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Healing player: " .. args[1])
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "clear" then
+        -- Clear the output log
+        for _, child in ipairs(outputLog:GetChildren()) do
+            if child:IsA("TextLabel") then
+                child:Destroy()
+            end
+        end
+        outputLog.CanvasSize = UDim2.new(0, 0, 0, 0)
+        self:AddCommandOutput(outputLog, "System", "Console cleared")
+    else
+        self:AddCommandOutput(outputLog, "Error", "Unknown command: " .. command)
+    end
+end
+
+-- Toggle the admin panel visibility
+function AdminControlsUI:ToggleAdminPanel()
+    local adminPanel = uiState.menuElements.adminPanel
+    if not adminPanel then
+        warn("Admin panel not initialized")
+        return
+    end
+    
+    uiState.adminPanelVisible = not uiState.adminPanelVisible
+    
+    if uiState.adminPanelVisible then
+        -- Show the panel with animation
+        adminPanel.Visible = true
+        adminPanel.BackgroundTransparency = 1
+        adminPanel.Position = UDim2.new(0.5, -300, 0.6, -225)
+        
+        -- Animate in
+        TweenService:Create(
+            adminPanel,
+            UIStyle.Animations.Standard,
+            {
+                Position = UDim2.new(0.5, -300, 0.5, -225),
+                BackgroundTransparency = 0
+            }
+        ):Play()
+        
+        -- Update players list if on players tab
+        if uiState.currentTab == "Players" then
+            self:UpdatePlayersList()
+        elseif uiState.currentTab == "ServerStats" then
+            self:UpdateServerStats()
+        end
+    else
+        -- Hide with animation
+        TweenService:Create(
+            adminPanel,
+            UIStyle.Animations.Standard,
+            {
+                Position = UDim2.new(0.5, -300, 0.6, -225),
+                BackgroundTransparency = 1
+            }
+        ):Play()
+        
+        -- Hide after animation
+        task.delay(UIStyle.Animations.Standard.Time, function()
+            adminPanel.Visible = false
+        end)
+    end
+end
+
+-- Create the AdminTools tab with commonly used admin commands
+function AdminControlsUI:CreateAdminToolsTab(parent)
+    -- Create a scrolling container for all the tools
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "AdminToolsScrollFrame"
+    scrollFrame.Size = UDim2.new(1, -20, 1, -20)
+    scrollFrame.Position = UDim2.new(0, 10, 0, 10)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 700) -- Will be adjusted based on content
+    scrollFrame.Parent = parent
+
+    -- Store the output log for commands to use
+    local outputLog = uiState.menuElements.outputLog
+    
+    -- Add category title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -20, 0, 30)
+    titleLabel.Position = UDim2.new(0, 10, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = UIStyle.Fonts.Bold
+    titleLabel.Text = "Admin Tools"
+    titleLabel.TextColor3 = UIStyle.Colors.Text
+    titleLabel.TextSize = UIStyle.TextSizes.Large
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = scrollFrame
+    
+    -- Create UI layout
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 15)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = scrollFrame
+    
+    -- Add padding
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.PaddingRight = UDim2.new(0, 10)
+    padding.PaddingTop = UDim2.new(0, 10)
+    padding.PaddingBottom = UDim2.new(0, 10)
+    padding.Parent = scrollFrame
+
+    -- Function to create a command category
+    local function createCategory(name, description, layoutOrder)
+        local categoryFrame = Instance.new("Frame")
+        categoryFrame.Name = name .. "Category"
+        categoryFrame.Size = UDim2.new(1, 0, 0, 40)
+        categoryFrame.BackgroundColor3 = UIStyle.Colors.BackgroundLight
+        categoryFrame.BorderSizePixel = 0
+        categoryFrame.LayoutOrder = layoutOrder
+        
+        -- Add corner radius
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = categoryFrame
+        
+        -- Add category name
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, -20, 1, 0)
+        nameLabel.Position = UDim2.new(0, 10, 0, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Font = UIStyle.Fonts.Bold
+        nameLabel.Text = name
+        nameLabel.TextColor3 = UIStyle.Colors.Text
+        nameLabel.TextSize = UIStyle.TextSizes.Medium
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = categoryFrame
+        
+        -- Add description
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Size = UDim2.new(1, -20, 0, 30)
+        descLabel.Position = UDim2.new(0, 10, 1, 5)
+        descLabel.BackgroundTransparency = 1
+        descLabel.Font = UIStyle.Fonts.Italic
+        descLabel.Text = description
+        descLabel.TextColor3 = UIStyle.Colors.TextSecondary
+        descLabel.TextSize = UIStyle.TextSizes.Small
+        descLabel.TextWrapped = true
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.Parent = categoryFrame
+        
+        -- Create container for buttons
+        local buttonContainer = Instance.new("Frame")
+        buttonContainer.Name = "ButtonContainer"
+        buttonContainer.Size = UDim2.new(1, 0, 0, 0) -- Height will be adjusted based on content
+        buttonContainer.Position = UDim2.new(0, 0, 0, 80)
+        buttonContainer.BackgroundTransparency = 1
+        buttonContainer.AutomaticSize = Enum.AutomaticSize.Y
+        buttonContainer.Parent = categoryFrame
+        
+        -- Create grid layout for buttons
+        local gridLayout = Instance.new("UIGridLayout")
+        gridLayout.CellSize = UDim2.new(0.48, 0, 0, 45)
+        gridLayout.CellPadding = UDim2.new(0.04, 0, 0, 10)
+        gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        gridLayout.Parent = buttonContainer
+        
+        -- Adjust category frame size based on content
+        categoryFrame.Size = UDim2.new(1, 0, 0, 85) -- Base size plus padding
+        
+        return categoryFrame, buttonContainer
+    end
+
+    -- Function to create a command button in a category
+    local function createCommandButton(container, name, description, commandFunc, layoutOrder, buttonType)
+        buttonType = buttonType or "primary"
+        
+        local button = ButtonFactory.createButton(
+            name,
+            UDim2.new(1, 0, 0, 45),
+            UDim2.new(0, 0, 0, 0),
+            function()
+                -- Show confirmation dialog
+                DialogFactory.createConfirmationDialog(
+                    "Run Command: " .. name,
+                    description .. "\n\nAre you sure you want to execute this command?",
+                    function()
+                        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                        local remotes = ReplicatedStorage:FindFirstChild("AdminRemotes")
+                        
+                        if remotes then
+                            local executeCommand = remotes:FindFirstChild("ExecuteAdminCommand")
+                            if executeCommand then
+                                -- Log the command execution in the output
+                                if outputLog then
+                                    self:AddCommandOutput(outputLog, "System", "Running command: " .. name)
+                                end
+                                
+                                -- Show processing notification
+                                DialogFactory.createNotification("Executing command: " .. name, 2, "info")
+                                
+                                -- Execute the command
+                                local success, result = pcall(function()
+                                    return executeCommand:InvokeServer({
+                                        type = commandFunc,
+                                        params = {}
+                                    })
+                                end)
+                                
+                                -- Handle response
+                                if success and result then
+                                    if result.success then
+                                        DialogFactory.createNotification("Command executed successfully: " .. (result.message or ""), 3, "success")
+                                        
+                                        -- Add to output log
+                                        if outputLog then
+                                            self:AddCommandOutput(outputLog, "Success", "Command executed: " .. name .. "\n" .. (result.message or ""))
+                                        end
+                                    else
+                                        DialogFactory.createNotification("Command failed: " .. (result.message or "Unknown error"), 3, "error")
+                                        
+                                        -- Add to output log
+                                        if outputLog then
+                                            self:AddCommandOutput(outputLog, "Error", "Command failed: " .. name .. "\n" .. (result.message or ""))
+                                        end
+                                    end
+                                else
+                                    DialogFactory.createNotification("Failed to execute command. Check server logs.", 3, "error")
+                                    
+                                    -- Add to output log
+                                    if outputLog then
+                                        self:AddCommandOutput(outputLog, "Error", "Failed to execute command: " .. name)
+                                    end
+                                end
+                            end
+                        end
+                    end,
+                    nil,
+                    { confirmText = "Execute" }
+                )
+            end
+        )
+        button.LayoutOrder = layoutOrder
+        button.Parent = container
+        
+        -- Apply style based on button type
+        if buttonType == "danger" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonDanger
+        elseif buttonType == "warning" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonWarning
+        elseif buttonType == "success" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonSuccess
+        else
+            button.BackgroundColor3 = UIStyle.Colors.ButtonPrimary
+        end
+        
+        return button
+    end
+
+    -- Create categories and add buttons
+    
+    -- Tycoon Information Category
+    local infoCategory, infoButtons = createCategory("Tycoon Information", "View and analyze gym structure information", 100)
+    infoCategory.Parent = scrollFrame
+    
+    createCommandButton(infoButtons, "Show Tycoon Info", "Display detailed information about tycoon structure", "showTycoonInfo", 10)
+    createCommandButton(infoButtons, "Analyze Gym Structure", "Analyze gym structure without making changes", "analyzeGymStructure", 20)
+    createCommandButton(infoButtons, "Generate Model Report", "Create detailed validation report for models", "generateModelReport", 30)
+    createCommandButton(infoButtons, "Show Hitboxes", "Make hitboxes visible in the workspace", "showHitboxes", 40, "warning")
+    createCommandButton(infoButtons, "Hide Hitboxes", "Hide hitboxes in the workspace", "hideHitboxes", 50)
+    
+    -- Adjust the category size based on content
+    infoCategory.Size = UDim2.new(1, 0, 0, infoButtons.Position.Y.Offset + infoButtons.AbsoluteSize.Y + 20)
+    
+    -- Tycoon Automation Category
+    local autoCategory, autoButtons = createCategory("Tycoon Automation", "Automate tycoon setup and configuration", 200)
+    autoCategory.Parent = scrollFrame
+    autoCategory.Position = UDim2.new(0, 0, 0, infoCategory.AbsoluteSize.Y + infoCategory.AbsolutePosition.Y + 20)
+    
+    createCommandButton(autoButtons, "Automate Gym", "Fully automate gym setup and configuration", "automateGym", 10, "success")
+    createCommandButton(autoButtons, "Auto-Setup Buy Tiles", "Automatically set up all buy tiles", "autoSetupBuyTiles", 20, "success")
+    createCommandButton(autoButtons, "Generate Build Order", "Create logical build order for tiles", "generateBuildOrder", 30)
+    createCommandButton(autoButtons, "Process Equipment", "Process all equipment and set up attributes", "processEquipment", 40)
+    createCommandButton(autoButtons, "Generate Hitboxes", "Create hitboxes for BuyTile interaction", "generateHitboxes", 50)
+    
+    -- Adjust the category size based on content
+    autoCategory.Size = UDim2.new(1, 0, 0, autoButtons.Position.Y.Offset + autoButtons.AbsoluteSize.Y + 20)
+    
+    -- Model Validation Category
+    local validationCategory, validationButtons = createCategory("Model Validation", "Validate and fix model issues", 300)
+    validationCategory.Parent = scrollFrame
+    validationCategory.Position = UDim2.new(0, 0, 0, autoCategory.AbsoluteSize.Y + autoCategory.AbsolutePosition.Y + 20)
+    
+    createCommandButton(validationButtons, "Validate Gym Models", "Check all models for common issues", "validateGymModels", 10)
+    createCommandButton(validationButtons, "Fix Model Issues", "Attempt to fix common model issues", "fixModelIssues", 20, "warning")
+    createCommandButton(validationButtons, "Apply Collection Tags", "Apply tags to models based on attributes", "applyCollectionTags", 30)
+    createCommandButton(validationButtons, "Generate Equipment Config", "Create equipment configuration from models", "generateEquipmentConfig", 40)
+    createCommandButton(validationButtons, "Generate UI Config", "Create UI configuration from UI elements", "generateUIConfig", 50)
+    
+    -- Adjust the category size based on content
+    validationCategory.Size = UDim2.new(1, 0, 0, validationButtons.Position.Y.Offset + validationButtons.AbsoluteSize.Y + 20)
+    
+    -- Set final canvas size based on all content
+    local totalHeight = validationCategory.AbsoluteSize.Y + validationCategory.AbsolutePosition.Y - scrollFrame.AbsolutePosition.Y + 30
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+    
+    return parent
+end
+
+-- Execute command
+function AdminControlsUI:ExecuteCommand(commandText)
+    if not commandText or commandText == "" then return end
+    
+    local outputLog = uiState.menuElements.outputLog
+    if not outputLog then return end
+    
+    -- Add the command to the log
+    self:AddCommandOutput(outputLog, "Command", commandText)
+    
+    -- Parse the command
+    local args = commandText:split(" ")
+    local command = args[1]:lower()
+    table.remove(args, 1)
+    
+    -- Process commands
+    if command == "help" then
+        self:AddCommandOutput(outputLog, "Help", "Available commands: help, kick [player], ban [player], shutdown, heal [player], clear")
+    elseif command == "kick" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: kick [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been kicked")
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "ban" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: ban [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been banned")
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "shutdown" then
+        -- Add confirmation dialog for shutdown
+        DialogFactory.createConfirmationDialog(
+            "Confirm Shutdown",
+            "Are you sure you want to shut down the server? All players will be disconnected.",
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown initiated")
+                -- In a real implementation, this would call server-side admin functions
+            end,
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown cancelled")
+            end,
+            {
+                confirmText = "Shut Down",
+                cancelText = "Cancel"
+            }
+        )
+    elseif command == "heal" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: heal [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Healing player: " .. args[1])
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "clear" then
+        -- Clear the output log
+        for _, child in ipairs(outputLog:GetChildren()) do
+            if child:IsA("TextLabel") then
+                child:Destroy()
+            end
+        end
+        outputLog.CanvasSize = UDim2.new(0, 0, 0, 0)
+        self:AddCommandOutput(outputLog, "System", "Console cleared")
+    else
+        self:AddCommandOutput(outputLog, "Error", "Unknown command: " .. command)
+    end
+end
+
+-- Toggle the admin panel visibility
+function AdminControlsUI:ToggleAdminPanel()
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.PaddingRight = UDim2.new(0, 10)
+    padding.PaddingTop = UDim2.new(0, 10)
+    padding.PaddingBottom = UDim2.new(0, 10)
+    padding.Parent = scrollFrame
+
+    -- Function to create a command category
+    local function createCategory(name, description, layoutOrder)
+        local categoryFrame = Instance.new("Frame")
+        categoryFrame.Name = name .. "Category"
+        categoryFrame.Size = UDim2.new(1, 0, 0, 40)
+        categoryFrame.BackgroundColor3 = UIStyle.Colors.BackgroundLight
+        categoryFrame.BorderSizePixel = 0
+        categoryFrame.LayoutOrder = layoutOrder
+        
+        -- Add corner radius
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = categoryFrame
+        
+        -- Add category name
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, -20, 1, 0)
+        nameLabel.Position = UDim2.new(0, 10, 0, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Font = UIStyle.Fonts.Bold
+        nameLabel.Text = name
+        nameLabel.TextColor3 = UIStyle.Colors.Text
+        nameLabel.TextSize = UIStyle.TextSizes.Medium
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = categoryFrame
+        
+        -- Add description
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Size = UDim2.new(1, -20, 0, 30)
+        descLabel.Position = UDim2.new(0, 10, 1, 5)
+        descLabel.BackgroundTransparency = 1
+        descLabel.Font = UIStyle.Fonts.Italic
+        descLabel.Text = description
+        descLabel.TextColor3 = UIStyle.Colors.TextSecondary
+        descLabel.TextSize = UIStyle.TextSizes.Small
+        descLabel.TextWrapped = true
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.Parent = categoryFrame
+        
+        -- Create container for buttons
+        local buttonContainer = Instance.new("Frame")
+        buttonContainer.Name = "ButtonContainer"
+        buttonContainer.Size = UDim2.new(1, 0, 0, 0) -- Height will be adjusted based on content
+        buttonContainer.Position = UDim2.new(0, 0, 0, 80)
+        buttonContainer.BackgroundTransparency = 1
+        buttonContainer.AutomaticSize = Enum.AutomaticSize.Y
+        buttonContainer.Parent = categoryFrame
+        
+        -- Create grid layout for buttons
+        local gridLayout = Instance.new("UIGridLayout")
+        gridLayout.CellSize = UDim2.new(0.48, 0, 0, 45)
+        gridLayout.CellPadding = UDim2.new(0.04, 0, 0, 10)
+        gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        gridLayout.Parent = buttonContainer
+        
+        -- Adjust category frame size based on content
+        categoryFrame.Size = UDim2.new(1, 0, 0, 85) -- Base size plus padding
+        
+        return categoryFrame, buttonContainer
+    end
+
+    -- Function to create a command button in a category
+    local function createCommandButton(container, name, description, commandFunc, layoutOrder, buttonType)
+        buttonType = buttonType or "primary"
+        
+        local button = ButtonFactory.createButton(
+            name,
+            UDim2.new(1, 0, 0, 45),
+            UDim2.new(0, 0, 0, 0),
+            function()
+                -- Show confirmation dialog
+                DialogFactory.createConfirmationDialog(
+                    "Run Command: " .. name,
+                    description .. "\n\nAre you sure you want to execute this command?",
+                    function()
+                        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                        local remotes = ReplicatedStorage:FindFirstChild("AdminRemotes")
+                        
+                        if remotes then
+                            local executeCommand = remotes:FindFirstChild("ExecuteAdminCommand")
+                            if executeCommand then
+                                -- Log the command execution in the output
+                                if outputLog then
+                                    self:AddCommandOutput(outputLog, "System", "Running command: " .. name)
+                                end
+                                
+                                -- Show processing notification
+                                DialogFactory.createNotification("Executing command: " .. name, 2, "info")
+                                
+                                -- Execute the command
+                                local success, result = pcall(function()
+                                    return executeCommand:InvokeServer({
+                                        type = commandFunc,
+                                        params = {}
+                                    })
+                                end)
+                                
+                                -- Handle response
+                                if success and result then
+                                    if result.success then
+                                        DialogFactory.createNotification("Command executed successfully: " .. (result.message or ""), 3, "success")
+                                        
+                                        -- Add to output log
+                                        if outputLog then
+                                            self:AddCommandOutput(outputLog, "Success", "Command executed: " .. name .. "\n" .. (result.message or ""))
+                                        end
+                                    else
+                                        DialogFactory.createNotification("Command failed: " .. (result.message or "Unknown error"), 3, "error")
+                                        
+                                        -- Add to output log
+                                        if outputLog then
+                                            self:AddCommandOutput(outputLog, "Error", "Command failed: " .. name .. "\n" .. (result.message or ""))
+                                        end
+                                    end
+                                else
+                                    DialogFactory.createNotification("Failed to execute command. Check server logs.", 3, "error")
+                                    
+                                    -- Add to output log
+                                    if outputLog then
+                                        self:AddCommandOutput(outputLog, "Error", "Failed to execute command: " .. name)
+                                    end
+                                end
+                            end
+                        end
+                    end,
+                    nil,
+                    { confirmText = "Execute" }
+                )
+            end
+        )
+        button.LayoutOrder = layoutOrder
+        button.Parent = container
+        
+        -- Apply style based on button type
+        if buttonType == "danger" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonDanger
+        elseif buttonType == "warning" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonWarning
+        elseif buttonType == "success" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonSuccess
+        else
+            button.BackgroundColor3 = UIStyle.Colors.ButtonPrimary
+        end
+        
+        return button
+    end
+
+    -- Create categories and add buttons
+    
+    -- Tycoon Information Category
+    local infoCategory, infoButtons = createCategory("Tycoon Information", "View and analyze gym structure information", 100)
+    infoCategory.Parent = scrollFrame
+    
+    createCommandButton(infoButtons, "Show Tycoon Info", "Display detailed information about tycoon structure", "showTycoonInfo", 10)
+    createCommandButton(infoButtons, "Analyze Gym Structure", "Analyze gym structure without making changes", "analyzeGymStructure", 20)
+    createCommandButton(infoButtons, "Generate Model Report", "Create detailed validation report for models", "generateModelReport", 30)
+    createCommandButton(infoButtons, "Show Hitboxes", "Make hitboxes visible in the workspace", "showHitboxes", 40, "warning")
+    createCommandButton(infoButtons, "Hide Hitboxes", "Hide hitboxes in the workspace", "hideHitboxes", 50)
+    
+    -- Adjust the category size based on content
+    infoCategory.Size = UDim2.new(1, 0, 0, infoButtons.Position.Y.Offset + infoButtons.AbsoluteSize.Y + 20)
+    
+    -- Tycoon Automation Category
+    local autoCategory, autoButtons = createCategory("Tycoon Automation", "Automate tycoon setup and configuration", 200)
+    autoCategory.Parent = scrollFrame
+    autoCategory.Position = UDim2.new(0, 0, 0, infoCategory.AbsoluteSize.Y + infoCategory.AbsolutePosition.Y + 20)
+    
+    createCommandButton(autoButtons, "Automate Gym", "Fully automate gym setup and configuration", "automateGym", 10, "success")
+    createCommandButton(autoButtons, "Auto-Setup Buy Tiles", "Automatically set up all buy tiles", "autoSetupBuyTiles", 20, "success")
+    createCommandButton(autoButtons, "Generate Build Order", "Create logical build order for tiles", "generateBuildOrder", 30)
+    createCommandButton(autoButtons, "Process Equipment", "Process all equipment and set up attributes", "processEquipment", 40)
+    createCommandButton(autoButtons, "Generate Hitboxes", "Create hitboxes for BuyTile interaction", "generateHitboxes", 50)
+    
+    -- Adjust the category size based on content
+    autoCategory.Size = UDim2.new(1, 0, 0, autoButtons.Position.Y.Offset + autoButtons.AbsoluteSize.Y + 20)
+    
+    -- Model Validation Category
+    local validationCategory, validationButtons = createCategory("Model Validation", "Validate and fix model issues", 300)
+    validationCategory.Parent = scrollFrame
+    validationCategory.Position = UDim2.new(0, 0, 0, autoCategory.AbsoluteSize.Y + autoCategory.AbsolutePosition.Y + 20)
+    
+    createCommandButton(validationButtons, "Validate Gym Models", "Check all models for common issues", "validateGymModels", 10)
+    createCommandButton(validationButtons, "Fix Model Issues", "Attempt to fix common model issues", "fixModelIssues", 20, "warning")
+    createCommandButton(validationButtons, "Apply Collection Tags", "Apply tags to models based on attributes", "applyCollectionTags", 30)
+    createCommandButton(validationButtons, "Generate Equipment Config", "Create equipment configuration from models", "generateEquipmentConfig", 40)
+    createCommandButton(validationButtons, "Generate UI Config", "Create UI configuration from UI elements", "generateUIConfig", 50)
+    
+    -- Adjust the category size based on content
+    validationCategory.Size = UDim2.new(1, 0, 0, validationButtons.Position.Y.Offset + validationButtons.AbsoluteSize.Y + 20)
+    
+    -- Set final canvas size based on all content
+    local totalHeight = validationCategory.AbsoluteSize.Y + validationCategory.AbsolutePosition.Y - scrollFrame.AbsolutePosition.Y + 30
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+    
+    return parent
+end
+
+-- Execute command
+function AdminControlsUI:ExecuteCommand(commandText)
+    if not commandText or commandText == "" then return end
+    
+    local outputLog = uiState.menuElements.outputLog
+    if not outputLog then return end
+    
+    -- Add the command to the log
+    self:AddCommandOutput(outputLog, "Command", commandText)
+    
+    -- Parse the command
+    local args = commandText:split(" ")
+    local command = args[1]:lower()
+    table.remove(args, 1)
+    
+    -- Process commands
+    if command == "help" then
+        self:AddCommandOutput(outputLog, "Help", "Available commands: help, kick [player], ban [player], shutdown, heal [player], clear")
+    elseif command == "kick" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: kick [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been kicked")
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "ban" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: ban [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been banned")
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "shutdown" then
+        -- Add confirmation dialog for shutdown
+        DialogFactory.createConfirmationDialog(
+            "Confirm Shutdown",
+            "Are you sure you want to shut down the server? All players will be disconnected.",
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown initiated")
+                -- In a real implementation, this would call server-side admin functions
+            end,
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown cancelled")
+            end,
+            {
+                confirmText = "Shut Down",
+                cancelText = "Cancel"
+            }
+        )
+    elseif command == "heal" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: heal [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Healing player: " .. args[1])
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "clear" then
+        -- Clear the output log
+        for _, child in ipairs(outputLog:GetChildren()) do
+            if child:IsA("TextLabel") then
+                child:Destroy()
+            end
+        end
+        outputLog.CanvasSize = UDim2.new(0, 0, 0, 0)
+        self:AddCommandOutput(outputLog, "System", "Console cleared")
+    else
+        self:AddCommandOutput(outputLog, "Error", "Unknown command: " .. command)
+    end
+end
+
+-- Toggle the admin panel visibility
+function AdminControlsUI:ToggleAdminPanel()
+    local adminPanel = uiState.menuElements.adminPanel
+    if not adminPanel then
+        warn("Admin panel not initialized")
+        return
+    end
+    
+    uiState.adminPanelVisible = not uiState.adminPanelVisible
+    
+    if uiState.adminPanelVisible then
+        -- Show the panel with animation
+        adminPanel.Visible = true
+        adminPanel.BackgroundTransparency = 1
+        adminPanel.Position = UDim2.new(0.5, -300, 0.6, -225)
+        
+        -- Animate in
+        TweenService:Create(
+            adminPanel,
+            UIStyle.Animations.Standard,
+            {
+                Position = UDim2.new(0.5, -300, 0.5, -225),
+                BackgroundTransparency = 0
+            }
+        ):Play()
+        
+        -- Update players list if on players tab
+        if uiState.currentTab == "Players" then
+            self:UpdatePlayersList()
+        elseif uiState.currentTab == "ServerStats" then
+            self:UpdateServerStats()
+        end
+    else
+        -- Hide with animation
+        TweenService:Create(
+            adminPanel,
+            UIStyle.Animations.Standard,
+            {
+                Position = UDim2.new(0.5, -300, 0.6, -225),
+                BackgroundTransparency = 1
+            }
+        ):Play()
+        
+        -- Hide after animation
+        task.delay(UIStyle.Animations.Standard.Time, function()
+            adminPanel.Visible = false
+        end)
+    end
+end
+
+-- Create the AdminTools tab with commonly used admin commands
+function AdminControlsUI:CreateAdminToolsTab(parent)
+    -- Create a scrolling container for all the tools
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "AdminToolsScrollFrame"
+    scrollFrame.Size = UDim2.new(1, -20, 1, -20)
+    scrollFrame.Position = UDim2.new(0, 10, 0, 10)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 700) -- Will be adjusted based on content
+    scrollFrame.Parent = parent
+
+    -- Store the output log for commands to use
+    local outputLog = uiState.menuElements.outputLog
+    
+    -- Add category title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -20, 0, 30)
+    titleLabel.Position = UDim2.new(0, 10, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = UIStyle.Fonts.Bold
+    titleLabel.Text = "Admin Tools"
+    titleLabel.TextColor3 = UIStyle.Colors.Text
+    titleLabel.TextSize = UIStyle.TextSizes.Large
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = scrollFrame
+    
+    -- Create UI layout
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 15)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = scrollFrame
+    
+    -- Add padding
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.PaddingRight = UDim2.new(0, 10)
+    padding.PaddingTop = UDim2.new(0, 10)
+    padding.PaddingBottom = UDim2.new(0, 10)
+    padding.Parent = scrollFrame
+
+    -- Function to create a command category
+    local function createCategory(name, description, layoutOrder)
+        local categoryFrame = Instance.new("Frame")
+        categoryFrame.Name = name .. "Category"
+        categoryFrame.Size = UDim2.new(1, 0, 0, 40)
+        categoryFrame.BackgroundColor3 = UIStyle.Colors.BackgroundLight
+        categoryFrame.BorderSizePixel = 0
+        categoryFrame.LayoutOrder = layoutOrder
+        
+        -- Add corner radius
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = categoryFrame
+        
+        -- Add category name
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, -20, 1, 0)
+        nameLabel.Position = UDim2.new(0, 10, 0, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Font = UIStyle.Fonts.Bold
+        nameLabel.Text = name
+        nameLabel.TextColor3 = UIStyle.Colors.Text
+        nameLabel.TextSize = UIStyle.TextSizes.Medium
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = categoryFrame
+        
+        -- Add description
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Size = UDim2.new(1, -20, 0, 30)
+        descLabel.Position = UDim2.new(0, 10, 1, 5)
+        descLabel.BackgroundTransparency = 1
+        descLabel.Font = UIStyle.Fonts.Italic
+        descLabel.Text = description
+        descLabel.TextColor3 = UIStyle.Colors.TextSecondary
+        descLabel.TextSize = UIStyle.TextSizes.Small
+        descLabel.TextWrapped = true
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.Parent = categoryFrame
+        
+        -- Create container for buttons
+        local buttonContainer = Instance.new("Frame")
+        buttonContainer.Name = "ButtonContainer"
+        buttonContainer.Size = UDim2.new(1, 0, 0, 0) -- Height will be adjusted based on content
+        buttonContainer.Position = UDim2.new(0, 0, 0, 80)
+        buttonContainer.BackgroundTransparency = 1
+        buttonContainer.AutomaticSize = Enum.AutomaticSize.Y
+        buttonContainer.Parent = categoryFrame
+        
+        -- Create grid layout for buttons
+        local gridLayout = Instance.new("UIGridLayout")
+        gridLayout.CellSize = UDim2.new(0.48, 0, 0, 45)
+        gridLayout.CellPadding = UDim2.new(0.04, 0, 0, 10)
+        gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        gridLayout.Parent = buttonContainer
+        
+        -- Adjust category frame size based on content
+        categoryFrame.Size = UDim2.new(1, 0, 0, 85) -- Base size plus padding
+        
+        return categoryFrame, buttonContainer
+    end
+
+    -- Function to create a command button in a category
+    local function createCommandButton(container, name, description, commandFunc, layoutOrder, buttonType)
+        buttonType = buttonType or "primary"
+        
+        local button = ButtonFactory.createButton(
+            name,
+            UDim2.new(1, 0, 0, 45),
+            UDim2.new(0, 0, 0, 0),
+            function()
+                -- Show confirmation dialog
+                DialogFactory.createConfirmationDialog(
+                    "Run Command: " .. name,
+                    description .. "\n\nAre you sure you want to execute this command?",
+                    function()
+                        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                        local remotes = ReplicatedStorage:FindFirstChild("AdminRemotes")
+                        
+                        if remotes then
+                            local executeCommand = remotes:FindFirstChild("ExecuteAdminCommand")
+                            if executeCommand then
+                                -- Log the command execution in the output
+                                if outputLog then
+                                    self:AddCommandOutput(outputLog, "System", "Running command: " .. name)
+                                end
+                                
+                                -- Show processing notification
+                                DialogFactory.createNotification("Executing command: " .. name, 2, "info")
+                                
+                                -- Execute the command
+                                local success, result = pcall(function()
+                                    return executeCommand:InvokeServer({
+                                        type = commandFunc,
+                                        params = {}
+                                    })
+                                end)
+                                
+                                -- Handle response
+                                if success and result then
+                                    if result.success then
+                                        DialogFactory.createNotification("Command executed successfully: " .. (result.message or ""), 3, "success")
+                                        
+                                        -- Add to output log
+                                        if outputLog then
+                                            self:AddCommandOutput(outputLog, "Success", "Command executed: " .. name .. "\n" .. (result.message or ""))
+                                        end
+                                    else
+                                        DialogFactory.createNotification("Command failed: " .. (result.message or "Unknown error"), 3, "error")
+                                        
+                                        -- Add to output log
+                                        if outputLog then
+                                            self:AddCommandOutput(outputLog, "Error", "Command failed: " .. name .. "\n" .. (result.message or ""))
+                                        end
+                                    end
+                                else
+                                    DialogFactory.createNotification("Failed to execute command. Check server logs.", 3, "error")
+                                    
+                                    -- Add to output log
+                                    if outputLog then
+                                        self:AddCommandOutput(outputLog, "Error", "Failed to execute command: " .. name)
+                                    end
+                                end
+                            end
+                        end
+                    end,
+                    nil,
+                    { confirmText = "Execute" }
+                )
+            end
+        )
+        button.LayoutOrder = layoutOrder
+        button.Parent = container
+        
+        -- Apply style based on button type
+        if buttonType == "danger" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonDanger
+        elseif buttonType == "warning" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonWarning
+        elseif buttonType == "success" then
+            button.BackgroundColor3 = UIStyle.Colors.ButtonSuccess
+        else
+            button.BackgroundColor3 = UIStyle.Colors.ButtonPrimary
+        end
+        
+        return button
+    end
+
+    -- Create categories and add buttons
+    
+    -- Tycoon Information Category
+    local infoCategory, infoButtons = createCategory("Tycoon Information", "View and analyze gym structure information", 100)
+    infoCategory.Parent = scrollFrame
+    
+    createCommandButton(infoButtons, "Show Tycoon Info", "Display detailed information about tycoon structure", "showTycoonInfo", 10)
+    createCommandButton(infoButtons, "Analyze Gym Structure", "Analyze gym structure without making changes", "analyzeGymStructure", 20)
+    createCommandButton(infoButtons, "Generate Model Report", "Create detailed validation report for models", "generateModelReport", 30)
+    createCommandButton(infoButtons, "Show Hitboxes", "Make hitboxes visible in the workspace", "showHitboxes", 40, "warning")
+    createCommandButton(infoButtons, "Hide Hitboxes", "Hide hitboxes in the workspace", "hideHitboxes", 50)
+    
+    -- Adjust the category size based on content
+    infoCategory.Size = UDim2.new(1, 0, 0, infoButtons.Position.Y.Offset + infoButtons.AbsoluteSize.Y + 20)
+    
+    -- Tycoon Automation Category
+    local autoCategory, autoButtons = createCategory("Tycoon Automation", "Automate tycoon setup and configuration", 200)
+    autoCategory.Parent = scrollFrame
+    autoCategory.Position = UDim2.new(0, 0, 0, infoCategory.AbsoluteSize.Y + infoCategory.AbsolutePosition.Y + 20)
+    
+    createCommandButton(autoButtons, "Automate Gym", "Fully automate gym setup and configuration", "automateGym", 10, "success")
+    createCommandButton(autoButtons, "Auto-Setup Buy Tiles", "Automatically set up all buy tiles", "autoSetupBuyTiles", 20, "success")
+    createCommandButton(autoButtons, "Generate Build Order", "Create logical build order for tiles", "generateBuildOrder", 30)
+    createCommandButton(autoButtons, "Process Equipment", "Process all equipment and set up attributes", "processEquipment", 40)
+    createCommandButton(autoButtons, "Generate Hitboxes", "Create hitboxes for BuyTile interaction", "generateHitboxes", 50)
+    
+    -- Adjust the category size based on content
+    autoCategory.Size = UDim2.new(1, 0, 0, autoButtons.Position.Y.Offset + autoButtons.AbsoluteSize.Y + 20)
+    
+    -- Model Validation Category
+    local validationCategory, validationButtons = createCategory("Model Validation", "Validate and fix model issues", 300)
+    validationCategory.Parent = scrollFrame
+    validationCategory.Position = UDim2.new(0, 0, 0, autoCategory.AbsoluteSize.Y + autoCategory.AbsolutePosition.Y + 20)
+    
+    createCommandButton(validationButtons, "Validate Gym Models", "Check all models for common issues", "validateGymModels", 10)
+    createCommandButton(validationButtons, "Fix Model Issues", "Attempt to fix common model issues", "fixModelIssues", 20, "warning")
+    createCommandButton(validationButtons, "Apply Collection Tags", "Apply tags to models based on attributes", "applyCollectionTags", 30)
+    createCommandButton(validationButtons, "Generate Equipment Config", "Create equipment configuration from models", "generateEquipmentConfig", 40)
+    createCommandButton(validationButtons, "Generate UI Config", "Create UI configuration from UI elements", "generateUIConfig", 50)
+    
+    -- Adjust the category size based on content
+    validationCategory.Size = UDim2.new(1, 0, 0, validationButtons.Position.Y.Offset + validationButtons.AbsoluteSize.Y + 20)
+    
+    -- Set final canvas size based on all content
+    local totalHeight = validationCategory.AbsoluteSize.Y + validationCategory.AbsolutePosition.Y - scrollFrame.AbsolutePosition.Y + 30
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+    
+    return parent
+end
+
+-- Execute command
+function AdminControlsUI:ExecuteCommand(commandText)
+    if not commandText or commandText == "" then return end
+    
+    local outputLog = uiState.menuElements.outputLog
+    if not outputLog then return end
+    
+    -- Add the command to the log
+    self:AddCommandOutput(outputLog, "Command", commandText)
+    
+    -- Parse the command
+    local args = commandText:split(" ")
+    local command = args[1]:lower()
+    table.remove(args, 1)
+    
+    -- Process commands
+    if command == "help" then
+        self:AddCommandOutput(outputLog, "Help", "Available commands: help, kick [player], ban [player], shutdown, heal [player], clear")
+    elseif command == "kick" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: kick [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been kicked")
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "ban" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: ban [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Player " .. args[1] .. " has been banned")
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "shutdown" then
+        -- Add confirmation dialog for shutdown
+        DialogFactory.createConfirmationDialog(
+            "Confirm Shutdown",
+            "Are you sure you want to shut down the server? All players will be disconnected.",
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown initiated")
+                -- In a real implementation, this would call server-side admin functions
+            end,
+            function()
+                self:AddCommandOutput(outputLog, "System", "Server shutdown cancelled")
+            end,
+            {
+                confirmText = "Shut Down",
+                cancelText = "Cancel"
+            }
+        )
+    elseif command == "heal" then
+        if #args < 1 then
+            self:AddCommandOutput(outputLog, "Error", "Usage: heal [player]")
+        else
+            self:AddCommandOutput(outputLog, "System", "Healing player: " .. args[1])
+            -- In a real implementation, this would call server-side admin functions
+        end
+    elseif command == "clear" then
+        -- Clear the output log
+        for _, child in ipairs(outputLog:GetChildren()) do
+            if child:IsA("TextLabel") then
+                child:Destroy()
+            end
+        end
+        outputLog.CanvasSize = UDim2.new(0, 0, 0, 0)
+        self:AddCommandOutput(outputLog, "System", "Console cleared")
+    else
+        self:AddCommandOutput(outputLog, "Error", "Unknown command: " .. command)
+    end
+end
+
+-- Toggle the admin panel visibility
+function AdminControlsUI:ToggleAdminPanel()
+    local adminPanel = uiState.menuElements.adminPanel
+    if not adminPanel then
+        warn("Admin panel not initialized")
+        return
+    end
+    
+    uiState.adminPanelVisible = not uiState.adminPanelVisible
+    
+    if uiState.adminPanelVisible then
+        -- Show the panel with animation
+        adminPanel.Visible = true
+        adminPanel.BackgroundTransparency = 1
+        adminPanel.Position = UDim2.new(0.5, -300, 0.6, -225)
+        
+        -- Animate in
+        TweenService:Create(
+            adminPanel,
+            UIStyle.Animations.Standard,
+            {
+                Position = UDim2.new(0.5, -300, 0.5, -225),
+                BackgroundTransparency = 0
+            }
+        ):Play()
+        
+        -- Update players list if on players tab
+        if uiState.currentTab == "Players" then
+            self:UpdatePlayersList()
+        elseif uiState.currentTab == "ServerStats" then
+            self:UpdateServerStats()
+        end
+    else
+        -- Hide with animation
+        TweenService:Create(
+            adminPanel,
+            UIStyle.Animations.Standard,
+            {
+                Position = UDim2.new(0.5, -300, 0.6, -225),
+                BackgroundTransparency = 1
+            }
+        ):Play()
+        
+        -- Hide after animation
+        task.delay(UIStyle.Animations.Standard.Time, function()
+            adminPanel.Visible = false
+        end)
+    end
+end

@@ -230,8 +230,7 @@ function AdminDashboardSystem:executeCommand(player, commandData)
         params = params,
         timestamp = os.time()
     })
-    
-    -- Handle different command types
+      -- Handle different command types
     if commandType == "resetPlayerMoney" then
         return self:resetPlayerMoney(params.targetName)
     elseif commandType == "resetPlayerProgress" then
@@ -250,6 +249,8 @@ function AdminDashboardSystem:executeCommand(player, commandData)
         return self:removePlayerEquipment(params.targetName, params.equipmentId)
     elseif commandType == "modifyGameConfig" then
         return self:modifyGameConfiguration(params.configKey, params.configValue)
+    elseif commandType == "setupBuyTiles" then
+        return self:setupBuyTileSystem(player)
     end
     
     return {success = false, message = "Unknown command type: " .. commandType}
@@ -304,6 +305,77 @@ function AdminDashboardSystem:resetPlayerProgress(targetName)
         end
     else
         return {success = false, message = "DataManager not available"}
+    end
+end
+
+-- Setup the BuyTile system
+function AdminDashboardSystem:setupBuyTileSystem(player)
+    -- Log the action
+    self:logAction("BuyTileSetup", {
+        admin = player.Name,
+        timestamp = os.time()
+    })
+    
+    -- Find the CoreRegistry
+    local CoreRegistry = require(script.Parent:FindFirstChild("CoreRegistry"))
+    if not CoreRegistry then
+        return {success = false, message = "CoreRegistry not found"}
+    end
+    
+    -- Try to use BuyTileSystemIntegration first (preferred method)
+    local BuyTileSystemIntegration = CoreRegistry:GetSystem("BuyTileSystemIntegration")
+    if BuyTileSystemIntegration and BuyTileSystemIntegration.generateTileData then
+        local success, result = pcall(function()
+            return BuyTileSystemIntegration.generateTileData("gymparts")
+        end)
+        
+        if success and result then
+            return {success = true, message = "Successfully set up BuyTile system using BuyTileSystemIntegration"}
+        else
+            -- Try fallback method if BuyTileSystemIntegration failed
+            warn("BuyTileSystemIntegration.generateTileData failed: " .. tostring(result))
+        end
+    end
+    
+    -- Fallback to GymPartsScanner if available
+    local ServerScriptService = game:GetService("ServerScriptService")
+    local scannerModule = ServerScriptService:FindFirstChild("Core") and 
+                          ServerScriptService.Core:FindFirstChild("GymPartsScanner.server")
+    
+    if scannerModule then
+        local success, scanner = pcall(function()
+            return require(scannerModule)
+        end)
+        
+        if success and scanner and scanner.setupBuyTileSystem then
+            local setupSuccess, setupResult = pcall(function()
+                return scanner.setupBuyTileSystem()
+            end)
+            
+            if setupSuccess and setupResult then
+                return {success = true, message = "Successfully set up BuyTile system using GymPartsScanner"}
+            else
+                return {success = false, message = "GymPartsScanner.setupBuyTileSystem failed: " .. tostring(setupResult)}
+            end
+        else
+            return {success = false, message = "Failed to require GymPartsScanner module"}
+        end
+    end
+    
+    -- Last resort: Try to directly call the function in _G if available
+    local success, result = pcall(function()
+        local SetupBuyTileSystem = rawget(_G, "SetupBuyTileSystem")
+        if type(SetupBuyTileSystem) == "function" then
+            return SetupBuyTileSystem()
+        else
+            return false, "SetupBuyTileSystem global function not found"
+        end
+    end)
+    
+    if success and result then
+        return {success = true, message = "Successfully set up BuyTile system using global function"}
+    else
+        return {success = false, message = "All setup methods failed. Last error: " .. tostring(result)}
     end
 end
 

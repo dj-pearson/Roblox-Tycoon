@@ -517,8 +517,7 @@ end
 function SoundSystemManager.getStatus()
     if SoundAssetValidator then
         local stats = SoundAssetValidator.getStats()
-        local errorRate = stats.invalidSounds / math.max(stats.totalChecked, 1)
-          -- If more than 25% of sounds are invalid, system is in warning state
+        local errorRate = stats.invalidSounds / math.max(stats.totalChecked, 1)        -- If more than 25% of sounds are invalid, system is in warning state
         if errorRate > 0.25 then
             return "WARNING"
         else
@@ -526,7 +525,11 @@ function SoundSystemManager.getStatus()
         end
     end
     
-    return errorCount > 0 and "WARNING" or "OPERATIONAL"
+    if errorCount > 0 then
+        return "WARNING"
+    end
+    
+    return "OPERATIONAL"
 }
 
 -- Initialize the sound system

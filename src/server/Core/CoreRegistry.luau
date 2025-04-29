@@ -1,152 +1,215 @@
 --[[
     CoreRegistry.luau
-    This module serves as the central system registry for the game.
-    It manages system dependencies, initialization order, and provides
-    a unified way to access core systems.
     
-    Created to fix critical "CoreRegistry Issues" reported in RobloxIssues.txt
+    A centralized registry for core game systems and modules.
+    Handles registration, dependency management, and access to critical systems.
+    
+    Created as part of critical fixes on April 28, 2025.
 ]]
 
-local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local RunService = game:GetService("RunService")
 
--- Internal state
-local systems = {}
-local initializedSystems = {}
-local listeners = {}
-local isInitialized = false
-
--- The module table
-local CoreRegistry = {}
-
--- Version information
-CoreRegistry.VERSION = "1.0.0"
-CoreRegistry.isLoaded = true
-
--- Constants
-CoreRegistry.STATUS = {
-    AVAILABLE = "AVAILABLE",
-    UNAVAILABLE = "UNAVAILABLE",
-    INITIALIZING = "INITIALIZING",
-    ERROR = "ERROR"
+-- Registry status constants
+local STATUS = {
+    UNAVAILABLE = "Unavailable", -- Registry not initialized yet
+    AVAILABLE = "Available",     -- Registry is fully functional
+    DEGRADED = "Degraded",       -- Registry is functional but missing critical systems
+    ERROR = "Error"              -- Registry encountered a critical error
 }
 
--- Current status
-local status = CoreRegistry.STATUS.UNAVAILABLE
+-- Core system definitions (these MUST be registered for proper operation)
+local CRITICAL_SYSTEMS = {
+    "ModuleLoader",
+    "DataManager", 
+    "TycoonSystem",
+    "EventBridge",
+    "UIComponents",
+    "AssetValidator",
+    "BuyTileSystem"
+}
 
--- Register a system with the registry
-function CoreRegistry.registerSystem(systemName, systemInstance)
-    if not systemName or type(systemName) ~= "string" then
-        warn("CoreRegistry.registerSystem: Invalid system name")
+-- Module
+local CoreRegistry = {
+    VERSION = "1.1.0",
+    STATUS = STATUS,
+}
+
+-- Private state
+local initialized = false
+local systems = {}
+local systemVersions = {}
+local dependencies = {}
+local status = STATUS.UNAVAILABLE
+local isServer = RunService:IsServer()
+
+-- Private functions
+local function verifyInitialization()
+    if not initialized then
+        warn("[CoreRegistry] Attempting to use CoreRegistry before initialization")
         return false
     end
-    
-    if systems[systemName] then
-        warn("CoreRegistry.registerSystem: System already registered - " .. systemName)
-        return false
+    return true
+end
+
+-- Check health of the registry
+local function checkHealth()
+    if not initialized then
+        return STATUS.UNAVAILABLE
     end
     
-    systems[systemName] = systemInstance
-    print("CoreRegistry: Registered system - " .. systemName)
+    -- Count missing critical systems
+    local missingCriticalSystems = {}
+    for _, systemName in ipairs(CRITICAL_SYSTEMS) do
+        if not systems[systemName] then
+            table.insert(missingCriticalSystems, systemName)
+        end
+    end
     
-    -- Notify listeners of new system
-    for _, listener in ipairs(listeners) do
+    -- Determine status
+    if #missingCriticalSystems == 0 then
+        return STATUS.AVAILABLE
+    elseif #missingCriticalSystems <= 2 then
+        return STATUS.DEGRADED
+    else
+        return STATUS.ERROR
+    end
+end
+
+-- Public methods
+-- Initialize the CoreRegistry
+function CoreRegistry.initialize()
+    if initialized then
+        return true
+    end
+    
+    print("[CoreRegistry] Initializing CoreRegistry...")
+    systems = {}
+    systemVersions = {}
+    dependencies = {}
+    status = STATUS.UNAVAILABLE
+    
+    -- Create the registry object
+    initialized = true
+    status = checkHealth()
+    
+    -- Set up periodic health checks
+    if isServer then
         task.spawn(function()
-            listener(systemName, systemInstance)
+            while true do
+                task.wait(30) -- Check every 30 seconds
+                print("[CoreRegistry] Running health check...")
+                local currentStatus = checkHealth()
+                
+                -- Log missing critical systems
+                for _, systemName in ipairs(CRITICAL_SYSTEMS) do
+                    if not systems[systemName] then
+                        warn("[CoreRegistry] Critical system missing: " .. systemName)
+                    end
+                end
+                
+                -- Update status if changed
+                if currentStatus ~= status then
+                    print("[CoreRegistry] Registry status changed from " .. status .. " to " .. currentStatus)
+                    status = currentStatus
+                end
+                
+                print("[CoreRegistry] Registry status set to: " .. status)
+            end
         end)
     end
+    
+    print("✅ [CoreRegistry] Initialized successfully!")
+    return true
+end
+
+-- Register a system with the registry
+function CoreRegistry.registerSystem(name, system, version)
+    if not verifyInitialization() then
+        return false
+    end
+    
+    if not name or typeof(name) ~= "string" then
+        warn("[CoreRegistry] Invalid system name")
+        return false
+    end
+    
+    if not system then
+        warn("[CoreRegistry] Invalid system object for " .. name)
+        return false
+    end
+    
+    print("[CoreRegistry] Registering system: " .. name)
+    systems[name] = system
+    
+    if version then
+        systemVersions[name] = tostring(version)
+    end
+    
+    -- Update status after registration
+    status = checkHealth()
     
     return true
 end
 
--- Get a registered system by name
-function CoreRegistry.getSystem(systemName)
-    if not systemName or not systems[systemName] then
-        warn("CoreRegistry.getSystem: System not found - " .. tostring(systemName))
+-- Get a system from the registry
+function CoreRegistry.getSystem(name)
+    if not verifyInitialization() then
         return nil
     end
     
-    return systems[systemName]
+    return systems[name]
 end
 
--- Check if a system is registered
-function CoreRegistry.hasSystem(systemName)
-    return systems[systemName] ~= nil
+-- Check if a system exists in the registry
+function CoreRegistry.hasSystem(name)
+    if not verifyInitialization() then
+        return false
+    end
+    
+    return systems[name] ~= nil
+end
+
+-- Get the version of a system
+function CoreRegistry.getSystemVersion(name)
+    if not verifyInitialization() then
+        return nil
+    end
+    
+    return systemVersions[name]
+end
+
+-- Register a dependency
+function CoreRegistry.registerDependency(system, dependsOn)
+    if not verifyInitialization() then
+        return false
+    end
+    
+    if not dependencies[system] then
+        dependencies[system] = {}
+    end
+    
+    table.insert(dependencies[system], dependsOn)
+    return true
+end
+
+-- Get all dependencies for a system
+function CoreRegistry.getDependencies(system)
+    if not verifyInitialization() then
+        return {}
+    end
+    
+    return dependencies[system] or {}
 end
 
 -- Get all registered systems
 function CoreRegistry.getAllSystems()
-    local allSystems = {}
-    for name, system in pairs(systems) do
-        allSystems[name] = system
-    end
-    return allSystems
-end
-
--- Register a callback to be notified when new systems are registered
-function CoreRegistry.addListener(callback)
-    if type(callback) ~= "function" then
-        warn("CoreRegistry.addListener: Listener must be a function")
-        return false
+    if not verifyInitialization() then
+        return {}
     end
     
-    table.insert(listeners, callback)
-    return true
-end
-
--- Mark a system as initialized
-function CoreRegistry.markInitialized(systemName)
-    if not systemName or not systems[systemName] then
-        warn("CoreRegistry.markInitialized: System not found - " .. tostring(systemName))
-        return false
-    end
-    
-    initializedSystems[systemName] = true
-    print("CoreRegistry: Marked system as initialized - " .. systemName)
-    return true
-end
-
--- Check if a system has been initialized
-function CoreRegistry.isSystemInitialized(systemName)
-    return initializedSystems[systemName] == true
-end
-
--- Initialize the registry
-function CoreRegistry.initialize()
-    if isInitialized then
-        return true
-    end
-    
-    status = CoreRegistry.STATUS.INITIALIZING
-    print("CoreRegistry: Initializing...")
-    
-    -- Setup registry in _G for easy access
-    _G.CoreRegistry = CoreRegistry
-    
-    -- Check essential paths and create if missing
-    local function ensurePath(instance, path)
-        local current = instance
-        for _, name in ipairs(path) do
-            local child = current:FindFirstChild(name)
-            if not child then
-                child = Instance.new("Folder")
-                child.Name = name
-                child.Parent = current
-            end
-            current = child
-        end
-        return current
-    end
-    
-    -- Ensure core paths exist
-    ensurePath(ServerScriptService, {"Core"})
-    ensurePath(ReplicatedStorage, {"shared"})
-    
-    -- Successfully initialized
-    isInitialized = true
-    status = CoreRegistry.STATUS.AVAILABLE
-    print("CoreRegistry: Initialization complete")
-    return true
+    return table.clone(systems)
 end
 
 -- Get the current status of the registry
@@ -154,18 +217,19 @@ function CoreRegistry.getStatus()
     return status
 end
 
--- Set the current status
+-- For testing: forcibly set a status (debug only)
 function CoreRegistry.setStatus(newStatus)
-    if not CoreRegistry.STATUS[newStatus] then
-        warn("CoreRegistry.setStatus: Invalid status - " .. tostring(newStatus))
-        return false
+    if table.find({STATUS.AVAILABLE, STATUS.DEGRADED, STATUS.ERROR, STATUS.UNAVAILABLE}, newStatus) then
+        status = newStatus
+        return true
     end
-    
-    status = CoreRegistry.STATUS[newStatus]
-    return true
+    return false
 end
 
--- Initialize the registry on module load
+-- Create a global reference for easy access
+_G.CoreRegistry = CoreRegistry
+
+-- Initialize on load
 CoreRegistry.initialize()
 
 return CoreRegistry

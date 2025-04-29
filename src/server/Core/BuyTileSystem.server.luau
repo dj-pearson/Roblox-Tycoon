@@ -113,6 +113,9 @@ function BuyTileSystem.setTileData(data)
     end
     
     tileData = data
+    
+    -- When new tile data is set, refresh the ordered tiles list
+    BuyTileSystem.refreshOrderedTiles()
     return true
 end
 
@@ -123,6 +126,112 @@ function BuyTileSystem.getTileData(tileId)
     end
     
     return tileData[tileId]
+end
+
+-- Structure build order constants
+BuyTileSystem.STRUCTURE_BUILD_ORDER = {
+    "FrontDesk", -- Front desk first (ID attribute 1)
+    "Walls",     -- Walls next
+    "Room",      -- Then room-specific items
+    "Cardio",    -- Equipment by room type
+    "Strength",
+    "Ceiling",   -- Then ceilings
+    "Stairs"     -- Stairs last (to next floor)
+}
+
+-- Refresh ordered tiles based on build order logic
+function BuyTileSystem.refreshOrderedTiles()
+    if not tileData then return end
+    
+    print("BuyTileSystem: Refreshing ordered tiles based on new progression logic")
+    
+    -- Create an array of tiles with metadata for sorting
+    local orderedTiles = {}
+    
+    for tileId, tile in pairs(tileData) do
+        local roomType = "Other"
+        local roomPriority = 99
+        
+        -- Determine room type from folder structure or attributes
+        if tile.folder then
+            roomType = tile.folder
+        elseif tile.room then
+            roomType = tile.room
+        end
+        
+        -- Determine structure type
+        local structureType = "Other"
+        if tile.structureType then
+            structureType = tile.structureType
+        elseif tile.category then
+            if tile.category:lower():find("wall") then
+                structureType = "Walls"
+            elseif tile.category:lower():find("ceiling") then
+                structureType = "Ceiling"
+            elseif tile.category:lower():find("stair") then
+                structureType = "Stairs"
+            elseif tile.idAttribute == 1 then
+                structureType = "FrontDesk"
+            end
+        end
+        
+        -- Get priority for this structure type
+        local structurePriority = 99
+        for i, sType in ipairs(BuyTileSystem.STRUCTURE_BUILD_ORDER) do
+            if sType == structureType then
+                structurePriority = i
+                break
+            end
+        end
+        
+        -- Add to ordered tiles
+        table.insert(orderedTiles, {
+            tileId = tileId,
+            tileData = tile,
+            floor = tile.floor or 1,
+            structureType = structureType,
+            structurePriority = structurePriority,
+            roomType = roomType,
+            roomPriority = roomPriority,
+            idAttribute = tile.idAttribute or 999
+        })
+    end
+    
+    -- Sort based on floor, structure type, room, and ID attribute
+    table.sort(orderedTiles, function(a, b)
+        -- Sort by floor first
+        if a.floor ~= b.floor then
+            return a.floor < b.floor
+        end
+        
+        -- Then by structure priority
+        if a.structurePriority ~= b.structurePriority then
+            return a.structurePriority < b.structurePriority
+        end
+        
+        -- For equipment in the same room type, keep them together
+        if a.roomType ~= b.roomType then
+            return a.roomType < b.roomType
+        end
+        
+        -- Finally by ID attribute if available
+        return a.idAttribute < b.idAttribute
+    end)
+    
+    -- Store the sorted list for use elsewhere
+    BuyTileSystem.orderedTiles = orderedTiles
+    
+    -- Update build order values in the actual tile data
+    local buildOrderStep = 10
+    local currentBuildOrder = 10
+    
+    for _, tile in ipairs(orderedTiles) do
+        tileData[tile.tileId].buildOrder = currentBuildOrder
+        currentBuildOrder = currentBuildOrder + buildOrderStep
+    end
+    
+    print("BuyTileSystem: Ordered " .. #orderedTiles .. " tiles according to new progression rules")
+    return orderedTiles
 end
 
 -- Get all tile data
