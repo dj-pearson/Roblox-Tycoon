@@ -86,8 +86,40 @@ local function resetPlayerData(player)
 end
 
 -- Connect to event
-resetEvent.OnServerEvent:Connect(function(player)
-	resetPlayerData(player)
+resetEvent.OnServerEvent:Connect(function(player, targetPlayerName)
+	-- If admin is resetting another player's data
+	if targetPlayerName and typeof(targetPlayerName) == "string" then
+		-- Check if player is an admin
+		local isAdmin = player.UserId == 7768610061 -- Use your admin ID list here
+		
+		if isAdmin then
+			-- Find the target player
+			local Players = game:GetService("Players")
+			local targetPlayer = Players:FindFirstChild(targetPlayerName)
+			
+			if targetPlayer then
+				print("Admin " .. player.Name .. " resetting data for " .. targetPlayer.Name)
+				resetPlayerData(targetPlayer)
+			else
+				print("Admin tried to reset data for non-existent player: " .. targetPlayerName)
+				-- Notify the admin
+				local message = Instance.new("Message")
+				message.Text = "Player not found: " .. targetPlayerName
+				message.Parent = player
+				game:GetService("Debris"):AddItem(message, 3)
+			end
+		else
+			print("Non-admin " .. player.Name .. " attempted to reset another player's data")
+			-- Notify the player of unauthorized access
+			local message = Instance.new("Message")
+			message.Text = "Unauthorized: You don't have permission to reset other players' data"
+			message.Parent = player
+			game:GetService("Debris"):AddItem(message, 3)
+		end
+	else
+		-- Original functionality - player resetting their own data
+		resetPlayerData(player)
+	end
 end)
 
 print("Reset Button Handler initialized")
