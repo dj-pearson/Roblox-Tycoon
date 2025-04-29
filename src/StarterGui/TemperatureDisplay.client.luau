@@ -146,16 +146,30 @@ local function createTemperatureUI()
 
 	-- Create heat overlay if enabled
 	if CONFIG.showHeatEffects then
+		-- Check if an overlay already exists in PlayerGui and remove it (cleanup)
+		local existingOverlay = playerGui:FindFirstChild("HeatOverlay")
+		if existingOverlay then
+			existingOverlay:Destroy()
+		end
+		
 		local overlay = Instance.new("Frame")
 		overlay.Name = "HeatOverlay"
 		overlay.Size = UDim2.new(1, 0, 1, 0)
 		overlay.Position = UDim2.new(0, 0, 0, 0)
 		overlay.BackgroundColor3 = Color3.fromRGB(255, 60, 0)
-		overlay.BackgroundTransparency = 1
+		overlay.BackgroundTransparency = 1 -- Start fully transparent
 		overlay.BorderSizePixel = 0
 		overlay.ZIndex = 10
-		overlay.Parent = screenGui
-
+		
+		-- Create a separate ScreenGui just for the overlay
+		-- This makes it easier to find and remove if needed
+		local overlayGui = Instance.new("ScreenGui")
+		overlayGui.Name = "HeatOverlayGui"
+		overlayGui.ResetOnSpawn = false
+		overlayGui.DisplayOrder = 1 -- Make sure it's behind other UIs
+		overlayGui.Parent = playerGui
+		
+		overlay.Parent = overlayGui
 		heatOverlay = overlay
 	end
 
@@ -289,12 +303,27 @@ local function onExitSauna()
 
 	-- Reset heat overlay
 	if heatOverlay then
+		-- First try tweening it out
 		local overlayTween = TweenService:Create(
 			heatOverlay,
 			TweenInfo.new(CONFIG.animationDuration, Enum.EasingStyle.Sine),
 			{BackgroundTransparency = 1}
 		)
 		overlayTween:Play()
+		
+		-- Force removal after animation
+		task.delay(CONFIG.animationDuration + 0.1, function()
+			if heatOverlay and heatOverlay.Parent then
+				-- Force transparency to 1 in case the tween failed
+				heatOverlay.BackgroundTransparency = 1
+				
+				-- Also check for the parent GUI
+				local overlayGui = playerGui:FindFirstChild("HeatOverlayGui")
+				if overlayGui then
+					overlayGui:Destroy()
+				end
+			end
+		end)
 	end
 
 	-- Remove any camera effects
@@ -304,12 +333,49 @@ local function onExitSauna()
 	end
 end
 
+-- Function to completely remove the heat overlay (for fixing persistent overlay issues)
+local function cleanupHeatOverlay()
+    -- Find and remove any heat overlays by name
+    for _, gui in pairs(playerGui:GetChildren()) do
+        if gui.Name == "HeatOverlayGui" or gui.Name == "SaunaTemperatureUI" then
+            gui:Destroy()
+        end
+    end
+    
+    -- Reset the reference
+    heatOverlay = nil
+end
+
+-- Add an emergency cleanup command
+local function emergencyCleanup()
+    print("Emergency cleanup triggered for temperature display")
+    cleanupHeatOverlay()
+end
+
 -- Connect to remote events
-remotes.enterSauna.OnClientEvent:Connect(onEnterSauna)
-remotes.exitSauna.OnClientEvent:Connect(onExitSauna)
-remotes.updateTemperature.OnClientEvent:Connect(updateTemperatureDisplay)
+local enterConnection = remotes.enterSauna.OnClientEvent:Connect(onEnterSauna)
+local exitConnection = remotes.exitSauna.OnClientEvent:Connect(onExitSauna)
+local updateConnection = remotes.updateTemperature.OnClientEvent:Connect(updateTemperatureDisplay)
 
 -- Create the UI
 createTemperatureUI()
 
-print("Temperature display UI initialized")
+-- Clean up existing overlay to resolve the dark haze issue
+cleanupHeatOverlay()
+
+-- Set up cleanup on script termination
+game:GetService("Players").PlayerRemoving:Connect(function(plr)
+    if plr == player then
+        cleanupHeatOverlay()
+        
+        -- Disconnect events
+        enterConnection:Disconnect()
+        exitConnection:Disconnect()
+        updateConnection:Disconnect()
+    end
+end)
+
+-- Add the emergency cleanup function to _G for admin use
+_G.CleanupSaunaOverlay = emergencyCleanup
+
+print("Temperature display UI initialized - with improved overlay handling")

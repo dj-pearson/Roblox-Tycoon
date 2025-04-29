@@ -14,7 +14,9 @@ end
 local UI_MODULES = {
     "MenuButtonCreator",
     "GymTycoonMenuUI",
-    "AdminButtonCreator"
+    "AdminButtonCreator",
+    "AdminUIFixes",  -- Added UI fixes module
+    "DarkOverlayFix" -- Added dark overlay fix module (high priority)
 }
 
 -- Function to load a UI module

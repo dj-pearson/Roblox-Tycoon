@@ -113,13 +113,12 @@ function MainMenuUI:CreateMainMenu()
         screenGui.ResetOnSpawn = false
         screenGui.Parent = player:FindFirstChild("PlayerGui")
     end
-    
-    -- Create background with tween-in effect
+      -- Create background with tween-in effect
     local background = Instance.new("Frame")
     background.Name = "Background"
     background.Size = UDim2.new(1, 0, 1, 0)
     background.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
-    background.BackgroundTransparency = 0.2
+    background.BackgroundTransparency = 1.0  -- Start fully transparent (fix for dark haze issue)
     background.BorderSizePixel = 0
     background.Parent = screenGui
     
@@ -418,14 +417,22 @@ function MainMenuUI:ShowMainMenu(visible)
                     { Position = UDim2.new(0, 0, button.Position.Y.Scale, button.Position.Y.Offset) }
                 ):Play()
             end
-        end
-    else
+        end    else
         -- Hide menu with animation
-        TweenService:Create(
+        local hideAnim = TweenService:Create(
             background, 
             UIStyle.Animations.Standard, 
             { BackgroundTransparency = 1 }
-        ):Play()
+        )
+        
+        -- When tween completes, make sure the UI is invisible
+        hideAnim.Completed:Connect(function()
+            if not uiState.menuVisible and background then
+                background.Visible = false
+            end
+        end)
+        
+        hideAnim:Play()
         
         -- Animate out buttons
         for i, buttonName in ipairs({"playButton", "allianceButton", "specializationButton", "eventsButton", "minigamesButton", "settingsButton"}) do
@@ -476,5 +483,78 @@ function MainMenuUI:ToggleMenu()
     self:ShowMainMenu(not uiState.menuVisible)
 end
 
+-- Force cleanup of any lingering UI elements
+function MainMenuUI:CleanupUI()
+    -- Set state to not visible
+    uiState.menuVisible = false
+    
+    -- Clean up any existing background elements
+    if uiState.menuElements.background then
+        uiState.menuElements.background.BackgroundTransparency = 1
+        uiState.menuElements.background.Visible = false
+    end
+    
+    -- Check for orphaned backgrounds - this fixes the dark haze issue
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if playerGui then
+        for _, gui in ipairs(playerGui:GetChildren()) do
+            -- Look for our MainMenuGui
+            if gui.Name == "MainMenuGui" or gui.Name == "MainMenuBG" then
+                for _, child in ipairs(gui:GetChildren()) do
+                    if child:IsA("Frame") and child.Size == UDim2.new(1, 0, 1, 0) then
+                        -- Found a full-screen frame, likely our background causing the dark haze
+                        child.BackgroundTransparency = 1
+                        child.Visible = false
+                    end
+                end
+            end
+        end
+    end
+    
+    return true
+end
+
+-- Expose cleanup function globally for easy access from console
+_G.CleanMainMenuUI = function()
+    return MainMenuUI:CleanupUI()
+end
+
 -- Initialize the module when required
-return MainMenuUI:Initialize()
+local instance = MainMenuUI:Initialize()
+
+-- Immediately cleanup any existing UI to fix the dark haze issue
+task.spawn(function()
+    -- Clean up UI elements
+    MainMenuUI:CleanupUI()
+    
+    -- Make sure the background is fixed in case there are errors elsewhere
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if playerGui then
+        for _, gui in pairs(playerGui:GetChildren()) do
+            if gui.Name == "MainMenuGui" then
+                for _, element in pairs(gui:GetDescendants()) do
+                    if element:IsA("Frame") and element.Size == UDim2.new(1, 0, 1, 0) then
+                        -- Ensure any full-screen frames are totally transparent
+                        element.BackgroundTransparency = 1
+                        task.delay(0.5, function()
+                            element.Visible = false
+                        end)
+                        print("Fixed MainMenuUI frame transparency")
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Ensure Background is transparent
+if uiState.menuElements.background then
+    uiState.menuElements.background.BackgroundTransparency = 1
+    task.delay(0.5, function()
+        if not uiState.menuVisible then
+            uiState.menuElements.background.Visible = false
+        end
+    end)
+end
+
+return instance
