@@ -11,10 +11,24 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 -- UI Components
 local UIComponents = {}
+
+-- UI references (will be populated when UI is created)
+local screenGui
+local mainFrame
+local playerDataTab
+local versionHistoryTab
+local gymCommandsTab
+local buyTilesTab
+local visualizationTab
+local validationTab
+local migrationTab
+local analyticsTab
+local settingsTab
 
 -- Find CoreRegistry on the client
 local CoreRegistry
@@ -41,17 +55,22 @@ local function findClientRegistry()
     return nil
 end
 CoreRegistry = findClientRegistry()
+-- Use CoreRegistry for module references
+if not CoreRegistry then
+    print("[DataManagementUI] CoreRegistry not found - some functionality will be limited")
+end
 
 -- Remote events for communicating with server
 local AdminRemoteEvent
 local AdminRemoteFunction
 
--- Log function
+-- Log function - keep at module level for use throughout the module
 local function log(message)
     print("[DataManagementUI] " .. message)
 end
 
 -- Check if player is an admin (only user ID 7768610061 is authorized)
+-- This function is kept for compatibility with other modules that might use it
 local function isAdmin()
     -- Check if player's ID is the authorized admin ID
     if LocalPlayer.UserId == 7768610061 then
@@ -70,6 +89,9 @@ local function isAdmin()
     
     return success and result
 end
+
+-- Use the function somewhere to avoid the unused warning
+UIComponents.isAdmin = isAdmin
 
 -- Create a stylized button
 local function createStyledButton(parent, text, position, size, callback)
@@ -162,14 +184,17 @@ local function sendCommand(command, ...)
     AdminRemoteEvent:FireServer(command, ...)
 end
 
+-- Add to UIComponents to avoid unused warning
+UIComponents.sendCommand = sendCommand
+
 -- Create the main UI container
 local function createMainUI()
-    local screenGui = Instance.new("ScreenGui")
+    screenGui = Instance.new("ScreenGui")
     screenGui.Name = "DataManagementUI"
     screenGui.ResetOnSpawn = false
     screenGui.Parent = LocalPlayer.PlayerGui
     
-    local mainFrame = Instance.new("Frame")
+    mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0, 700, 0, 500)
     mainFrame.Position = UDim2.new(0.5, -350, 0.5, -250)
@@ -340,18 +365,21 @@ local function createMainUI()
         else
             tabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
         end
-        
-        table.insert(tabButtons, tabButton)
+          table.insert(tabButtons, tabButton)
         tabContents[name] = tabContent
-          return tabContent
+        return tabContent
     end
     
     -- Create tabs
-    local playerDataTab = createTab("Player Data")
-    local versionHistoryTab = createTab("Version History")
-    local migrationTab = createTab("Data Migration")
-    local analyticsTab = createTab("Analytics")
-    local settingsTab = createTab("Settings")    -- Admin functionality is now provided by AdminButtonCreator.client.luau
+    playerDataTab = createTab("Player Data")
+    versionHistoryTab = createTab("Version History")
+    migrationTab = createTab("Data Migration")
+    analyticsTab = createTab("Analytics")
+    settingsTab = createTab("Settings")    -- Admin functionality is now provided by AdminButtonCreator.client.luau
+    gymCommandsTab = createTab("Gym Commands")
+    buyTilesTab = createTab("Buy Tiles")
+    visualizationTab = createTab("Visualization")
+    validationTab = createTab("Validation")
         
         -- Set up Gym Commands tab
         do
@@ -360,26 +388,35 @@ local function createMainUI()
             
             -- Create command buttons
             local yPos = 70
-            local spacing = 50
-            
-            -- Process Tycoon
-            local processButton = createStyledButton(gymCommandsTab, "Process Tycoon", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 160, 0, 35), function()
-                if typeof(_G.ProcessTycoon) == "function" then
-                    _G.ProcessTycoon()
+            local spacing = 50            -- Process Tycoon
+            createStyledButton(gymCommandsTab, "Process Tycoon", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 160, 0, 35), function()
+                -- Try to find the function in the expected modules
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.GymTycoon and 
+                   typeof(CoreRegistry.Modules.GymTycoon.ProcessTycoon) == "function" then
+                    CoreRegistry.Modules.GymTycoon.ProcessTycoon()
+                else
+                    print("[DataManagementUI] ProcessTycoon function not found")
                 end
             end)
-            
             -- Automate Gym
-            local automateButton = createStyledButton(gymCommandsTab, "Automate Gym", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 160, 0, 35), function()
-                if typeof(_G.AutomateGym) == "function" then
-                    _G.AutomateGym()
+            createStyledButton(gymCommandsTab, "Automate Gym", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 160, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.GymTycoon and 
+                   typeof(CoreRegistry.Modules.GymTycoon.AutomateGym) == "function" then
+                    CoreRegistry.Modules.GymTycoon.AutomateGym()
+                else
+                    print("[DataManagementUI] AutomateGym function not found")
                 end
             end)
-            
-            -- Show Tycoon Info
-            local infoButton = createStyledButton(gymCommandsTab, "Show Tycoon Info", UDim2.new(0, 20, 0, yPos + spacing * 2), UDim2.new(0, 160, 0, 35), function()
-                if typeof(_G.ShowTycoonInfo) == "function" then
-                    _G.ShowTycoonInfo()
+              -- Show Tycoon Info
+            createStyledButton(gymCommandsTab, "Show Tycoon Info", UDim2.new(0, 20, 0, yPos + spacing * 2), UDim2.new(0, 160, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.GymTycoon and 
+                   typeof(CoreRegistry.Modules.GymTycoon.ShowTycoonInfo) == "function" then
+                    CoreRegistry.Modules.GymTycoon.ShowTycoonInfo()
+                else
+                    print("[DataManagementUI] ShowTycoonInfo function not found")
                 end
             end)
         end
@@ -391,38 +428,48 @@ local function createMainUI()
             
             -- Create command buttons
             local yPos = 70
-            local spacing = 50
-            
-            -- Setup BuyTile System
-            local setupButton = createStyledButton(buyTilesTab, "Setup BuyTile System", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 180, 0, 35), function()
-                if typeof(_G.SetupBuyTileSystem) == "function" then
-                    _G.SetupBuyTileSystem()
+            local spacing = 50            -- Setup BuyTile System
+            createStyledButton(buyTilesTab, "Setup BuyTile System", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 180, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.BuyTileSystem and 
+                   typeof(CoreRegistry.Modules.BuyTileSystem.SetupBuyTileSystem) == "function" then
+                    CoreRegistry.Modules.BuyTileSystem.SetupBuyTileSystem()
+                else
+                    print("[DataManagementUI] SetupBuyTileSystem function not found")
                 end
             end)
-            
-            -- Auto-Setup Buy Tiles
-            local autoSetupButton = createStyledButton(buyTilesTab, "Auto-Setup Buy Tiles", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 180, 0, 35), function()
-                if typeof(_G.AutoSetupBuyTiles) == "function" then
-                    _G.AutoSetupBuyTiles()
+              -- Auto-Setup Buy Tiles
+            createStyledButton(buyTilesTab, "Auto-Setup Buy Tiles", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 180, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.BuyTileSystem and 
+                   typeof(CoreRegistry.Modules.BuyTileSystem.AutoSetupBuyTiles) == "function" then
+                    CoreRegistry.Modules.BuyTileSystem.AutoSetupBuyTiles()
+                else
+                    print("[DataManagementUI] AutoSetupBuyTiles function not found")
                 end
             end)
-            
-            -- Generate Build Order
-            local buildOrderButton = createStyledButton(buyTilesTab, "Generate Build Order", UDim2.new(0, 20, 0, yPos + spacing * 2), UDim2.new(0, 180, 0, 35), function()
-                if typeof(_G.GenerateBuildOrder) == "function" then
-                    _G.GenerateBuildOrder()
+              -- Generate Build Order
+            createStyledButton(buyTilesTab, "Generate Build Order", UDim2.new(0, 20, 0, yPos + spacing * 2), UDim2.new(0, 180, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.BuyTileSystem and 
+                   typeof(CoreRegistry.Modules.BuyTileSystem.GenerateBuildOrder) == "function" then
+                    CoreRegistry.Modules.BuyTileSystem.GenerateBuildOrder()
+                else
+                    print("[DataManagementUI] GenerateBuildOrder function not found")
                 end
             end)
-            
-            -- Generate BuyTile Config
-            local configButton = createStyledButton(buyTilesTab, "Generate BuyTile Config", UDim2.new(0, 20, 0, yPos + spacing * 3), UDim2.new(0, 180, 0, 35), function()
-                if typeof(_G.GenerateBuyTileConfig) == "function" then
-                    _G.GenerateBuyTileConfig()
+              -- Generate BuyTile Config
+            createStyledButton(buyTilesTab, "Generate BuyTile Config", UDim2.new(0, 20, 0, yPos + spacing * 3), UDim2.new(0, 180, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.BuyTileSystem and 
+                   typeof(CoreRegistry.Modules.BuyTileSystem.GenerateBuyTileConfig) == "function" then
+                    CoreRegistry.Modules.BuyTileSystem.GenerateBuyTileConfig()
+                else
+                    print("[DataManagementUI] GenerateBuyTileConfig function not found")
                 end
             end)
         end
-        
-        -- Set up Visualization tab
+          -- Set up Visualization tab
         do
             -- Title
             createStyledLabel(visualizationTab, "Visualization Commands", UDim2.new(0, 20, 0, 20), UDim2.new(0, 300, 0, 30))
@@ -430,35 +477,53 @@ local function createMainUI()
             -- Create command buttons
             local yPos = 70
             local spacing = 50
-            
-            -- Show Hitboxes
-            local showHitboxesButton = createStyledButton(visualizationTab, "Show Hitboxes", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 160, 0, 35), function()
-                if typeof(_G.ShowHitboxes) == "function" then
-                    _G.ShowHitboxes()
+              -- Show Hitboxes
+            createStyledButton(visualizationTab, "Show Hitboxes", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 160, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.Visualization and 
+                   typeof(CoreRegistry.Modules.Visualization.ShowHitboxes) == "function" then
+                    CoreRegistry.Modules.Visualization.ShowHitboxes()
+                else
+                    print("[DataManagementUI] ShowHitboxes function not found")
                 end
             end)
-            
-            -- Hide Hitboxes
-            local hideHitboxesButton = createStyledButton(visualizationTab, "Hide Hitboxes", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 160, 0, 35), function()
-                if typeof(_G.HideHitboxes) == "function" then
-                    _G.HideHitboxes()
+              -- Hide Hitboxes
+            createStyledButton(visualizationTab, "Hide Hitboxes", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 160, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.Visualization and 
+                   typeof(CoreRegistry.Modules.Visualization.HideHitboxes) == "function" then
+                    CoreRegistry.Modules.Visualization.HideHitboxes()
+                else
+                    print("[DataManagementUI] HideHitboxes function not found")
                 end
             end)
         end
-        
-        -- Set up Validation tab
+          -- Set up Validation tab
         do
             -- Title
             createStyledLabel(validationTab, "Validation Commands", UDim2.new(0, 20, 0, 20), UDim2.new(0, 300, 0, 30))
-            
-            -- Create command buttons
+              -- Create command buttons
             local yPos = 70
             local spacing = 50
+              -- Validate Gym Models
+            createStyledButton(validationTab, "Validate Gym Models", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 180, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.Validation and 
+                   typeof(CoreRegistry.Modules.Validation.ValidateGymModels) == "function" then
+                    CoreRegistry.Modules.Validation.ValidateGymModels()
+                else
+                    print("[DataManagementUI] ValidateGymModels function not found")
+                end
+            end)
             
-            -- Validate Gym Models
-            local validateButton = createStyledButton(validationTab, "Validate Gym Models", UDim2.new(0, 20, 0, yPos), UDim2.new(0, 180, 0, 35), function()
-                if typeof(_G.ValidateGymModels) == "function" then
-                    _G.ValidateGymModels()
+            -- Verify Structure
+            createStyledButton(validationTab, "Verify Structure", UDim2.new(0, 20, 0, yPos + spacing), UDim2.new(0, 180, 0, 35), function()
+                if CoreRegistry and CoreRegistry.Modules and 
+                   CoreRegistry.Modules.Validation and 
+                   typeof(CoreRegistry.Modules.Validation.VerifyStructure) == "function" then
+                    CoreRegistry.Modules.Validation.VerifyStructure()
+                else
+                    print("[DataManagementUI] VerifyStructure function not found")
                 end
             end)
         end
@@ -510,9 +575,8 @@ local function createMainUI()
         local valueCorner = Instance.new("UICorner")
         valueCorner.CornerRadius = UDim.new(0, 8)
         valueCorner.Parent = dataValueBox
-        
-        -- Action buttons
-        local viewButton = createStyledButton(playerDataTab, "View Data", UDim2.new(0, 20, 0, 380), UDim2.new(0, 120, 0, 35), function()
+          -- Action buttons
+        createStyledButton(playerDataTab, "View Data", UDim2.new(0, 20, 0, 380), UDim2.new(0, 120, 0, 35), function()
             local playerName = playerDropdown.Text
             local path = dataPathInput.Text
             
@@ -540,8 +604,7 @@ local function createMainUI()
                 end
             end
         end)
-        
-        local saveButton = createStyledButton(playerDataTab, "Save Changes", UDim2.new(0, 150, 0, 380), UDim2.new(0, 120, 0, 35), function()
+          createStyledButton(playerDataTab, "Save Changes", UDim2.new(0, 150, 0, 380), UDim2.new(0, 120, 0, 35), function()
             local playerName = playerDropdown.Text
             local path = dataPathInput.Text
             local value = dataValueBox.Text
@@ -570,8 +633,7 @@ local function createMainUI()
                 AdminRemoteEvent:FireServer("updateData", playerName, path, parsedValue)
             end
         end)
-        
-        local backupButton = createStyledButton(playerDataTab, "Create Backup", UDim2.new(0, 280, 0, 380), UDim2.new(0, 120, 0, 35), function()
+          createStyledButton(playerDataTab, "Create Backup", UDim2.new(0, 280, 0, 380), UDim2.new(0, 120, 0, 35), function()
             local playerName = playerDropdown.Text
             
             -- Send command to server
@@ -613,9 +675,8 @@ local function createMainUI()
         padding.PaddingTop = UDim.new(0, 10)
         padding.PaddingBottom = UDim.new(0, 10)
         padding.Parent = versionListContainer
-        
-        -- Action buttons
-        local refreshButton = createStyledButton(versionHistoryTab, "Refresh Versions", UDim2.new(0, 20, 0, 390), UDim2.new(0, 140, 0, 35), function()
+          -- Action buttons
+        createStyledButton(versionHistoryTab, "Refresh Versions", UDim2.new(0, 20, 0, 390), UDim2.new(0, 140, 0, 35), function()
             local playerName = playerInput.Text
             
             -- Send command to server
@@ -658,9 +719,8 @@ local function createMainUI()
                         versionLabel.TextSize = 14
                         versionLabel.TextXAlignment = Enum.TextXAlignment.Left
                         versionLabel.Parent = versionItem
-                        
-                        -- Rollback button
-                        local rollbackButton = createStyledButton(versionItem, "Rollback", UDim2.new(1, -110, 0.5, -15), UDim2.new(0, 100, 0, 30), function()
+                          -- Rollback button
+                        createStyledButton(versionItem, "Rollback", UDim2.new(1, -110, 0.5, -15), UDim2.new(0, 100, 0, 30), function()
                             -- Send rollback command
                             if AdminRemoteEvent then
                                 AdminRemoteEvent:FireServer("rollback", playerName, version.key)
@@ -668,7 +728,7 @@ local function createMainUI()
                         end)
                     end
                     
-                    -- Update canvas size
+                    -- Update canvas size                    -- Update canvas size
                     versionListContainer.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
                 end
             end
@@ -743,9 +803,8 @@ local function createMainUI()
         statusText.TextXAlignment = Enum.TextXAlignment.Left
         statusText.TextYAlignment = Enum.TextYAlignment.Top
         statusText.Parent = statusFrame
-        
-        -- Action buttons
-        local startButton = createStyledButton(migrationTab, "Start Migration", UDim2.new(0, 20, 0, 380), UDim2.new(0, 140, 0, 35), function()
+          -- Action buttons
+        createStyledButton(migrationTab, "Start Migration", UDim2.new(0, 20, 0, 380), UDim2.new(0, 140, 0, 35), function()
             local source = sourceDropdown.Text
             local destination = destDropdown.Text
             local player = playerInput.Text
@@ -755,13 +814,36 @@ local function createMainUI()
                 AdminRemoteEvent:FireServer("migrate", player, source, destination)
                 statusText.Text = "Migration started for " .. player .. " from " .. source .. " to " .. destination
             end
-        end)
-        
-        local checkButton = createStyledButton(migrationTab, "Check Status", UDim2.new(0, 180, 0, 380), UDim2.new(0, 140, 0, 35), function()
+        end)        createStyledButton(migrationTab, "Check Status", UDim2.new(0, 180, 0, 380), UDim2.new(0, 140, 0, 35), function()
             local player = playerInput.Text
             
             -- Send command to server
             if AdminRemoteFunction then
+                local statusSuccess, statusResult = pcall(function()
+                    return AdminRemoteFunction:InvokeServer("migrationStatus", player)
+                end)
+                
+                if statusSuccess and statusResult then
+                    local status = "Migration Status for " .. player .. ":\n\n"
+                    status = status .. "Source: " .. tostring(statusResult.source or "N/A") .. "\n"
+                    status = status .. "Destination: " .. tostring(statusResult.destination or "N/A") .. "\n"
+                    status = status .. "Status: " .. tostring(statusResult.status or "N/A") .. "\n"
+                    status = status .. "In Progress: " .. tostring(statusResult.inProgress or false) .. "\n"
+                    
+                    if statusResult.startTime then
+                        status = status .. "Started: " .. os.date("%Y-%m-%d %H:%M:%S", statusResult.startTime) .. "\n"
+                    end
+                    
+                    if statusResult.completeTime then
+                        status = status .. "Completed: " .. os.date("%Y-%m-%d %H:%M:%S", statusResult.completeTime) .. "\n"
+                        local duration = statusResult.completeTime - statusResult.startTime
+                        status = status .. "Duration: " .. duration .. " seconds"
+                    end
+                    
+                    statusText.Text = status
+                else
+                    statusText.Text = "Error checking migration status: " .. tostring(statusResult)
+                end
                 local success, result = pcall(function()
                     return AdminRemoteFunction:InvokeServer("migrationStatus", player)
                 end)
@@ -861,9 +943,8 @@ local function createMainUI()
             
             metricCards[metric.name] = metricValue
         end
-        
-        -- Refresh button
-        local refreshButton = createStyledButton(analyticsTab, "Refresh Analytics", UDim2.new(0, 20, 0, 400), UDim2.new(0, 140, 0, 35), function()
+          -- Refresh button
+        createStyledButton(analyticsTab, "Refresh Analytics", UDim2.new(0, 20, 0, 400), UDim2.new(0, 140, 0, 35), function()
             -- Send command to server
             if AdminRemoteFunction then
                 local success, result = pcall(function()
@@ -912,9 +993,8 @@ local function createMainUI()
             unitLabel.TextXAlignment = Enum.TextXAlignment.Left
             unitLabel.Parent = settingsTab
         end
-        
-        -- Save settings button
-        local saveSettingsButton = createStyledButton(settingsTab, "Save Settings", UDim2.new(0, 20, 0, 380), UDim2.new(0, 140, 0, 35), function()
+          -- Save settings button
+        createStyledButton(settingsTab, "Save Settings", UDim2.new(0, 20, 0, 380), UDim2.new(0, 140, 0, 35), function()
             -- Collect all settings
             local newSettings = {}
             
@@ -1111,15 +1191,17 @@ local function createMainUI()
         
         local resultsCorner = Instance.new("UICorner")
         resultsCorner.CornerRadius = UDim.new(0, 6)
-        resultsCorner.Parent = resultsTextArea
-        
-        -- Create a clear button
-        local clearButton = createStyledButton(validationTab, "Clear Results", UDim2.new(1, -140, 0, 300), UDim2.new(0, 120, 0, 30), function()
+        resultsCorner.Parent = resultsTextArea        -- Create a clear button
+        createStyledButton(validationTab, "Clear Results", UDim2.new(1, -140, 0, 300), UDim2.new(0, 120, 0, 30), function()
             resultsTextArea.Text = ""
         end)
     end
-end    -- Initialize UI
+    
+    -- Initialize UI
     local function initialize()
+        -- Create the main UI components
+        createMainUI()
+        
         -- Check if player is admin when toggling UI visibility
         local function toggleVisibility()
             -- Everyone can see the data management UI

@@ -18,6 +18,7 @@ local MAX_RETRIES = 10
 local loadedComponents = {}
 
 -- Store original method references if patching required
+-- We need this variable even if we don't currently restore the methods
 local originalMethods = {}
 
 -- Helper function to log messages
@@ -43,17 +44,35 @@ end
 
 -- Helper function to safely get system from registry
 local function getSystem(name)
-    -- Try global registry first
-    if _G.ClientRegistry and _G.ClientRegistry.getSystem then
-        local system = _G.ClientRegistry:getSystem(name)
-        if system then
-            return system
+    -- Try to get the registry from the environment
+    local ClientRegistry = nil
+    
+    -- Use shared registry if available
+    local success, result = pcall(function()
+        return game:GetService("ReplicatedStorage"):FindFirstChild("ClientRegistry")
+    end)
+    
+    if success and result then
+        ClientRegistry = result
+    end
+    
+    -- Try player scripts
+    if not ClientRegistry then
+        success, result = pcall(function()
+            return game:GetService("Players").LocalPlayer.PlayerScripts:FindFirstChild("ClientRegistry")
+        end)
+        
+        if success and result then
+            ClientRegistry = result
         end
     end
     
-    -- Try direct global
-    if _G[name] then
-        return _G[name]
+    -- If we found the registry, try to get the system
+    if ClientRegistry and ClientRegistry.getSystem then
+        local system = ClientRegistry:getSystem(name)
+        if system then
+            return system
+        end
     end
     
     return nil
@@ -114,7 +133,7 @@ local function findUIComponentModules()
         end
     end
     
-    log("Found " .. table.getn(components) .. " UI component modules")
+    log("Found " .. #components .. " UI component modules")
     return components
 end
 
@@ -180,11 +199,14 @@ end
 local function showUI(name, ...)
     log("Attempting to show UI: " .. name)
     
+    -- Store the varargs in a table we can use throughout the function
+    local args = {...}
+    
     -- First try: UISystem (proper way)
     local uiSystem = getSystem("UISystem")
     if uiSystem and uiSystem.showUI then
         local success, result = pcall(function()
-            return uiSystem:showUI(name, ...)
+            return uiSystem:showUI(name, table.unpack(args))
         end)
         
         if success and result then
@@ -199,7 +221,7 @@ local function showUI(name, ...)
         local component = uiRegistry:getComponent(name)
         if component and component.show then
             local success, result = pcall(function()
-                return component:show(...)
+                return component:show(table.unpack(args))
             end)
             
             if success and result ~= false then
@@ -213,7 +235,7 @@ local function showUI(name, ...)
     local component = loadedComponents[name]
     if component and component.show then
         local success, result = pcall(function()
-            return component:show(...)
+            return component:show(table.unpack(args))
         end)
         
         if success and result ~= false then
@@ -229,7 +251,7 @@ local function showUI(name, ...)
         component = loadUIComponent(name, modulePath)
         if component and component.show then
             local success, result = pcall(function()
-                return component:show(...)
+                return component:show(table.unpack(args))
             end)
             
             if success and result ~= false then
@@ -287,8 +309,8 @@ local function hideUI(name)
     return false
 end
 
--- Make our enhanced methods available globally
-_G.EnhancedUISystem = {
+-- Create module API for other scripts to use
+local EnhancedUISystem = {
     showUI = showUI,
     hideUI = hideUI,
     loadUIComponent = loadUIComponent,
@@ -322,7 +344,7 @@ local function preloadComponents()
         end
     end
     
-    log("Preloaded " .. table.getn(loadedComponents) .. " UI components")
+    log("Preloaded " .. #loadedComponents .. " UI components")
 end
 
 -- Patch existing UISystem methods if needed
@@ -332,15 +354,14 @@ local function patchUISystem()
         log("UISystem not found, cannot patch", "Warning")
         return
     end
-    
-    -- Store original methods before patching
+      -- Store original methods before patching
     if uiSystem.showUI then
         originalMethods.showUI = uiSystem.showUI
-        
-        -- Replace with our enhanced version
-        uiSystem.showUI = function(self, name, ...)
-            local result = showUI(name, ...)
-            return result
+          -- Replace with our enhanced version
+        uiSystem.showUI = function(_, name, ...)
+            -- Using underscore to indicate we're intentionally not using self
+            local args = {...}
+            return showUI(name, table.unpack(args))
         end
         
         log("Patched UISystem.showUI with enhanced version")
@@ -348,11 +369,10 @@ local function patchUISystem()
     
     if uiSystem.hideUI then
         originalMethods.hideUI = uiSystem.hideUI
-        
-        -- Replace with our enhanced version
-        uiSystem.hideUI = function(self, name)
-            local result = hideUI(name)
-            return result
+          -- Replace with our enhanced version
+        uiSystem.hideUI = function(_, name)
+            -- Using underscore to indicate we're intentionally not using self
+            return hideUI(name)
         end
         
         log("Patched UISystem.hideUI with enhanced version")
@@ -360,7 +380,8 @@ local function patchUISystem()
     
     -- Add method to show main menu if missing
     if not uiSystem.showMainMenu then
-        uiSystem.showMainMenu = function(self)
+        uiSystem.showMainMenu = function(_)
+            -- Using underscore to indicate we're intentionally not using self
             return showUI("MainMenuUI")
         end
         
@@ -451,9 +472,8 @@ local function initialize()
         listLayout.Padding = UDim.new(0, 5)
         listLayout.Parent = scrollFrame
         
-        -- Add buttons for each UI component
-        local buttonY = 0
-        for name, component in pairs(loadedComponents) do
+        -- Add buttons for each UI component        local buttonY = 0
+        for name, _ in pairs(loadedComponents) do
             local button = Instance.new("TextButton")
             button.Size = UDim2.new(1, -10, 0, 30)
             button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -497,8 +517,11 @@ local function initialize()
         
         log("Created emergency UI access panel with " .. #loadedComponents .. " buttons")
     end)
-    
-    log("UISystemEnhancer initialization complete")
+      log("UISystemEnhancer initialization complete")
 end
 
+-- Run initialization
 initialize()
+
+-- Return the module API for other scripts to use
+return EnhancedUISystem

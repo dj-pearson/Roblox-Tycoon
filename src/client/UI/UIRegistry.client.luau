@@ -7,6 +7,7 @@
     Updated April 2025 as part of critical fixes implementation
 ]]
 
+-- Service declarations for future use
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -14,8 +15,25 @@ local TweenService = game:GetService("TweenService")
 -- UI Registry Module
 local UIRegistry = {}
 
+-- Prevent unused variable warnings
+UIRegistry._services = {
+    ReplicatedStorage = ReplicatedStorage,
+    Players = Players,
+    TweenService = TweenService
+}
+
 -- Component storage
 UIRegistry.components = {}
+
+-- Screen management
+UIRegistry.activeScreens = {}
+
+-- Transition configuration
+UIRegistry.transitions = {
+    defaultTransition = "fade",
+    defaultDuration = 0.3,
+    enabled = true
+}
 
 -- Debug logger
 local function log(message)
@@ -36,25 +54,25 @@ function UIRegistry.registerComponent(id, component)
     
     -- Store component
     UIRegistry.components[id] = component
-    log("Registered UI component: " .. id){}
+    log("Registered UI component: " .. id)
     return true
 end
 
--- Get a registered componentIRegistry.activeScreens = {}
-function UIRegistry.getComponent(id)UIRegistry.transitions = {}
+-- Get a registered component
+function UIRegistry.getComponent(id)
     if not id or not UIRegistry.components[id] then
         return nil
     end
     
-    return UIRegistry.components[id]ransition = "fade",
-endultDuration = 0.3,
-,
--- Initialize the registry
-function UIRegistry.initialize()bled = true,
-    log("UIRegistry initialized successfully") true
+    return UIRegistry.components[id]
 end
 
--- Initialize on module load-- Debug logger
-UIRegistry.initialize()nfiguration
+-- Initialize the registry
+function UIRegistry.initialize()
+    log("UIRegistry initialized successfully")
+end
+
+-- Initialize on module load
+UIRegistry.initialize()
 
 return UIRegistry
