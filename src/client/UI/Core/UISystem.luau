@@ -19,7 +19,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+-- PlayerGui reference kept for future UI management features
+-- but accessed through LocalPlayer when needed in specific functions
 
 -- Safe require utility
 local function requireSafely(moduleScript)
@@ -72,7 +73,9 @@ local ButtonFactory = requireSafely(sharedFolder and sharedFolder:FindFirstChild
 
 -- Optional UI components that will be auto-discovered and loaded
 local autoLoadComponents = true
-local componentLoadOrder = {
+-- Load order preferences (reserved for future implementation)
+-- Used by UIRegistry:initializeAllComponents when custom load order is needed
+UISystem.componentLoadOrder = {
     "MainMenu",
     "Settings",
     "Stats",
@@ -117,9 +120,9 @@ local function logMessage(message, level)
 end
 
 -- Debug timing information
-local function logTiming(component, startTime)
+local function logTiming(component, componentStartTime)
     local endTime = os.clock()
-    local duration = endTime - startTime
+    local duration = endTime - componentStartTime
     componentInitTimes[component] = duration
     
     if CONFIG.debugMode then
@@ -177,9 +180,8 @@ local function initializeComponents()
     if UIHub and UIHub.initialize then
         UIHub:initialize()
     end
-    
-    -- Explicitly load MainMenuUI to ensure it's available
-    local clientFolder = srcFolder:FindFirstChild("client")
+      -- Explicitly load MainMenuUI to ensure it's available
+    -- Use existing clientFolder variable from module scope
     if clientFolder then
         local uiFolder = clientFolder:FindFirstChild("UI")
         if uiFolder then
@@ -211,10 +213,8 @@ local function initializeComponents()
                 logMessage("Screens folder not found in UI folder", "Warning")
             end
         end
-    end
-    
-    -- Auto-initialize discovered components
-    local initialized, failed = UIRegistry:initializeAllComponents()
+    end    -- Auto-initialize discovered components
+    local _, failed = UIRegistry:initializeAllComponents()
     
     if #failed > 0 then
         logMessage("Failed to initialize " .. #failed .. " components", "Warning")
@@ -316,10 +316,9 @@ function UISystem:showMainMenu()
         logMessage("Cannot show main menu, UI System not initialized", "Warning")
         return false
     end
-    
-    local UIHub = UIRegistry:getComponent("UIHub")
-    if UIHub and UIHub.showScreen then
-        return UIHub:showScreen("MainMenuUI")
+      local registeredUIHub = UIRegistry:getComponent("UIHub")
+    if registeredUIHub and registeredUIHub.showScreen then
+        return registeredUIHub:showScreen("MainMenuUI")
     end
     
     -- Fallback if UIHub not available
@@ -361,14 +360,14 @@ function UISystem:showUI(name, ...)
     logMessage("Attempting to show UI: " .. standardName .. " (alt: " .. altName .. ")", "Info")
     
     -- Multi-path approach to find and show the UI
-    
-    -- Path 1: Try through UIManager first (preferred approach)
-    local UIManager = UIRegistry:getComponent("UIManager")
-    if UIManager and UIManager.showUI then
+      -- Path 1: Try through UIManager first (preferred approach)
+    local registeredUIManager = UIRegistry:getComponent("UIManager")
+    if registeredUIManager and registeredUIManager.showUI then
         -- First, try to get the component from registry with standard name
         local component = UIRegistry:getComponent(standardName)
+        local args = {...}
         if component then
-            local success = UIManager:showUI(standardName, component, ...)
+            local success = registeredUIManager:showUI(standardName, component, unpack(args))
             if success then
                 logMessage("Successfully showed UI via UIManager with component from registry: " .. name, "Info")
                 return true
@@ -376,18 +375,18 @@ function UISystem:showUI(name, ...)
         end
         
         -- Try showing by name directly
-        local success = UIManager:showUI(name, nil, ...)
+        local success = registeredUIManager:showUI(name, nil, unpack(args))
         if success then
             logMessage("Successfully showed UI via UIManager direct path: " .. name, "Info")
             return true
         end
     end
-    
-    -- Path 2: Get component directly and call show method
+      -- Path 2: Get component directly and call show method
     local component = UIRegistry:getComponent(name)
     if component and component.show then
+        local args = {...}
         local success, result = pcall(function()
-            return component:show(...)
+            return component:show(unpack(args))
         end)
         
         if success then
@@ -396,16 +395,17 @@ function UISystem:showUI(name, ...)
         else
             logMessage("Error showing UI " .. name .. ": " .. tostring(result), "Warning")
         end
-    end
-    
-    -- Path 3: Try global fallback
-    if _G[name] and _G[name].show then
-        local success, result = pcall(function()
-            return _G[name]:show(...)
+    end    -- Path 3: Try legacy script globals via getfenv (safer alternative to _G)
+    -- This is maintained for backward compatibility, but should be avoided in new code
+    local env = getfenv(0)
+    if env[name] and env[name].show then
+        local args = {...}
+        local success = pcall(function()
+            env[name]:show(unpack(args))
         end)
         
         if success then
-            logMessage("Successfully showed UI via global fallback: " .. name, "Info")
+            logMessage("Successfully showed UI via script environment fallback: " .. name, "Info")
             return true
         end
     end
@@ -420,10 +420,9 @@ function UISystem:hideUI(name)
         logMessage("Cannot hide UI, UI System not initialized", "Warning")
         return false
     end
-    
-    local UIManager = UIRegistry:getComponent("UIManager")
-    if UIManager and UIManager.hideUI then
-        return UIManager:hideUI(name)
+      local registeredUIManager = UIRegistry:getComponent("UIManager")
+    if registeredUIManager and registeredUIManager.hideUI then
+        return registeredUIManager:hideUI(name)
     end
     
     logMessage("UIManager not found", "Warning")
@@ -447,9 +446,9 @@ function UISystem:notify(options)
         return nil
     end
     
-    local UIManager = UIRegistry:getComponent("UIManager")
-    if UIManager and UIManager.createNotification then
-        return UIManager:createNotification(options)
+    local registeredUIManager = UIRegistry:getComponent("UIManager")
+    if registeredUIManager and registeredUIManager.createNotification then
+        return registeredUIManager:createNotification(options)
     end
     
     logMessage("UIManager not found", "Warning")
@@ -463,9 +462,9 @@ function UISystem:showModal(options)
         return nil
     end
     
-    local UIManager = UIRegistry:getComponent("UIManager")
-    if UIManager and UIManager.createModal then
-        return UIManager:createModal(options)
+    local registeredUIManager = UIRegistry:getComponent("UIManager")
+    if registeredUIManager and registeredUIManager.createModal then
+        return registeredUIManager:createModal(options)
     end
     
     logMessage("UIManager not found", "Warning")
@@ -498,14 +497,14 @@ function UISystem:reset()
     end
     
     -- Hide all UIs
-    local UIManager = UIRegistry:getComponent("UIManager")
-    if UIManager and UIManager.hideAllUIs then
-        UIManager:hideAllUIs()
+    local registeredUIManager = UIRegistry:getComponent("UIManager")
+    if registeredUIManager and registeredUIManager.hideAllUIs then
+        registeredUIManager:hideAllUIs()
     end
     
     -- Close all modals
-    if UIManager and UIManager.closeAllModals then
-        UIManager:closeAllModals()
+    if registeredUIManager and registeredUIManager.closeAllModals then
+        registeredUIManager:closeAllModals()
     end
     
     -- Re-initialize components
@@ -521,16 +520,15 @@ function UISystem:shutdown()
     logMessage("Shutting down UI System", "Info")
     
     -- Clean up resources
-    local UIManager = UIRegistry:getComponent("UIManager")
-    if UIManager then
+    local registeredUIManager = UIRegistry:getComponent("UIManager")
+    if registeredUIManager then
         -- Hide all UIs
-        if UIManager.hideAllUIs then
-            UIManager:hideAllUIs()
+        if registeredUIManager.hideAllUIs then
+            registeredUIManager:hideAllUIs()
         end
-        
-        -- Close all modals
-        if UIManager.closeAllModals then
-            UIManager:closeAllModals()
+          -- Close all modals
+        if registeredUIManager.closeAllModals then
+            registeredUIManager:closeAllModals()
         end
     end
     

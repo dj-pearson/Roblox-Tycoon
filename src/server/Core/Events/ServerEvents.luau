@@ -175,8 +175,7 @@ function ServerEvents:_initializePlayerEvents(player: Player)
         
         -- Set up humanoid events
         local humanoid = character:WaitForChild("Humanoid", 5)
-        if humanoid then
-            -- Connect to humanoid events
+        if humanoid then        -- Connect to humanoid events
             humanoid.Died:Connect(function()
                 self:emit("player.died", {
                     player = player,
@@ -189,7 +188,7 @@ function ServerEvents:_initializePlayerEvents(player: Player)
             end)
         end
     end)
-}
+end
 
 -- Clean up events for a specific player
 function ServerEvents:_cleanupPlayerEvents(player: Player)
@@ -204,10 +203,9 @@ function ServerEvents:_cleanupPlayerEvents(player: Player)
             subscription:unsubscribe()
         end
     end
-    
-    -- Remove the player events entry
+      -- Remove the player events entry
     self.playerEvents[player.UserId] = nil
-}
+end
 
 -- Check if a player is authorized for an action
 function ServerEvents:_isPlayerAuthorized(player: Player, permission: string): boolean
@@ -221,8 +219,7 @@ function ServerEvents:_isPlayerAuthorized(player: Player, permission: string): b
     if player:GetAttribute("IsAdmin") == true then
         return true
     end
-    
-    -- Could check a permissions table, group membership, etc.
+      -- Could check a permissions table, group membership, etc.
     return false
 end
 
@@ -236,12 +233,11 @@ function ServerEvents:_logEvent(event: Event)
         data = event.data,
         source = event.source
     })
-    
-    -- Trim log if too large
+      -- Trim log if too large
     while #self.eventLog > self.maxEventLogSize do
         table.remove(self.eventLog, 1)
     end
-}
+end
 
 --[[ Public Server-specific API ]]--
 

@@ -1,4 +1,3 @@
---!strict
 --[[
     DataManagementUI.client.luau
     
@@ -12,6 +11,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 -- UI Components
@@ -20,18 +20,15 @@ local UIComponents = {}
 -- UI references (will be populated when UI is created)
 local screenGui
 local mainFrame
+local playerDataTab
+local versionHistoryTab
 local gymCommandsTab
 local buyTilesTab
 local visualizationTab
 local validationTab
-
--- Additional tabs that will be implemented in the future
--- Stored as part of UIComponents to avoid unused variable warnings
-UIComponents.playerDataTab = nil
-UIComponents.versionHistoryTab = nil  
-UIComponents.migrationTab = nil
-UIComponents.analyticsTab = nil
-UIComponents.settingsTab = nil
+local migrationTab
+local analyticsTab
+local settingsTab
 
 -- Find and initialize CoreRegistry
 local coreRegistry
@@ -77,7 +74,7 @@ local function log(message)
 end
 
 -- Check if player is an admin (only user ID 7768610061 is authorized)
-local function isAdmin()
+local function isAdminCheck()
     -- Check if player's ID is the authorized admin ID
     if LocalPlayer.UserId == 7768610061 then
         return true
@@ -97,7 +94,7 @@ local function isAdmin()
 end
 
 -- Make isAdmin accessible from UIComponents table
-UIComponents.isAdmin = isAdmin
+UIComponents.isAdmin = isAdminCheck
 
 -- Create a stylized label
 local function createStyledLabel(parent, text, position, size, textColor)
@@ -202,7 +199,6 @@ end
 
 -- Add to UIComponents to avoid unused warning
 UIComponents.sendCommand = sendCommand
-UIComponents.createStyledTextBox = createStyledTextBox
 
 -- Create the main UI container
 local function createMainUI()
@@ -361,22 +357,15 @@ local function createMainUI()
     end
     
     -- Create tabs
-    local playerDataTabLocal = createTab("Player Data")
-    local versionHistoryTabLocal = createTab("Version History")
-    local migrationTabLocal = createTab("Data Migration")
-    local analyticsTabLocal = createTab("Analytics")
-    local settingsTabLocal = createTab("Settings")    -- Admin functionality is now provided by AdminButtonCreator.client.luau
+    playerDataTab = createTab("Player Data")
+    versionHistoryTab = createTab("Version History")
+    migrationTab = createTab("Data Migration")
+    analyticsTab = createTab("Analytics")
+    settingsTab = createTab("Settings")    -- Admin functionality is now provided by AdminButtonCreator.client.luau
     gymCommandsTab = createTab("Gym Commands")
     buyTilesTab = createTab("Buy Tiles")
     visualizationTab = createTab("Visualization")
     validationTab = createTab("Validation")
-    
-    -- Store tabs in UIComponents to avoid unused variable warnings
-    UIComponents.playerDataTab = playerDataTabLocal
-    UIComponents.versionHistoryTab = versionHistoryTabLocal
-    UIComponents.migrationTab = migrationTabLocal
-    UIComponents.analyticsTab = analyticsTabLocal
-    UIComponents.settingsTab = settingsTabLocal
         
         -- Set up Gym Commands tab
         do

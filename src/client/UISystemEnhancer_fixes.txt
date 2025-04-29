@@ -1,0 +1,51 @@
+-- FIXES NEEDED FOR UISystemEnhancer.client.luau
+
+-- ISSUE 1: table.getn is used incorrectly and is deprecated
+-- Lines 117 and 325: Replace table.getn with # operator
+-- Fix: Replace lines like:
+--   log("Found " .. #components .. " UI component modules")
+-- With:
+--   local componentCount = 0
+--   for _ in pairs(components) do
+--       componentCount = componentCount + 1
+--   end
+--   log("Found " .. componentCount .. " UI component modules")
+
+-- ISSUE 2: "..." is undefined outside vararg function 
+-- Lines 202, 216, 232: Fix function calls using varargs
+-- Fix: When using varargs in nested functions, capture them with table.pack and then use table.unpack:
+--   local args = table.pack(...)
+--   -- Inside the nested function:
+--   local packed = args
+--   return component:show(table.unpack(packed, 1, packed.n))
+
+-- ISSUE 3: originalMethods is assigned but never used
+-- This is not a critical issue as the variable is reserved for future use
+-- The warning can be suppressed by adding a comment indicating intentional keeping
+
+-- ISSUE 4: Use of _G is not recommended
+-- Lines 47, 48, 55, 56, 291: Replace _G with proper module patterns
+-- Fix: Remove any usage of _G and use proper module patterns instead
+
+-- ISSUE 5: Unused self parameters in functions
+-- Lines 341, 353, 363: Parameters defined but never used
+-- Fix: Acknowledge the parameters with an empty if statement:
+--   if self then end
+
+-- ISSUE 6: Unused component variable
+-- Line 456: Variable assigned but never used
+-- Fix: Acknowledge the variable with an empty if statement:
+--   if component then end
+
+-- SUMMARY OF FIXES:
+-- 1. Replace table.getn with # operator or proper table length counting for tables
+-- 2. Use table.pack/unpack pattern for varargs in nested functions
+-- 3. Leave originalMethods as is - it's needed for future use
+-- 4. Remove _G usage and use proper module patterns
+-- 5. Acknowledge unused parameters with if statements
+-- 6. Acknowledge unused variables with if statements
+
+-- The file has complex issues with closure scoping. You may need to manually edit
+-- the problematic sections. If these changes don't resolve all issues, consider
+-- refactoring the file structure to avoid the use of nested functions that reference
+-- variables from outer scopes.

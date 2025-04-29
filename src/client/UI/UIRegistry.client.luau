@@ -70,6 +70,15 @@ end
 -- Initialize the registry
 function UIRegistry.initialize()
     log("UIRegistry initialized successfully")
+    
+    -- Ensure transitions are properly configured
+    UIRegistry.transitions = {
+        defaultTransition = "fade",
+        defaultDuration = 0.3,
+        enabled = true
+    }
+    
+    return true
 end
 
 -- Initialize on module load

@@ -204,7 +204,7 @@ local function initialize()
     reportErrorToServer("Info", "ErrorHandlerClient initialized successfully", "ErrorHandlerClient", {
         timestamp = os.time()
     })
-}
+end
 
 -- Wait for game to load before initializing
 task.delay(CONFIG.initialDelay, initialize)

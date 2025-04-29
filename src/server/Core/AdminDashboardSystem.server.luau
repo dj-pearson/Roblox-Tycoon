@@ -23,7 +23,8 @@ refreshDataEvent.Name = "RefreshAdminData"
 refreshDataEvent.Parent = remotes
 
 local AdminDashboardSystem = {
-    -- Configuration    CONFIG = {
+    -- Configuration
+    CONFIG = {
         -- List of admin user IDs (only authorized admin)
         ADMIN_IDS = {
             7768610061, -- Only authorized admin
@@ -361,15 +362,20 @@ function AdminDashboardSystem:setupBuyTileSystem(player)
             return {success = false, message = "Failed to require GymPartsScanner module"}
         end
     end
-    
-    -- Last resort: Try to directly call the function in _G if available
+      -- Last resort: Try to find the function in the global environment
     local success, result = pcall(function()
-        local SetupBuyTileSystem = rawget(_G, "SetupBuyTileSystem")
-        if type(SetupBuyTileSystem) == "function" then
-            return SetupBuyTileSystem()
-        else
-            return false, "SetupBuyTileSystem global function not found"
+        -- Try to find it in ServerStorage first
+        local ServerStorage = game:GetService("ServerStorage")
+        local buyTileModule = ServerStorage:FindFirstChild("BuyTileSystemModule")
+        if buyTileModule and buyTileModule:IsA("ModuleScript") then
+            local module = require(buyTileModule)
+            if module and typeof(module.setupBuyTileSystem) == "function" then
+                return module.setupBuyTileSystem()
+            end
         end
+        
+        -- If we can't find it, just return failure
+        return false, "BuyTileSystemModule not found in ServerStorage"
     end)
     
     if success and result then

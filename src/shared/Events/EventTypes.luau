@@ -18,7 +18,8 @@
 -- Event priority constants
 export type EventPriority = number
 
-export const EventPriorities = {
+-- Event priorities
+local EventPriorities = {
     MONITOR = -100,     -- Monitor events only, should not modify
     LOWEST = 0,         -- Lowest priority, runs last
     LOW = 25,           -- Low priority
@@ -31,7 +32,8 @@ export const EventPriorities = {
 -- Event category constants
 export type EventCategory = string
 
-export const EventCategories = {
+-- Event categories
+local EventCategories = {
     SYSTEM = "system",      -- System events (internal)
     GAMEPLAY = "gameplay",  -- Gameplay events
     UI = "ui",              -- UI events
@@ -175,5 +177,9 @@ return {
     
     -- Factory functions
     createEvent = createEvent,
-    createHandlerInfo = createHandlerInfo
+    createHandlerInfo = createHandlerInfo,
+    
+    -- For type checking
+    EventPriorities = EventPriorities,
+    EventCategories = EventCategories
 }

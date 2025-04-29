@@ -82,8 +82,8 @@ local TypeValidators = {
         return typeof(value) == "function", "Expected function, got " .. typeof(value)
     end,
     
-    ["userdataObj"] = function(value)
-        return typeof(value) == string.char(117, 115, 101, 114, 100, 97, 116, 97), "Expected userdata object, got " .. typeof(value)
+    ["userdata"] = function(value)
+        return typeof(value) == "userdata", "Expected userdata, got " .. typeof(value)
     end,
     
     ["any"] = function(_)
@@ -665,8 +665,8 @@ function DataTypes.serialize(data)
                     className = v.ClassName,
                     name = v.Name
                 }
-        elseif typeof(v) == "function" or typeof(v) == "userdata" --[[ Changed to avoid invalid type name ]] then
-                -- Skip functions and userdata objects
+            elseif typeof(v) == "function" or typeof(v) == "userdata" then
+                -- Skip functions and userdata
                 result[k] = nil
             else
                 -- Primitive types can be stored directly
@@ -700,7 +700,8 @@ function DataTypes.serialize(data)
             __type = "Instance",
             className = data.ClassName,
             name = data.Name
-        }    elseif typeof(data) == "function" or typeof(data) == "custom_object" then
+        }
+    elseif typeof(data) == "function" or typeof(data) == "userdata" then
         -- Return nil for non-serializable types
         return nil
     else
