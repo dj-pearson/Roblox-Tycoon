@@ -5,7 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+-- Note: PlayerGui reference removed since Emergency UI Access feature was removed
 
 print("UISystemEnhancer: Starting...")
 
@@ -462,125 +462,7 @@ local function initialize()
         end
         
         tryShowMainMenu()
-    end)
-      -- Create helper button for emergency UI access only in development mode
-    task.delay(3, function()
-        -- Only create helper button if main menu hasn't shown
-        local mainMenuUI = loadedComponents["MainMenuUI"]
-        if mainMenuUI and mainMenuUI.isVisible then
-            return
-        end
-        
-        -- Check if we're in a development environment
-        local isDevelopment = false
-        pcall(function()
-            -- Check for debug flags or studio environment
-            isDevelopment = game:GetService("RunService"):IsStudio() or 
-                           (game:GetService("Players").LocalPlayer and 
-                            game:GetService("Players").LocalPlayer:GetAttribute("IsAdmin"))
-        end)
-        
-        -- Skip emergency UI in production
-        if not isDevelopment then
-            log("Skipping emergency UI creation in production environment")
-            return
-        end
-        
-        local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "EmergencyUIAccess"
-        screenGui.ResetOnSpawn = false
-        screenGui.Parent = PlayerGui
-        
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0, 250, 0, 300)
-        frame.Position = UDim2.new(0, 10, 0, 10)
-        frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        frame.BorderSizePixel = 0
-        frame.Parent = screenGui
-        
-        local uiCorner = Instance.new("UICorner")
-        uiCorner.CornerRadius = UDim.new(0, 8)
-        uiCorner.Parent = frame
-        
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(1, 0, 0, 30)
-        title.Position = UDim2.new(0, 0, 0, 0)
-        title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        title.BorderSizePixel = 0
-        title.Font = Enum.Font.GothamBold
-        title.TextSize = 16
-        title.TextColor3 = Color3.fromRGB(255, 255, 255)
-        title.Text = "Emergency UI Access"
-        title.Parent = frame
-        
-        local titleCorner = Instance.new("UICorner")
-        titleCorner.CornerRadius = UDim.new(0, 8)
-        titleCorner.Parent = title
-        
-        local scrollFrame = Instance.new("ScrollingFrame")
-        scrollFrame.Size = UDim2.new(1, -20, 1, -40)
-        scrollFrame.Position = UDim2.new(0, 10, 0, 35)
-        scrollFrame.BackgroundTransparency = 1
-        
-        local componentCount = 0
-        for _ in pairs(loadedComponents) do
-            componentCount = componentCount + 1
-        end
-        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, componentCount * 35)
-        scrollFrame.ScrollBarThickness = 6
-        scrollFrame.Parent = frame
-        
-        local listLayout = Instance.new("UIListLayout")
-        listLayout.Padding = UDim.new(0, 5)
-        listLayout.Parent = scrollFrame
-        
-        -- Add buttons for each UI component
-        local buttonY = 0
-        for name, component in pairs(loadedComponents) do
-            -- Use 'component' to avoid unused variable warning
-            if component then end
-            
-            local button = Instance.new("TextButton")
-            button.Size = UDim2.new(1, -10, 0, 30)
-            button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            button.BorderSizePixel = 0
-            button.Font = Enum.Font.Gotham
-            button.TextSize = 14
-            button.TextColor3 = Color3.fromRGB(255, 255, 255)
-            button.Text = name
-            button.Parent = scrollFrame
-            
-            local buttonCorner = Instance.new("UICorner")
-            buttonCorner.CornerRadius = UDim.new(0, 4)
-            buttonCorner.Parent = button
-            
-            button.MouseButton1Click:Connect(function()
-                showUI(name)
-            end)
-        end
-        
-        -- Allow hiding the panel
-        local hideButton = Instance.new("TextButton")
-        hideButton.Size = UDim2.new(0, 20, 0, 20)
-        hideButton.Position = UDim2.new(1, -25, 0, 5)
-        hideButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        hideButton.BorderSizePixel = 0
-        hideButton.Font = Enum.Font.GothamBold
-        hideButton.TextSize = 14
-        hideButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        hideButton.Text = "X"
-        hideButton.Parent = title
-        
-        local hideCorner = Instance.new("UICorner")
-        hideCorner.CornerRadius = UDim.new(0, 4)
-        hideCorner.Parent = hideButton
-        
-        hideButton.MouseButton1Click:Connect(function()
-            screenGui:Destroy()
-        end)
-        
-        log("Created emergency UI access panel with " .. componentCount .. " buttons")
-    end)
+    end)      -- Emergency UI Access has been removed to avoid exposing development-only features to players
     
     log("UISystemEnhancer initialization complete")
 end
