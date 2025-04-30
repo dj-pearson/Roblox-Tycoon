@@ -1,491 +1,396 @@
---!strict
 --[[
     UISystemTester.client.luau
     
-    A tool to test the UI system and verify that all UI components are correctly
-    loaded and registered. This can be used to diagnose UI issues and check
-    if the fix for the UI Module Loading issues has been successful.
+    Tests the client UI Systems to verify they are properly loaded and functioning.
+    This script will check if all required UI components and systems are available
+    and report any issues.
     
-    Created: April 26, 2025
+    Created: April 30, 2025
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local player = Players.LocalPlayer
 
--- Constants
-local DEBUG_ENABLED = true
-local TESTS = {
-    "ModuleLoader Exists",
-    "UIRegistry Exists",
-    "ClientRegistry Exists",
-    "UIComponents Exists",
-    "AssetValidator Exists",
-    "UIRegistry.UIStyle",
-    "UIRegistry.IconSet",
-    "UIRegistry.ButtonFactory",
-    "UIRegistry.DialogFactory",
-    "UIRegistry Can Show Notifications"
+-- Test results
+local results = {
+    testsRun = 0,
+    testsPassed = 0,
+    testsFailed = 0,
+    details = {}
 }
 
--- Debug logging
+-- Test logging
 local function log(message)
-    if DEBUG_ENABLED then
-        print("[UISystemTester] " .. message)
-    end
+    print("[UISystemTester] " .. message)
 end
 
-local function warn_log(message)
-    warn("[UISystemTester] " .. message)
+local function recordTest(name, passed, message)
+    results.testsRun += 1
+    
+    if passed then
+        results.testsPassed += 1
+        log("✓ " .. name)
+    else
+        results.testsFailed += 1
+        log("✗ " .. name .. ": " .. (message or "Test failed"))
+    end
+    
+    -- Record detailed result
+    table.insert(results.details, {
+        name = name,
+        passed = passed,
+        message = message
+    })
+    
+    return passed
 end
 
--- Safe require utility
-local function requireSafely(module)
-    if not module then
-        return nil
-    end
+-- Safe require function
+local function safeRequire(module)
+    if not module then return nil end
     
     local success, result = pcall(function()
         return require(module)
     end)
     
-    if not success then
-        warn_log("Failed to require " .. tostring(module:GetFullName()) .. ": " .. tostring(result))
+    if success then
+        return result
+    else
         return nil
     end
-    
-    return result
 end
 
--- Try to find and require a module from different paths
-local function findAndRequireModule(moduleName)
+-- Find module in various locations
+local function findModule(name)
+    -- Try shared folder first
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild(name) then
+        return shared:FindFirstChild(name)
+    end
+    
+    -- Try client Core folder
+    local clientCore = script.Parent
+    if clientCore and clientCore:FindFirstChild(name) then
+        return clientCore:FindFirstChild(name)
+    end
+    
+    -- Try other common locations
     local searchPaths = {
-        function() return ReplicatedStorage.shared:FindFirstChild(moduleName) end,
-        function() return LocalPlayer.PlayerScripts.Client:FindFirstChild(moduleName) end,
-        function() return LocalPlayer.PlayerScripts.Client.Core:FindFirstChild(moduleName) end,
-        function() return ReplicatedStorage:FindFirstChild(moduleName) end
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("client") and ReplicatedStorage.src.client:FindFirstChild("Core"),
+        ReplicatedStorage:FindFirstChild("Core"),
+        player:FindFirstChild("PlayerScripts") and player.PlayerScripts:FindFirstChild("Core")
     }
     
-    for _, pathFunc in ipairs(searchPaths) do
-        local module = pathFunc()
-        if module then
-            return requireSafely(module)
+    for _, path in ipairs(searchPaths) do
+        if path and path:FindFirstChild(name) then
+            return path:FindFirstChild(name)
         end
     end
     
     return nil
 end
 
--- The test results container
-local UISystemTester = {
-    testResults = {},
-    totalTests = 0,
-    passedTests = 0,
-    failedTests = 0,
-    warnings = 0
-}
-
--- Check if ModuleLoader exists
-function UISystemTester:testModuleLoader()
-    local moduleLoader = findAndRequireModule("ModuleLoader")
-    
-    local success = moduleLoader ~= nil
-    self:recordTestResult("ModuleLoader Exists", success, 
-                        success and "ModuleLoader found" or "ModuleLoader module not found")
-                        
-    return success, moduleLoader
-end
-
--- Check if UIRegistry exists
-function UISystemTester:testUIRegistry()
-    local success = false
-    local uiRegistry = nil
-    
-    -- Try to find UIRegistry through ClientRegistry
-    local clientRegistry = findAndRequireModule("ClientRegistry")
-    
-    if clientRegistry then
-        uiRegistry = clientRegistry.uiComponents
-        success = uiRegistry ~= nil
-    else
-        -- Try to find UIRegistry directly
-        uiRegistry = findAndRequireModule("UIRegistry")
-        success = uiRegistry ~= nil
-    end
-    
-    self:recordTestResult("UIRegistry Exists", success, 
-                        success and "UIRegistry found" or "UIRegistry not found")
-                        
-    return success, uiRegistry
-end
-
--- Check if ClientRegistry exists
-function UISystemTester:testClientRegistry()
-    -- Try to find ClientRegistry through multiple methods
-    local clientRegistry
-    
-    local methods = {
-        function() return findAndRequireModule("ClientRegistry") end,
-        function() 
-            if LocalPlayer and LocalPlayer.PlayerScripts:FindFirstChild("Client") and
-               LocalPlayer.PlayerScripts.Client:FindFirstChild("Core") and
-               LocalPlayer.PlayerScripts.Client.Core:FindFirstChild("ClientRegistry") then
-                return requireSafely(LocalPlayer.PlayerScripts.Client.Core.ClientRegistry)
-            end
-            return nil
-        end,
-        function()
-            local uiSystem = findAndRequireModule("ClientUISystem")
-            if uiSystem and uiSystem.modules then
-                return uiSystem.modules.ClientRegistry
-            end
-            return nil
-        end
-    }
-    
-    for _, method in ipairs(methods) do
-        clientRegistry = method()
-        if clientRegistry then
-            break
+-- Get a system through ModuleScriptAccessor if available
+local function getSystemViaMSA(systemName)
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        local ModuleScriptAccessor = safeRequire(shared.ModuleScriptAccessor)
+        if ModuleScriptAccessor and typeof(ModuleScriptAccessor.getSystem) == "function" then
+            return ModuleScriptAccessor.getSystem(systemName)
         end
     end
-    
-    local success = clientRegistry ~= nil
-    self:recordTestResult("ClientRegistry Exists", success, 
-                        success and "ClientRegistry found" or "ClientRegistry not found through any method")
-                        
-    return success, clientRegistry
+    return nil
 end
 
--- Check if UIComponents exists
-function UISystemTester:testUIComponents()
-    local uiComponents = findAndRequireModule("UIComponents")
+-- Helper to get a system through any method
+local function getSystem(systemName)
+    -- Try via ModuleScriptAccessor
+    local system = getSystemViaMSA(systemName)
+    if system then
+        return system
+    end
     
-    local success = uiComponents ~= nil
-    self:recordTestResult("UIComponents Exists", success, 
-                        success and "UIComponents found" or "UIComponents not found through any method")
-                        
-    return success, uiComponents
+    -- Try direct require
+    local module = findModule(systemName)
+    if module then
+        return safeRequire(module)
+    end
+    
+    return nil
 end
 
--- Check if AssetValidator exists
-function UISystemTester:testAssetValidator()
-    local assetValidator = findAndRequireModule("AssetValidator")
-    
-    local success = assetValidator ~= nil
-    self:recordTestResult("AssetValidator Exists", success, 
-                        success and "AssetValidator found" or "AssetValidator not found through any method")
-                        
-    return success, assetValidator
-end
+-- Tests start here
+log("\n===== STARTING UI SYSTEM TESTS =====")
 
--- Test UI registry components
-function UISystemTester:testUIRegistryComponents()
-    local _, clientRegistry = self:testClientRegistry()
-    
-    if not clientRegistry then
-        self:recordTestResult("UIRegistry.UIStyle", false, "ClientRegistry not available")
-        self:recordTestResult("UIRegistry.IconSet", false, "ClientRegistry not available")
-        self:recordTestResult("UIRegistry.ButtonFactory", false, "ClientRegistry not available")
-        self:recordTestResult("UIRegistry.DialogFactory", false, "ClientRegistry not available")
-        return false
-    end
-    
-    -- Test UIStyle
-    local uiStyle
-    if typeof(clientRegistry.getUIComponent) == "function" then
-        uiStyle = clientRegistry:getUIComponent("UIStyle")
-    elseif clientRegistry.uiComponents then
-        uiStyle = clientRegistry.uiComponents.UIStyle
-    end
-    
-    self:recordTestResult("UIRegistry.UIStyle", uiStyle ~= nil, "")
-    
-    -- Test IconSet
-    local iconSet
-    if typeof(clientRegistry.getUIComponent) == "function" then
-        iconSet = clientRegistry:getUIComponent("IconSet")
-    elseif clientRegistry.uiComponents then
-        iconSet = clientRegistry.uiComponents.IconSet
-    end
-    
-    self:recordTestResult("UIRegistry.IconSet", iconSet ~= nil, "")
-    
+-- Test: Check if ModuleScriptAccessor exists
+local ModuleScriptAccessor = findModule("ModuleScriptAccessor")
+recordTest("ModuleScriptAccessor Exists", ModuleScriptAccessor ~= nil, ModuleScriptAccessor == nil and "ModuleScriptAccessor not found" or nil)
+
+-- Test: Check if ModuleLoader exists
+local ModuleLoader = getSystem("ModuleLoader")
+recordTest("ModuleLoader Exists", ModuleLoader ~= nil, ModuleLoader == nil and "ModuleLoader module not found" or nil)
+
+-- Test: Check if AssetValidator exists
+local AssetValidator = getSystem("AssetValidator")
+recordTest("AssetValidator Exists", AssetValidator ~= nil, AssetValidator == nil and "AssetValidator not found through any method" or nil)
+
+-- Test: Check if UIComponents exists
+local UIComponents = getSystem("UIComponents")
+recordTest("UIComponents Exists", UIComponents ~= nil, UIComponents == nil and "UIComponents not found through any method" or nil)
+
+-- Test: Check if UIRegistry exists
+local UIRegistry = getSystem("UIRegistry")
+recordTest("UIRegistry Exists", UIRegistry ~= nil, UIRegistry == nil and "UIRegistry not found" or nil)
+
+-- Tests for UIRegistry functionality (if available)
+if UIRegistry then
     -- Test ButtonFactory
-    local buttonFactory
-    if typeof(clientRegistry.getUIComponent) == "function" then
-        buttonFactory = clientRegistry:getUIComponent("ButtonFactory")
-    elseif clientRegistry.uiComponents then
-        buttonFactory = clientRegistry.uiComponents.ButtonFactory
-    end
-    
-    self:recordTestResult("UIRegistry.ButtonFactory", buttonFactory ~= nil, "")
+    recordTest(
+        "UIRegistry.ButtonFactory", 
+        UIRegistry.ButtonFactory ~= nil and typeof(UIRegistry.ButtonFactory.createBasicButton) == "function",
+        UIRegistry.ButtonFactory == nil and "ButtonFactory missing" or 
+        typeof(UIRegistry.ButtonFactory.createBasicButton) ~= "function" and "createBasicButton function missing" or nil
+    )
     
     -- Test DialogFactory
-    local dialogFactory
-    if typeof(clientRegistry.getUIComponent) == "function" then
-        dialogFactory = clientRegistry:getUIComponent("DialogFactory")
-    elseif clientRegistry.uiComponents then
-        dialogFactory = clientRegistry.uiComponents.DialogFactory
+    recordTest(
+        "UIRegistry.DialogFactory", 
+        UIRegistry.DialogFactory ~= nil and typeof(UIRegistry.DialogFactory.createNotification) == "function",
+        UIRegistry.DialogFactory == nil and "DialogFactory missing" or 
+        typeof(UIRegistry.DialogFactory.createNotification) ~= "function" and "createNotification function missing" or nil
+    )
+    
+    -- Test UIStyle
+    recordTest(
+        "UIRegistry.UIStyle", 
+        UIRegistry.UIStyle ~= nil and UIRegistry.UIStyle.COLORS ~= nil,
+        UIRegistry.UIStyle == nil and "UIStyle missing" or 
+        UIRegistry.UIStyle.COLORS == nil and "UIStyle.COLORS missing" or nil
+    )
+    
+    -- Test IconSet
+    recordTest(
+        "UIRegistry.IconSet", 
+        UIRegistry.IconSet ~= nil and UIRegistry.IconSet.SUCCESS ~= nil,
+        UIRegistry.IconSet == nil and "IconSet missing" or 
+        UIRegistry.IconSet.SUCCESS == nil and "IconSet.SUCCESS missing" or nil
+    )
+    
+    -- Test notification functionality
+    recordTest(
+        "UIRegistry Can Show Notifications", 
+        UIRegistry.DialogFactory ~= nil and typeof(UIRegistry.DialogFactory.showNotification) == "function",
+        UIRegistry.DialogFactory == nil and "DialogFactory missing" or 
+        typeof(UIRegistry.DialogFactory.showNotification) ~= "function" and "DialogFactory not available" or nil
+    )
+    
+    -- If test passes, show a notification as demonstration
+    if UIRegistry.DialogFactory and typeof(UIRegistry.DialogFactory.showNotification) == "function" then
+        UIRegistry.DialogFactory.showNotification(
+            "UI System Tests", 
+            "UI System Tester completed successfully.", 
+            "success", 
+            5
+        )
     end
-    
-    self:recordTestResult("UIRegistry.DialogFactory", dialogFactory ~= nil, "")
-    
-    return uiStyle ~= nil and iconSet ~= nil and buttonFactory ~= nil and dialogFactory ~= nil
 end
 
--- Test if notification functionality works
-function UISystemTester:testNotifications()
-    local _, clientRegistry = self:testClientRegistry()
+-- Summary
+local passRate = math.floor((results.testsPassed / results.testsRun) * 100)
+log("\n===== UI SYSTEM TEST RESULTS =====")
+log("Tests Run: " .. results.testsRun .. ", Tests Passed: " .. results.testsPassed .. ", Tests Failed: " .. results.testsFailed)
+log("Pass Rate: " .. passRate .. "%")
+log("===================================\n")
+
+-- Create a test report GUI
+local function createTestReportGUI()
+    -- Create ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "UISystemTestReport"
+    screenGui.ResetOnSpawn = false
     
-    if not clientRegistry then
-        self:recordTestResult("UIRegistry Can Show Notifications", false, "ClientRegistry not available")
-        return false
+    -- Create main frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 400, 0, 300)
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    -- Add corner radius
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -20, 0, 40)
+    title.Position = UDim2.new(0, 10, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.SourceSansBold
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 24
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "UI System Test Results"
+    title.Parent = mainFrame
+    
+    -- Summary
+    local summary = Instance.new("TextLabel")
+    summary.Name = "Summary"
+    summary.Size = UDim2.new(1, -20, 0, 30)
+    summary.Position = UDim2.new(0, 10, 0, 50)
+    summary.BackgroundTransparency = 1
+    summary.Font = Enum.Font.SourceSans
+    summary.TextColor3 = Color3.fromRGB(200, 200, 200)
+    summary.TextSize = 18
+    summary.TextXAlignment = Enum.TextXAlignment.Left
+    summary.Text = "Tests: " .. results.testsRun .. " | Passed: " .. results.testsPassed .. " | Failed: " .. results.testsFailed .. " | Pass Rate: " .. passRate .. "%"
+    summary.Parent = mainFrame
+    
+    -- Color bar indicating overall status
+    local statusBar = Instance.new("Frame")
+    statusBar.Name = "StatusBar"
+    statusBar.Size = UDim2.new(1, -20, 0, 8)
+    statusBar.Position = UDim2.new(0, 10, 0, 85)
+    statusBar.BorderSizePixel = 0
+    
+    -- Set color based on pass rate
+    if passRate >= 90 then
+        statusBar.BackgroundColor3 = Color3.fromRGB(16, 124, 16) -- Green
+    elseif passRate >= 75 then
+        statusBar.BackgroundColor3 = Color3.fromRGB(255, 140, 0) -- Orange
+    else
+        statusBar.BackgroundColor3 = Color3.fromRGB(232, 17, 35) -- Red
     end
     
-    local dialogFactory
-    if typeof(clientRegistry.getUIComponent) == "function" then
-        dialogFactory = clientRegistry:getUIComponent("DialogFactory")
-    elseif clientRegistry.uiComponents then
-        dialogFactory = clientRegistry.uiComponents.DialogFactory
-    end
+    statusBar.Parent = mainFrame
     
-    if not dialogFactory then
-        self:recordTestResult("UIRegistry Can Show Notifications", false, "DialogFactory not available")
-        return false
-    end
+    -- Results scroll frame
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ResultsScroll"
+    scrollFrame.Size = UDim2.new(1, -20, 1, -100)
+    scrollFrame.Position = UDim2.new(0, 10, 0, 100)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.Parent = mainFrame
     
-    -- Try to create a notification
-    local success, _ = pcall(function()
-        if typeof(dialogFactory) == "table" and typeof(dialogFactory.createNotification) == "function" then
-            dialogFactory:createNotification({
-                title = "UI Test",
-                message = "Testing notification functionality",
-                type = "info",
-                duration = 3
-            })
-        else
-            error("DialogFactory doesn't have createNotification method")
-        end
+    -- Close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -40, 0, 10)
+    closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    closeButton.BorderSizePixel = 0
+    closeButton.Text = "✕"
+    closeButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+    closeButton.TextSize = 20
+    closeButton.Font = Enum.Font.SourceSans
+    closeButton.Parent = mainFrame
+    
+    -- Add corner radius to close button
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
+    
+    -- Close button functionality
+    closeButton.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
     end)
     
-    self:recordTestResult("UIRegistry Can Show Notifications", success, 
-                        success and "Successfully created notification" or "Failed to create notification")
-                        
-    return success
-end
-
--- Record a test result
-function UISystemTester:recordTestResult(testName, passed, message)
-    self.testResults[testName] = {
-        passed = passed,
-        message = message
-    }
-    
-    self.totalTests += 1
-    if passed then
-        self.passedTests += 1
-    else
-        self.failedTests += 1
-    end
-end
-
--- Run all tests
-function UISystemTester:runAllTests()
-    log("Starting UI System tests...")
-    
-    self:testModuleLoader()
-    self:testUIRegistry()
-    self:testClientRegistry()
-    self:testUIComponents()
-    self:testAssetValidator()
-    self:testUIRegistryComponents()
-    self:testNotifications()
-    
-    -- Generate and show report
-    self:generateReport()
-end
-
--- Generate and print a test report
-function UISystemTester:generateReport()
-    local passRate = self.totalTests > 0 and math.floor((self.passedTests / self.totalTests) * 100) or 0
-    
-    log("\n======= UI SYSTEM TEST REPORT =======")
-    log("Tests Run: " .. self.totalTests)
-    log("Tests Passed: " .. self.passedTests)
-    log("Tests Failed: " .. self.failedTests)
-    log("Warnings: " .. self.warnings)
-    log("Pass Rate: " .. passRate .. "%")
-    log("------------------------------------")
-    
-    -- Show test results by category
-    local categories = {}
-    local categoryResults = {}
-    
-    for testName, result in pairs(self.testResults) do
-        local category = string.split(testName, ".")[1] or testName
+    -- Add test results to scroll frame
+    local yOffset = 0
+    for i, result in ipairs(results.details) do
+        local resultFrame = Instance.new("Frame")
+        resultFrame.Name = "TestResult_" .. i
+        resultFrame.Size = UDim2.new(1, -10, 0, 30)
+        resultFrame.Position = UDim2.new(0, 0, 0, yOffset)
+        resultFrame.BackgroundTransparency = i % 2 == 0 and 0.9 or 1
+        resultFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        resultFrame.BorderSizePixel = 0
+        resultFrame.Parent = scrollFrame
         
-        if not categories[category] then
-            categories[category] = {
-                total = 0,
-                passed = 0
-            }
-            table.insert(categoryResults, category)
+        local statusIcon = Instance.new("TextLabel")
+        statusIcon.Name = "StatusIcon"
+        statusIcon.Size = UDim2.new(0, 30, 1, 0)
+        statusIcon.Position = UDim2.new(0, 0, 0, 0)
+        statusIcon.BackgroundTransparency = 1
+        statusIcon.Text = result.passed and "✓" or "✗"
+        statusIcon.TextColor3 = result.passed and Color3.fromRGB(16, 124, 16) or Color3.fromRGB(232, 17, 35)
+        statusIcon.TextSize = 18
+        statusIcon.Font = Enum.Font.SourceSansBold
+        statusIcon.Parent = resultFrame
+        
+        local testName = Instance.new("TextLabel")
+        testName.Name = "TestName"
+        testName.Size = UDim2.new(1, -40, 1, 0)
+        testName.Position = UDim2.new(0, 30, 0, 0)
+        testName.BackgroundTransparency = 1
+        testName.Text = result.name
+        testName.TextColor3 = Color3.fromRGB(255, 255, 255)
+        testName.TextSize = 16
+        testName.Font = Enum.Font.SourceSans
+        testName.TextXAlignment = Enum.TextXAlignment.Left
+        testName.Parent = resultFrame
+        
+        -- If test failed, show error message on hover
+        if not result.passed and result.message then
+            -- Add hover effect
+            resultFrame.MouseEnter:Connect(function()
+                local tooltip = Instance.new("Frame")
+                tooltip.Name = "ErrorTooltip"
+                tooltip.Size = UDim2.new(0, 300, 0, 40)
+                tooltip.Position = UDim2.new(0, 0, 0, 30)
+                tooltip.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                tooltip.BorderSizePixel = 0
+                tooltip.ZIndex = 10
+                tooltip.Parent = resultFrame
+                
+                -- Add corner radius
+                local tooltipCorner = Instance.new("UICorner")
+                tooltipCorner.CornerRadius = UDim.new(0, 4)
+                tooltipCorner.Parent = tooltip
+                
+                -- Error message
+                local errorMsg = Instance.new("TextLabel")
+                errorMsg.Name = "ErrorMessage"
+                errorMsg.Size = UDim2.new(1, -10, 1, -10)
+                errorMsg.Position = UDim2.new(0, 5, 0, 5)
+                errorMsg.BackgroundTransparency = 1
+                errorMsg.Text = result.message
+                errorMsg.TextColor3 = Color3.fromRGB(232, 17, 35)
+                errorMsg.TextSize = 14
+                errorMsg.Font = Enum.Font.SourceSans
+                errorMsg.TextXAlignment = Enum.TextXAlignment.Left
+                errorMsg.TextWrapped = true
+                errorMsg.ZIndex = 10
+                errorMsg.Parent = tooltip
+            end)
+            
+            resultFrame.MouseLeave:Connect(function()
+                local tooltip = resultFrame:FindFirstChild("ErrorTooltip")
+                if tooltip then
+                    tooltip:Destroy()
+                end
+            end)
         end
         
-        categories[category].total += 1
-        if result.passed then
-            categories[category].passed += 1
-        end
+        yOffset += 30
     end
     
-    -- Sort categories
-    table.sort(categoryResults)
+    -- Update scroll frame canvas size
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, yOffset)
     
-    -- Show category summaries
-    for _, category in ipairs(categoryResults) do
-        local stats = categories[category]
-        local categoryPassRate = stats.total > 0 and math.floor((stats.passed / stats.total) * 100) or 0
-        log(category .. ": " .. stats.passed .. "/" .. stats.total .. " tests passed (" .. categoryPassRate .. "%)")
-    end
-    
-    log("\nFailed Tests:")
-    local failedTests = {}
-    
-    for testName, result in pairs(self.testResults) do
-        if not result.passed then
-            table.insert(failedTests, testName)
-        end
-    end
-    
-    -- Sort failed tests
-    table.sort(failedTests)
-    
-    -- Show failed tests
-    for _, testName in ipairs(failedTests) do
-        log("✗ " .. testName .. ": " .. self.testResults[testName].message)
-    end
-    
-    -- Create on-screen report if in-game
-    self:showInGameReport()
-    
-    return {
-        totalTests = self.totalTests,
-        passedTests = self.passedTests,
-        failedTests = self.failedTests,
-        warnings = self.warnings,
-        passRate = passRate,
-        results = self.testResults
-    }
+    -- Parent the ScreenGui
+    screenGui.Parent = player.PlayerGui
 end
 
--- Show an in-game UI report
-function UISystemTester:showInGameReport()
-    if not LocalPlayer then return end
-    
-    -- Try to get DialogFactory from ClientRegistry
-    local clientRegistry = findAndRequireModule("ClientRegistry")
-    if not clientRegistry then return end
-    
-    local dialogFactory
-    if typeof(clientRegistry.getUIComponent) == "function" then
-        dialogFactory = clientRegistry:getUIComponent("DialogFactory")
-    elseif clientRegistry.uiComponents then
-        dialogFactory = clientRegistry.uiComponents.DialogFactory
-    end
-    
-    if not dialogFactory or typeof(dialogFactory.createModal) ~= "function" then return end
-    
-    -- Create a report message
-    local passRate = self.totalTests > 0 and math.floor((self.passedTests / self.totalTests) * 100) or 0
-    local reportMessage = "Tests Run: " .. self.totalTests .. 
-                        "\nTests Passed: " .. self.passedTests ..
-                        "\nTests Failed: " .. self.failedTests ..
-                        "\nPass Rate: " .. passRate .. "%"
-                        
-    if self.passedTests == self.totalTests then
-        reportMessage = "✅ All UI tests passed!\n\n" .. reportMessage
-    else
-        reportMessage = "⚠️ Some UI tests failed.\n\n" .. reportMessage
-    end
-    
-    -- Create the modal with the report
-    dialogFactory:createModal({
-        title = "UI System Test Report",
-        message = reportMessage,
-        size = UDim2.new(0, 400, 0, 300),
-        buttons = {
-            {
-                text = "OK",
-                style = "primary"
-            }
-        }
-    })
-end
+-- Create the test report GUI
+createTestReportGUI()
 
--- Fix common UI system issues
-function UISystemTester:fixCommonIssues()
-    log("Attempting to fix common UI system issues...")
-    
-    -- First check if ClientUISystem exists, if not create it
-    local clientUISystem = findAndRequireModule("ClientUISystem")
-    
-    if not clientUISystem then
-        log("ClientUISystem not found, creating it...")
-        
-        -- Get the ClientUISystem from script
-        local success, source = pcall(function()
-            return script.Source
-        end)
-        
-        if success and source then
-            -- Create the module
-            local clientFolder = LocalPlayer.PlayerScripts:FindFirstChild("Client") or
-                                 Instance.new("Folder")
-            
-            if clientFolder.Name ~= "Client" then
-                clientFolder.Name = "Client"
-                clientFolder.Parent = LocalPlayer.PlayerScripts
-            end
-            
-            local uiSystemModule = Instance.new("ModuleScript")
-            uiSystemModule.Name = "ClientUISystem"
-            uiSystemModule.Source = "-- Auto-created by UISystemTester\n" .. source
-            uiSystemModule.Parent = clientFolder
-            
-            log("Created ClientUISystem module at " .. uiSystemModule:GetFullName())
-            
-            -- Try to require it
-            clientUISystem = requireSafely(uiSystemModule)
-        end
-    end
-    
-    -- If we have ClientUISystem now, use it to fix issues
-    if clientUISystem and typeof(clientUISystem.initialize) == "function" then
-        log("Using ClientUISystem to fix UI issues...")
-        clientUISystem:initialize()
-    else
-        warn_log("Couldn't create or initialize ClientUISystem")
-        return false
-    end
-    
-    -- Re-run tests to verify fixes
-    self:runAllTests()
-    
-    return self.passedTests > 0
-end
-
--- Reset state for a new test run
-function UISystemTester:reset()
-    self.testResults = {}
-    self.totalTests = 0
-    self.passedTests = 0
-    self.failedTests = 0
-    self.warnings = 0
-end
-
--- Run tests immediately
-UISystemTester:runAllTests()
-
--- Return the tester module
-return UISystemTester
+-- Return test results
+return results

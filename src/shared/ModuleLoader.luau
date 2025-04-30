@@ -1,189 +1,203 @@
--- ModuleLoader.luau
--- Utility for loading modules with robust error handling and fallbacks
--- Created: April 30, 2025
+--[[
+    ModuleLoader.luau
+    
+    Provides robust module loading functionality with dependency management.
+    This module helps prevent circular dependencies and safely loads modules.
+    
+    Created: April 30, 2025
+]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local RunService = game:GetService("RunService")
 
--- Module loader with error handling and caching
-local ModuleLoader = {
-    Version = "1.0.0",
-    IsLoaded = true,
-    Cache = {},
-    SearchPaths = {
-        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
-        ReplicatedStorage:FindFirstChild("shared"),
-        ReplicatedStorage
-    }
-}
+local ModuleLoader = {}
+ModuleLoader.initialized = false
 
--- Configuration
-local CONFIG = {
-    cacheEnabled = true, -- Enable module caching
-    debugLogging = true, -- Enable detailed logs
-    retryCount = 3,      -- Number of times to retry loading a module
-    retryDelay = 0.5     -- Seconds to wait between retries
-}
+-- Debug settings
+ModuleLoader.DEBUG = true
 
--- Debug logging function
-local function log(message, level)
-    if not CONFIG.debugLogging and level ~= "Error" then return end
-    
-    local prefix = "[ModuleLoader]"
-    if level == "Error" then
-        warn(prefix .. " " .. message)
-    elseif level == "Success" then
-        print(prefix .. " " .. message)
-    else
-        print(prefix .. " " .. message)
+-- Module cache
+local moduleCache = {}
+
+-- Currently loading modules (to detect circular dependencies)
+local loadingModules = {}
+
+-- Log a message to the output
+local function log(message)
+    if ModuleLoader.DEBUG then
+        print("[ModuleLoader] " .. message)
     end
 end
 
--- Find a module by name
-function ModuleLoader.findModule(moduleName)
-    -- Check cache first
-    if CONFIG.cacheEnabled and ModuleLoader.Cache[moduleName] then
-        return ModuleLoader.Cache[moduleName]
+-- Safe require function with circular dependency detection
+function ModuleLoader.require(moduleScript)
+    if not moduleScript then
+        warn("[ModuleLoader] Cannot require nil module")
+        return nil
     end
     
-    -- Search in predefined paths
-    for _, path in ipairs(ModuleLoader.SearchPaths) do
+    if not moduleScript:IsA("ModuleScript") then
+        warn("[ModuleLoader] Cannot require non-ModuleScript: " .. moduleScript:GetFullName())
+        return nil
+    end
+    
+    -- Check cache first
+    local moduleId = moduleScript:GetFullName()
+    if moduleCache[moduleId] then
+        return moduleCache[moduleId]
+    end
+    
+    -- Check for circular dependencies
+    if loadingModules[moduleId] then
+        warn("[ModuleLoader] Circular dependency detected when requiring: " .. moduleId)
+        
+        -- Print dependency chain
+        local chain = "Dependency chain: "
+        for module, _ in pairs(loadingModules) do
+            chain = chain .. module .. " -> "
+        end
+        chain = chain .. moduleId
+        warn(chain)
+        
+        return nil
+    end
+    
+    -- Mark as loading
+    loadingModules[moduleId] = true
+    
+    -- Require the module
+    local success, result = pcall(function()
+        return require(moduleScript)
+    end)
+    
+    -- Clear loading marker
+    loadingModules[moduleId] = nil
+    
+    if success then
+        -- Cache the result
+        moduleCache[moduleId] = result
+        return result
+    else
+        warn("[ModuleLoader] Failed to require " .. moduleId .. ": " .. tostring(result))
+        return nil
+    end
+end
+
+-- Find a module in various locations
+function ModuleLoader.findModule(moduleName)
+    -- Define search paths
+    local searchPaths = {}
+    
+    -- Server-specific paths
+    if RunService:IsServer() then
+        table.insert(searchPaths, ServerScriptService:FindFirstChild("Core"))
+        table.insert(searchPaths, ServerScriptService:FindFirstChild("Systems"))
+        table.insert(searchPaths, ServerScriptService:FindFirstChild("src") and 
+                   ServerScriptService.src:FindFirstChild("server") and 
+                   ServerScriptService.src.server:FindFirstChild("Core"))
+        table.insert(searchPaths, ServerScriptService)
+    end
+    
+    -- Common paths for client and server
+    table.insert(searchPaths, ReplicatedStorage:FindFirstChild("Core"))
+    table.insert(searchPaths, ReplicatedStorage:FindFirstChild("Systems"))
+    table.insert(searchPaths, ReplicatedStorage:FindFirstChild("src") and 
+               ReplicatedStorage.src:FindFirstChild("shared"))
+    table.insert(searchPaths, ReplicatedStorage:FindFirstChild("shared"))
+    table.insert(searchPaths, ReplicatedStorage)
+    
+    -- Filter out nil paths
+    local validPaths = {}
+    for _, path in ipairs(searchPaths) do
         if path then
-            local moduleScript = path:FindFirstChild(moduleName)
-            if moduleScript and moduleScript:IsA("ModuleScript") then
-                if CONFIG.cacheEnabled then
-                    ModuleLoader.Cache[moduleName] = moduleScript
-                end
-                log("Found module: " .. moduleName .. " at " .. moduleScript:GetFullName(), "Success")
-                return moduleScript
-            end
+            table.insert(validPaths, path)
         end
     end
     
-    -- Search in common locations
-    local commonLocations = {}
-    
-    -- Add client paths if running on client
-    if RunService:IsClient() then
-        local player = game:GetService("Players").LocalPlayer
-        if player then
-            table.insert(commonLocations, player:FindFirstChild("PlayerScripts"))
+    -- Try to find the module
+    for _, path in ipairs(validPaths) do
+        -- Try exact name
+        local moduleScript = path:FindFirstChild(moduleName)
+        if moduleScript and moduleScript:IsA("ModuleScript") then
+            return moduleScript
         end
         
-        -- Add StarterPlayerScripts paths
-        table.insert(commonLocations, game:GetService("StarterPlayer"):FindFirstChild("StarterPlayerScripts"))
-    end
-    
-    -- Add server paths if running on server
-    if RunService:IsServer() then
-        table.insert(commonLocations, game:GetService("ServerStorage"))
-        table.insert(commonLocations, game:GetService("ServerScriptService"))
-    end
-    
-    -- Search in ReplicatedStorage subfolders
-    local subfolders = {"Modules", "Scripts", "Framework", "Libraries"}
-    for _, subfolder in ipairs(subfolders) do
-        table.insert(commonLocations, ReplicatedStorage:FindFirstChild(subfolder))
-    end
-    
-    -- Find in common locations
-    for _, location in ipairs(commonLocations) do
-        if location then
-            local moduleScript = location:FindFirstChild(moduleName, true) -- true = recursive
-            if moduleScript and moduleScript:IsA("ModuleScript") then
-                if CONFIG.cacheEnabled then
-                    ModuleLoader.Cache[moduleName] = moduleScript
-                end
-                log("Found module: " .. moduleName .. " at " .. moduleScript:GetFullName(), "Success")
-                return moduleScript
-            end
+        -- Try with .luau extension
+        moduleScript = path:FindFirstChild(moduleName .. ".luau")
+        if moduleScript and moduleScript:IsA("ModuleScript") then
+            return moduleScript
+        end
+        
+        -- Try with server/client extension
+        local side = RunService:IsServer() and "server" or "client"
+        moduleScript = path:FindFirstChild(moduleName .. "." .. side .. ".luau")
+        if moduleScript and moduleScript:IsA("ModuleScript") then
+            return moduleScript
         end
     end
     
-    log("Could not find module: " .. moduleName, "Error")
     return nil
 end
 
--- Safely require a module with retry logic
-function ModuleLoader.requireSafely(moduleScript, maxRetries)
-    if not moduleScript or not moduleScript:IsA("ModuleScript") then
-        return nil, "Invalid module"
-    end
-    
-    maxRetries = maxRetries or CONFIG.retryCount
-    
-    -- Try multiple times if needed
-    for attempt = 1, maxRetries do
-        local success, result = pcall(function()
-            return require(moduleScript)
-        end)
-        
-        if success then
-            if attempt > 1 then
-                log("Successfully loaded module on attempt " .. attempt .. ": " .. moduleScript.Name, "Success")
-            end
-            return result
-        else
-            log("Failed to load module: " .. moduleScript.Name .. " (Attempt " .. attempt .. "/" .. maxRetries .. ")", "Error")
-            log("Error: " .. tostring(result), "Error")
-            
-            if attempt < maxRetries then
-                task.wait(CONFIG.retryDelay)
-            end
-        end
-    end
-    
-    return nil, "Failed to load after " .. maxRetries .. " attempts"
-end
-
--- Require a module by name (throws error if not found)
-function ModuleLoader.require(moduleName)
+-- Require a module by name
+function ModuleLoader.requireByName(moduleName)
     local moduleScript = ModuleLoader.findModule(moduleName)
+    
     if not moduleScript then
-        error("Could not find module: " .. moduleName)
+        warn("[ModuleLoader] Could not find module: " .. moduleName)
+        return nil
     end
     
-    local result, errorMessage = ModuleLoader.requireSafely(moduleScript)
-    if not result then
-        error("Failed to load module: " .. moduleName .. " (" .. errorMessage .. ")")
-    end
-    
-    return result
-end
-
--- Try to require a module by name (returns nil if not found)
-function ModuleLoader.tryRequire(moduleName)
-    local moduleScript = ModuleLoader.findModule(moduleName)
-    if not moduleScript then
-        return nil, "Module not found"
-    end
-    
-    return ModuleLoader.requireSafely(moduleScript)
-end
-
--- Add a search path to the module loader
-function ModuleLoader.addSearchPath(path)
-    if typeof(path) == "Instance" then
-        table.insert(ModuleLoader.SearchPaths, path)
-        log("Added search path: " .. path:GetFullName(), "Success")
-        return true
-    end
-    return false
+    return ModuleLoader.require(moduleScript)
 end
 
 -- Clear the module cache
 function ModuleLoader.clearCache()
-    ModuleLoader.Cache = {}
-    log("Module cache cleared", "Success")
+    moduleCache = {}
+    log("Module cache cleared")
+end
+
+-- Get cache statistics
+function ModuleLoader.getCacheStats()
+    local count = 0
+    for _ in pairs(moduleCache) do
+        count += 1
+    end
+    
+    return {
+        cachedModules = count
+    }
+end
+
+-- Initialize the module loader
+function ModuleLoader.initialize()
+    if ModuleLoader.initialized then
+        return true
+    end
+    
+    -- Try to register with CoreRegistry
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        local success, ModuleScriptAccessor = pcall(function()
+            return require(shared.ModuleScriptAccessor)
+        end)
+        
+        if success and ModuleScriptAccessor then
+            local CoreRegistry = ModuleScriptAccessor.getCoreRegistry()
+            if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
+                CoreRegistry.registerSystem("ModuleLoader", ModuleLoader)
+                log("Registered with CoreRegistry")
+            end
+        end
+    end
+    
+    ModuleLoader.initialized = true
+    log("ModuleLoader initialized")
     return true
 end
 
--- Get a module from the cache
-function ModuleLoader.getCachedModule(moduleName)
-    return ModuleLoader.Cache[moduleName]
-end
-
--- Initialize the module
-log("ModuleLoader initialized (v" .. ModuleLoader.Version .. ")", "Success")
+-- Initialize on load
+ModuleLoader.initialize()
 
 return ModuleLoader

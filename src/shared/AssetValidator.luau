@@ -1,205 +1,198 @@
--- AssetValidator.luau
--- Validates UI assets and resources to ensure they exist and are appropriate
--- Created: May 2, 2025
+--[[
+    AssetValidator.luau
+    
+    Validates asset references and ensures they are properly loaded.
+    This module helps prevent errors caused by missing or invalid assets.
+    
+    Created: April 30, 2025
+]]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local ContentProvider = game:GetService("ContentProvider")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Cache common services
-local ModuleLoader
+local AssetValidator = {}
+AssetValidator.initialized = false
 
--- Try to load ModuleLoader
-local function tryRequireModuleLoader()
-    local success, result = pcall(function()
-        -- Try different paths for ModuleLoader
-        for _, path in ipairs({
-            ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoader"),
-            ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared") and ReplicatedStorage.src.shared:FindFirstChild("ModuleLoader"),
-            ReplicatedStorage:FindFirstChild("ModuleLoader"),
-        }) do
-            if path and path:IsA("ModuleScript") then
-                return require(path)
-            end
-        end
-        return nil
+-- Debug settings
+AssetValidator.DEBUG = true
+
+-- Statistics tracking
+local stats = {
+    validatedCount = 0,
+    failedCount = 0,
+    cachedAssets = {}
+}
+
+-- Log a message to the output
+local function log(message)
+    if AssetValidator.DEBUG then
+        print("[AssetValidator] " .. message)
+    end
+end
+
+-- Validate a single asset ID
+function AssetValidator.validateAsset(assetId)
+    if not assetId then
+        return false, "No asset ID provided"
+    end
+    
+    -- Check if in our cache
+    if stats.cachedAssets[assetId] then
+        return stats.cachedAssets[assetId].valid, stats.cachedAssets[assetId].message
+    end
+    
+    -- Check format
+    if not string.match(assetId, "^rbxassetid://[0-9]+$") and 
+       not string.match(assetId, "^rbxthumb://[0-9]+$") then
+        stats.cachedAssets[assetId] = {valid = false, message = "Invalid asset ID format"}
+        stats.failedCount += 1
+        return false, "Invalid asset ID format: " .. assetId
+    end
+    
+    -- Try to preload
+    local success = pcall(function()
+        ContentProvider:PreloadAsync({assetId})
     end)
     
-    if success and result then
-        return result
+    if success then
+        stats.cachedAssets[assetId] = {valid = true, message = "Asset validated"}
+        stats.validatedCount += 1
+        return true, "Asset validated"
     else
-        warn("[AssetValidator] Could not load ModuleLoader, using built-in fallbacks")
-        return nil
+        stats.cachedAssets[assetId] = {valid = false, message = "Failed to preload asset"}
+        stats.failedCount += 1
+        return false, "Failed to preload asset: " .. assetId
     end
 end
 
--- Simple module loader fallback in case ModuleLoader isn't available
-local function findModule(moduleName)
-    -- Search paths
-    local searchPaths = {
-        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
-        ReplicatedStorage:FindFirstChild("shared"),
-        ReplicatedStorage
+-- Validate multiple assets
+function AssetValidator.validateAssets(assetIds)
+    if not assetIds or type(assetIds) ~= "table" then
+        return false, "Invalid asset ID table"
+    end
+    
+    local results = {
+        success = true,
+        validCount = 0,
+        failCount = 0,
+        failedAssets = {}
     }
     
-    -- Look in each path
-    for _, path in ipairs(searchPaths) do
-        if path then
-            local moduleScript = path:FindFirstChild(moduleName)
-            if moduleScript and moduleScript:IsA("ModuleScript") then
-                return moduleScript
+    for _, assetId in ipairs(assetIds) do
+        local success, message = AssetValidator.validateAsset(assetId)
+        if success then
+            results.validCount += 1
+        else
+            results.success = false
+            results.failCount += 1
+            table.insert(results.failedAssets, {id = assetId, message = message})
+        end
+    end
+    
+    return results
+end
+
+-- Check if an asset ID is valid
+function AssetValidator.isValidAssetId(assetId)
+    local success, _ = AssetValidator.validateAsset(assetId)
+    return success
+end
+
+-- Validate assets in a UI object (recursively)
+function AssetValidator.validateUIAssets(uiObject)
+    if not uiObject then
+        return false, "No UI object provided"
+    end
+    
+    local results = {
+        success = true,
+        validCount = 0,
+        failCount = 0,
+        failedAssets = {}
+    }
+    
+    -- Function to check an object and its children
+    local function checkObject(obj)
+        -- Check image properties if present
+        if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+            local image = obj.Image
+            if image and image ~= "" and not string.match(image, "^rbxasset://") then
+                local success, message = AssetValidator.validateAsset(image)
+                if success then
+                    results.validCount += 1
+                else
+                    results.success = false
+                    results.failCount += 1
+                    table.insert(results.failedAssets, {
+                        id = image, 
+                        object = obj:GetFullName(), 
+                        message = message
+                    })
+                end
+            end
+        end
+        
+        -- Check background properties
+        if obj:IsA("GuiObject") and obj.BackgroundColor3 ~= nil then
+            -- No need to validate Color3 values
+        end
+        
+        -- Check children recursively
+        for _, child in ipairs(obj:GetChildren()) do
+            checkObject(child)
+        end
+    end
+    
+    -- Start the validation
+    checkObject(uiObject)
+    
+    return results
+end
+
+-- Get validation statistics
+function AssetValidator.getStats()
+    return {
+        validatedCount = stats.validatedCount,
+        failedCount = stats.failedCount,
+        cachedAssetsCount = #stats.cachedAssets
+    }
+}
+
+-- Reset the validation cache
+function AssetValidator.resetCache()
+    stats.cachedAssets = {}
+    log("Asset validation cache reset")
+end
+
+-- Initialize the module
+function AssetValidator.initialize()
+    if AssetValidator.initialized then
+        return true
+    end
+    
+    -- Try to find ModuleScriptAccessor
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        local success, ModuleScriptAccessor = pcall(function()
+            return require(shared.ModuleScriptAccessor)
+        end)
+        
+        if success and ModuleScriptAccessor then
+            -- Try to register with CoreRegistry
+            local CoreRegistry = ModuleScriptAccessor.getCoreRegistry()
+            if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
+                CoreRegistry.registerSystem("AssetValidator", AssetValidator)
+                log("Registered with CoreRegistry")
             end
         end
     end
     
-    return nil
-end
-
--- Create the validator module
-local AssetValidator = {
-    Version = "1.0.0",
-    IsLoaded = true,
-    ValidatedAssets = {}, -- Cache of validated assets
-}
-
--- Asset types and validation methods
-local AssetTypes = {
-    Image = "rbxassetid://",
-    Sound = "rbxassetid://",
-    Animation = "rbxassetid://",
-    MeshPart = "rbxassetid://",
-    Font = Enum.Font,
-    Color = Color3
-}
-
--- Initialize the module
-function AssetValidator.Initialize()
-    print("[AssetValidator] Initializing...")
-    
-    -- Try to get ModuleLoader
-    ModuleLoader = tryRequireModuleLoader()
-    
-    -- Register with ClientRegistry if available
-    if ModuleLoader then
-        local clientRegistry = ModuleLoader.tryRequire("ClientRegistry")
-        if clientRegistry and typeof(clientRegistry.Register) == "function" then
-            clientRegistry:Register("AssetValidator", AssetValidator)
-            print("[AssetValidator] Registered with ClientRegistry")
-        end
-    end
-    
-    print("[AssetValidator] Initialization complete")
+    AssetValidator.initialized = true
+    log("AssetValidator initialized")
     return true
 end
 
--- Validate an asset ID or reference
-function AssetValidator.ValidateAsset(assetId, assetType)
-    -- If we've already validated this asset, return from cache
-    if AssetValidator.ValidatedAssets[assetId] then
-        return AssetValidator.ValidatedAssets[assetId]
-    end
-    
-    -- If no asset type specified, try to detect it
-    if not assetType then
-        if typeof(assetId) == "string" and string.find(assetId, "rbxassetid://") then
-            assetType = "Image" -- Default to image for asset IDs
-        elseif typeof(assetId) == "EnumItem" then
-            assetType = "Enum"
-        elseif typeof(assetId) == "Color3" then
-            assetType = "Color"
-        end
-    end
-    
-    -- Default result
-    local validationResult = {
-        isValid = false,
-        assetType = assetType or "Unknown",
-        assetId = assetId,
-        errorMessage = nil
-    }
-    
-    -- Validate based on type
-    if assetType == "Image" or assetType == "Sound" or assetType == "Animation" or assetType == "MeshPart" then
-        -- Check if it's a valid asset ID format
-        if typeof(assetId) ~= "string" then
-            validationResult.errorMessage = "Asset ID must be a string"
-        elseif not string.find(assetId, "rbxassetid://") then
-            validationResult.errorMessage = "Asset ID must start with rbxassetid://"
-        else
-            -- Try to preload the asset to verify it exists
-            local success, message = pcall(function()
-                ContentProvider:PreloadAsync({assetId})
-            end)
-            
-            if success then
-                validationResult.isValid = true
-            else
-                validationResult.errorMessage = "Failed to load asset: " .. tostring(message)
-            end
-        end
-    elseif assetType == "Font" then
-        -- Validate font
-        if typeof(assetId) == "EnumItem" and assetId.EnumType == Enum.Font then
-            validationResult.isValid = true
-        else
-            validationResult.errorMessage = "Not a valid Font enum"
-        end
-    elseif assetType == "Color" then
-        -- Validate color
-        if typeof(assetId) == "Color3" then
-            validationResult.isValid = true
-        else
-            validationResult.errorMessage = "Not a valid Color3 value"
-        end
-    else
-        validationResult.errorMessage = "Unknown asset type"
-    end
-    
-    -- Cache the result
-    AssetValidator.ValidatedAssets[assetId] = validationResult
-    
-    return validationResult
-end
-
--- Validate and return a fallback if invalid
-function AssetValidator.ValidateOrDefault(assetId, assetType, defaultAsset)
-    local result = AssetValidator.ValidateAsset(assetId, assetType)
-    
-    if result.isValid then
-        return assetId
-    else
-        return defaultAsset
-    end
-end
-
--- Get fallback assets for different types
-function AssetValidator.GetDefaultAsset(assetType)
-    local defaults = {
-        Image = "rbxassetid://9823548700",  -- A generic placeholder image
-        Sound = "rbxassetid://9042996635",  -- A generic sound effect
-        Font = Enum.Font.Gotham,
-        Color = Color3.fromRGB(255, 255, 255)
-    }
-    
-    return defaults[assetType] or defaults.Image
-end
-
--- Preload a set of assets
-function AssetValidator.PreloadAssets(assetIds)
-    if typeof(assetIds) ~= "table" or #assetIds == 0 then
-        return false, "No assets to preload"
-    end
-    
-    local success, message = pcall(function()
-        ContentProvider:PreloadAsync(assetIds)
-    end)
-    
-    return success, message
-end
-
--- Auto-initialize on load
-task.spawn(function()
-    AssetValidator.Initialize()
-end)
+-- Initialize on load
+AssetValidator.initialize()
 
 return AssetValidator
