@@ -622,18 +622,55 @@ function BuyTileSystem.spawnGymPart(player, tileId, gymPartId)
     -- Cache the gym part for future use
     gymPartCache[gymPartId] = gymPartModel
     
-    -- Clone and position the model
-    local model = gymPartModel:Clone()
+    -- Clone and position the model    local model = gymPartModel:Clone()
     model.Name = gymPartId
     
-    -- Position the model at the tile
-    if model:IsA("Model") and model.PrimaryPart then
-        model:SetPrimaryPartCFrame(tileObj.CFrame)
+    -- Store original CFrame for debugging
+    local originalCFrame = tileObj.CFrame
+    
+    -- Calculate proper CFrame based on model attributes or defaults
+    local offsetY = model:GetAttribute("OffsetY") or 0
+    local offsetX = model:GetAttribute("OffsetX") or 0
+    local offsetZ = model:GetAttribute("OffsetZ") or 0
+    local rotationY = model:GetAttribute("RotationY") or 0
+    
+    -- Create adjusted CFrame with proper positioning and rotation
+    local adjustedCFrame = tileObj.CFrame * CFrame.new(offsetX, offsetY, offsetZ) * CFrame.Angles(0, math.rad(rotationY), 0)
+    
+    -- Position the model at the tile with correct offset
+    if model:IsA("Model") then
+        if model.PrimaryPart then
+            model:SetPrimaryPartCFrame(adjustedCFrame)
+            print("[BuyTile] Model " .. model.Name .. " placed using PrimaryPart at adjusted position")
+        else
+            -- Find the best part to use as primary part
+            local bestPart = nil
+            for _, part in pairs(model:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    if not bestPart or part.Size.Y > bestPart.Size.Y then
+                        bestPart = part
+                    end
+                end
+            end
+            
+            if bestPart then
+                model.PrimaryPart = bestPart
+                print("[BuyTile] Set " .. bestPart.Name .. " as primary part for " .. model.Name)
+                model:SetPrimaryPartCFrame(adjustedCFrame)
+            else
+                -- Fallback for models with no parts
+                model:PivotTo(adjustedCFrame)
+            end
+        end
     else
-        model.CFrame = tileObj.CFrame + Vector3.new(0, model:IsA("Part") and model.Size.Y/2 or 2, 0)
+        -- Handle single parts
+        model.CFrame = adjustedCFrame
     end
     
     model.Parent = tileObj
+    
+    -- Log the placement for debugging
+    print("[BuyTile] Model " .. model.Name .. " placed at position: " .. tostring(model:GetPivot().Position))
     
     -- Fire event
     if EventBridge.fireEvent then

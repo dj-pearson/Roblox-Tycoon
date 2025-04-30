@@ -463,12 +463,26 @@ local function initialize()
         
         tryShowMainMenu()
     end)
-    
-    -- Create helper button for emergency UI access
+      -- Create helper button for emergency UI access only in development mode
     task.delay(3, function()
         -- Only create helper button if main menu hasn't shown
         local mainMenuUI = loadedComponents["MainMenuUI"]
         if mainMenuUI and mainMenuUI.isVisible then
+            return
+        end
+        
+        -- Check if we're in a development environment
+        local isDevelopment = false
+        pcall(function()
+            -- Check for debug flags or studio environment
+            isDevelopment = game:GetService("RunService"):IsStudio() or 
+                           (game:GetService("Players").LocalPlayer and 
+                            game:GetService("Players").LocalPlayer:GetAttribute("IsAdmin"))
+        end)
+        
+        -- Skip emergency UI in production
+        if not isDevelopment then
+            log("Skipping emergency UI creation in production environment")
             return
         end
         
