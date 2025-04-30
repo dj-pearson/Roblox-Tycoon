@@ -448,88 +448,10 @@ local function initialize()
                 warn("[UISystemRegistration] UIUtils not available, cannot create " .. uiName)
                 return nil
             end
-            
-            if uiName == "RebirthMenuUI" then
-                -- Create a simple rebirth menu as a fallback
-                local menu = UIUtils.createFrame({
-                    Name = "RebirthMenuUI",
-                    Size = UDim2.new(0, 300, 0, 400),
-                    Position = UDim2.new(0.5, 0, 0.5, 0),
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    BackgroundColor3 = UIStyle and UIStyle.Colors.Background or Color3.fromRGB(40, 40, 40),
-                    BorderSizePixel = 0
-                })
-                
-                -- Add header
-                local header = UIUtils.createTextLabel({
-                    Name = "Header",
-                    Size = UDim2.new(1, 0, 0, 50),
-                    BackgroundColor3 = UIStyle and UIStyle.Colors.Primary or Color3.fromRGB(0, 120, 215),
-                    Text = "Rebirth Menu",
-                    TextColor3 = UIStyle and UIStyle.Colors.Text or Color3.fromRGB(255, 255, 255),
-                    Font = UIStyle and UIStyle.Fonts.Header or Enum.Font.GothamBold,
-                    TextSize = UIStyle and UIStyle.Sizes.Large or 24
-                })
-                header.Parent = menu
-                
-                -- Add close button
-                local closeButton = UIUtils.createIconButton({
-                    Name = "CloseButton",
-                    Size = UDim2.new(0, 40, 0, 40),
-                    Position = UDim2.new(1, -5, 0, 5),
-                    AnchorPoint = Vector2.new(1, 0),
-                    BackgroundColor3 = UIStyle and UIStyle.Colors.Error or Color3.fromRGB(220, 50, 50),
-                    Text = "X",
-                    TextColor3 = UIStyle and UIStyle.Colors.Text or Color3.fromRGB(255, 255, 255),
-                    Font = UIStyle and UIStyle.Fonts.Button or Enum.Font.GothamBold,
-                    TextSize = UIStyle and UIStyle.Sizes.Normal or 18,
-                    OnClick = function()
-                        menu.Visible = false
-                    end
-                })
-                closeButton.Parent = menu
-                
-                -- Add content
-                local content = UIUtils.createFrame({
-                    Name = "Content",
-                    Size = UDim2.new(1, -20, 1, -70),
-                    Position = UDim2.new(0, 10, 0, 60),
-                    BackgroundTransparency = 1
-                })
-                content.Parent = menu
-                
-                -- Add rebirth button
-                local rebirthButton = UIUtils.createButton({
-                    Name = "RebirthButton",
-                    Size = UDim2.new(1, 0, 0, 50),
-                    Position = UDim2.new(0, 0, 1, -70),
-                    BackgroundColor3 = UIStyle and UIStyle.Colors.Secondary or Color3.fromRGB(0, 90, 160),
-                    Text = "Rebirth Now",
-                    TextColor3 = UIStyle and UIStyle.Colors.Text or Color3.fromRGB(255, 255, 255),
-                    Font = UIStyle and UIStyle.Fonts.Button or Enum.Font.GothamBold,
-                    TextSize = UIStyle and UIStyle.Sizes.Normal or 18
-                })
-                rebirthButton.Parent = content
-                
-                -- Add some info text
-                local infoText = UIUtils.createTextLabel({
-                    Name = "InfoText",
-                    Size = UDim2.new(1, 0, 0, 100),
-                    Position = UDim2.new(0, 0, 0, 0),
-                    BackgroundTransparency = 1,
-                    Text = "Rebirthing will reset your progress but give you permanent bonuses!",
-                    TextColor3 = UIStyle and UIStyle.Colors.Text or Color3.fromRGB(255, 255, 255),
-                    Font = UIStyle and UIStyle.Fonts.Body or Enum.Font.Gotham,
-                    TextSize = UIStyle and UIStyle.Sizes.Normal or 18,
-                    TextWrapped = true
-                })
-                infoText.Parent = content
-                
-                -- Set parent
-                menu.Parent = parent or PlayerGui
-                
-                log("Created fallback RebirthMenuUI")
-                return menu
+              if uiName == "RebirthMenuUI" then
+                -- Rebirth functionality has been removed
+                log("RebirthMenuUI has been removed from the game")
+                return nil
             end
             
             -- Add more UI types as needed

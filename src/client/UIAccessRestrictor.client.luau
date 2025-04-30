@@ -74,16 +74,16 @@ local function removeUnauthorizedUI()
     end
     
     print("[UIAccessRestrictor] Removing development UIs for non-admin user")
-    
-    -- UI elements to remove
+      -- UI elements to remove
     local uiNames = {
-        "EmergencyUIAccess",
+        "EmergencyUIAccess", -- Already removed but included for safety
         "AdminDashboard",
         "AdminPanel",
         "AdminControls",
         "DeveloperConsole",
         "UISystemDebugger",
-        "WaitForChildFinder"
+        "WaitForChildFinder",
+        "RebirthMenuUI" -- Added to ensure it's also removed if present
     }
     
     -- Remove from PlayerGui

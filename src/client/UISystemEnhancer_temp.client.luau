@@ -1,13 +1,13 @@
--- UISystemEnhancer_fixed.client.luau
+-- UISystemEnhancer.client.luau
 -- This script enhances the existing UISystem to better handle UI components
--- Fixed version created April 30, 2025
+-- Created April 28, 2025
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-print("UISystemEnhancer_fixed: Starting...")
+print("UISystemEnhancer: Starting...")
 
 -- Constants
 local DEBUG = true
@@ -28,7 +28,7 @@ local function log(message, level)
         return
     end
     
-    local prefix = "[UISystemEnhancer_fixed] "
+    local prefix = "[UISystemEnhancer] "
     
     if level == "Info" then
         print(prefix .. message)
@@ -375,12 +375,13 @@ local EnhancedUISystem = {
 local function preloadComponents()
     log("Preloading UI components...")
     local componentModules = findUIComponentModules()
-      -- Priority components to load first
+    
+    -- Priority components to load first
     local priorityComponents = {
         "MainMenuUI",
         "SettingsUI"
     }
-    -- Note: "RebirthUI" has been removed because rebirth functionality is no longer needed
+    -- Note: "RebirthUI" has been removed from the priority components list
     
     -- Load priority components first
     for _, name in ipairs(priorityComponents) do
@@ -443,7 +444,7 @@ end
 
 -- Main execution sequence
 local function initialize()
-    log("Initializing UISystemEnhancer_fixed...")
+    log("Initializing UISystemEnhancer...")
     
     -- Preload components
     preloadComponents()
@@ -456,7 +457,7 @@ local function initialize()
         -- Check if any UI is already visible
         local anyUIVisible = false
         for name, component in pairs(loadedComponents) do
-            if component and component.isVisible and component.isVisible == true then
+            if component.isVisible and component.isVisible == true then
                 anyUIVisible = true
                 break
             end
@@ -474,7 +475,7 @@ local function initialize()
     
     -- Emergency UI Access has been removed to avoid exposing development-only features to players
     
-    log("UISystemEnhancer_fixed initialization complete")
+    log("UISystemEnhancer initialization complete")
 end
 
 -- Run initialization

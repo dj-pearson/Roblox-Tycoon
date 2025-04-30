@@ -354,14 +354,12 @@ local EnhancedUISystem = {
 -- Pre-load critical UI components
 local function preloadComponents()
     log("Preloading UI components...")
-    local componentModules = findUIComponentModules()
-    
-    -- Priority components to load first
+    local componentModules = findUIComponentModules()    -- Priority components to load first
     local priorityComponents = {
         "MainMenuUI",
-        "SettingsUI",
-        "RebirthUI"
+        "SettingsUI"
     }
+    -- Note: "RebirthUI" has been removed from the priority components list
     
     -- Load priority components first
     for _, name in ipairs(priorityComponents) do
@@ -392,15 +390,11 @@ local function patchUISystem()
         log("UISystem not found, cannot patch", "Warning")
         return
     end
-    
-    -- Store original methods before patching
+      -- Store original methods before patching
     if uiSystem.showUI then
         originalMethods.showUI = uiSystem.showUI
-        
         -- Replace with our enhanced version
         uiSystem.showUI = function(self, name, ...)
-            -- Acknowledge self parameter to avoid unused variable warning
-            if self then end
             return showUI(name, ...)
         end
         
@@ -412,8 +406,6 @@ local function patchUISystem()
         
         -- Replace with our enhanced version
         uiSystem.hideUI = function(self, name)
-            -- Acknowledge self parameter to avoid unused variable warning
-            if self then end
             return hideUI(name)
         end
         
@@ -423,8 +415,6 @@ local function patchUISystem()
     -- Add method to show main menu if missing
     if not uiSystem.showMainMenu then
         uiSystem.showMainMenu = function(self)
-            -- Acknowledge self parameter to avoid unused variable warning
-            if self then end
             return showUI("MainMenuUI")
         end
         

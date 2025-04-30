@@ -79,7 +79,6 @@ UISystem.componentLoadOrder = {
     "MainMenu",
     "Settings",
     "Stats",
-    "Rebirth",
     "Equipment",
     "Specialization"
 }

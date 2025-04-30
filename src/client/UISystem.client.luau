@@ -99,10 +99,9 @@ local CONFIG = {
         "UIManager",
         "UIRegistry",
         "UIHub"
-    },
-    screenModules = {
+    },    screenModules = {
         "MainMenuUI",
-        "RebirthUI",
+        -- "RebirthUI", -- Removed as rebirth functionality has been removed
         "SettingsUI",
         "StatisticsDisplay"
     },
@@ -221,13 +220,12 @@ local function setupLegacyCompatibility()
     if not UIManager then
         return
     end
-    
-    -- Get all UI modules from StarterGui
+      -- Get all UI modules from StarterGui
     local legacyModuleNames = {
-        "RebirthUI",
-        "RebirthUIFixes",
-        "RebirthUI_Enhanced",
-        "RebirthMenuUI",
+        -- "RebirthUI", -- Removed rebirth functionality
+        -- "RebirthUIFixes", -- Removed rebirth functionality
+        -- "RebirthUI_Enhanced", -- Removed rebirth functionality
+        -- "RebirthMenuUI", -- Removed rebirth functionality
         "MainMenuUI",
         "SettingsUI",
         "StatsGui"
