@@ -13,8 +13,6 @@ local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 
 -- Find CoreRegistry
 local CoreRegistry
@@ -25,7 +23,6 @@ end)
 -- Module imports
 local SafeRequire = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("SafeRequire"))
 local DataValidator = SafeRequire(ReplicatedStorage.shared.DataValidator)
-local SafeWaitForChild = SafeRequire(ReplicatedStorage.shared.SafeWaitForChild)
 
 -- Configuration
 local CONFIG = {
@@ -87,8 +84,9 @@ end
 
 -- Safe DataStore Operation with retries
 local function safeDataStoreOperation(storeName, operationType, storeMethod, ...)
-    local DataStoreService = game:GetService("DataStoreService")
+    -- Use the globally defined DataStoreService instead of shadowing it
     local store
+    local args = {...} -- Store varargs in a local table for later use
     
     -- Get the appropriate DataStore
     local success, storeResult = pcall(function()
@@ -109,7 +107,7 @@ local function safeDataStoreOperation(storeName, operationType, storeMethod, ...
     
     repeat
         local opSuccess, opResult = pcall(function()
-            return storeMethod(store, ...)
+            return storeMethod(store, table.unpack(args))
         end)
         
         if opSuccess then
@@ -249,11 +247,11 @@ function VersionedDataStore:ConnectEvents()
             local userId = player.UserId
             self.versionSchedule[userId] = os.time() + CONFIG.createVersionInterval
         end)
-        
-        -- Player data saved
-        CoreRegistry:onEvent("PlayerDataSaved", function(player)
+          -- Player data saved
+        CoreRegistry:onEvent("PlayerDataSaved", function(_player)
             -- Nothing to do here by default
             -- Could add additional triggers based on game events
+            -- Using _player (with underscore) to denote intentionally unused parameter
         end)
         
         -- Player milestone reached

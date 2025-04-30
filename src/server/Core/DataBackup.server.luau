@@ -11,7 +11,6 @@
 local DataStoreService = game:GetService("DataStoreService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
 
 -- Find CoreRegistry
 local CoreRegistry
@@ -122,7 +121,6 @@ end
 
 -- Safe DataStore operation with retry logic
 local function safeDataStoreOperation(storeName, operationType, storeMethod, ...)
-    local DataStoreService = game:GetService("DataStoreService")
     local store
     
     -- Get the appropriate DataStore
@@ -141,10 +139,11 @@ local function safeDataStoreOperation(storeName, operationType, storeMethod, ...
     local maxRetries = 5
     local retriesRemaining = maxRetries
     local baseDelay = 1
+    local args = {...}
     
     repeat
         local opSuccess, opResult = pcall(function()
-            return storeMethod(store, ...)
+            return storeMethod(store, table.unpack(args))
         end)
         
         if opSuccess then
@@ -348,12 +347,11 @@ function DataBackup:CreateRegularBackup(userId)
     
     if success then
         log("Created regular backup for userId " .. userId .. " with key " .. backupKey)
-        
-        -- Update latest backup pointer
+          -- Update latest backup pointer
         safeDataStoreOperation(
             CONFIG.mainBackupStoreName,
             "UpdateLatest",
-            function(store, key, data)
+            function(store)
                 store:SetAsync("Latest_" .. userId, backupKey)
                 return true
             end
@@ -417,12 +415,11 @@ function DataBackup:CreateWeeklyBackup(userId)
     
     if success then
         log("Created weekly backup for userId " .. userId .. " with key " .. backupKey)
-        
-        -- Update latest weekly backup pointer
+          -- Update latest weekly backup pointer
         safeDataStoreOperation(
             CONFIG.weeklyBackupStoreName,
             "UpdateLatest",
-            function(store, key, data)
+            function(store)
                 store:SetAsync("LatestWeekly_" .. userId, backupKey)
                 return true
             end
@@ -494,12 +491,11 @@ function DataBackup:CreateCriticalBackup(player, reason)
     
     if success then
         log("Created critical backup for userId " .. userId .. " with key " .. backupKey .. " (Reason: " .. reason .. ")")
-        
-        -- Update latest critical backup pointer
+          -- Update latest critical backup pointer
         safeDataStoreOperation(
             CONFIG.criticalBackupStoreName,
             "UpdateLatest",
-            function(store, key, data)
+            function(store)
                 store:SetAsync("LatestCritical_" .. userId, backupKey)
                 return true
             end
@@ -708,7 +704,7 @@ function DataBackup:CleanupOldBackups(userId, backupType)
         return false
     end
     
-    log("Backup cleanup not implemented - would keep " .. maxBackups .. " " .. backupType .. " backups")
+    log("Backup cleanup not implemented - would keep " .. maxBackups .. " " .. backupType .. " backups for userId " .. userId)
     return true
 end
 
@@ -721,10 +717,10 @@ if CoreRegistry and CoreRegistry.onEvent then
         -- Schedule backups for this player
         DataBackup:ScheduleBackups(player)
     end)
-    
-    CoreRegistry:onEvent("PlayerDataSaved", function(player)
+      CoreRegistry:onEvent("PlayerDataSaved", function(_player)
         -- Consider creating a backup if significant changes were made
         -- This would require tracking what changed in the data
+        -- We use _player (with underscore) to denote intentionally unused parameter
     end)
 end
 

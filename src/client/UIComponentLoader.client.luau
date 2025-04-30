@@ -152,44 +152,41 @@ local function loadUIComponents()
     -- Load each component
     for _, info in ipairs(componentInfos) do
         print("UIComponentLoader: Loading " .. info.name)
-        
-        -- Load the component module
-        local component = requireSafely(info.path)        if not component then
+          -- Load the component module
+        local component = requireSafely(info.path)
+        if not component then
             warn("UIComponentLoader: Failed to load " .. info.name)
-            goto continue
+        else
+            -- Initialize the component if not already initialized
+            if component.initialize and not component.isInitialized then
+                pcall(function()
+                    component:initialize()
+                end)
+            end
+            
+            -- Register with registry
+            if registry and registry.registerComponent then
+                pcall(function()
+                    registry:registerComponent(info.name, component)
+                end)
+                print("UIComponentLoader: Registered " .. info.name .. " with UIRegistry")
+            end
+            
+            -- Also register with manager
+            if manager and manager.registerUI then
+                pcall(function()
+                    manager:registerUI(info.name, component)
+                end)
+                print("UIComponentLoader: Registered " .. info.name .. " with UIManager")
+            end
+            
+            -- Create global access point for emergency fallback
+            _G[info.name] = component
+            print("UIComponentLoader: Created global access point _G." .. info.name)
+            
+            -- Add to loaded components
+            loadedComponents[info.name] = component
         end
-        
-        -- Initialize the component if not already initialized
-        if component.initialize and not component.isInitialized then
-            pcall(function()
-                component:initialize()
-            end)
-        end
-        
-        -- Register with registry
-        if registry and registry.registerComponent then
-            pcall(function()
-                registry:registerComponent(info.name, component)
-            end)
-            print("UIComponentLoader: Registered " .. info.name .. " with UIRegistry")
-        end
-        
-        -- Also register with manager
-        if manager and manager.registerUI then
-            pcall(function()
-                manager:registerUI(info.name, component)
-            end)
-            print("UIComponentLoader: Registered " .. info.name .. " with UIManager")
-        end
-        
-        -- Create global access point for emergency fallback
-        _G[info.name] = component
-        print("UIComponentLoader: Created global access point _G." .. info.name)
-        
-        -- Add to loaded components
-        loadedComponents[info.name] = component
-        
-        ::continue::
     end
     
     return loadedComponents

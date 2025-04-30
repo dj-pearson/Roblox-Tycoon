@@ -7,8 +7,6 @@
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 
 print("UISystemPatcher: Starting...")
 
@@ -174,7 +172,6 @@ local function enhancedShowUI(name, ...)
         warn("UISystemPatcher: UIRegistry not found")
         return false
     end
-    
     -- Try standard and alternative naming patterns
     local namesToTry = {
         name, -- Original name
@@ -215,13 +212,13 @@ local function enhancedShowUI(name, ...)
                     return true
                 end
             end
-            
-            -- Direct component approach
+              -- Direct component approach
             local component = UIRegistry:getComponent(tryName)
             if component and component.show then
                 print("UISystemPatcher: Found component with name: " .. tryName)
+                local args = {...}
                 local success, result = pcall(function()
-                    return component:show(...)
+                    return component:show(table.unpack(args))
                 end)
                 
                 if success and result ~= false then
@@ -231,11 +228,12 @@ local function enhancedShowUI(name, ...)
             end
             
             -- Try global component
-            local globalComponent = _G[tryName]
+            local globalComponent = getfenv(0)[tryName] -- Using getfenv instead of _G
             if globalComponent and globalComponent.show then
                 print("UISystemPatcher: Found global component with name: " .. tryName)
+                local args = {...}
                 local success, result = pcall(function()
-                    return globalComponent:show(...)
+                    return globalComponent:show(table.unpack(args))
                 end)
                 
                 if success and result ~= false then
@@ -313,12 +311,20 @@ else
     warn("UISystemPatcher: Failed to patch UISystem")
 end
 
--- Expose global helpers for emergency use
-_G.ShowUIEnhanced = enhancedShowUI
-_G.UISystemPatcher = {
+-- Create a local module table instead of using globals
+local UISystemPatcher = {
     enhancedShowUI = enhancedShowUI,
     getUISystem = getUISystem,
     getUIRegistry = getUIRegistry
 }
 
+-- Export functionality through a different approach if needed
+-- For example, you could use a BindableFunction in ReplicatedStorage
+local BindableFunction = Instance.new("BindableFunction")
+BindableFunction.Name = "ShowUIEnhanced"
+BindableFunction.OnInvoke = enhancedShowUI
+BindableFunction.Parent = ReplicatedStorage
+
 print("UISystemPatcher: Setup complete")
+
+return UISystemPatcher

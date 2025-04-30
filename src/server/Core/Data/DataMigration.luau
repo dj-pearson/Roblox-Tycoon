@@ -384,12 +384,11 @@ DataMigration:registerMigration(DataConstants.PLAYER_SCOPES.CORE, "0.0.0", "1.0.
             data.settings.musicEnabled = nil
         end
     end
-    
-    -- Add version
+      -- Add version
     data.version = "1.0.0"
     
     return data
-end))
+end)
 
 -- Initialize default migrations for other scopes
 for _, scope in pairs(DataConstants.PLAYER_SCOPES) do
