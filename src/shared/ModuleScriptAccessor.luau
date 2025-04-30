@@ -1,172 +1,127 @@
 --[[
     ModuleScriptAccessor.luau
     
-    A utility module for managing script access across the game.
-    This provides a centralized way to access modules from different parts of the game.
+    Provides a centralized way to access critical modules and systems across the game.
+    This helper module serves as a bridge between different systems and helps resolve dependencies.
     
     Created: April 30, 2025
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local ServerStorage = game:GetService("ServerStorage")
+local RunService = game:GetService("RunService")
 
 local ModuleScriptAccessor = {}
 
 -- Debug settings
 ModuleScriptAccessor.DEBUG = true
 
--- Log a message to the output
-local function log(message)
-    if ModuleScriptAccessor.DEBUG then
-        print("[ModuleScriptAccessor] " .. message)
+-- Internal storage for CoreRegistry instance
+local cachedCoreRegistry = nil
+
+-- Safe require function
+local function safeRequire(module)
+    if not module then return nil end
+    
+    local success, result = pcall(function()
+        return require(module)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("[ModuleScriptAccessor] Failed to require module:", result)
+        return nil
     end
 end
 
--- Get all standard search paths for a module
-function ModuleScriptAccessor.getSearchPaths()
-    return {
-        -- ReplicatedStorage paths
-        ReplicatedStorage:FindFirstChild("shared"),
-        ReplicatedStorage:FindFirstChild("src"),
-        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
-        
-        -- ServerScriptService paths
-        ServerScriptService:FindFirstChild("src"),
-        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server"),
-        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
-        ServerScriptService:FindFirstChild("Core"),
-        ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Core"),
-        ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Systems"),
-        ServerScriptService:FindFirstChild("Systems"),
-        ServerScriptService:FindFirstChild("GymAutomation"),
-        
-        -- ServerStorage paths
-        ServerStorage:FindFirstChild("src"),
-        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server"),
-        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("Core"),
-        ServerStorage:FindFirstChild("Core"),
-        ServerStorage:FindFirstChild("Systems"),
-        ServerStorage:FindFirstChild("GymAutomation")
-    }
-end
-
--- Try to find a module in all search paths
+-- Find a module in the workspace
 function ModuleScriptAccessor.findModule(moduleName)
-    local searchPaths = ModuleScriptAccessor.getSearchPaths()
+    -- Define potential locations based on whether we're on the server or client
+    local searchPaths = {}
     
+    if RunService:IsServer() then
+        -- Server-side search paths
+        searchPaths = {
+            ServerScriptService:FindFirstChild("Core"),
+            ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
+            ServerScriptService:FindFirstChild("Systems"),
+            ServerScriptService:FindFirstChild("GymAutomation"),
+            ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("GymAutomation"),
+            ServerScriptService
+        }
+    end
+    
+    -- Common search paths for both server and client
+    table.insert(searchPaths, ReplicatedStorage:FindFirstChild("shared"))
+    table.insert(searchPaths, ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"))
+    
+    -- Try to find the module
     for _, path in ipairs(searchPaths) do
         if path then
-            -- Direct match
+            -- Check for exact name
             local module = path:FindFirstChild(moduleName)
             if module and module:IsA("ModuleScript") then
-                log("Found module " .. moduleName .. " at: " .. module:GetFullName())
                 return module
             end
             
-            -- With .luau extension
+            -- Check with .luau extension
             module = path:FindFirstChild(moduleName .. ".luau")
             if module and module:IsA("ModuleScript") then
-                log("Found module " .. moduleName .. ".luau at: " .. module:GetFullName())
                 return module
             end
             
-            -- With .server.luau extension
-            module = path:FindFirstChild(moduleName .. ".server.luau")
+            -- Check with server/client extension
+            local side = RunService:IsServer() and "server" or "client"
+            module = path:FindFirstChild(moduleName .. "." .. side .. ".luau")
             if module and module:IsA("ModuleScript") then
-                log("Found module " .. moduleName .. ".server.luau at: " .. module:GetFullName())
-                return module
-            end
-            
-            -- With .client.luau extension
-            module = path:FindFirstChild(moduleName .. ".client.luau")
-            if module and module:IsA("ModuleScript") then
-                log("Found module " .. moduleName .. ".client.luau at: " .. module:GetFullName())
                 return module
             end
         end
     end
     
-    log("Could not find module: " .. moduleName)
     return nil
 end
 
--- Require a module by name, searching in standard locations
-function ModuleScriptAccessor.requireModule(moduleName)
-    local moduleScript = ModuleScriptAccessor.findModule(moduleName)
-    
-    if moduleScript then
-        local success, result = pcall(function()
-            return require(moduleScript)
-        end)
-        
-        if success then
-            return result
-        else
-            warn("[ModuleScriptAccessor] Failed to require " .. moduleName .. ": " .. tostring(result))
-        end
-    end
-    
-    return nil
-end
-
--- Get the CoreRegistry if available
-function ModuleScriptAccessor.getCoreRegistry()
-    -- Try direct require
-    local coreRegistry = ModuleScriptAccessor.requireModule("CoreRegistry")
-    
-    if coreRegistry then
-        return coreRegistry
-    end
-    
-    -- Try to find in shared folder
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if shared and shared:FindFirstChild("CoreRegistry") then
-        local success, result = pcall(function()
-            return require(shared.CoreRegistry)
-        end)
-        
-        if success then
-            return result
-        end
-    end
-    
-    log("CoreRegistry not found")
-    return nil
-end
-
--- Get a reference to a system through CoreRegistry
+-- Get a system (attempts to use CoreRegistry if available)
 function ModuleScriptAccessor.getSystem(systemName)
-    local coreRegistry = ModuleScriptAccessor.getCoreRegistry()
-    
-    if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
-        return coreRegistry.getSystem(systemName)
+    -- First try via CoreRegistry
+    local CoreRegistry = ModuleScriptAccessor.getCoreRegistry()
+    if CoreRegistry and typeof(CoreRegistry.getSystem) == "function" then
+        local system = CoreRegistry.getSystem(systemName)
+        if system then
+            return system
+        end
     end
     
-    -- Fallback: try to find it directly
-    return ModuleScriptAccessor.requireModule(systemName)
+    -- Fallback to direct require
+    local module = ModuleScriptAccessor.findModule(systemName)
+    if module then
+        return safeRequire(module)
+    end
+    
+    return nil
 end
 
--- Register a system with CoreRegistry
-function ModuleScriptAccessor.registerSystem(systemName, systemModule)
-    local coreRegistry = ModuleScriptAccessor.getCoreRegistry()
-    
-    if coreRegistry and typeof(coreRegistry.registerSystem) == "function" then
-        local success, result = pcall(function()
-            return coreRegistry.registerSystem(systemName, systemModule)
-        end)
-        
-        if success then
-            log("Successfully registered system: " .. systemName)
-            return true
-        else
-            warn("[ModuleScriptAccessor] Failed to register system " .. systemName .. ": " .. tostring(result))
-        end
-    else
-        warn("[ModuleScriptAccessor] CoreRegistry not found or missing registerSystem method")
+-- Get CoreRegistry 
+function ModuleScriptAccessor.getCoreRegistry()
+    -- Try cached registry first
+    if cachedCoreRegistry then
+        return cachedCoreRegistry
     end
     
-    return false
+    -- Try to find and require the module
+    local coreRegistryModule = ModuleScriptAccessor.findModule("CoreRegistry")
+    if coreRegistryModule then
+        local CoreRegistry = safeRequire(coreRegistryModule)
+        if CoreRegistry then
+            -- Cache for future use
+            cachedCoreRegistry = CoreRegistry
+            return CoreRegistry
+        end
+    end
+    
+    return nil
 end
 
 return ModuleScriptAccessor

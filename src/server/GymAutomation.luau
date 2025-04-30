@@ -5,18 +5,58 @@
     This module provides easy access to GymAutomation functionality.
     It wraps the GymAutomationManager functionality for easier use in other scripts.
     
-    Created: April 30, 2025
+    Updated: April 30, 2025
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
+-- Try to get ModuleScriptAccessor for better module finding
+local function getModuleScriptAccessor()
+    -- Try to find in ReplicatedStorage/shared
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        local success, result = pcall(function()
+            return require(shared.ModuleScriptAccessor)
+        end)
+        
+        if success and result then
+            return result
+        end
+    end
+    
+    -- Try to find in src/shared
+    local srcShared = ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("shared")
+    if srcShared and srcShared:FindFirstChild("ModuleScriptAccessor") then
+        local success, result = pcall(function()
+            return require(srcShared.ModuleScriptAccessor)
+        end)
+        
+        if success and result then
+            return result
+        end
+    end
+    
+    return nil
+end
+
 -- Try to require GymAutomationManager
 local GymAutomationManagerInstance
 local function getGymAutomationManager()
     if GymAutomationManagerInstance then
         return GymAutomationManagerInstance
+    end
+    
+    -- First, try to use ModuleScriptAccessor if available
+    local accessor = getModuleScriptAccessor()
+    if accessor then
+        local manager = accessor.getSystem("GymAutomationManager")
+        if manager then
+            print("[GymAutomation] Found GymAutomationManager via ModuleScriptAccessor")
+            GymAutomationManagerInstance = manager
+            return GymAutomationManagerInstance
+        end
     end
     
     -- Define search paths
@@ -29,6 +69,7 @@ local function getGymAutomationManager()
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("GymAutomationManager"),
         ServerScriptService:FindFirstChild("GymAutomation") and ServerScriptService.GymAutomation:FindFirstChild("GymAutomationManager"),
         ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("GymAutomationManager"),
+        script.Parent:FindFirstChild("GymAutomation") and script.Parent.GymAutomation:FindFirstChild("GymAutomationManager"),
         
         -- Check server storage
         ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("GymAutomation") and ServerStorage.src.server.GymAutomation:FindFirstChild("GymAutomationManager"),
@@ -41,7 +82,7 @@ local function getGymAutomationManager()
             local success, result = pcall(function()
                 return require(path)
             end)
-              if success and result then
+            if success and result then
                 print("[GymAutomation] Found GymAutomationManager at", path:GetFullName())
                 GymAutomationManagerInstance = result
                 return GymAutomationManagerInstance
