@@ -10,7 +10,6 @@
 ]]
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
 
 -- Configuration
@@ -127,11 +126,13 @@ end
 
 -- Fire an event
 function ClientRegistry.fireEvent(eventName, ...)
+    local args = {...} -- Store varargs in a local table
+    
     local event = ClientRegistry.events[eventName]
     if event then
         for _, callback in ipairs(event.callbacks) do
             task.spawn(function()
-                callback(...)
+                callback(table.unpack(args))
             end)
         end
     end

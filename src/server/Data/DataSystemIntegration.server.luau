@@ -12,7 +12,6 @@
 local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 -- Find CoreRegistry using advanced methods
 local CoreRegistry
@@ -109,11 +108,13 @@ local function safeCall(funcOrObj, method, ...)
         return nil
     end
     
+    local args = {...}  -- Store varargs in a local table
+    
     local success, result = pcall(function()
         if method then
-            return funcOrObj[method](funcOrObj, ...)
+            return funcOrObj[method](funcOrObj, table.unpack(args))
         else
-            return funcOrObj(...)
+            return funcOrObj(table.unpack(args))
         end
     end)
     
