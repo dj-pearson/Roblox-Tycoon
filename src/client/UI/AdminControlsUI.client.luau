@@ -292,7 +292,59 @@ local uiState = {
 -- Admin Controls UI Module
 local AdminControlsUI = {}
 
+-- Check if the current player is an admin
+local function isPlayerAdmin()
+	-- Check player attributes (most reliable method)
+	if player:GetAttribute("IsAdmin") or player:GetAttribute("Admin") or player:GetAttribute("IsDeveloper") then
+		return true
+	end
+	
+	-- Check if in Studio (for testing only)
+	if game:GetService("RunService"):IsStudio() then
+		return true
+	end
+	
+	-- Check for admin in GameSystem
+	local success, result = pcall(function()
+		if GameSystem and typeof(GameSystem.isPlayerAdmin) == "function" then
+			return GameSystem.isPlayerAdmin(player)
+		end
+		return false
+	end)
+	
+	if success and result then
+		return true
+	end
+	
+	-- Check admin users list in ReplicatedStorage
+	local adminListCheck = pcall(function()
+		local adminList = game.ReplicatedStorage:FindFirstChild("AdminUsers")
+		if adminList and adminList:IsA("ModuleScript") then
+			local admins = require(adminList)
+			if type(admins) == "table" then
+				for _, id in pairs(admins) do
+					if id == player.UserId then
+						return true
+					end
+				end
+			end
+		end
+		return false
+	end)
+	
+	-- By default, not an admin
+	return false
+end
+
 function AdminControlsUI.initialize()
+	-- Check if player is an admin before creating UI
+	if not isPlayerAdmin() then
+		print("[AdminControlsUI] User is not an admin. Admin interface disabled.")
+		return false
+	end
+	
+	print("[AdminControlsUI] User is an admin. Initializing admin interface...")
+	
 	-- Create the main panel frame
 	local AdminDashboard = Instance.new("Frame")
 	AdminDashboard.Name = "AdminDashboard"

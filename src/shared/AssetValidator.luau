@@ -1,482 +1,261 @@
---[[
-    AssetValidator.luau
-    
-    A utility module for validating and loading assets properly, ensuring UI and 
-    other game assets are correctly loaded and available before use.
-    
-    Created to address the "AssetValidator not found" issues identified in RobloxIssues.txt
-]]
+--!strict
+-- AssetValidator.luau
+-- Validates asset existence and provides fallback mechanisms
+-- Created on April 29, 2025 to fix UI system validation failures
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ContentProvider = game:GetService("ContentProvider")
-local RunService = game:GetService("RunService")
 
--- Try to get ErrorHandlingUtility
-local ErrorHandling
-local errorTypes = {
-    ASSET_ERROR = "AssetError",
-    VALIDATION_ERROR = "ValidationError"
+-- Default assets to use as fallbacks
+local DEFAULT_ASSETS = {
+    image = "rbxassetid://8587344193", -- Default blank image
+    sound = "rbxassetid://6026984224", -- Default empty sound
+    animation = "rbxassetid://4595066903", -- Default idle animation
+    mesh = "rbxassetid://268440554", -- Default cylinder mesh
 }
 
-local function tryGetErrorHandling()
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if not shared then return nil end
-    
-    local errorModule = shared:FindFirstChild("ErrorHandlingUtility")
-    if not errorModule or not errorModule:IsA("ModuleScript") then return nil end
-    
-    local success, result = pcall(function()
-        return require(errorModule)
-    end)
-    
-    if success and result then
-        return result
-    end
-    
-    return nil
-end
-
--- Configuration
-local CONFIG = {
-    debug = true,
-    assetTypes = {
-        IMAGE = "Image",
-        MESH = "Mesh",
-        SOUND = "Sound",
-        ANIMATION = "Animation",
-        UI = "UI",
-        OTHER = "Other"
-    },
-    defaultAssetFolders = {
-        Images = "rbxassetid://0", -- Default blank image
-        Meshes = nil,
-        Sounds = nil,
-        Animations = nil,
-        UI = nil
-    },
-    preloadCommonAssets = true,
-    validateTimeoutSeconds = 10
-}
-
--- Local variables
+-- Cache of validated assets
 local validatedAssets = {}
-local failedAssets = {}
-local loadingPromises = {}
+
+-- Cache of preloaded asset contents
 local preloadedAssets = {}
 
--- Debug logger
-local function log(...)
-    if CONFIG.debug then
-        print("[AssetValidator]", ...)
-    end
-end
+-- Stats tracking
+local stats = {
+    totalChecks = 0,
+    validAssets = 0,
+    invalidAssets = 0,
+    fallbacksUsed = 0,
+    preloads = 0
+}
 
--- Report an error
-local function reportError(errorType, message, source, additionalInfo)
-    -- If ErrorHandling module is available, use it
-    if ErrorHandling then
-        return ErrorHandling.error["report" .. errorType](message, source, additionalInfo)
-    else
-        -- Basic error reporting
-        warn("[AssetValidator]", errorType, ":", message, "(", source or "", ")")
-        return {
-            type = errorType,
-            message = message,
-            source = source or "AssetValidator",
-            timestamp = os.time(),
-            additional = additionalInfo or {}
-        }
-    end
-end
+-- Forward declarations
+local AssetValidator = {}
 
--- Get asset type based on asset instance
-local function getAssetType(asset)
-    if not asset then
-        return CONFIG.assetTypes.OTHER
-    end
-    
-    -- Check by ClassName
-    if asset:IsA("ImageLabel") or asset:IsA("ImageButton") or asset:IsA("Decal") or asset:IsA("Texture") then
-        return CONFIG.assetTypes.IMAGE
-    elseif asset:IsA("SpecialMesh") or asset:IsA("MeshPart") or asset:IsA("FileMesh") then
-        return CONFIG.assetTypes.MESH
-    elseif asset:IsA("Sound") or asset:IsA("SoundGroup") then
-        return CONFIG.assetTypes.SOUND
-    elseif asset:IsA("Animation") or asset:IsA("AnimationTrack") then
-        return CONFIG.assetTypes.ANIMATION
-    elseif asset:IsA("UIComponent") or asset:IsA("GuiObject") then
-        return CONFIG.assetTypes.UI
-    else
-        return CONFIG.assetTypes.OTHER
-    end
-end
-
--- Get asset ID from an asset
-local function getAssetId(asset)
-    if not asset then return nil end
-    
-    -- Get asset ID based on type
-    local assetType = getAssetType(asset)
-    
-    if assetType == CONFIG.assetTypes.IMAGE then
-        if asset:IsA("ImageLabel") or asset:IsA("ImageButton") then
-            return asset.Image
-        elseif asset:IsA("Decal") or asset:IsA("Texture") then
-            return asset.Texture
-        end
-    elseif assetType == CONFIG.assetTypes.MESH then
-        if asset:IsA("SpecialMesh") or asset:IsA("FileMesh") then
-            return asset.MeshId
-        elseif asset:IsA("MeshPart") then
-            return asset.MeshID
-        end
-    elseif assetType == CONFIG.assetTypes.SOUND then
-        if asset:IsA("Sound") then
-            return asset.SoundId
-        end
-    elseif assetType == CONFIG.assetTypes.ANIMATION then
-        if asset:IsA("Animation") then
-            return asset.AnimationId
-        end
-    end
-    
-    -- Check common asset ID properties
-    local commonProperties = {"AssetId", "ID", "Id", "TextureID", "TextureId"}
-    for _, prop in ipairs(commonProperties) do
-        if asset[prop] and typeof(asset[prop]) == "string" then
-            return asset[prop]
-        end
-    end
-    
-    return nil
-end
-
--- Wait with timeout
-local function waitWithTimeout(seconds)
-    local endTime = os.clock() + (seconds or CONFIG.validateTimeoutSeconds)
-    
-    return function()
-        if os.clock() >= endTime then
-            return true
-        end
-        RunService.Heartbeat:Wait()
+-- Helper function to validate an asset ID
+local function isValidAssetId(assetId)
+    -- Basic format check (rbxassetid://numbers)
+    if not string.match(assetId, "^rbxassetid://(%d+)$") then
         return false
     end
+    
+    -- Extract the numeric part
+    local numericId = string.match(assetId, "(%d+)")
+    if not numericId then
+        return false
+    end
+    
+    -- Check if the ID is reasonable (not 0 or negative)
+    local idNumber = tonumber(numericId)
+    if not idNumber or idNumber <= 0 then
+        return false
+    end
+    
+    return true
 end
 
--- Validate a single asset
-local function validateAsset(asset, options)
-    options = options or {}
-    local assetId = options.assetId or getAssetId(asset)
-    local assetType = options.assetType or getAssetType(asset)
-    local source = options.source or "Unknown"
+-- Check if we've already validated this asset
+local function checkCache(assetId)
+    return validatedAssets[assetId]
+end
+
+-- Primary validation function
+function AssetValidator.validateAsset(assetId, assetType)
+    stats.totalChecks += 1
     
-    -- If no asset ID, automatically pass validation
+    -- Safety checks
     if not assetId or assetId == "" then
-        return true
+        stats.invalidAssets += 1
+        return false, DEFAULT_ASSETS[assetType or "image"] or DEFAULT_ASSETS.image
     end
     
-    -- Check if already validated
-    if validatedAssets[assetId] then
-        return true
+    -- Check the cache first
+    local cachedResult = checkCache(assetId)
+    if cachedResult ~= nil then
+        return cachedResult, cachedResult and assetId or DEFAULT_ASSETS[assetType or "image"] or DEFAULT_ASSETS.image
     end
     
-    -- Check if already failed
-    if failedAssets[assetId] then
-        if options.suppressErrors ~= true then
-            reportError(errorTypes.ASSET_ERROR, "Asset previously failed validation", source, {
-                assetId = assetId,
-                assetType = assetType
-            })
-        end
+    -- Basic format validation
+    if not isValidAssetId(assetId) then
+        validatedAssets[assetId] = false
+        stats.invalidAssets += 1
+        return false, DEFAULT_ASSETS[assetType or "image"] or DEFAULT_ASSETS.image
+    end
+    
+    -- All checks passed, consider it valid (we'll know for sure when it's used)
+    validatedAssets[assetId] = true
+    stats.validAssets += 1
+    return true, assetId
+end
+
+-- Preload an asset to ensure it's available when needed
+function AssetValidator.preloadAsset(assetId, assetType)
+    -- Validate first
+    local isValid, validatedId = AssetValidator.validateAsset(assetId, assetType)
+    
+    -- Don't try to preload invalid assets
+    if not isValid then
         return false
     end
     
-    -- Normalize rbxassetid format
-    if assetId:find("rbxassetid://") then
-        -- Already in correct format
-    elseif assetId:find("rbxasset://") then
-        -- Local asset, assume it's valid
-        validatedAssets[assetId] = true
-        return true
-    elseif tonumber(assetId) then
-        -- Convert number to rbxassetid format
-        assetId = "rbxassetid://" .. assetId
-    end
-    
-    -- Special case for empty/zero asset IDs
-    if assetId == "rbxassetid://0" or assetId == "0" or assetId == "" then
-        validatedAssets[assetId] = true
+    -- Skip if already preloaded
+    if preloadedAssets[validatedId] then
         return true
     end
     
-    -- Check if already loading this asset
-    if loadingPromises[assetId] then
-        -- Wait for existing load to finish
-        log("Waiting for existing load of asset:", assetId)
-        
-        -- If it's a UI workflow, we don't want to block
-        if options.noWait then
-            return true
-        end
-        
-        -- Set up timeout checker
-        local timedOut = waitWithTimeout()
-        
-        while loadingPromises[assetId] do
-            if timedOut() then
-                reportError(errorTypes.VALIDATION_ERROR, "Asset validation timed out", source, {
-                    assetId = assetId,
-                    assetType = assetType
-                })
-                return false
-            end
-            RunService.Heartbeat:Wait()
-        end
-        
-        -- Check if successfully loaded
-        if validatedAssets[assetId] then
-            return true
-        else
-            if options.suppressErrors ~= true then
-                reportError(errorTypes.ASSET_ERROR, "Asset failed previous validation", source, {
-                    assetId = assetId,
-                    assetType = assetType
-                })
-            end
-            return false
-        end
-    end
-    
-    -- Start loading
-    loadingPromises[assetId] = true
-    
-    -- Different validation strategies based on asset type
-    local validationSuccess = false
-    
-    -- Use ContentProvider to preload
-    if assetType == CONFIG.assetTypes.IMAGE or assetType == CONFIG.assetTypes.MESH then
-        log("Validating asset:", assetId)
-        
-        local success, result = pcall(function()
-            ContentProvider:PreloadAsync({assetId})
-            return true
-        end)
-        
-        validationSuccess = success
-        
-        if not success and options.suppressErrors ~= true then
-            reportError(errorTypes.ASSET_ERROR, "Failed to preload asset: " .. tostring(result), source, {
-                assetId = assetId,
-                assetType = assetType
-            })
-        end
-    elseif assetType == CONFIG.assetTypes.SOUND then
-        -- Create temporary sound object to validate
-        local tempSound = Instance.new("Sound")
-        tempSound.Volume = 0
-        tempSound.SoundId = assetId
-        
-        local connection
-        local loaded = false
-        
-        connection = tempSound.Loaded:Connect(function()
-            loaded = true
-            validationSuccess = true
-            if connection then connection:Disconnect() end
-        end)
-        
-        -- Use timeout
-        local timedOut = waitWithTimeout()
-        
-        while not loaded do
-            if timedOut() then
-                if options.suppressErrors ~= true then
-                    reportError(errorTypes.VALIDATION_ERROR, "Sound validation timed out", source, {
-                        assetId = assetId
-                    })
-                end
-                break
-            end
-            RunService.Heartbeat:Wait()
-        end
-        
-        tempSound:Destroy()
+    -- Create appropriate instance based on asset type
+    local instance
+    if assetType == "image" then
+        instance = Instance.new("ImageLabel")
+        instance.Image = validatedId
+    elseif assetType == "sound" then
+        instance = Instance.new("Sound")
+        instance.SoundId = validatedId
+    elseif assetType == "animation" then
+        instance = Instance.new("Animation")
+        instance.AnimationId = validatedId
+    elseif assetType == "mesh" then
+        instance = Instance.new("SpecialMesh")
+        instance.MeshId = validatedId
     else
-        -- For other asset types, just assume they're valid
-        validationSuccess = true
+        -- Default to image
+        instance = Instance.new("ImageLabel")
+        instance.Image = validatedId
     end
     
-    -- Update tracking
-    if validationSuccess then
-        validatedAssets[assetId] = true
-    else
-        failedAssets[assetId] = true
-    end
-    
-    -- Clear loading promise
-    loadingPromises[assetId] = nil
-    
-    return validationSuccess
-end
-
--- Validate multiple assets
-local function validateAssets(assets, options)
-    options = options or {}
-    
-    -- Handle array of assets
-    if typeof(assets) == "table" and #assets > 0 then
-        local allValid = true
-        local results = {}
-        
-        for index, asset in ipairs(assets) do
-            local valid = validateAsset(asset, options)
-            results[index] = valid
-            
-            if not valid then
-                allValid = false
-            end
-        end
-        
-        return allValid, results
-    -- Handle a single asset
-    elseif typeof(assets) == "Instance" then
-        return validateAsset(assets, options)
-    -- Handle a single asset ID
-    elseif typeof(assets) == "string" then
-        return validateAsset(nil, {
-            assetId = assets,
-            assetType = options.assetType or CONFIG.assetTypes.OTHER,
-            source = options.source
-        })
-    end
-    
-    return false
-end
-
--- Preload common assets
-local function preloadCommonAssets()
-    if not CONFIG.preloadCommonAssets then
-        return
-    end
-    
-    log("Preloading common assets")
-    
-    -- Find asset folders
-    local assetFolder = ReplicatedStorage:FindFirstChild("Assets")
-    
-    -- If no asset folder exists, use defaults
-    if not assetFolder then
-        for folderName, defaultAsset in pairs(CONFIG.defaultAssetFolders) do
-            if defaultAsset then
-                validateAsset(nil, {
-                    assetId = defaultAsset,
-                    assetType = folderName:sub(1, -2), -- Remove 's' to get type
-                    source = "PreloadCommonAssets",
-                    suppressErrors = true
-                })
-            end
-        end
-        return
-    end
-    
-    -- Preload assets from folders
-    for _, folder in ipairs(assetFolder:GetChildren()) do
-        if folder:IsA("Folder") then
-            log("Preloading assets from folder:", folder.Name)
-            
-            -- Limit to 10 assets per folder to avoid long load times
-            local count = 0
-            
-            for _, asset in ipairs(folder:GetChildren()) do
-                if count >= 10 then break end
-                
-                local assetId = getAssetId(asset)
-                if assetId then
-                    validateAsset(asset, {
-                        source = "PreloadCommonAssets",
-                        suppressErrors = true
-                    })
-                    preloadedAssets[assetId] = true
-                    count = count + 1
-                end
-            end
-        end
-    end
-    
-    log("Common asset preloading complete")
-end
-
--- Get fallback asset for type
-local function getFallbackAsset(assetType)
-    assetType = assetType or CONFIG.assetTypes.OTHER
-    
-    -- Check type and return appropriate fallback
-    if assetType == CONFIG.assetTypes.IMAGE then
-        return "rbxassetid://0" -- Blank image
-    elseif assetType == CONFIG.assetTypes.SOUND then
-        return "rbxassetid://0" -- Silent sound
-    end
-    
-    -- For types without fallbacks, return nil
-    return nil
-end
-
--- Initialize the module
-local function initialize()
-    log("Initializing AssetValidator")
-    
-    -- Try to get ErrorHandling utility
-    ErrorHandling = tryGetErrorHandling()
-    
-    -- Preload common assets after a short delay
-    task.delay(1, function()
-        preloadCommonAssets()
+    -- Try to preload the asset
+    local success = pcall(function()
+        ContentProvider:PreloadAsync({instance})
     end)
     
-    log("AssetValidator initialized")
+    -- Clean up the temporary instance
+    instance:Destroy()
+    
+    -- Cache the result
+    if success then
+        preloadedAssets[validatedId] = true
+        stats.preloads += 1
+    else
+        -- If preload fails, mark it as invalid
+        validatedAssets[assetId] = false
+        stats.invalidAssets += 1
+        stats.validAssets -= 1 -- Correct our previous count
+    end
+    
+    return success
 end
 
--- Initialize
-initialize()
+-- Batch validate multiple assets
+function AssetValidator.validateBatch(assetTable)
+    local results = {}
+    local validCount = 0
+    local totalCount = 0
+    
+    for key, info in pairs(assetTable) do
+        totalCount += 1
+        -- Handle different input formats
+        local assetId, assetType
+        
+        if typeof(info) == "string" then
+            assetId = info
+            assetType = "image" -- Default
+        elseif typeof(info) == "table" then
+            assetId = info.id or info.assetId
+            assetType = info.type or "image"
+        end
+        
+        -- Validate
+        local isValid, validatedId = AssetValidator.validateAsset(assetId, assetType)
+        results[key] = {
+            valid = isValid,
+            id = validatedId,
+            originalId = assetId,
+            type = assetType
+        }
+        
+        if isValid then
+            validCount += 1
+        end
+    end
+    
+    return results, validCount, totalCount
+end
 
--- Public API
-return {
-    -- Core validation functions
-    validateAsset = validateAsset,
-    validateAssets = validateAssets,
+-- Preload multiple assets in batch
+function AssetValidator.preloadBatch(assetTable)
+    local results = {}
+    local successCount = 0
+    local totalCount = 0
     
-    -- Asset information
-    getAssetType = getAssetType,
-    getAssetId = getAssetId,
+    for key, info in pairs(assetTable) do
+        totalCount += 1
+        -- Handle different input formats
+        local assetId, assetType
+        
+        if typeof(info) == "string" then
+            assetId = info
+            assetType = "image" -- Default
+        elseif typeof(info) == "table" then
+            assetId = info.id or info.assetId
+            assetType = info.type or "image"
+        end
+        
+        -- Preload
+        local success = AssetValidator.preloadAsset(assetId, assetType)
+        results[key] = {
+            success = success,
+            id = success and assetId or DEFAULT_ASSETS[assetType],
+            type = assetType
+        }
+        
+        if success then
+            successCount += 1
+        end
+    end
     
-    -- Fallbacks 
-    getFallbackAsset = getFallbackAsset,
+    return results, successCount, totalCount
+end
+
+-- Get the default asset for a type
+function AssetValidator.getDefaultAsset(assetType)
+    return DEFAULT_ASSETS[assetType] or DEFAULT_ASSETS.image
+end
+
+-- Get stats about asset validation
+function AssetValidator.getStats()
+    return {
+        totalChecks = stats.totalChecks,
+        validAssets = stats.validAssets,
+        invalidAssets = stats.invalidAssets,
+        fallbacksUsed = stats.fallbacksUsed,
+        preloads = stats.preloads,
+        cacheSize = #validatedAssets,
+        preloadedSize = #preloadedAssets,
+        passRate = stats.totalChecks > 0 and (stats.validAssets / stats.totalChecks * 100) or 0
+    }
+end
+
+-- Reset stats (useful for testing)
+function AssetValidator.resetStats()
+    stats = {
+        totalChecks = 0,
+        validAssets = 0,
+        invalidAssets = 0,
+        fallbacksUsed = 0,
+        preloads = 0
+    }
+end
+
+-- Initialize with some common defaults
+local function init()
+    -- Prevalidate default assets
+    for _, assetId in pairs(DEFAULT_ASSETS) do
+        validatedAssets[assetId] = true
+    end
     
-    -- Status information
-    getValidatedAssets = function()
-        return validatedAssets
-    end,
-    
-    getFailedAssets = function()
-        return failedAssets
-    end,
-    
-    isAssetValid = function(assetId)
-        return validatedAssets[assetId] == true
-    end,
-    
-    -- Utility functions
-    preloadAssets = function(assets, options)
-        return validateAssets(assets, options)
-    end,
-    
-    clearCache = function()
-        -- Only clear failed assets, keep validated ones
-        failedAssets = {}
-        log("Failed asset cache cleared")
-    end,
-    
-    -- Constants
-    assetTypes = CONFIG.assetTypes
-}
+    print("[AssetValidator] Initialized with", #DEFAULT_ASSETS, "default fallback assets")
+end
+
+init()
+
+return AssetValidator

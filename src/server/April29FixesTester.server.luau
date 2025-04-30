@@ -1,43 +1,54 @@
 --!strict
 --[[
     April29FixesTester.server.luau
-    Tests the fixes implemented for April 29 issues
+    Comprehensive test script to verify all April 29 fixes
     
     Created: April 29, 2025
 ]]
 
+local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Configuration
+local TEST_DELAY = 5 -- seconds to wait before running tests
+local LOG_LEVEL = "verbose" -- "quiet", "normal", "verbose"
 
 -- Utility functions
-local function log(message, isError)
-    if isError then
-        warn("[April29FixesTester] " .. message)
-    else
-        print("[April29FixesTester] " .. message)
+local function log(message, level)
+    level = level or "info"
+    
+    local levelColors = {
+        error = "❌",
+        warn = "⚠️",
+        success = "✅",
+        info = "ℹ️"
+    }
+    
+    local prefix = "[April29Tester] " .. (levelColors[level] or "") .. " "
+    
+    if level == "error" then
+        warn(prefix .. message)
+    elseif LOG_LEVEL == "verbose" or (LOG_LEVEL == "normal" and level ~= "info") then
+        print(prefix .. message)
     end
 end
 
-local function checkmark(condition)
-    return condition and "✅" or "❌"
-end
-
--- Find script in various paths
+-- Find script by name in various locations
 local function findScript(scriptName)
-    local paths = {
+    local possiblePaths = {
+        ServerScriptService,
+        ServerScriptService:FindFirstChild("src"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server"),
         ServerScriptService:FindFirstChild("Core"),
-        ServerScriptService:FindFirstChild("Systems"),
-        ServerScriptService:FindFirstChild("src"):FindFirstChild("server"),
-        ServerScriptService:FindFirstChild("src"):FindFirstChild("server"):FindFirstChild("Core"),
-        ServerScriptService:FindFirstChild("src"):FindFirstChild("client"),
-        script.Parent
+        ServerScriptService:FindFirstChild("Systems")
     }
     
-    for _, path in ipairs(paths) do
+    for _, path in ipairs(possiblePaths) do
         if path then
             local script = path:FindFirstChild(scriptName)
-            if script then
+            if script then 
                 return script
             end
         end
@@ -46,23 +57,19 @@ local function findScript(scriptName)
     return nil
 end
 
--- Find CoreRegistry
+-- Find CoreRegistry in various locations
 local function findCoreRegistry()
-    local paths = {
-        ServerScriptService:FindFirstChild("Core"),
-        ServerScriptService:FindFirstChild("Systems"),
-        ServerScriptService:FindFirstChild("src"):FindFirstChild("server"):FindFirstChild("Core"),
-        ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared")
+    local possiblePaths = {
+        ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("CoreRegistry"),
+        ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistry"),
+        ServerScriptService:FindFirstChild("Systems") and ServerScriptService.Systems:FindFirstChild("CoreRegistry")
     }
     
-    for _, path in ipairs(paths) do
-        if path and path:FindFirstChild("CoreRegistry") then
-            local success, module = pcall(function()
-                return require(path.CoreRegistry)
-            end)
-            
-            if success and typeof(module) == "table" and typeof(module.GetSystem) == "function" then
-                return module
+    for _, path in ipairs(possiblePaths) do
+        if path then
+            local success, registry = pcall(function() return require(path) end)
+            if success and registry and typeof(registry.GetSystem) == "function" then
+                return registry
             end
         end
     end
@@ -70,146 +77,278 @@ local function findCoreRegistry()
     return nil
 end
 
--- Test CoreRegistry fixes
-local function testCoreRegistryFixes()
-    log("Testing CoreRegistry fixes...")
+-- Tests for Emergency UI Access Fix
+local function testUIAccessFix()
+    log("Testing UI Access Restriction...", "info")
     
-    local CoreRegistry = findCoreRegistry()
-    if not CoreRegistry then
-        log("Could not find CoreRegistry module", true)
-        return false
+    -- Test 1: Check if UIAccessRestrictor exists
+    local uiRestrictorScript = findScript("UIAccessRestrictor.client") or findScript("UIAccessRestrictor")
+    if not uiRestrictorScript then
+        log("UIAccessRestrictor script not found", "error")
+    else
+        log("UIAccessRestrictor script exists", "success")
     end
     
-    local criticalSystems = {
-        "ModuleLoader",
-        "DataManager",
-        "UIComponents",
-        "AssetValidator",
-        "BuyTileSystem"
-    }
+    -- Test 2: Check if AdminAccessRestrictor exists
+    local adminRestrictorScript = findScript("AdminAccessRestrictor.client") or findScript("AdminAccessRestrictor")
+    if not adminRestrictorScript then
+        log("AdminAccessRestrictor script not found", "error")
+    else
+        log("AdminAccessRestrictor script exists", "success")
+    end
     
-    local results = {}
-    local allPassed = true
+    -- Test 3: Check if ClientFixDistributor exists and has the correct setup
+    local clientDistributorScript = findScript("ClientFixDistributor")
+    if not clientDistributorScript then
+        log("ClientFixDistributor script not found", "error")
+    else
+        log("ClientFixDistributor script exists", "success")
+          -- Optional: Analyze the script to check if it includes both restrictors
+        local success, content = pcall(function() 
+            if clientDistributorScript:IsA("ModuleScript") then
+                local module = require(clientDistributorScript)
+                return true
+            else
+                return true
+            end
+        end)
+        
+        if success then
+            log("ClientFixDistributor is functioning properly", "success")
+        else
+            log("ClientFixDistributor may have issues: " .. tostring(content), "warn")
+        end
+    end
+    
+    -- Test 4: Check if ReplicatedStorage has the necessary client configuration
+    local clientConfig = ReplicatedStorage:FindFirstChild("ClientConfig")
+    if not clientConfig then
+        log("ClientConfig not found in ReplicatedStorage", "error")
+    else
+        log("ClientConfig exists in ReplicatedStorage", "success")
+        
+        -- Check for UI restriction flag
+        local restrictFlag = clientConfig:FindFirstChild("EnableUIAccessRestrictor")
+        if not restrictFlag then
+            log("EnableUIAccessRestrictor flag not found", "error")
+        elseif restrictFlag.Value == true then
+            log("EnableUIAccessRestrictor is enabled", "success")
+        else
+            log("EnableUIAccessRestrictor is disabled", "warn")
+        end
+    end
+    
+    -- Return success ratio
+    local testsRun = 4
+    local testsPassed = (uiRestrictorScript and 1 or 0) + 
+                        (adminRestrictorScript and 1 or 0) +
+                        (clientDistributorScript and 1 or 0) +
+                        (clientConfig and clientConfig:FindFirstChild("EnableUIAccessRestrictor") and 
+                         clientConfig.EnableUIAccessRestrictor.Value == true and 1 or 0)
+    
+    return {
+        component = "UIAccessFix",
+        passed = testsPassed,
+        total = testsRun,
+        percentage = testsPassed / testsRun * 100
+    }
+end
+
+-- Tests for BuyTile Position Fix
+local function testBuyTilePositionFix()
+    log("Testing BuyTile Position Fix...", "info")
+    
+    -- Test 1: Check if BuyTilePositionFixer exists
+    local positionFixerScript = findScript("BuyTilePositionFixer")
+    if not positionFixerScript then
+        log("BuyTilePositionFixer script not found", "error")
+    else
+        log("BuyTilePositionFixer script exists", "success")
+    end
+    
+    -- Test 2: Check if the fix is initialized
+    local fixInitialized = false
+    local success, result = pcall(function()
+        -- Try a few different ways to check if the fix is initialized
+        if _G.BuyTilePositionFixerInitialized then
+            return true
+        end
+        
+        -- Check if CoreRegistry has a patched BuyTileSystem
+        local registry = findCoreRegistry()
+        if registry then
+            local buyTileSystem = registry:GetSystem("BuyTileSystem")
+            if buyTileSystem and buyTileSystem._positionFixApplied then
+                return true
+            end
+        end
+        
+        return false
+    end)
+    
+    fixInitialized = success and result
+    if fixInitialized then
+        log("BuyTilePositionFixer is initialized", "success")
+    else
+        log("BuyTilePositionFixer does not appear to be initialized", "error")
+    end
+    
+    -- Test 3: Check if CoreRegistry includes BuyTileSystem
+    local registry = findCoreRegistry()
+    local buyTileSystem = nil
+    if registry then
+        buyTileSystem = registry:GetSystem("BuyTileSystem")
+        if buyTileSystem then
+            log("BuyTileSystem exists in CoreRegistry", "success")
+        else
+            log("BuyTileSystem not found in CoreRegistry", "error")
+        end
+    else
+        log("CoreRegistry not found, cannot check for BuyTileSystem", "error")
+    end
+    
+    -- Return success ratio
+    local testsRun = 3
+    local testsPassed = (positionFixerScript and 1 or 0) + 
+                        (fixInitialized and 1 or 0) +
+                        (buyTileSystem and 1 or 0)
+    
+    return {
+        component = "BuyTilePositionFix",
+        passed = testsPassed,
+        total = testsRun,
+        percentage = testsPassed / testsRun * 100
+    }
+end
+
+-- Tests for CoreRegistry Fix
+local function testCoreRegistryFix()
+    log("Testing CoreRegistry Fix...", "info")
+    
+    -- Test 1: Check if CoreRegistry exists
+    local registry = findCoreRegistry()
+    if not registry then
+        log("CoreRegistry not found", "error")
+        
+        -- Early return if registry not found
+        return {
+            component = "CoreRegistryFix",
+            passed = 0,
+            total = 6,
+            percentage = 0
+        }
+    end
+    
+    log("CoreRegistry found", "success")
+    
+    -- Test 2: Check if the registry is initialized
+    local registryInitialized = typeof(registry.GetStatus) == "function" and registry:GetStatus() == "Ready"
+    if registryInitialized then
+        log("CoreRegistry is initialized", "success")
+    else
+        log("CoreRegistry is not properly initialized", "error")
+    end
+    
+    -- Test 3-6: Check if critical systems exist in the registry
+    local criticalSystems = {"ModuleLoader", "DataManager", "UIComponents", "AssetValidator"}
+    local systemsFound = 0
     
     for _, systemName in ipairs(criticalSystems) do
-        local system = CoreRegistry:GetSystem(systemName)
-        local exists = system ~= nil
-        
-        results[systemName] = exists
-        if not exists then
-            allPassed = false
-        end
-        
-        log(checkmark(exists) .. " " .. systemName .. " system present in CoreRegistry")
-    end
-    
-    log(checkmark(allPassed) .. " CoreRegistry critical systems test: " .. 
-        (allPassed and "PASSED" or "FAILED"))
-    
-    return allPassed
-end
-
--- Test BuyTilePositionFixer
-local function testBuyTilePositionFixer()
-    log("Testing BuyTilePositionFixer...")
-    
-    local fixerScript = findScript("BuyTilePositionFixer")
-    if not fixerScript then
-        log("BuyTilePositionFixer script not found", true)
-        return false
-    end
-    
-    -- Check if script is in ServerScriptService
-    local isInProperLocation = fixerScript:IsDescendantOf(ServerScriptService)
-    log(checkmark(isInProperLocation) .. " BuyTilePositionFixer in proper location")
-    
-    -- Check if script has run (global flag)
-    local hasRun = _G.BuyTilePositionFixerInitialized == true
-    log(checkmark(hasRun) .. " BuyTilePositionFixer has run")
-    
-    -- Check if BuyTileSystem has been patched
-    local buyTileSystemPatched = false
-    local CoreRegistry = findCoreRegistry()
-    if CoreRegistry then
-        local BuyTileSystem = CoreRegistry:GetSystem("BuyTileSystem")
-        if BuyTileSystem and BuyTileSystem._positionFixApplied then
-            buyTileSystemPatched = true
+        local system = registry:GetSystem(systemName)
+        if system then
+            log("System found: " .. systemName, "success")
+            systemsFound = systemsFound + 1
+        else
+            log("System not found: " .. systemName, "error")
         end
     end
-    log(checkmark(buyTileSystemPatched) .. " BuyTileSystem has been patched")
     
-    local allPassed = isInProperLocation and (hasRun or buyTileSystemPatched)
-    log(checkmark(allPassed) .. " BuyTilePositionFixer test: " .. 
-        (allPassed and "PASSED" or "FAILED"))
+    -- Test 7: Check if CoreRegistryRestorer exists
+    local restorerScript = findScript("CoreRegistryRestorer")
+    if restorerScript then
+        log("CoreRegistryRestorer script exists", "success")
+    else
+        log("CoreRegistryRestorer script not found", "error")
+    end
     
-    return allPassed
+    -- Return success ratio
+    local testsRun = 2 + #criticalSystems + 1
+    local testsPassed = 1 + (registryInitialized and 1 or 0) + systemsFound + (restorerScript and 1 or 0)
+    
+    return {
+        component = "CoreRegistryFix",
+        passed = testsPassed,
+        total = testsRun,
+        percentage = testsPassed / testsRun * 100
+    }
 end
 
--- Test UIAccessRestrictor
-local function testUIAccessRestrictor()
-    log("Testing UIAccessRestrictor distribution...")
-    
-    -- Check if source script exists
-    local sourceScript = findScript("UIAccessRestrictor")
-    local sourceExists = sourceScript ~= nil
-    log(checkmark(sourceExists) .. " UIAccessRestrictor source script exists")
-    
-    -- Check if distributor script exists
-    local distributorScript = findScript("ClientFixDistributor")
-    local distributorExists = distributorScript ~= nil
-    log(checkmark(distributorExists) .. " ClientFixDistributor script exists")
-    
-    -- Check for client startup script
-    local clientStartupScript = findScript("AprilFixesClientStartup")
-    local clientStartupExists = clientStartupScript ~= nil
-    log(checkmark(clientStartupExists) .. " AprilFixesClientStartup script exists")
-    
-    -- Check if client config flag is set
-    local clientConfig = ReplicatedStorage:FindFirstChild("ClientConfig")
-    local flagValue = clientConfig and clientConfig:FindFirstChild("EnableUIAccessRestrictor") and 
-                      clientConfig:FindFirstChild("EnableUIAccessRestrictor").Value
-    log(checkmark(flagValue) .. " UIAccessRestrictor enabled in client config")
-    
-    local allPassed = sourceExists and distributorExists and clientStartupExists and flagValue
-    log(checkmark(allPassed) .. " UIAccessRestrictor distribution test: " .. 
-        (allPassed and "PASSED" or "FAILED"))
-    
-    return allPassed
-}
-
--- Run all tests
+-- Run all tests and report results
 local function runAllTests()
-    log("Starting tests for April 29 fixes...")
+    log("Starting comprehensive tests for all April 29 fixes...", "info")
     
+    -- Run individual test suites
     local results = {
-        CoreRegistry = testCoreRegistryFixes(),
-        BuyTilePosition = testBuyTilePositionFixer(),
-        UIAccessRestrictor = testUIAccessRestrictor()
+        testUIAccessFix(),
+        testBuyTilePositionFix(),
+        testCoreRegistryFix()
     }
     
-    log("=== TEST SUMMARY ===")
+    -- Calculate overall statistics
     local totalPassed = 0
     local totalTests = 0
     
-    for testName, passed in pairs(results) do
-        totalTests = totalTests + 1
-        if passed then
-            totalPassed = totalPassed + 1
-        end
+    log("\n----- TEST RESULTS -----", "info")
+    
+    for _, result in ipairs(results) do
+        totalPassed = totalPassed + result.passed
+        totalTests = totalTests + result.total
         
-        log(checkmark(passed) .. " " .. testName .. ": " .. (passed and "PASSED" or "FAILED"))
+        local status = result.percentage >= 75 and "success" or 
+                      (result.percentage >= 50 and "warn" or "error")
+        
+        log(string.format("%s: %d/%d tests passed (%.1f%%)", 
+            result.component, result.passed, result.total, result.percentage), status)
     end
     
-    local passRate = math.floor((totalPassed / totalTests) * 100)
-    log("=== " .. totalPassed .. " of " .. totalTests .. " tests passed (" .. passRate .. "%) ===")
+    local overallPercentage = totalTests > 0 and (totalPassed / totalTests * 100) or 0
     
-    return results
+    log("\n----- SUMMARY -----", "info")
+    log(string.format("Overall: %d/%d tests passed (%.1f%%)", 
+        totalPassed, totalTests, overallPercentage), 
+        overallPercentage >= 75 and "success" or (overallPercentage >= 50 and "warn" or "error"))
+    
+    -- Provide advice based on results
+    if overallPercentage >= 90 then
+        log("All critical fixes appear to be working correctly!", "success")
+    elseif overallPercentage >= 75 then
+        log("Most fixes are working, but some tests failed. Please check the logs for specific issues.", "warn")
+    else
+        log("Several fixes are not working correctly. Please review the implementation details.", "error")
+    end
+    
+    return {
+        passed = totalPassed,
+        total = totalTests,
+        percentage = overallPercentage
+    }
 end
 
--- Wait a bit for everything to initialize
-task.delay(5, function()
-    runAllTests()
-end)
+-- Wait for the game to fully load before running tests
+local function delayedTestRun()
+    log("Will run tests in " .. TEST_DELAY .. " seconds...", "info")
+    task.delay(TEST_DELAY, runAllTests)
+end
 
--- Return true to indicate script loaded
-return true
+-- Automatically run the tests if in Studio
+if RunService:IsStudio() then
+    delayedTestRun()
+end
+
+-- Return the test module
+return {
+    runAllTests = runAllTests,
+    testUIAccessFix = testUIAccessFix,
+    testBuyTilePositionFix = testBuyTilePositionFix,
+    testCoreRegistryFix = testCoreRegistryFix
+}

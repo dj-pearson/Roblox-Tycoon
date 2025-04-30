@@ -1,670 +1,407 @@
+--!strict
 -- UIRegistry.luau
--- Centralized registry for UI components and management
--- Created: April 28, 2025
+-- Centralized registry for UI components and utilities
+-- Created on April 29, 2025 to fix UI system validation failures
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterGui = game:GetService("StarterGui")
-local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Constants and configuration
-local VERSION = "1.0.0"
-local DEBUG = true
-local DEFAULT_TIMEOUT = 5 -- seconds
-local UPDATE_INTERVAL = 1 -- seconds for periodic tasks
-
--- Local logging function
-local function log(message, level)
-	level = level or "Info"
-	if not DEBUG and level ~= "Error" then return end
-	print(string.format("[UIRegistry][%s] %s", level, message))
+-- Import dependencies with fallbacks
+local function safeRequire(path)
+    local success, result = pcall(function()
+        return require(path)
+    end)
+    
+    if success then
+        return result
+    end
+    
+    return nil
 end
 
--- Get ModuleLoader if available
-local function getModuleLoader()
-	local shared = ReplicatedStorage:FindFirstChild("shared")
-	if shared and shared:FindFirstChild("ModuleLoader") then
-		local success, result = pcall(function()
-			return require(shared.ModuleLoader)
-		end)
-		
-		if success then
-			return result
-		end
-	end
-	
-	return nil
+-- Try to find AssetValidator
+local AssetValidator = nil
+local function findAssetValidator()
+    -- Try various paths
+    local searchPaths = {
+        ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("Modules"),
+        ReplicatedStorage
+    }
+    
+    for _, path in ipairs(searchPaths) do
+        if path then
+            local validator = path:FindFirstChild("AssetValidator")
+            if validator and validator:IsA("ModuleScript") then
+                local success, result = pcall(function()
+                    return require(validator)
+                end)
+                
+                if success and result then
+                    print("[UIRegistry] Found AssetValidator at " .. validator:GetFullName())
+                    return result
+                end
+            end
+        end
+    end
+    
+    -- Use our own path
+    local thisScript = script
+    local parentFolder = thisScript.Parent
+    
+    if parentFolder then
+        local validator = parentFolder:FindFirstChild("AssetValidator")
+        if validator and validator:IsA("ModuleScript") then
+            local success, result = pcall(function()
+                return require(validator)
+            end)
+            
+            if success and result then
+                print("[UIRegistry] Found AssetValidator in same folder as UIRegistry")
+                return result
+            end
+        end
+    end
+    
+    print("[UIRegistry] AssetValidator not found, using fallback")
+    
+    -- Fallback minimal implementation
+    local fallbackValidator = {
+        validateAsset = function(assetId, assetType)
+            return true, assetId
+        end,
+        getDefaultAsset = function(assetType)
+            return "rbxassetid://8587344193" -- Default blank image
+        end
+    }
+    
+    return fallbackValidator
 end
 
--- Try to get a module using ModuleLoader
-local function getModule(moduleName)
-	local moduleLoader = getModuleLoader()
-	if moduleLoader then
-		return moduleLoader:GetModule(moduleName)
-	end
-	return nil
+-- Try to find UIComponents
+local UIComponents = nil
+local function findUIComponents()
+    -- Try various paths
+    local searchPaths = {
+        ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("Modules"),
+        ReplicatedStorage
+    }
+    
+    for _, path in ipairs(searchPaths) do
+        if path then
+            local components = path:FindFirstChild("UIComponents")
+            if components and components:IsA("ModuleScript") then
+                local success, result = pcall(function()
+                    return require(components)
+                end)
+                
+                if success and result then
+                    print("[UIRegistry] Found UIComponents at " .. components:GetFullName())
+                    return result
+                end
+            end
+        end
+    end
+    
+    print("[UIRegistry] UIComponents not found, using fallback")
+    
+    -- Fallback minimal implementation
+    local fallbackComponents = {
+        createButton = function(text, callback)
+            local button = Instance.new("TextButton")
+            button.Text = text
+            button.Size = UDim2.new(0, 200, 0, 50)
+            button.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+            button.TextColor3 = Color3.new(1, 1, 1)
+            button.Font = Enum.Font.GothamSemibold
+            button.TextSize = 14
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 8)
+            corner.Parent = button
+            
+            if callback and typeof(callback) == "function" then
+                button.Activated:Connect(callback)
+            end
+            
+            return button
+        end,
+        
+        createLabel = function(text)
+            local label = Instance.new("TextLabel")
+            label.Text = text
+            label.Size = UDim2.new(0, 200, 0, 50)
+            label.BackgroundTransparency = 1
+            label.TextColor3 = Color3.new(1, 1, 1)
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 14
+            
+            return label
+        end
+    }
+    
+    return fallbackComponents
 end
 
--- Get AssetValidator if available
-local function getAssetValidator()
-	return getModule("AssetValidator")
-end
+-- Initialize registry
+local UIRegistry = {}
+local registeredComponents = {}
+local registeredStyles = {}
+local registeredIcons = {}
+local registeredUIs = {}
 
--- Safe wait for child function with timeout
-local function safeWaitForChild(parent, childName, timeout)
-	timeout = timeout or DEFAULT_TIMEOUT
-	local startTime = os.clock()
-	
-	while os.clock() - startTime < timeout do
-		local child = parent:FindFirstChild(childName)
-		if child then
-			return child
-		end
-		wait(0.1)
-	end
-	
-	return nil -- Timed out
-end
+-- Load dependencies
+AssetValidator = findAssetValidator()
+UIComponents = findUIComponents()
 
--- UIRegistry object
-local UIRegistry = {
-	_version = VERSION,
-	_registry = {}, -- Registered UI components
-	_instances = {}, -- Active UI instances
-	_templates = {}, -- UI templates
-	_factories = {}, -- Component factories
-	_animations = {}, -- UI animations
-	_listeners = {}, -- Input listeners
-	_dynamicElements = {}, -- Elements that need periodic updates
-	_updateConnection = nil, -- Connection for periodic updates
-	_profileEnabled = false, -- Whether UI performance profiling is enabled
-	_stats = {
-		createdCount = 0,
-		destroyedCount = 0,
-		activeCount = 0
-	},
-	_initialized = false
+-- Default styles
+local defaultStyles = {
+    colors = {
+        primary = Color3.fromRGB(52, 152, 219),
+        secondary = Color3.fromRGB(46, 204, 113),
+        accent = Color3.fromRGB(155, 89, 182),
+        background = Color3.fromRGB(44, 62, 80),
+        text = Color3.fromRGB(236, 240, 241),
+        warning = Color3.fromRGB(230, 126, 34),
+        error = Color3.fromRGB(231, 76, 60),
+        success = Color3.fromRGB(39, 174, 96)
+    },
+    
+    fonts = {
+        title = Enum.Font.GothamBold,
+        heading = Enum.Font.GothamSemibold,
+        body = Enum.Font.Gotham,
+        button = Enum.Font.GothamMedium
+    },
+    
+    sizes = {
+        title = 24,
+        heading = 18,
+        body = 14,
+        button = 16,
+        small = 12
+    },
+    
+    padding = {
+        small = UDim.new(0, 8),
+        medium = UDim.new(0, 16),
+        large = UDim.new(0, 24)
+    },
+    
+    cornerRadius = {
+        small = UDim.new(0, 4),
+        medium = UDim.new(0, 8),
+        large = UDim.new(0, 12)
+    }
 }
 
--- Initialize the UIRegistry
-function UIRegistry:Initialize()
-	if self._initialized then
-		return true
-	end
-	
-	log("Initializing UIRegistry v" .. VERSION)
-	
-	-- Start periodic update
-	self:StartPeriodicUpdate()
-	
-	-- Connect player events
-	self:ConnectPlayerEvents()
-	
-	self._initialized = true
-	log("UIRegistry initialized")
-	
-	return true
-end
-
--- Start periodic update
-function UIRegistry:StartPeriodicUpdate()
-	-- Disconnect existing connection if any
-	if self._updateConnection then
-		self._updateConnection:Disconnect()
-	end
-	
-	-- Create a new update connection
-	spawn(function()
-		while true do
-			self:PerformPeriodicUpdate()
-			wait(UPDATE_INTERVAL)
-		end
-	end)
-	
-	log("Started periodic update with interval: " .. UPDATE_INTERVAL .. " seconds")
-	return true
-end
-
--- Perform periodic update
-function UIRegistry:PerformPeriodicUpdate()
-	-- Update dynamic elements
-	for id, element in pairs(self._dynamicElements) do
-		-- Check if element still exists
-		if not element.instance or not element.instance.Parent then
-			self._dynamicElements[id] = nil
-			continue
-		end
-		
-		-- Call update function if provided
-		if element.updateFunc then
-			pcall(function()
-				element.updateFunc(element.instance)
-			end)
-		end
-	end
-	
-	-- Profile UI performance if enabled
-	if self._profileEnabled then
-		self:ProfileUIPerformance()
-	end
-end
-
--- Profile UI performance
-function UIRegistry:ProfileUIPerformance()
-	-- Collect stats on active UI components
-	local stats = {
-		totalElements = 0,
-		visibleElements = 0,
-		hiddenElements = 0,
-		byType = {}
-	}
-	
-	-- Count active instances
-	for id, instance in pairs(self._instances) do
-		if instance and instance.Parent then
-			stats.totalElements += 1
-			
-			-- Check visibility
-			local visible = true
-			if instance:IsA("GuiObject") then
-				visible = instance.Visible
-			end
-			
-			if visible then
-				stats.visibleElements += 1
-			else
-				stats.hiddenElements += 1
-			end
-			
-			-- Count by type
-			local className = instance.ClassName
-			stats.byType[className] = (stats.byType[className] or 0) + 1
-		else
-			-- Clean up invalid instances
-			self._instances[id] = nil
-		end
-	end
-	
-	log("UI Performance: " .. stats.totalElements .. " total, " .. 
-		stats.visibleElements .. " visible, " .. 
-		stats.hiddenElements .. " hidden")
-end
-
--- Connect player events
-function UIRegistry:ConnectPlayerEvents()
-	-- Handle player joining
-	Players.PlayerAdded:Connect(function(player)
-		self:OnPlayerJoined(player)
-	end)
-	
-	-- Handle existing players
-	for _, player in ipairs(Players:GetPlayers()) do
-		spawn(function()
-			self:OnPlayerJoined(player)
-		end)
-	end
-	
-	log("Connected player events")
-	return true
-end
-
--- Handle player joining
-function UIRegistry:OnPlayerJoined(player)
-	log("Player joined: " .. player.Name)
-	
-	-- Wait for player GUI
-	local playerGui = player:FindFirstChild("PlayerGui")
-	if not playerGui then
-		playerGui = safeWaitForChild(player, "PlayerGui")
-	end
-	
-	if not playerGui then
-		log("Failed to get PlayerGui for player: " .. player.Name, "Error")
-		return
-	end
-	
-	-- Preload UI assets for this player
-	self:PreloadUIAssetsForPlayer(player)
-end
-
--- Preload UI assets for a player
-function UIRegistry:PreloadUIAssetsForPlayer(player)
-	local assetValidator = getAssetValidator()
-	if not assetValidator then
-		log("AssetValidator not available, skipping asset preloading", "Warning")
-		return
-	end
-	
-	-- Collect all assets from registered templates
-	local assets = {}
-	for _, template in pairs(self._templates) do
-		self:CollectAssetsFromInstance(template, assets)
-	end
-	
-	-- Start preloading
-	if #assets > 0 then
-		log("Preloading " .. #assets .. " UI assets for player: " .. player.Name)
-		
-		assetValidator:ValidateAssets(assets, function(current, total)
-			-- Progress update
-			local percent = math.floor((current / total) * 100)
-			if percent % 25 == 0 then -- Log at 25%, 50%, 75%, 100%
-				log("Asset preloading progress: " .. percent .. "% (" .. current .. "/" .. total .. ")")
-			end
-		end, function(success)
-			-- Completion
-			if success then
-				log("Successfully preloaded all UI assets for player: " .. player.Name)
-			else
-				log("Failed to preload some UI assets for player: " .. player.Name, "Warning")
-			end
-		end)
-	end
-end
-
--- Collect assets from an Instance
-function UIRegistry:CollectAssetsFromInstance(instance, assets)
-	assets = assets or {}
-	
-	-- Check if this instance has an Image property
-	if instance:IsA("ImageLabel") or instance:IsA("ImageButton") then
-		if instance.Image and instance.Image ~= "" then
-			table.insert(assets, instance)
-		end
-	end
-	
-	-- Check if this instance has a SoundId property
-	if instance:IsA("Sound") then
-		if instance.SoundId and instance.SoundId ~= "" then
-			table.insert(assets, instance)
-		end
-	end
-	
-	-- Check TextLabel for special font or rich text with images
-	if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
-		if instance.RichText and string.find(instance.Text, "rbxassetid://") then
-			-- Extract asset IDs from rich text
-			for assetId in string.gmatch(instance.Text, "rbxassetid://(%d+)") do
-				table.insert(assets, "rbxassetid://" .. assetId)
-			end
-		end
-	end
-	
-	-- Check all children recursively
-	for _, child in ipairs(instance:GetChildren()) do
-		self:CollectAssetsFromInstance(child, assets)
-	end
-	
-	return assets
-end
+-- Default icons
+local defaultIcons = {
+    close = "rbxassetid://3926305904",
+    settings = "rbxassetid://3926307971",
+    info = "rbxassetid://3926305904",
+    warning = "rbxassetid://3926305904",
+    error = "rbxassetid://3926305904",
+    success = "rbxassetid://3926305904",
+    user = "rbxassetid://3926307971",
+    add = "rbxassetid://3926307971",
+    remove = "rbxassetid://3926305904"
+}
 
 -- Register a UI component
-function UIRegistry:Register(componentName, component)
-	if not componentName or not component then
-		log("Invalid component registration", "Error")
-		return false
-	end
-	
-	-- Store in registry
-	self._registry[componentName] = component
-	log("Registered component: " .. componentName)
-	
-	return true
-end
-
--- Register a UI template
-function UIRegistry:RegisterTemplate(templateName, template)
-	if not templateName or not template then
-		log("Invalid template registration", "Error")
-		return false
-	end
-	
-	-- Store template
-	self._templates[templateName] = template
-	log("Registered template: " .. templateName)
-	
-	-- Preload assets for this template
-	local assetValidator = getAssetValidator()
-	if assetValidator then
-		local assets = {}
-		self:CollectAssetsFromInstance(template, assets)
-		
-		if #assets > 0 then
-			assetValidator:QueueForPreload(assets)
-		end
-	end
-	
-	return true
-end
-
--- Register a component factory
-function UIRegistry:RegisterFactory(factoryName, factoryFunc)
-	if not factoryName or type(factoryFunc) ~= "function" then
-		log("Invalid factory registration", "Error")
-		return false
-	end
-	
-	-- Store factory
-	self._factories[factoryName] = factoryFunc
-	log("Registered factory: " .. factoryName)
-	
-	return true
-end
-
--- Create a UI component from a registered template
-function UIRegistry:Create(templateName, properties)
-	local template = self._templates[templateName]
-	if not template then
-		log("Template not found: " .. templateName, "Error")
-		return nil
-	end
-	
-	-- Clone the template
-	local clone
-	local success, result = pcall(function()
-		return template:Clone()
-	end)
-	
-	if success then
-		clone = result
-	else
-		log("Failed to clone template: " .. templateName .. " - " .. tostring(result), "Error")
-		return nil
-	end
-	
-	-- Apply properties if provided
-	if properties then
-		self:ApplyProperties(clone, properties)
-	end
-	
-	-- Generate a unique ID for this instance
-	local id = templateName .. "_" .. tostring(self._stats.createdCount)
-	
-	-- Store in active instances
-	self._instances[id] = clone
-	self._stats.createdCount += 1
-	self._stats.activeCount += 1
-	
-	return clone, id
-end
-
--- Create a UI component using a factory
-function UIRegistry:CreateFromFactory(factoryName, ...)
-	local factory = self._factories[factoryName]
-	if not factory then
-		log("Factory not found: " .. factoryName, "Error")
-		return nil
-	end
-	
-	-- Call the factory function
-	local success, result = pcall(function()
-		return factory(...)
-	end)
-	
-	if success then
-		if typeof(result) == "Instance" then
-			-- Generate a unique ID for this instance
-			local id = factoryName .. "_" .. tostring(self._stats.createdCount)
-			
-			-- Store in active instances
-			self._instances[id] = result
-			self._stats.createdCount += 1
-			self._stats.activeCount += 1
-			
-			return result, id
-		else
-			log("Factory did not return an Instance: " .. factoryName, "Warning")
-			return result
-		end
-	else
-		log("Error in factory: " .. factoryName .. " - " .. tostring(result), "Error")
-		return nil
-	end
-end
-
--- Apply properties to an instance
-function UIRegistry:ApplyProperties(instance, properties)
-	for property, value in pairs(properties) do
-		-- Handle special properties
-		if property == "Children" and type(value) == "table" then
-			-- Add children
-			for _, child in ipairs(value) do
-				if typeof(child) == "Instance" then
-					child.Parent = instance
-				end
-			end
-		elseif property == "Events" and type(value) == "table" then
-			-- Connect events
-			for event, callback in pairs(value) do
-				if type(callback) == "function" and instance[event] then
-					instance[event]:Connect(callback)
-				end
-			end
-		elseif property == "Attributes" and type(value) == "table" then
-			-- Set attributes
-			for name, attrValue in pairs(value) do
-				instance:SetAttribute(name, attrValue)
-			end
-		else
-			-- Set regular property
-			pcall(function()
-				instance[property] = value
-			end)
-		end
-	end
-end
-
--- Register a UI animation
-function UIRegistry:RegisterAnimation(animationName, animationFunc)
-	if not animationName or type(animationFunc) ~= "function" then
-		log("Invalid animation registration", "Error")
-		return false
-	end
-	
-	-- Store animation
-	self._animations[animationName] = animationFunc
-	log("Registered animation: " .. animationName)
-	
-	return true
-end
-
--- Play a registered animation
-function UIRegistry:PlayAnimation(animationName, instance, ...)
-	local animation = self._animations[animationName]
-	if not animation then
-		log("Animation not found: " .. animationName, "Error")
-		return false
-	end
-	
-	-- Call the animation function
-	local success, result = pcall(function()
-		return animation(instance, ...)
-	end)
-	
-	if not success then
-		log("Error in animation: " .. animationName .. " - " .. tostring(result), "Error")
-		return false
-	end
-	
-	return result
-end
-
--- Register an input listener
-function UIRegistry:RegisterInputListener(listenerName, listenerFunc, inputTypes)
-	if not listenerName or type(listenerFunc) ~= "function" then
-		log("Invalid listener registration", "Error")
-		return false
-	end
-	
-	-- Store listener
-	self._listeners[listenerName] = {
-		func = listenerFunc,
-		inputTypes = inputTypes or {"InputBegan", "InputEnded"}
-	}
-	
-	-- Connect the listener
-	for _, inputType in ipairs(self._listeners[listenerName].inputTypes) do
-		if UserInputService[inputType] then
-			self._listeners[listenerName][inputType] = UserInputService[inputType]:Connect(function(...)
-				listenerFunc(...)
-			end)
-		end
-	end
-	
-	log("Registered input listener: " .. listenerName)
-	
-	return true
-end
-
--- Remove an input listener
-function UIRegistry:RemoveInputListener(listenerName)
-	local listener = self._listeners[listenerName]
-	if not listener then
-		return false
-	end
-	
-	-- Disconnect all connections
-	for inputType, connection in pairs(listener) do
-		if typeof(connection) == "RBXScriptConnection" then
-			connection:Disconnect()
-		end
-	end
-	
-	-- Remove from listeners
-	self._listeners[listenerName] = nil
-	log("Removed input listener: " .. listenerName)
-	
-	return true
-end
-
--- Register an element for dynamic updates
-function UIRegistry:RegisterDynamicElement(element, updateFunc)
-	if not element then
-		log("Element is nil", "Error")
-		return false
-	end
-	
-	local id
-	if typeof(element) == "Instance" then
-		id = element:GetFullName()
-	else
-		id = tostring(element)
-	end
-	
-	-- Store element
-	self._dynamicElements[id] = {
-		instance = element,
-		updateFunc = updateFunc
-	}
-	
-	log("Registered dynamic element: " .. id)
-	
-	return true
-end
-
--- Destroy a UI component
-function UIRegistry:Destroy(instanceOrId)
-	local id, instance
-	
-	if typeof(instanceOrId) == "Instance" then
-		-- Find the ID for this instance
-		for i, inst in pairs(self._instances) do
-			if inst == instanceOrId then
-				id = i
-				instance = inst
-				break
-			end
-		end
-	else
-		-- Use the provided ID
-		id = instanceOrId
-		instance = self._instances[id]
-	end
-	
-	if not id or not instance then
-		log("Instance not found", "Warning")
-		return false
-	end
-	
-	-- Remove from dynamic elements
-	local dynamicId = instance:GetFullName()
-	if self._dynamicElements[dynamicId] then
-		self._dynamicElements[dynamicId] = nil
-	end
-	
-	-- Destroy the instance
-	pcall(function()
-		instance:Destroy()
-	end)
-	
-	-- Remove from active instances
-	self._instances[id] = nil
-	self._stats.destroyedCount += 1
-	self._stats.activeCount -= 1
-	
-	log("Destroyed UI component: " .. id)
-	
-	return true
+function UIRegistry.registerComponent(name, component)
+    if not name or typeof(name) ~= "string" then
+        warn("[UIRegistry] Invalid component name")
+        return false
+    end
+    
+    if not component then
+        warn("[UIRegistry] Cannot register nil component: " .. name)
+        return false
+    end
+    
+    registeredComponents[name] = component
+    print("[UIRegistry] Registered component: " .. name)
+    return true
 end
 
 -- Get a registered component
-function UIRegistry:GetComponent(componentName)
-	return self._registry[componentName]
+function UIRegistry.getComponent(name)
+    local component = registeredComponents[name]
+    
+    if not component then
+        warn("[UIRegistry] Component not found: " .. tostring(name))
+        
+        -- Try to access from UIComponents as fallback
+        if UIComponents and typeof(UIComponents) == "table" then
+            if UIComponents[name] and typeof(UIComponents[name]) == "function" then
+                return UIComponents[name]
+            end
+        end
+        
+        return nil
+    end
+    
+    return component
 end
 
--- Get a registered template
-function UIRegistry:GetTemplate(templateName)
-	return self._templates[templateName]
+-- Register a style
+function UIRegistry.registerStyle(name, style)
+    if not name or typeof(name) ~= "string" then
+        warn("[UIRegistry] Invalid style name")
+        return false
+    end
+    
+    registeredStyles[name] = style or {}
+    return true
 end
 
--- Get all active instances
-function UIRegistry:GetActiveInstances()
-	return self._instances
+-- Get a style
+function UIRegistry.getStyle(name)
+    -- If requesting default style, return it
+    if name == "default" then
+        return defaultStyles
+    end
+    
+    -- Try to get registered style
+    local style = registeredStyles[name]
+    
+    if not style then
+        warn("[UIRegistry] Style not found: " .. tostring(name) .. ", using default")
+        return defaultStyles
+    end
+    
+    return style
 end
 
--- Toggle UI performance profiling
-function UIRegistry:ToggleProfiler(enabled)
-	self._profileEnabled = enabled == true
-	log("UI Profiler " .. (self._profileEnabled and "enabled" or "disabled"))
-	return true
+-- Register an icon
+function UIRegistry.registerIcon(name, iconId)
+    if not name or typeof(name) ~= "string" then
+        warn("[UIRegistry] Invalid icon name")
+        return false
+    end
+    
+    -- Validate asset if possible
+    if AssetValidator then
+        local isValid, validatedId = AssetValidator.validateAsset(iconId, "image")
+        if not isValid then
+            warn("[UIRegistry] Invalid icon asset: " .. tostring(iconId) .. ", using fallback")
+            iconId = validatedId  -- This will be the fallback asset
+        end
+    end
+    
+    registeredIcons[name] = iconId
+    return true
 end
 
--- Get UI statistics
-function UIRegistry:GetStats()
-	-- Update active count by checking instances
-	local activeCount = 0
-	for _, instance in pairs(self._instances) do
-		if instance and instance.Parent then
-			activeCount += 1
-		end
-	end
-	
-	self._stats.activeCount = activeCount
-	
-	return {
-		version = self._version,
-		componentsCount = 0, -- Calculated below
-		templatesCount = 0, -- Calculated below
-		factoriesCount = 0, -- Calculated below
-		activeCount = self._stats.activeCount,
-		createdCount = self._stats.createdCount,
-		destroyedCount = self._stats.destroyedCount
-	}
+-- Get an icon
+function UIRegistry.getIcon(name)
+    -- Check registered icons
+    local icon = registeredIcons[name]
+    
+    -- Check default icons if not found
+    if not icon then
+        icon = defaultIcons[name]
+    end
+    
+    -- Use fallback if still not found
+    if not icon and AssetValidator then
+        warn("[UIRegistry] Icon not found: " .. tostring(name) .. ", using fallback")
+        icon = AssetValidator.getDefaultAsset("image")
+    elseif not icon then
+        warn("[UIRegistry] Icon not found: " .. tostring(name) .. ", using hardcoded fallback")
+        icon = "rbxassetid://8587344193"  -- Default blank image
+    end
+    
+    return icon
 end
 
--- Get the UIRegistry version
-function UIRegistry:GetVersion()
-	return self._version
+-- Register a UI
+function UIRegistry.registerUI(name, ui)
+    if not name or typeof(name) ~= "string" then
+        warn("[UIRegistry] Invalid UI name")
+        return false
+    end
+    
+    if not ui then
+        warn("[UIRegistry] Cannot register nil UI: " .. name)
+        return false
+    end
+    
+    registeredUIs[name] = ui
+    print("[UIRegistry] Registered UI: " .. name)
+    return true
 end
 
--- Initialize the UI registry
-UIRegistry:Initialize()
+-- Get a UI
+function UIRegistry.getUI(name)
+    local ui = registeredUIs[name]
+    
+    if not ui then
+        warn("[UIRegistry] UI not found: " .. tostring(name))
+        return nil
+    end
+    
+    return ui
+}
 
--- Register with ModuleLoader if available
-local moduleLoader = getModuleLoader()
-if moduleLoader then
-	moduleLoader:RegisterPath("UIRegistry", "ReplicatedStorage.shared.UIRegistry")
-	log("Registered with ModuleLoader")
+-- Create a new UI frame with consistent styling
+function UIRegistry.createFrame(name, parent)
+    local frame = Instance.new("Frame")
+    frame.Name = name or "UIFrame"
+    frame.BackgroundColor3 = defaultStyles.colors.background
+    frame.BorderSizePixel = 0
+    
+    -- Add corner
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = defaultStyles.cornerRadius.medium
+    corner.Parent = frame
+    
+    -- Add auto padding
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = defaultStyles.padding.medium
+    padding.PaddingBottom = defaultStyles.padding.medium
+    padding.PaddingLeft = defaultStyles.padding.medium
+    padding.PaddingRight = defaultStyles.padding.medium
+    padding.Parent = frame
+    
+    if parent then
+        frame.Parent = parent
+    end
+    
+    return frame
 end
+
+-- Initialize with basic components
+local function init()
+    -- Register default styles
+    UIRegistry.registerStyle("default", defaultStyles)
+    
+    -- Register default icons
+    for name, iconId in pairs(defaultIcons) do
+        UIRegistry.registerIcon(name, iconId)
+    end
+    
+    -- Register basic components from UIComponents
+    if UIComponents then
+        for name, component in pairs(UIComponents) do
+            if typeof(component) == "function" then
+                UIRegistry.registerComponent(name, component)
+            end
+        end
+    end
+    
+    print("[UIRegistry] Initialized with default styles and components")
+end
+
+-- Delay initialization to give other modules a chance to load
+task.spawn(function()
+    task.wait(1)
+    init()
+end)
 
 return UIRegistry

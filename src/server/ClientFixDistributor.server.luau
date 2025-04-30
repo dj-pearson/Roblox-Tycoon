@@ -13,12 +13,43 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Configuration
 local CLIENT_FIXES_FOLDER = "src/client"
 local FIX_SCRIPTS = {
-    "UIAccessRestrictor.client" -- Use the correct filename with extension
+    "UIAccessRestrictor.client", -- General UI access restriction
+    "AdminAccessRestrictor.client" -- Specific admin panel restriction
 }
 
 -- Utility functions
 local function log(message)
     print("[ClientFixDistributor] " .. message)
+end
+
+-- Set up ReplicatedStorage for client configuration
+local function setupClientConfig()
+    local clientConfig = ReplicatedStorage:FindFirstChild("ClientConfig")
+    if not clientConfig then
+        clientConfig = Instance.new("Folder")
+        clientConfig.Name = "ClientConfig"
+        clientConfig.Parent = ReplicatedStorage
+    end
+    
+    -- Set UI access restriction flag
+    local accessFlag = clientConfig:FindFirstChild("EnableUIAccessRestrictor")
+    if not accessFlag then
+        accessFlag = Instance.new("BoolValue")
+        accessFlag.Name = "EnableUIAccessRestrictor"
+        accessFlag.Value = true
+        accessFlag.Parent = clientConfig
+    end
+    
+    -- Flag to enable admin panel restriction
+    local adminFlag = clientConfig:FindFirstChild("RestrictAdminPanel")
+    if not adminFlag then
+        adminFlag = Instance.new("BoolValue")
+        adminFlag.Name = "RestrictAdminPanel" 
+        adminFlag.Value = true
+        adminFlag.Parent = clientConfig
+    end
+    
+    log("Client configuration settings established in ReplicatedStorage")
 end
 
 -- Find script in various paths
@@ -88,15 +119,24 @@ local function distributeFixesToPlayer(player)
     log("All client fixes distributed to player: " .. player.Name)
 end
 
--- Connect to player joining event
-Players.PlayerAdded:Connect(distributeFixesToPlayer)
-
--- Apply to existing players
-for _, player in ipairs(Players:GetPlayers()) do
-    task.spawn(function()
-        distributeFixesToPlayer(player)
-    end)
+-- Initialize the distributor
+local function initialize()
+    -- Set up client configuration in ReplicatedStorage
+    setupClientConfig()
+    
+    -- Connect to player joining event
+    Players.PlayerAdded:Connect(distributeFixesToPlayer)
+    
+    -- Apply to existing players
+    for _, player in ipairs(Players:GetPlayers()) do
+        task.spawn(function()
+            distributeFixesToPlayer(player)
+        end)
+    end
+    
+    log("Client fix distributor initialized!")
 end
 
-log("Client fix distributor initialized!")
+-- Run the initializer
+initialize()
 return true

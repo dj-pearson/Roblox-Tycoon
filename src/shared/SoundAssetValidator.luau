@@ -1,316 +1,319 @@
---[[
-    SoundAssetValidator.luau
-    
-    This module provides validation for sound assets in the game.
-    Helps address the asset loading failures identified in the RobloxIssues document.
-    
-    The module checks if sound IDs are valid and provides fallbacks for invalid sounds.
-]]
+--!strict
+-- SoundAssetValidator.luau
+-- Specialized validator for sound assets with preloading and fallback mechanisms
+-- Created on April 29, 2025 to fix sound asset loading failures
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local ContentProvider = game:GetService("ContentProvider")
 local SoundService = game:GetService("SoundService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local isServer = RunService:IsServer()
-
--- Find module helper
-local function findModule(moduleName)
-    local searchPaths = {
-        ReplicatedStorage:FindFirstChild("shared"),
-        ReplicatedStorage
-    }
-    
-    if isServer then
-        local ServerScriptService = game:GetService("ServerScriptService")
-        table.insert(searchPaths, 1, ServerScriptService:FindFirstChild("Core"))
-        table.insert(searchPaths, 2, ServerScriptService)
-    else
-        local player = game:GetService("Players").LocalPlayer
-        if player then
-            local playerScripts = player:FindFirstChild("PlayerScripts")
-            if playerScripts then
-                table.insert(searchPaths, 1, playerScripts:FindFirstChild("Client"))
-                table.insert(searchPaths, 2, playerScripts)
+-- Try to get AssetValidator for common functionality
+local AssetValidator = nil
+local function tryGetAssetValidator()
+    local success, result = pcall(function()
+        local paths = {
+            ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"),
+            ReplicatedStorage:FindFirstChild("shared"),
+            script.Parent
+        }
+        
+        for _, path in ipairs(paths) do
+            if path and path:FindFirstChild("AssetValidator") then
+                return require(path:FindFirstChild("AssetValidator"))
             end
         end
-    end
+        return nil
+    end)
     
-    for _, path in ipairs(searchPaths) do
-        if path then
-            local module = path:FindFirstChild(moduleName)
-            if module and module:IsA("ModuleScript") then
-                return module
-            end
-        end
+    if success and result then
+        return result
     end
-    
     return nil
 end
 
--- Safely require a module
-local function safeRequire(module, fallback)
-    if not module then
-        return fallback
-    end
-    
-    if not module:IsA("ModuleScript") then
-        warn("SoundAssetValidator: Expected ModuleScript but got " .. module.ClassName .. " for " .. module:GetFullName())
-        return fallback
-    end
-    
-    local success, result = pcall(function()
-        return require(module)
-    end)
-    
-    if success then
-        return result
-    else
-        warn("SoundAssetValidator: Failed to require " .. module:GetFullName() .. " - " .. tostring(result))
-        return fallback
-    end
-end
-
--- Try to load ErrorHandling module
-local ErrorHandlingModule = findModule("ErrorHandling") or findModule("ErrorHandler")
-local ErrorHandling = ErrorHandlingModule and safeRequire(ErrorHandlingModule)
-
--- Try to load EventBridge module
-local EventBridgeModule = findModule("EventBridge")
-local EventBridge = EventBridgeModule and safeRequire(EventBridgeModule)
-
-if EventBridge and EventBridge.registerEvent then
-    -- Register events for sound asset validation
-    EventBridge.registerEvent("SoundAssetValidator_ValidationSuccess")
-    EventBridge.registerEvent("SoundAssetValidator_ValidationFailure")
-    EventBridge.registerEvent("SoundAssetValidator_AssetReplaced")
-end
-
--- Create the module
-local SoundAssetValidator = {}
-
--- Collection of known good fallback sounds
-local fallbackSounds = {
-    -- Generic fallback for any sound
-    default = 4612375233, -- Valid sound effect ID
-    -- Category-specific fallbacks
-    ui = {
-        click = 4612338705,
-        hover = 4612347302,
-        success = 4612339685,
-        error = 4612361922
-    },
-    gameplay = {
-        purchase = 4612385339,
-        achievement = 4612394965,
-        levelUp = 4612383033
-    },
-    ambient = {
-        background = 4612416484
-    }
+-- Default sound assets to use as fallbacks
+local DEFAULT_SOUNDS = {
+    ["ambient"] = "rbxassetid://9113028916", -- Soft ambient sound
+    ["ui"] = "rbxassetid://6026984224", -- UI click
+    ["success"] = "rbxassetid://6895079853", -- Success notification
+    ["error"] = "rbxassetid://6895079094", -- Error notification
+    ["purchase"] = "rbxassetid://6289084960", -- Purchase sound
+    ["achievement"] = "rbxassetid://6895079853", -- Achievement unlock
+    ["background"] = "rbxassetid://1843475671", -- Background music
+    ["default"] = "rbxassetid://6026984224" -- Default empty sound
 }
 
--- Track validation statistics
-local validationStats = {
-    totalChecked = 0,
+-- Sound asset cache to avoid repeated validation
+local validatedSounds = {}
+local preloadedSounds = {}
+
+-- Stats tracking
+local stats = {
+    totalChecks = 0,
     validSounds = 0,
     invalidSounds = 0,
-    replacements = 0
+    fallbacksUsed = 0,
+    preloadAttempts = 0,
+    successfulPreloads = 0
 }
 
--- Cache of validated IDs
-local validatedIds = {}
+-- Forward declaration
+local SoundAssetValidator = {}
 
--- Convert various input formats to asset IDs
-function SoundAssetValidator.getAssetId(input)
-    if typeof(input) == "number" then
-        return input
-    elseif typeof(input) == "string" then
-        -- Extract ID from various formats
-        local idMatch = input:match("rbxassetid://(%d+)")
-        if idMatch then
-            return tonumber(idMatch)
-        end
-        
-        -- Check if it's just a number as a string
-        local numberId = tonumber(input)
-        if numberId then
-            return numberId
-        end
-    end
-    
-    return nil
+-- Initialize the module by searching for AssetValidator
+AssetValidator = tryGetAssetValidator()
+if AssetValidator then
+    print("[SoundAssetValidator] Found AssetValidator module")
+else
+    print("[SoundAssetValidator] AssetValidator module not found, using standalone functionality")
 end
 
--- Validate a single sound asset ID
-function SoundAssetValidator.validateSoundId(soundId, category)
-    category = category or "default"
-    
-    -- Get numeric ID
-    local assetId = SoundAssetValidator.getAssetId(soundId)
-    if not assetId then
-        return fallbackSounds[category] or fallbackSounds.default
-    end
-    
-    -- Check cache first
-    if validatedIds[assetId] ~= nil then
-        return validatedIds[assetId] and assetId or (fallbackSounds[category] or fallbackSounds.default)
-    end
-    
-    validationStats.totalChecked += 1
-    
-    -- Create a test sound to validate the ID
-    local success = pcall(function()
-        local testSound = Instance.new("Sound")
-        testSound.SoundId = "rbxassetid://" .. assetId
-        testSound.Volume = 0 -- Ensure it doesn't actually play
-        testSound.Parent = SoundService
-        testSound:Destroy()
-    end)
-    
-    -- Update cache
-    validatedIds[assetId] = success
-    
-    if success then
-        validationStats.validSounds += 1
-        
-        if EventBridge and EventBridge.fireEvent then
-            EventBridge.fireEvent("SoundAssetValidator_ValidationSuccess", {
-                soundId = assetId
-            })
-        end
-        
-        return assetId
-    else
-        validationStats.invalidSounds += 1
-        validationStats.replacements += 1
-        
-        if EventBridge and EventBridge.fireEvent then
-            EventBridge.fireEvent("SoundAssetValidator_ValidationFailure", {
-                soundId = assetId
-            })
-            
-            EventBridge.fireEvent("SoundAssetValidator_AssetReplaced", {
-                originalId = assetId,
-                fallbackId = fallbackSounds[category] or fallbackSounds.default,
-                category = category
-            })
-        end
-        
-        -- Log the error
-        if ErrorHandling and ErrorHandling.logError then
-            ErrorHandling.logError("SoundAssetValidator", "Invalid sound ID: " .. assetId, "Replaced with fallback")
-        else
-            warn("SoundAssetValidator: Invalid sound ID: " .. assetId .. ", replaced with fallback")
-        end
-        
-        -- Return appropriate fallback
-        if typeof(category) == "string" and fallbackSounds[category] then
-            return fallbackSounds[category]
-        elseif typeof(category) == "table" and category[1] and fallbackSounds[category[1]] then
-            -- Handle subcategory
-            if category[2] and fallbackSounds[category[1]][category[2]] then
-                return fallbackSounds[category[1]][category[2]]
-            end
-            return fallbackSounds[category[1]]
-        end
-        
-        return fallbackSounds.default
-    end
-end
-
--- Create a validated sound object
-function SoundAssetValidator.createValidatedSound(soundId, properties)
-    properties = properties or {}
-    
-    -- Get valid sound ID
-    local validId = SoundAssetValidator.validateSoundId(soundId, properties.category)
-    
-    -- Create the sound
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://" .. validId
-    
-    -- Apply properties
-    for prop, value in pairs(properties) do
-        if prop ~= "category" and sound[prop] ~= nil then
-            sound[prop] = value
-        end
-    end
-    
-    return sound
-end
-
--- Register a custom fallback sound
-function SoundAssetValidator.registerFallback(category, subcategory, soundId)
-    if not category then
+-- Helper function to validate a sound asset ID format
+local function isValidSoundAssetFormat(assetId)
+    -- Basic format check (rbxassetid://numbers)
+    if not string.match(assetId, "^rbxassetid://(%d+)$") then
         return false
     end
     
-    local assetId = SoundAssetValidator.getAssetId(soundId)
-    if not assetId then
+    -- Extract the numeric part
+    local numericId = string.match(assetId, "(%d+)")
+    if not numericId then
         return false
     end
     
-    -- Validate the fallback sound itself
-    local success = pcall(function()
-        local testSound = Instance.new("Sound")
-        testSound.SoundId = "rbxassetid://" .. assetId
-        testSound.Volume = 0
-        testSound.Parent = SoundService
-        testSound:Destroy()
-    end)
-    
-    if not success then
-        warn("SoundAssetValidator: Cannot register invalid sound ID as fallback: " .. assetId)
+    -- Check if the ID is reasonable (not 0 or negative)
+    local idNumber = tonumber(numericId)
+    if not idNumber or idNumber <= 0 then
         return false
-    end
-    
-    -- Save the fallback
-    if subcategory then
-        if not fallbackSounds[category] then
-            fallbackSounds[category] = {}
-        end
-        
-        if typeof(fallbackSounds[category]) ~= "table" then
-            fallbackSounds[category] = {}
-        end
-        
-        fallbackSounds[category][subcategory] = assetId
-    else
-        fallbackSounds[category] = assetId
     end
     
     return true
 end
 
--- Get validation statistics
-function SoundAssetValidator.getStats()
-    local successRate = validationStats.totalChecked > 0 
-        and math.floor((validationStats.validSounds / validationStats.totalChecked) * 100) 
-        or 0
+-- Test if a sound can be successfully loaded
+local function testSoundLoad(assetId)
+    -- If we've already validated this sound, return the cached result
+    if validatedSounds[assetId] ~= nil then
+        return validatedSounds[assetId]
+    end
     
+    -- Create a temporary Sound object for testing
+    local testSound = Instance.new("Sound")
+    testSound.SoundId = assetId
+    testSound.Volume = 0 -- Ensure it's silent for testing
+    
+    -- Try to preload the sound
+    local success = pcall(function()
+        ContentProvider:PreloadAsync({testSound})
+    end)
+    
+    -- Clean up the test sound
+    testSound:Destroy()
+    
+    -- Cache and return the result
+    validatedSounds[assetId] = success
+    return success
+end
+
+-- Validate a sound asset
+function SoundAssetValidator.validateSound(assetId, category)
+    stats.totalChecks += 1
+    
+    -- Safety checks
+    if not assetId or assetId == "" then
+        stats.invalidSounds += 1
+        stats.fallbacksUsed += 1
+        return false, DEFAULT_SOUNDS[category or "default"] or DEFAULT_SOUNDS.default
+    end
+    
+    -- Check format
+    if not isValidSoundAssetFormat(assetId) then
+        stats.invalidSounds += 1
+        stats.fallbacksUsed += 1
+        return false, DEFAULT_SOUNDS[category or "default"] or DEFAULT_SOUNDS.default
+    end
+    
+    -- Test loading the sound
+    local isValid = testSoundLoad(assetId)
+    
+    if isValid then
+        stats.validSounds += 1
+        return true, assetId
+    else
+        stats.invalidSounds += 1
+        stats.fallbacksUsed += 1
+        print(string.format("[SoundAssetValidator] Invalid sound asset: %s, using %s fallback", 
+            assetId, category or "default"))
+        return false, DEFAULT_SOUNDS[category or "default"] or DEFAULT_SOUNDS.default
+    end
+end
+
+-- Preload a sound asset
+function SoundAssetValidator.preloadSound(assetId, category)
+    stats.preloadAttempts += 1
+    
+    -- Validate first
+    local isValid, validatedId = SoundAssetValidator.validateSound(assetId, category)
+    
+    -- Don't try to preload if invalid
+    if not isValid then
+        return false
+    end
+    
+    -- Skip if already preloaded
+    if preloadedSounds[validatedId] then
+        return true
+    end
+    
+    -- Create a sound instance for preloading
+    local sound = Instance.new("Sound")
+    sound.SoundId = validatedId
+    
+    -- Try to preload
+    local success = pcall(function()
+        ContentProvider:PreloadAsync({sound})
+    end)
+    
+    sound:Destroy()
+    
+    -- Update cache and stats
+    if success then
+        preloadedSounds[validatedId] = true
+        stats.successfulPreloads += 1
+    end
+    
+    return success
+end
+
+-- Batch validate multiple sounds
+function SoundAssetValidator.validateSoundBatch(soundsTable)
+    local results = {}
+    local validCount = 0
+    local totalCount = 0
+    
+    for key, info in pairs(soundsTable) do
+        totalCount += 1
+        
+        -- Handle different input formats
+        local assetId, category
+        
+        if typeof(info) == "string" then
+            assetId = info
+            category = "default"
+        elseif typeof(info) == "table" then
+            assetId = info.id or info.assetId or info.soundId
+            category = info.category or info.type or "default"
+        end
+        
+        -- Validate
+        local isValid, validatedId = SoundAssetValidator.validateSound(assetId, category)
+        results[key] = {
+            valid = isValid,
+            id = validatedId,
+            originalId = assetId,
+            category = category
+        }
+        
+        if isValid then
+            validCount += 1
+        end
+    end
+    
+    return results, validCount, totalCount
+end
+
+-- Create a Sound instance with proper validation
+function SoundAssetValidator.createSound(assetId, category, properties)
+    -- Validate the sound asset
+    local isValid, validatedId = SoundAssetValidator.validateSound(assetId, category)
+    
+    -- Create the sound instance
+    local sound = Instance.new("Sound")
+    sound.SoundId = validatedId
+    
+    -- Apply any additional properties
+    if properties and typeof(properties) == "table" then
+        for propName, propValue in pairs(properties) do
+            if propName ~= "SoundId" then -- Skip SoundId as we've already set it
+                pcall(function()
+                    sound[propName] = propValue
+                end)
+            end
+        end
+    end
+    
+    return sound, isValid
+end
+
+-- Fix specific known problematic sound assets
+function SoundAssetValidator.fixKnownProblemSounds()
+    -- Replace known problematic sound assets with working alternatives
+    local knownBadSounds = {
+        ["rbxassetid://9048378264"] = "rbxassetid://9113028916", -- Replace with working alternative
+        ["rbxassetid://9125601193"] = "rbxassetid://6289084960"  -- Replace with working alternative
+    }
+    
+    local fixCount = 0
+    
+    -- Log the fixes
+    for badId, goodId in pairs(knownBadSounds) do
+        print(string.format("[SoundAssetValidator] Registered fix for problematic sound: %s -> %s", badId, goodId))
+        validatedSounds[badId] = false
+        fixCount += 1
+    end
+    
+    return knownBadSounds, fixCount
+end
+
+-- Get a fallback sound for a specific category
+function SoundAssetValidator.getFallbackSound(category)
+    return DEFAULT_SOUNDS[category or "default"] or DEFAULT_SOUNDS.default
+end
+
+-- Get stats about sound validation
+function SoundAssetValidator.getStats()
     return {
-        totalChecked = validationStats.totalChecked,
-        validSounds = validationStats.validSounds,
-        invalidSounds = validationStats.invalidSounds,
-        replacements = validationStats.replacements,
-        successRate = successRate
+        totalChecks = stats.totalChecks,
+        validSounds = stats.validSounds,
+        invalidSounds = stats.invalidSounds,
+        fallbacksUsed = stats.fallbacksUsed,
+        preloadAttempts = stats.preloadAttempts,
+        successfulPreloads = stats.successfulPreloads,
+        cacheSize = #validatedSounds,
+        preloadedSize = #preloadedSounds,
+        passRate = stats.totalChecks > 0 and (stats.validSounds / stats.totalChecks * 100) or 0
     }
 end
 
--- Reset stats
-function SoundAssetValidator.resetStats()
-    validationStats = {
-        totalChecked = 0,
-        validSounds = 0,
-        invalidSounds = 0,
-        replacements = 0
-    }
+-- Initialize with default sounds
+local function init()
+    -- Prevalidate default sounds
+    print("[SoundAssetValidator] Validating default sounds")
+    local validDefaultCount = 0
+    
+    for category, soundId in pairs(DEFAULT_SOUNDS) do
+        local isValid = testSoundLoad(soundId)
+        if isValid then
+            validDefaultCount += 1
+        else
+            warn(string.format("[SoundAssetValidator] Default sound for %s category is invalid: %s", 
+                category, soundId))
+            
+            -- Attempt to find a working fallback
+            if category ~= "default" then
+                DEFAULT_SOUNDS[category] = DEFAULT_SOUNDS.default
+            end
+        end
+    end
+    
+    print(string.format("[SoundAssetValidator] Validated %d/%d default sounds", 
+        validDefaultCount, #DEFAULT_SOUNDS))
+    
+    -- Fix known problem sounds
+    SoundAssetValidator.fixKnownProblemSounds()
 end
 
--- Fix specific sound IDs mentioned in the issue report
-SoundAssetValidator.validateSoundId(9048378264, "default")
-SoundAssetValidator.validateSoundId(9125601193, "default")
-
-print("✅ SoundAssetValidator initialized successfully")
+-- Run initialization
+init()
 
 return SoundAssetValidator
