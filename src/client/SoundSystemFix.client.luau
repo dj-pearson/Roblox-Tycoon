@@ -245,7 +245,7 @@ local function patchPhase3ClientLoader()
     
     print("[SoundSystemFix] Applied Phase3ClientLoader patches and provided API")
     return true
-}
+end
 
 -- Main fix application
 local function applyFixes()

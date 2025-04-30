@@ -347,7 +347,7 @@ function UIRegistry.getUI(name)
     end
     
     return ui
-}
+end
 
 -- Create a new UI frame with consistent styling
 function UIRegistry.createFrame(name, parent)

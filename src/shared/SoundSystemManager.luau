@@ -387,7 +387,7 @@ function SoundSystemManager.getStats()
         registeredSounds = #registeredSounds,
         validator = validatorStats
     }
-}
+end
 
 -- Register the problematic sounds with fixed alternatives
 function SoundSystemManager.registerProblemSoundFixes()
@@ -404,7 +404,7 @@ function SoundSystemManager.registerProblemSoundFixes()
     print("[SoundSystemManager] Registered fixes for problematic sounds")
     
     return fixedSounds
-}
+end
 
 -- Initialize the module
 initialize()

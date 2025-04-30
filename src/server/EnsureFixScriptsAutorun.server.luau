@@ -70,7 +70,7 @@ local function ensureScriptAutoruns(scriptName)
     end
     
     return isServerScript
-}
+end
 
 -- Ensure all fix scripts autorun
 local function ensureAllScriptsAutorun()
@@ -96,7 +96,7 @@ local function ensureAllScriptsAutorun()
     end
     
     return allSuccess
-}
+end
 
 -- Run the configuration
 local success = ensureAllScriptsAutorun()

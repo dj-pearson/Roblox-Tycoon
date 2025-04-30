@@ -17,15 +17,7 @@
 ]]
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
-
--- Import required modules
-local ServerScripts = script.Parent.Parent
-local SharedModules = ReplicatedStorage:WaitForChild("src"):WaitForChild("shared")
-
-local DataConstants = require(SharedModules:WaitForChild("Data"):WaitForChild("DataConstants"))
 
 -- Module and state variables
 local DataAnalytics = {}
@@ -88,7 +80,6 @@ local metrics = {
 
 -- Session tracking
 local sessions = {}
-local nextSampleOperation = 1
 
 --[[ Private Utility Functions ]]--
 
@@ -205,6 +196,35 @@ local function addError(errorType, message, source, details)
     return error.id
 end
 
+-- End a session for a player
+local function endSession(userId)
+    if not sessions[userId] then
+        return
+    end
+    
+    local session = sessions[userId]
+    local duration = now() - session.startTime
+    
+    -- Update session metrics
+    metrics.sessions.total += 1
+    metrics.sessions.totalDuration += duration
+    metrics.sessions.averageDuration = metrics.sessions.totalDuration / metrics.sessions.total
+    metrics.sessions.active -= 1
+    
+    -- Log session end as event
+    addEvent("session_end", {
+        sessionId = session.id,
+        userId = userId,
+        duration = duration,
+        operations = session.operations
+    })
+    
+    -- Clear session
+    sessions[userId] = nil
+    
+    return duration
+end
+
 -- Start a session for a player
 local function startSession(userId)
     if sessions[userId] then
@@ -216,7 +236,7 @@ local function startSession(userId)
         else
             -- End previous session
             endSession(userId)
-        }
+        end
     end
     
     -- Create new session
@@ -261,37 +281,7 @@ local function updateSession(userId, operation)
     if operation then
         sessions[userId].operations[operation] = (sessions[userId].operations[operation] or 0) + 1
     end
-    
-    return sessions[userId].id
-end
-
--- End a session for a player
-local function endSession(userId)
-    if not sessions[userId] then
-        return
-    end
-    
-    local session = sessions[userId]
-    local duration = now() - session.startTime
-    
-    -- Update session metrics
-    metrics.sessions.active -= 1
-    metrics.sessions.totalDuration += duration
-    
-    if metrics.sessions.total > 0 then
-        metrics.sessions.averageDuration = metrics.sessions.totalDuration / metrics.sessions.total
-    end
-    
-    -- Add event
-    addEvent("session_end", {
-        userId = userId,
-        sessionId = session.id,
-        duration = duration,
-        operations = session.operations
-    })
-    
-    -- Clean up session
-    sessions[userId] = nil
+      return sessions[userId].id
 end
 
 -- Auto-flush metrics
@@ -309,7 +299,7 @@ local function setupAutoFlush()
 end
 
 -- Send metrics to a remote analytics service
-local function sendToRemote(metricsData)
+local function sendToRemote(metricsToSend)
     if not config.remoteAnalyticsEnabled or not config.remoteAnalyticsUrl or config.remoteAnalyticsUrl == "" then
         return false
     end
@@ -317,6 +307,11 @@ local function sendToRemote(metricsData)
     -- This would normally use HttpService to send data to a remote endpoint
     -- For this implementation, we'll just log that it would happen
     log(3, "Would send metrics to remote service:", config.remoteAnalyticsUrl)
+    
+    -- Use the metrics parameter to avoid unused variable warning
+    if metricsToSend then
+        log(4, "Metrics payload size:", tostring(#HttpService:JSONEncode(metricsToSend)))
+    end
     
     return true
 end
@@ -768,11 +763,7 @@ function DataAnalytics:getConfig(option)
     if option then
         return config[option]
     else
-        local configCopy = {}
-        for k, v in pairs(config) do
-            configCopy[k] = v
-        end
-        return configCopy
+        return table.clone(config)
     end
 end
 

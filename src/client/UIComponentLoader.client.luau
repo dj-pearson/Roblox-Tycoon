@@ -154,8 +154,7 @@ local function loadUIComponents()
         print("UIComponentLoader: Loading " .. info.name)
         
         -- Load the component module
-        local component = requireSafely(info.path)
-        if not component then
+        local component = requireSafely(info.path)        if not component then
             warn("UIComponentLoader: Failed to load " .. info.name)
             goto continue
         end

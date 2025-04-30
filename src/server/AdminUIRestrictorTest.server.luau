@@ -168,7 +168,7 @@ local function runTests()
         log("Some admin UI restriction tests failed", "error")
         return false
     end
-}
+end
 
 -- Run tests with a delay
 if isStudio then
