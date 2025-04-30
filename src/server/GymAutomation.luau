@@ -1,114 +1,129 @@
--- GymAutomation.luau
 --[[
-    This module provides simplified access to gym automation features.
+    GymAutomation.luau
+    
+    A simplified wrapper for GymAutomationManager.
+    This module provides easy access to GymAutomation functionality.
     It wraps the GymAutomationManager functionality for easier use in other scripts.
     
-    Author: Updated April 28, 2025
+    Created: April 30, 2025
 ]]
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Try to require GymAutomationManager
-local GymAutomationManager
+local GymAutomationManagerInstance
 local function getGymAutomationManager()
-    if GymAutomationManager then
-        return GymAutomationManager
+    if GymAutomationManagerInstance then
+        return GymAutomationManagerInstance
     end
     
-    -- Try to find the module in different locations
+    -- Define search paths
     local searchPaths = {
-        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("server") and ReplicatedStorage.src.server:FindFirstChild("GymAutomationManager"),
-        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("GymAutomationManager"),
+        -- First check in the same folder
+        script.Parent and script.Parent:FindFirstChild("GymAutomationManager"),
+        
+        -- Check standard server script paths
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("GymAutomation") and ServerScriptService.src.server.GymAutomation:FindFirstChild("GymAutomationManager"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("GymAutomationManager"),
+        ServerScriptService:FindFirstChild("GymAutomation") and ServerScriptService.GymAutomation:FindFirstChild("GymAutomationManager"),
+        ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("GymAutomationManager"),
+        
+        -- Check server storage
+        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("GymAutomation") and ServerStorage.src.server.GymAutomation:FindFirstChild("GymAutomationManager"),
         ServerStorage:FindFirstChild("GymAutomation") and ServerStorage.GymAutomation:FindFirstChild("GymAutomationManager"),
-        script.Parent and script.Parent:FindFirstChild("GymAutomationManager")
     }
     
+    -- Try each path
     for _, path in ipairs(searchPaths) do
-        if path and path:IsA("ModuleScript") then
+        if path then
             local success, result = pcall(function()
                 return require(path)
             end)
-            
-            if success and result then
-                GymAutomationManager = result
-                return GymAutomationManager
+              if success and result then
+                print("[GymAutomation] Found GymAutomationManager at", path:GetFullName())
+                GymAutomationManagerInstance = result
+                return GymAutomationManagerInstance
             end
         end
     end
     
+    -- Try ModuleScriptAccessor if available
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        local success, ModuleScriptAccessor = pcall(function()
+            return require(shared.ModuleScriptAccessor)
+        end)
+        
+        if success and ModuleScriptAccessor and typeof(ModuleScriptAccessor.requireModule) == "function" then            local manager = ModuleScriptAccessor.requireModule("GymAutomationManager")
+            if manager then
+                print("[GymAutomation] Found GymAutomationManager through ModuleScriptAccessor")
+                GymAutomationManagerInstance = manager
+                return GymAutomationManagerInstance
+            end
+        end
+    end
+    
+    warn("[GymAutomation] Failed to find GymAutomationManager")
     return nil
 end
 
--- Simplified API
+-- Create a simplified API
 local GymAutomation = {
-    initialized = false,
-    VERSION = "1.0.0",
+    initialized = false
 }
 
--- Initialize the module
+-- Initialize the system
 function GymAutomation.initialize()
     if GymAutomation.initialized then
         return true
     end
     
     local manager = getGymAutomationManager()
-    if not manager then
-        warn("[GymAutomation] GymAutomationManager not found")
-        return false
+    if manager then
+        print("[GymAutomation] Successfully loaded GymAutomationManager")
+        GymAutomation.initialized = true
+        return true
     end
     
-    -- Initialize the manager
-    local success = manager:initialize()
-    GymAutomation.initialized = success
-    
-    return success
+    return false
 end
 
--- Get system status
-function GymAutomation.getSystemStatus(systemName)
+-- Automate a specific gym
+function GymAutomation:AutomateGym(tycoonName)
     local manager = getGymAutomationManager()
-    if not manager then
-        return nil
+    if manager then
+        return manager:AutomateGym(tycoonName)
     end
     
-    return manager:getSystemStatus(systemName)
+    warn("[GymAutomation] GymAutomationManager not found, cannot automate gym")
+    return false
 end
 
--- Configure automation settings
-function GymAutomation.configure(options)
+-- Automate all gyms
+function GymAutomation:AutomateAllGyms()
     local manager = getGymAutomationManager()
-    if not manager then
-        return false
+    if manager then
+        return manager:AutomateAllGyms()
     end
     
-    return manager:configure(options)
+    warn("[GymAutomation] GymAutomationManager not found, cannot automate gyms")
+    return false
 end
 
--- Reset automation systems
-function GymAutomation.reset()
+-- Process equipment in a gym
+function GymAutomation:ProcessEquipment(tycoonName)
     local manager = getGymAutomationManager()
-    if not manager then
-        return false
+    if manager then
+        return manager:ProcessEquipment(tycoonName)
     end
     
-    return manager:reset()
+    warn("[GymAutomation] GymAutomationManager not found, cannot process equipment")
+    return false
 end
 
--- Get performance metrics
-function GymAutomation.getPerformanceMetrics()
-    local manager = getGymAutomationManager()
-    if not manager then
-        return {}
-    end
-    
-    return manager:getPerformanceMetrics()
-end
-
--- Auto-initialize
-task.spawn(function()
-    GymAutomation.initialize()
-end)
+-- Try to initialize on load
+GymAutomation.initialize()
 
 return GymAutomation

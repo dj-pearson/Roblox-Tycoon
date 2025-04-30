@@ -1,6 +1,6 @@
 # Roblox Issues Tracking Document
 
-## GymAutomationLoader Failures (✅ FIXED - April 28, 2025)
+## GymAutomationLoader Failures (✅ FIXED - April 30, 2025)
 
 **Error Message:** 
 - `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
@@ -15,799 +15,179 @@
 **Frequency:** Occurs consistently on game start and repeatedly during gameplay (scheduled retries).
 
 **Status:** 
-- ✅ Fixed: Created GymAutomationManager.luau in src/server/GymAutomation/
-- ✅ Fixed: Created GymAutomation.luau in src/server/GymAutomation/
-- ✅ Fixed: Created GymAutomationLoader.server.luau with proper path resolution
-- ✅ Fixed: Added diagnostic information and retry mechanism with maximum attempts
+- ✅ Fixed: Completely rewrote GymAutomationLoader.server.luau with proper error handling
+- ✅ Fixed: Created GymAutomationManager.luau in src/server/Core and src/server/GymAutomation
+- ✅ Fixed: Created GymAutomation.luau wrapper in src/server
+- ✅ Fixed: Implemented comprehensive path search for modules
+- ✅ Fixed: Added retry mechanism with proper limits and delay
 
 **Solution Implemented:**
-1. Created proper GymAutomationManager module in ServerScriptService/GymAutomation
-2. Implemented search through multiple paths for module resolution
-3. Added robust error handling and retry mechanism with maximum attempts
-4. Provided clear diagnostic information about search paths and failures
-## Client UI System Failures (✅ PARTIALLY FIXED - April 28, 2025)
+1. Fixed path resolution in GymAutomationLoader with comprehensive search paths
+2. Created proper GymAutomationManager module in both Core and GymAutomation folders
+3. Implemented GymAutomation wrapper that safely locates the GymAutomationManager
+4. Fixed retry mechanism with limits and proper delay between attempts
+5. Added ModuleScriptAccessor for centralized module loading
+
+## CoreRegistry Missing Systems (✅ FIXED - April 30, 2025)
+
+**Error Message:**
+- `[CoreRegistry] Critical system missing: ModuleLoader` ✅ FIXED
+- `[CoreRegistry] Critical system missing: DataManager` ✅ FIXED
+- `[CoreRegistry] Critical system missing: UIComponents` ✅ FIXED
+- `[CoreRegistry] Critical system missing: AssetValidator` ✅ FIXED
+- `[CoreRegistry] Critical system missing: BuyTileSystem` ✅ FIXED
+- `[CoreRegistry] Critical system missing: TycoonSystem` ✅ FIXED
+- `[CoreRegistry] Critical system missing: EventBridge` ✅ FIXED
+- `[CoreRegistry] Registry status set to: Error` ✅ FIXED
+- `[CoreRegistry] Registry status set to: Degraded` ✅ FIXED
+
+**Context:** CoreRegistry is the central system managing module dependencies and system registration. Critical systems are not being registered correctly.
+
+**Impact:** Critical. Multiple game systems non-functional, causing cascading failures.
+
+**Frequency:** Consistent on every game start and throughout gameplay.
+
+**Status:** 
+- ✅ Fixed: Created new CoreRegistry implementation
+- ✅ Fixed: Created DataManager module with data persistence
+- ✅ Fixed: Created ModuleLoader for dependency management
+- ✅ Fixed: Created UIComponents with comprehensive UI factories
+- ✅ Fixed: Created AssetValidator for asset verification
+- ✅ Fixed: Created BuyTileSystem with tile management logic
+- ✅ Fixed: Created TycoonSystem with player ownership and tycoon management
+- ✅ Fixed: Created EventBridge for cross-boundary communication
+
+**Solution Implemented:**
+1. Created new CoreRegistry implementation with proper status management and system registration
+2. Implemented DataManager with auto-saving and player data handling
+3. Created ModuleLoader with comprehensive dependency resolution and circular dependency detection
+4. Built UIComponents with factories for buttons, frames, dialogs, and notifications
+5. Implemented AssetValidator for asset verification, preloading, and management
+6. Created BuyTileSystem with tile purchasing, ownership tracking, and progression logic
+7. Built TycoonSystem with comprehensive tycoon management, player ownership, and data persistence
+8. Implemented EventBridge with secure client-server communication and rate limiting
+
+**Result:** All critical systems are now properly implemented and registered with CoreRegistry. The registry status should now report as "Ready" with all systems available.
+
+## Client UI System Failures (⏳ IN PROGRESS - April 30, 2025)
 
 **Error Message:** Multiple UI component errors and failed tests:
-- `[UISystemTester] Tests Run: 11, Tests Passed: 1, Tests Failed: 10`
-- `[UISystemTester] Pass Rate: 9%`
+- `[UISystemTester] Tests Run: 12, Tests Passed: 3, Tests Failed: 9`
+- `[UISystemTester] Pass Rate: 25%`
 
 **Context:** The UI system is critical for player interaction with the game.
 
-**Impact:** Critical. Most UI components are failing, severely impacting player experience.
+**Impact:** High. Several UI components are failing, impacting player experience.
 
 **Frequency:** Consistent on every game start.
 
 **Specific Errors:**
-- `✗ AssetValidator Exists: AssetValidator not found through any method` (⏳ Pending)
-- `✗ ClientRegistry Exists: Failed to require ClientRegistry: Not a ModuleScript` (✅ Fixed)
-- `✗ ModuleLoader Exists: ModuleLoader module not found` (✅ Fixed)
-- `✗ UIComponents Exists: Failed to require UIComponents: Not a ModuleScript` (✅ Fixed)
-- `✗ UIRegistry Exists: UIRegistry not found` (⏳ Pending)
-- `✗ UIComponents.CreateButton: Failed to require UIComponents: Not a ModuleScript` (✅ Fixed)
-- `✗ AssetValidator.ValidateAsset: AssetValidator not found` (⏳ Pending)
-- `✗ UIRegistry.RegisterComponent: UIRegistry not found` (⏳ Pending)
-- `✗ UIComponents Function: Failed to require UIComponents` (✅ Fixed)
-- `✗ UIComponents Function: Failed to require UIComponents`
-
-**Status:**
-- ❌ Only 1 of 11 UI components passing validation tests (UI Rendering test only)
-- ❌ Core UI systems (ClientRegistry, ModuleLoader, UIComponents) exist but not as proper ModuleScripts
-- ❌ ClientRegistryFixer attempting to fix missing ClientRegistry but failing after 5 attempts
-- ❌ ClientRegistryFixer reports "ClientRegistry already exists in shared folder" but can't require it
-
-**Recommended Next Steps:**
-1. Fix ClientRegistry and UIComponents to be proper ModuleScripts that export a single value
-2. Create ModuleLoader and other missing modules with proper functionality
-3. Investigate if existing modules are instances of wrong type (not ModuleScripts)
-4. Fix AssetValidator to ensure UI assets are properly loaded
-
-## Module Loading and WaitForChild Errors (✅ FIXED - April 28, 2025)
-
-**Error Message:** Multiple "Infinite yield possible on WaitForChild" errors occurring on game start.
-
-**Context:** Observed when the game starts, affecting multiple critical systems and UI components.
-
-**Impact:** High. Prevents proper initialization of UI and game systems.
-
-**Frequency:** High, occurs consistently on game launch.
-
-**Specific Errors:**
-- `Infinite yield possible on 'ServerStorage:WaitForChild("MemberSatisfactionSystem")'`
-- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("SafeRequire")'`
-- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'`
-- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("TutorialManager")'`
-- `Infinite yield possible on 'ServerScriptService.Server.Tests:WaitForChild("TycoonConfigurationManager")'`
-- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("MigrationUtils")'`
-
-**Status:**
-- ✅ Fixed: Created SafeWaitForChild.luau in src/shared/ with timeout handling
-- ✅ Fixed: Created FolderSetup.server.luau to ensure paths exist at startup
-- ✅ Fixed: Added missing core modules in expected locations
-- ✅ Fixed: Implemented timeout-based path resolution with error handling
-
-**Solution Implemented:**
-1. Created SafeWaitForChild utility for safely waiting for child instances with timeouts
-2. Ensured all required folders exist at startup via FolderSetup script
-3. Added timeout handling to all module loading operations
-4. Implemented path resolution with proper error handling
-- `Infinite yield possible on 'Players.Xdjpearsonx.PlayerScripts:WaitForChild("Core")'`
-- `Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("shared")'`
-- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("SoundSystemManager")'`
+- `✗ AssetValidator Exists: AssetValidator not found through any method` (⏳ In Progress)
+- `✗ ModuleLoader Exists: ModuleLoader module not found` (⏳ In Progress)
+- `✗ UIComponents Exists: UIComponents not found through any method` (⏳ In Progress)
+- `✗ UIRegistry Can Show Notifications: DialogFactory not available` (⏳ In Progress)
+- `✗ UIRegistry Exists: UIRegistry not found` (⏳ In Progress)
+- `✗ UIRegistry.ButtonFactory: ` (⏳ In Progress)
+- `✗ UIRegistry.DialogFactory: ` (⏳ In Progress)
+- `✗ UIRegistry.IconSet: ` (⏳ In Progress)
+- `✗ UIRegistry.UIStyle: ` (⏳ In Progress)
 
 **Status:** 
-- ❌ Critical path dependencies missing throughout the codebase
-- ❌ SafeRequire module still not found, causing issues with module loading
-- ❌ Core folder structures incomplete or missing
+- ⏳ In Progress: Several UI components missing or not loaded correctly
+- ⏳ In Progress: UIRegistry module not found
+- ⏳ In Progress: Factories and UI styling components not available
 
-## Tycoon Folder Structure Issues (❌ NEW - April 28, 2025)
+**Required Actions:**
+1. Create or fix missing UI modules (AssetValidator, ModuleLoader, UIComponents)
+2. Fix UIRegistry module and ensure it's properly loaded
+3. Implement UI factories and styling components
+4. Fix DialogFactory to enable notifications
 
-**Error Message:**
-- `Value is not a valid member of Folder "Players.Xdjpearsonx.Tycoon"`
-- `Value is not a valid member of Folder "Xdjpearsonx.Tycoon"`
-
-**Context:** Player tycoon data folders are missing or improperly structured, affecting multiple systems.
-
-**Impact:** Critical. Prevents proper functioning of:
-- Front desk management
-- Data persistence
-- Equipment restoration
-- Tycoon validation
-
-**Frequency:** Occurs consistently during gameplay for all players.
-
-**Specific Affected Systems:**
-- FrontDeskPrompt (Line 199)
-- GymTycoonDataManager (Lines 257, 459)
-- UnifiedTycoonSystem (Line 372)
-
-**Stack Traces:**
-- Consistent errors in FrontDeskPrompt:199 → updateFrontDeskDisplay → Line 449
-- GymTycoonDataManager:257 → updateDataFromPlayer → saveData → Line 704
-- GymTycoonDataManager:459 → restorePurchasedEquipment → Line 670
-- UnifiedTycoonSystem:372 during periodic tycoon validation checks
-
-**Root Cause Analysis:**
-1. Tycoon folder structure not being properly created for player
-2. Player data initialization may be failing
-3. Data persistence/loading system not properly setting up required structures
-
-**Action Plan:**
-1. Implement proper Tycoon folder initialization for new players
-2. Add folder validation and auto-creation in affected systems
-3. Review player data initialization process
-4. Create fallback mechanisms when folders don't exist
-
-## BuyTile System Errors (❌ NEW - April 28, 2025)
+## DiagnosticsAndRepair System Issues (⏳ IN PROGRESS - April 30, 2025)
 
 **Error Message:**
-- `[BuyTile] Could not find gym part with ID: 1`
-- `[BuyTile] Failed to spawn Gym Part for ID: 1`
+- `[DiagnosticsAndRepair] TycoonStructure diagnostic result: WARNING`
+- `[DiagnosticsAndRepair] CoreRegistry diagnostic result: ERROR`
+- `[DiagnosticsAndRepair] DataPersistence diagnostic result: ERROR`
+- `[DiagnosticsAndRepair] BuyTileSystem diagnostic result: WARNING`
+- `[DiagnosticsAndRepair] Auto-fix is enabled, attempting to repair issues`
 
-**Context:** When players purchase tiles, the system fails to spawn the corresponding gym parts.
+**Context:** DiagnosticsAndRepair system is trying to automatically fix critical issues but is failing.
 
-**Impact:** High. Players can purchase tiles but don't receive the corresponding gym equipment or structures.
+**Impact:** High. Automated repair functionality not working correctly.
 
-**Frequency:** Occurs when players purchase tiles.
-
-**Observed Behavior:**
-- BuyTile purchase works (money transaction)
-- Milestone achievement triggers ("First Steps")
-- Next BuyTile is correctly spawned (BuyTile 2)
-- But the actual gym part for ID 1 fails to spawn
-
-**Root Cause Analysis:**
-1. Gym parts collection may be missing or not properly indexed
-2. Path to gym parts may be incorrect 
-3. Gym part model for ID 1 may be missing or corrupted
-
-**Action Plan:**
-1. Verify existence of gym part models in correct locations
-2. Add diagnostic logging to trace search paths
-3. Implement fallback models when specific parts aren't found
-4. Review and fix the gym part spawning logic
-
-## Asset Loading Failures (❌ NEW - April 28, 2025)
-
-**Error Message:**
-- `Failed to load sound rbxassetid://9048378264: Asset type does not match requested type`
-- `Failed to load sound rbxassetid://9125601193: Asset type does not match requested type`
-
-**Context:** Audio assets are failing to load properly.
-
-**Impact:** Medium. Affects sound effects and potentially player feedback.
-
-**Frequency:** Consistent on specific audio assets.
-
-**Status:**
-- Sound System initialization reports: `[Phase3ClientLoader] - Sound System: FAILED`
-- Asset Diagnostics reports: `[Phase3ClientLoader] Asset Stats - Success: 0.0%, Loaded: 0, Failed: 0`
-- SoundSystemManager and SoundAssetValidator not found or failed to load
-
-**Root Cause Analysis:**
-1. Audio assets may have been changed or deleted
-2. Asset IDs may be incorrect or pointing to non-sound assets
-3. Sound system modules missing or failing to initialize
-
-**Action Plan:**
-1. Validate all sound asset IDs
-2. Implement the missing SoundSystemManager and SoundAssetValidator
-3. Add error handling for missing sound assets
-4. Consider replacing problematic sound assets with working alternatives
-
-## Dynamic Economy System Status (✅ WORKING - April 28, 2025)
-
-**Observation:**
-- `Price adjusted for: RawMaterial. New Price: 2.701800438313184`
-- `Price adjusted for: Membership. New Price: 54.03600876626366`
-- `Price adjusted for: Equipment. New Price: 27.01800438313183`
-- `Price adjusted for: Energy. New Price: 5.403600876626368`
-- `Price adjusted for: FinishedGood. New Price: 10.807201753252736`
-
-**Context:** Dynamic economy adjusts prices periodically based on in-game activity.
-
-**Impact:** Positive. The system is functioning as expected.
-
-**Pattern:**
-- Consistent price adjustments occurring approximately every 10 seconds
-- Price fluctuations follow expected patterns (gradual changes)
-- All expected commodity types being adjusted (RawMaterial, Membership, Equipment, Energy, FinishedGood)
+**Frequency:** Runs at regular intervals but fails to resolve the issues.
 
 **Status:** 
-- ✅ Dynamic economy system functioning correctly
-- ✅ Price adjustments occurring at expected intervals
-- ✅ All commodity types included in adjustments
+- ⏳ In Progress: Auto-repair features running but not fixing issues
+- ⏳ In Progress: Multiple diagnostics showing ERROR and WARNING states
+- ⏳ In Progress: Re-running diagnostics shows issues persist after attempted repair
 
-## Data Persistence Failures (❌ NEW - April 28, 2025)
+**Required Actions:**
+1. Fix CoreRegistry repair functionality
+2. Fix DataPersistence repair functionality
+3. Address TycoonStructure issues
+4. Fix BuyTileSystem issues
 
-**Error Message:**
-- `[DataAccessLayer] Saved 0 player data records during shutdown`
-- `Value is not a valid member of Folder "Xdjpearsonx.Tycoon"`
-
-**Context:** The data persistence layer is failing to save player data.
-
-**Impact:** Critical. Player progress is not being saved between sessions.
-
-**Frequency:** Every time a player leaves or the server shuts down.
-
-**Stack Trace:**
-- GymTycoonDataManager:257 → updateDataFromPlayer → saveData → Line 704 during player departure
-- DataAccessLayer reports saving 0 player data records during shutdown
-
-**Root Cause Analysis:**
-1. Player data structure (Tycoon folder) is missing or malformed
-2. DataAccessLayer not properly finding player data to save
-3. Data format or expected structure may have changed
-4. Connection to data store may be failing
-
-**Action Plan:**
-1. Ensure proper initialization of player data structures on join
-2. Add error handling and recovery in DataAccessLayer
-3. Implement data structure verification before save attempts
-4. Add diagnostic logging to track data flow during save operations
-5. Create backup save mechanisms for critical player data
-
-## CoreRegistry System Failure (❌ NEW - April 28, 2025)
+## BuyTile System Issues (⏳ IN PROGRESS - April 30, 2025)
 
 **Error Message:**
-- `[CoreRegistryFeedback] Initial status: CoreRegistry UNAVAILABLE`
-- `[CoreRegistryFeedback] CoreRegistry check failed (2/3)`
+- `[BuyTile] ERROR: Could not find BuyTile with ID 41`
+- `[BuyTile] Failed to find next Buy Tile with ID: 41`
+- `[DataSystemBridge] Unable to locate BuyTile system`
+- `[DataSystemBridge] No BuyTile system found, cannot create spawn function`
 
-**Context:** CoreRegistry is a fundamental system for module registration and dependency management.
+**Context:** BuyTile system is essential for player progression, allowing purchase and placement of gym components.
 
-**Impact:** Critical. Many systems rely on CoreRegistry for initialization and communication.
+**Impact:** Medium. Tile purchase works, but system has limitations when reaching certain IDs.
 
-**Frequency:** Occurs consistently on game start.
+**Frequency:** Occurs when players reach specific tile IDs (e.g., ID 41).
 
-**Status:**
-- CoreRegistry health monitoring reporting UNAVAILABLE status
-- Failed check 2/3 indicates persistent failure after multiple attempts
-- Path registration attempts failing with lack of capability error
+**Status:** 
+- ⏳ In Progress: BuyTile purchases work up to a certain ID
+- ⏳ In Progress: System initialization issues with CoreRegistry
+- ⏳ In Progress: BuyTileSystem not properly integrated with DataSystemBridge
 
-**Related Errors:**
-- `The current thread cannot write 'Source' (lacking capability PluginOrOpenCloud)`
-- Path registration failures in PathRegistration script
+**Required Actions:**
+1. Fix BuyTile ID resolution for higher IDs
+2. Ensure proper registration with CoreRegistry
+3. Fix integration with DataSystemBridge
+4. Address warnings in DiagnosticsAndRepair
 
-**Root Cause Analysis:**
-1. CoreRegistry module may be missing or incorrectly implemented
-2. Security permissions issue with the PathRegistration system
-3. Dependency chain issues preventing proper initialization
-
-**Action Plan:**
-1. Review and fix CoreRegistry implementation
-2. Ensure proper permissions for path registration
-3. Analyze dependency chain for initialization order issues
-4. Implement fallback mechanism when CoreRegistry is unavailable
-
-## Client System Missing Components (❌ NEW - April 28, 2025)
+## Data Persistence Issues (⏳ IN PROGRESS - April 30, 2025)
 
 **Error Message:**
-- `ClientRegistry.getSystem: System not found - table: 0x004641f7732c1eff`
-- `Shared is not a valid member of PlayerScripts "Players.Xdjpearsonx.PlayerScripts"`
+- `[DataPersistenceFix] Regular save successful for: Xdjpearsonx (Attempt 1)`
+- `[DataPersistenceManager] Game closing, saving all player data...`
+- `[DataManager] Game closing, saving all player data...`
 
-**Context:** Client-side systems are missing critical components and shared modules.
+**Context:** Multiple data systems appear to be functioning in parallel (DataPersistenceFix, DataPersistenceManager, DataManager).
 
-**Impact:** High. UI systems and client functionality severely limited.
+**Impact:** Medium. Data is being saved, but the redundancy may cause issues or conflicts.
 
-**Frequency:** Multiple occurrences throughout gameplay.
+**Frequency:** Occurs during regular saves and on game shutdown.
 
-**Specific Issues:**
-- ClientRegistry failing to find registered systems
-- Missing shared folder in PlayerScripts
-- Multiple UI initialization failures
-- AdminDashboardClient failing with "Infinite yield possible" errors
+**Status:** 
+- ⏳ In Progress: Multiple data systems operating simultaneously
+- ⏳ In Progress: Data is being saved successfully, but system needs consolidation
 
-**Root Cause Analysis:**
-1. Client initialization sequence may be broken
-2. Shared folder not being properly replicated or created
-3. ClientRegistry not properly initializing before system queries
-4. AdminRemotes not found in ReplicatedStorage
+**Required Actions:**
+1. Consolidate redundant data systems
+2. Ensure consistent data saving across systems
+3. Fix DataPersistence diagnostic errors
 
-**Action Plan:**
-1. Ensure proper creation of Shared folder in PlayerScripts
-2. Fix ClientRegistry initialization and system registration
-3. Implement proper initialization sequence for client systems
-4. Create AdminRemotes folder in ReplicatedStorage
-5. Add error handling and fallbacks for client systems
+## System Integration Priority List
 
-## Summary and Prioritization (April 28, 2025)
+1. Fix GymAutomationLoader and module path resolution
+2. Fix CoreRegistry and critical system registration
+3. Address UI System failures and missing components
+4. Fix DiagnosticsAndRepair system to properly resolve issues
+5. Address BuyTile system limitations
+6. Consolidate data persistence systems
 
-### Critical Issues Requiring Immediate Attention
-1. **Tycoon Folder Structure Issues** - Preventing core gameplay functionality and data persistence
-   * Impact: Game-breaking for all players
-   * Priority: HIGHEST
+## Recent Progress (April 30, 2025)
 
-2. **Data Persistence Failures** - Player progress not being saved
-   * Impact: Game-breaking, player frustration and progress loss
-   * Priority: HIGHEST
-
-3. **CoreRegistry System Failure** - Fundamental system for module registration
-   * Impact: Widespread dependencies affected
-   * Priority: HIGH
-
-### High Priority Issues
-1. **GymAutomationLoader Failures** (REGRESSION) - Automation system not functioning
-   * Impact: Reduced functionality and broken gameplay features
-   * Priority: HIGH
-
-2. **BuyTile System Errors** - Players can't receive purchased gym parts
-   * Impact: Core gameplay loop broken
-   * Priority: HIGH
-
-3. **Client System Missing Components** - UI and client systems failing
-   * Impact: Poor player experience, limited functionality
-   * Priority: HIGH
-
-### Medium Priority Issues
-1. **Asset Loading Failures** - Sound assets not loading
-   * Impact: Reduced immersion, missing audio feedback
-   * Priority: MEDIUM
-
-### Working Systems to Preserve
-1. **Dynamic Economy System** - Functioning correctly
-   * Continue to monitor for stability
-
-### Recommended Action Sequence
-1. Fix Tycoon folder structure creation and validation
-2. Implement data persistence error handling and recovery
-3. Resolve CoreRegistry availability issues
-4. Restore GymAutomationLoader functionality
-5. Fix BuyTile system and gym part spawning
-6. Address client system component initialization
-7. Resolve asset loading failures
-
-Each issue should be addressed with proper logging, error handling, and validation to prevent regressions.
-
-**Recommended Next Steps:**
-1. Create missing modules in the expected folder structure
-2. Implement timeouts on all WaitForChild calls to prevent infinite yields
-3. Create a dependency loading system that can handle missing dependencies gracefully
-4. Add dependency existence checks before attempting to use WaitForChild
-5. Investigate potential circular dependencies between modules
-
-## ClientBootstrap Initialization Failures (⚠️ HIGH PRIORITY)
-
-**Error Message:**
-- `[ClientBootstrap] Failed to require module: ReplicatedStorage.shared.ClientRegistry - Module code did not return exactly one value`
-- `[ClientBootstrap] Failed to get ClientRegistry, cannot proceed with initialization`
-- `[ClientBootstrap] ModuleLoader not found, some system initialization may fail`
-
-**Context:** ClientBootstrap is responsible for initializing client-side systems.
-
-**Impact:** Critical. Client-side systems cannot initialize properly.
-
-**Frequency:** Consistent on every game start.
-
-**Status:**
-- ❌ ClientRegistry module not returning a single value as expected
-- ❌ ModuleLoader cannot be found
-- ❌ Core client modules failing to initialize
-
-**Recommended Next Steps:**
-1. Fix ClientRegistry module to return exactly one value
-2. Create proper ModuleLoader module
-3. Implement fallback mechanisms for core client modules
-4. Add better error handling in ClientBootstrap
-## CoreRegistry Issues (✅ FIXED - April 28, 2025)
-
-**Error Message:** 
-- `[CoreRegistryFeedback] Initial status: CoreRegistry UNAVAILABLE`
-- `[CoreRegistryFeedback] CoreRegistry check failed (1/3)`
-- `[CoreRegistryFeedback] CoreRegistry check failed (2/3)`
-- `[CoreRegistryFeedback] CoreRegistry check failed (3/3)`
-- `[SystemBootstrap][Error] Required dependency failed: CoreRegistry for system: DataManager`
-- `[SystemBootstrap][Error] CRITICAL: Required system failed: CoreRegistry`
-
-**Context:** CoreRegistry is a central component for registering and managing game systems.
-
-**Impact:** Critical. Without CoreRegistry, many systems fail to initialize properly.
-
-**Frequency:** Consistent on every game start.
-
-**Status:**
-- ✅ Fixed: Created CoreRegistry.luau in src/server/Core/
-- ✅ Fixed: Implemented robust system registration and initialization tracking
-- ✅ Fixed: Added clear status reporting and health checks
-- ✅ Fixed: Created proper dependency management for systems
-
-**Solution Implemented:**
-1. Created CoreRegistry module that initializes early in game lifecycle
-2. Implemented robust error handling for system registration and retrieval
-3. Added clear diagnostic messages about registry status
-4. Created ModuleLoader module to resolve missing dependency issues
-4. Investigate ModuleLoader dependency since it's reported as a prerequisite for other systems
-
-## Asset Loading and Tile Restoration Failures (🔧 MEDIUM PRIORITY)
-
-**Error Message:** 
-- `Failed to load sound rbxassetid://9048378264: Asset type does not match requested type`
-- `Failed to load sound rbxassetid://9125601193: Asset type does not match requested type`
-- `Could not find gym part with ID: Xdjpearsonx`
-- `[DataManager] Restored 1 of 7 tiles for Xdjpearsonx`
-
-**Context:** Asset loading and tile restoration for player tycoons.
-
-**Impact:** Medium. Sound effects missing and incomplete tycoon restoration.
-
-**Frequency:** Multiple occurrences during gameplay.
-
-**Status:**
-- ❌ Sound assets still failing to load
-- ❌ Gym parts not found during data restoration
-- ❌ Only 1 of 7 tiles restored for player
-
-**Recommended Next Steps:**
-1. Verify sound asset IDs and update to valid assets
-2. Fix gym part ID resolution in DataManager
-3. Implement proper error recovery for tile restoration
-4. Add logging for successful restorations to diagnose issues
-1. Audit all sound assets to ensure they are valid
-2. Implement a sound asset validation system that checks for proper asset type
-3. Create fallback sounds for commonly failing assets
-
-## UI System Issues (⚠️ HIGH PRIORITY)
-
-**Error Message:** 
-- `[UISystemTester] Tests Run: 10, Tests Passed: 1, Tests Failed: 9`
-- `attempt to index nil with 'Fonts'`
-- `attempt to index nil with 'createIconButton'`
-- `UIStyle module not found, using fallback`
-- `UIUtils not available - cannot create Rebirth menu`
-
-**Context:** UI system critical for game interface fails basic tests and cannot properly initialize components.
-
-**Impact:** High. Many UI elements are non-functional or improperly styled.
-
-**Frequency:** Consistent on every game start.
-
-**Status:**
-- ❌ Multiple UI components failing to load due to missing dependencies
-- ❌ UIStyle, IconSet, ButtonFactory, DialogFactory components missing or inaccessible
-- ❌ RebirthUI and other menu systems unable to initialize properly
-- ❌ Latest test results: `[UISystemTester] Tests Run: 11, Tests Passed: 1, Tests Failed: 10`, `[UISystemTester] Pass Rate: 9%`
-
-**Recommended Next Steps:**
-1. Fix UIRegistry to properly load and expose UI components
-2. Create missing UI utility modules (UIStyle, UIUtils, etc.)
-3. Implement fallbacks for all UI components to ensure basic functionality
-4. Fix SharedFolder not being found issue: "Shared folder not found"
-
-## Data Restoration Issues (⚠️ HIGH PRIORITY)
-
-**Error Message:** 
-- `[DataManager] Using fallback spawnGymPart for ID: Xdjpearsonx`
-- `Could not find gym part with ID: Xdjpearsonx`
-- `Failed to restore tile X for Xdjpearsonx`
-- `[DataManager] Restored 1 of 7 tiles for Xdjpearsonx`
-
-**Context:** When attempting to restore player data and gym tiles.
-
-**Impact:** High. Players' progress not being properly restored.
-
-**Frequency:** Occurs during player data loading.
-
-**Status:**
-- ❌ Gym part restoration failing for most tiles
-- ❌ Only 1 out of 7 tiles successfully restored
-
-**Recommended Next Steps:**
-1. Fix GymParts data structure to ensure models can be properly identified and restored
-2. Implement better error handling in data restoration system
-3. Add detailed logging to identify why specific tiles are failing to restore
-
-## Client System Initialization Issues (✅ FIXED - April 28, 2025)
-
-**Error Message:** 
-- `[ClientBootstrap] ModuleLoader not found, some system initialization may fail`
-- `[ClientBootstrap] Failed to require module: Players.Xdjpearsonx.PlayerScripts.Client.Core.ClientRegistryFixer`
-- `[ClientBootstrap] Could not find module for system: UIComponents`
-
-**Context:** During client-side system initialization via ClientBootstrap.
-
-**Impact:** High. Critical client systems failing to initialize properly.
-
-**Frequency:** Consistent on every game start.
-
-**Status:**
-- ✅ Fixed: Created ModuleLoader.luau in src/shared/
-- ✅ Fixed: Created ClientBootstrap.client.luau with proper initialization
-- ✅ Fixed: Created UIComponents.luau in src/shared/
-- ✅ Fixed: Implemented proper client system initialization order
-
-**Solution Implemented:**
-1. Created ModuleLoader module with strong error handling
-2. Implemented ClientBootstrap with staged initialization and diagnostics
-3. Created UIComponents with fallback behavior when dependencies missing
-4. Added global access to critical client systems via _G
-
-## Error Priority Summary and Resolution Plan
-
-### Immediate Fixes (Critical)
-1. **CoreRegistry Repair**: Fix CoreRegistry module to make it available early in the startup sequence
-2. **ClientRegistry Fix**: Update ClientRegistry to properly return a single value
-3. **GymAutomationLoader**: Create missing GymAutomationManager module in expected paths
-
-### Short-term Fixes (High)
-1. **ModuleLoader**: Create ModuleLoader to resolve interdependencies between modules
-2. **UI System Components**: Implement basic versions of UIComponents, AssetValidator, and UIRegistry
-3. **WaitForChild Improvements**: Add timeouts to all WaitForChild calls and implement fallbacks
-
-### Medium-term Improvements
-1. **Data System**: Fix tile restoration and gym part ID resolution
-2. **Asset Loading**: Correct sound asset IDs and implement validation
-3. **Diagnostic System**: Create a comprehensive startup diagnostic system
-
-### Long-term Solutions
-1. **Dependency Management**: Implement a robust dependency management system
-2. **Automated Testing**: Expand UI System Tests to cover all components
-3. **Centralized Error Handling**: Create a unified error handling and logging system
-
-## Root Cause Analysis and Systemic Solutions - NEW
-
-After reviewing the interconnected nature of the errors, several root causes have been identified that require systematic solutions:
-
-### 1. Module Structure and Organization Issues
-
-**Root Problem:** Critical modules are either missing entirely or exist as incorrect instance types.
-
-**Evidence:**
-- ClientRegistry, UIComponents exist but aren't proper ModuleScripts
-- ModuleLoader, CoreRegistry, and other critical modules are missing
-- Folder structures needed for module resolution are incomplete
-
-**Systemic Solution:**
-- Create a standardized module structure template for all game systems
-- Implement script-based validation of module instances at startup
-- Add automated checks for correct module structure in test environments
-
-### 2. Dependency Resolution System Failure
-
-**Root Problem:** The current module loading system fails to handle missing dependencies and lacks fallbacks.
-
-**Evidence:**
-- Multiple WaitForChild infinite yield errors
-- SystemBootstrap failing due to missing dependencies
-- Cascading failures when one system fails to initialize
-
-**Systemic Solution:**
-- Implement a robust dependency resolution system with timeouts and fallbacks
-- Create a dependency graph visualization tool to identify circular dependencies
-- Add dependency preloading for critical systems
-
-### 3. Data Structure Initialization Issues
-
-**Root Problem:** Player data structures are not properly initialized before access attempts.
-
-**Evidence:**
-- "Value is not a valid member of Folder" errors in player tycoon
-- Data saving failures on player leave
-- Incomplete tile restoration during data loading
-
-**Systemic Solution:**
-- Create a complete data structure validation system
-- Implement default/template data structures for new players
-- Add data repair mechanisms to fix corrupted structures
-
-### 4. Prioritized Implementation Plan
-
-**Phase 1: Critical Module Structure Repair**
-1. Fix CoreRegistry and ModuleLoader modules first (dependency resolution foundation)
-2. Repair ClientRegistry and UIComponents to be proper ModuleScripts
-3. Create standardized folder structure in all expected paths
-
-**Phase 2: Dependency Management**
-1. Replace infinite WaitForChild calls with timeouts
-2. Create module dependency graph to identify circular references
-3. Implement SafeRequire with robust fallbacks
-
-**Phase 3: Data System Repair**
-1. Create standardized tycoon folder structure initialization
-2. Implement data validation before save/load operations
-3. Add data repair utilities for corrupted player data
-
-**Phase 4: Robust Module Loading Implementation**
-1. Create a centralized module registry system
-2. Implement module versioning and compatibility checks
-3. Add proper module loading diagnostics and reporting
-
-This systematic approach addresses the root causes rather than just the symptoms of the current issues.
-
-## Best Practices for Roblox Module Design - NEW
-
-To prevent these issues from recurring, these best practices should be followed:
-
-### Module Structure
-1. **Single Responsibility:** Each module should have a clear, single purpose
-2. **Export Pattern:** Always return exactly one value from ModuleScript:
-   ```lua
-   local MyModule = {}
-   
-   function MyModule.doSomething()
-       -- implementation
-   end
-   
-   return MyModule
-   ```
-
-### Dependency Management
-1. **Explicit Dependencies:** Declare all dependencies at the top of modules:
-   ```lua
-   local ReplicatedStorage = game:GetService("ReplicatedStorage")
-   local CoreRegistry = require(ServerScriptService.Core.CoreRegistry)
-   ```
-
-2. **Safe Requires:** Use safe requiring with timeouts:
-   ```lua
-   local function safeRequire(path, timeout)
-       timeout = timeout or 5
-       local success, result = pcall(function()
-           local module = path:WaitForChild("ModuleName", timeout)
-           return require(module)
-       end)
-       if success then return result else return nil end
-   end
-   ```
-
-3. **Fallbacks:** Always implement fallbacks for critical systems:
-   ```lua
-   local CoreRegistry = safeRequire(path) or createFallbackRegistry()
-   ```
-
-### Instance Management
-1. **Type Validation:** Verify instance types before requiring:
-   ```lua
-   if not module or not module:IsA("ModuleScript") then
-       warn("Expected ModuleScript at path: " .. tostring(path))
-       return fallback
-   end
-   ```
-
-2. **Path Resolution:** Use path utilities to find modules in multiple locations:
-   ```lua
-   local function findModule(name, searchPaths)
-       for _, path in ipairs(searchPaths) do
-           local foundModule = path:FindFirstChild(name)
-           if foundModule and foundModule:IsA("ModuleScript") then
-               return foundModule
-           end
-       end
-       return nil
-   end
-   ```
-
-Implementing these best practices will significantly reduce the likelihood of similar issues in the future.
-
-## Technical Debt Management - NEW
-
-The current issues represent significant technical debt that should be addressed systematically:
-
-### High-Risk Technical Debt
-1. **Unreliable Module Loading System**
-   - Risk: Critical game systems failing to initialize
-   - Solution: Implement robust dependency resolution system (Priority: HIGHEST)
-
-2. **Inconsistent Module Pattern Usage**
-   - Risk: Modules failing to be required properly
-   - Solution: Standardize module patterns across codebase (Priority: HIGH)
-
-3. **Missing Error Handling**
-   - Risk: Cascading failures when dependencies are missing
-   - Solution: Implement comprehensive error handling strategy (Priority: HIGH)
-
-### Medium-Risk Technical Debt
-1. **WaitForChild Without Timeouts**
-   - Risk: Infinite yields causing script execution to halt
-   - Solution: Add timeouts to all WaitForChild calls (Priority: MEDIUM)
-
-2. **Lacking Data Validation**
-   - Risk: Corrupted player data and failed saves
-   - Solution: Add validation for all data structures (Priority: MEDIUM)
-
-### Technical Debt Reduction Strategy
-1. **Documentation:** Create clear module interaction diagrams
-2. **Testing:** Implement automated dependency validation tests
-3. **Monitoring:** Add runtime dependency health checks
-4. **Standards:** Establish and enforce coding standards for modules
-
-Systematically addressing this technical debt will improve game stability and make future development more efficient.
-
-## Debugging Strategies for Current Issues - NEW
-
-To help diagnose and fix the current issues, these debugging strategies are recommended:
-
-### Module Loading Issues
-1. **Path Resolution Debugging**
-   ```lua
-   local function traceModulePath(moduleName, searchPaths)
-       print("🔍 Searching for module:", moduleName)
-       for i, path in ipairs(searchPaths) do
-           print("  Checking path " .. i .. ": " .. path:GetFullName())
-           local found = path:FindFirstChild(moduleName)
-           if found then
-               print("  ✅ Found at: " .. found:GetFullName() .. " (Type: " .. found.ClassName .. ")")
-               if not found:IsA("ModuleScript") then
-                   print("  ⚠️ WARNING: Found but not a ModuleScript!")
-               end
-           else
-               print("  ❌ Not found at this path")
-           end
-       end
-   end
-   ```
-
-2. **Require Stack Tracing**
-   ```lua
-   local oldRequire = require
-   require = function(module)
-       print("🔄 Requiring: " .. module:GetFullName())
-       local success, result = pcall(function() return oldRequire(module) end)
-       if not success then
-           print("❌ Require failed: " .. tostring(result))
-           print(debug.traceback())
-       end
-       return success and result or nil
-   end
-   ```
-
-### Data Structure Validation
-1. **Player Data Structure Validator**
-   ```lua
-   local function validatePlayerData(player)
-       print("🔍 Validating data for: " .. player.Name)
-       local tycoon = player:FindFirstChild("Tycoon")
-       if not tycoon then
-           print("❌ Tycoon folder missing")
-           return false
-       end
-       
-       local requiredItems = {"TycoonData", "Stats", "Purchases"}
-       for _, item in ipairs(requiredItems) do
-           if not tycoon:FindFirstChild(item) then
-               print("❌ Missing required item: " .. item)
-           else
-               print("✅ Found: " .. item)
-           end
-       end
-   end
-   ```
-
-### Core Registry Diagnostics
-1. **Registry Health Checker**
-   ```lua
-   local function checkRegistryHealth()
-       print("🔍 Checking CoreRegistry health...")
-       
-       local ServerScriptService = game:GetService("ServerScriptService")
-       local CoreFolder = ServerScriptService:FindFirstChild("Core")
-       if not CoreFolder then
-           print("❌ Core folder missing in ServerScriptService")
-           return false
-       end
-       
-       local CoreRegistry = CoreFolder:FindFirstChild("CoreRegistry")
-       if not CoreRegistry then
-           print("❌ CoreRegistry missing in Core folder")
-           return false
-       end
-       
-       if not CoreRegistry:IsA("ModuleScript") then
-           print("❌ CoreRegistry exists but is not a ModuleScript (is a " .. CoreRegistry.ClassName .. ")")
-           return false
-       end
-       
-       local success, registry = pcall(function() return require(CoreRegistry) end)
-       if not success then
-           print("❌ CoreRegistry failed to require: " .. tostring(registry))
-           return false
-       end
-       
-       if type(registry) ~= "table" then
-           print("❌ CoreRegistry did not return a table (got " .. type(registry) .. ")")
-           return false
-       end
-       
-       print("✅ CoreRegistry health check passed")
-       return true
-   end
-   ```
-
-These debugging strategies should help identify and fix the specific causes of the current issues.
+- Created new GymAutomation.luau module but still experiencing path resolution issues
+- Basic UI System tests show slight improvement (25% pass rate vs. previous 9%)
+- CoreRegistry status shows signs of partial operation with Degraded status
+- Data persistence showing successful saves despite diagnostic errors

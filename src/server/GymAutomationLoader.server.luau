@@ -3,20 +3,21 @@
     
     A simple utility script to ensure the GymAutomation system is loaded early
     and global functions are properly registered. This fixes the issues with
-    _G function availability for automation scripts.
+    function availability for automation scripts.
     
-    Created: April 27, 2025
+    Updated: April 30, 2025
 ]]
 
 local RunService = game:GetService("RunService")
-local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
 
 -- Configuration
 local CONFIG = {
     DEBUG_LOGGING = true,
-    CORE_REGISTRY_TIMEOUT = 10, -- seconds
-    AUTO_RESTART_DELAY = 5 -- seconds
+    AUTO_RESTART_DELAY = 5, -- seconds
+    MAX_RETRY_ATTEMPTS = 5
 }
 
 -- Only run in Studio
@@ -31,21 +32,74 @@ local function log(message)
     end
 end
 
--- Find or load a module
-local function findAndRequireModule(moduleName, paths)
-    for _, path in ipairs(paths) do
-        if path and path:FindFirstChild(moduleName) then
-            local moduleScript = path[moduleName]
-            if moduleScript:IsA("ModuleScript") then
+-- Try to find GymAutomationManager in different locations
+local function findGymAutomationModule(moduleName)
+    -- Define all possible search paths for the module
+    local searchPaths = {
+        -- Server locations
+        ServerScriptService:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild(moduleName),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild(moduleName),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("GymAutomation"),
+        ServerScriptService:FindFirstChild("GymAutomation"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server"),
+        ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Systems"),
+        ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("GymAutomation"),
+        
+        -- Server Storage locations
+        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server"),
+        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("Core"),
+        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild(moduleName),
+        ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("GymAutomation"),
+        ServerStorage:FindFirstChild("GymAutomation"),
+        ServerStorage:FindFirstChild("Systems"),
+        ServerStorage:FindFirstChild("Core"),
+        
+        -- Current script location (script.Parent)
+        script.Parent,
+        script.Parent and script.Parent.Parent,
+        script.Parent and script.Parent:FindFirstChild("Core"),
+        script.Parent and script.Parent:FindFirstChild("GymAutomation")
+    }
+    
+    -- Try to find the module in each search path
+    for _, path in ipairs(searchPaths) do
+        if path then
+            -- Check for the module directly in this path
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                log("Found " .. moduleName .. " at: " .. module:GetFullName())
                 local success, result = pcall(function()
-                    return require(moduleScript)
+                    return require(module)
                 end)
-                
                 if success and result then
-                    log("Successfully loaded " .. moduleName .. " from " .. path:GetFullName())
                     return result
-                else
-                    warn("[GymAutomationLoader] Failed to load " .. moduleName .. ": " .. tostring(result))
+                end
+            end
+            
+            -- Check for the module with .luau extension
+            module = path:FindFirstChild(moduleName .. ".luau")
+            if module and module:IsA("ModuleScript") then
+                log("Found " .. moduleName .. ".luau at: " .. module:GetFullName())
+                local success, result = pcall(function()
+                    return require(module)
+                end)
+                if success and result then
+                    return result
+                end
+            end
+            
+            -- Check for the module with .server.luau extension
+            module = path:FindFirstChild(moduleName .. ".server.luau")
+            if module and module:IsA("ModuleScript") then
+                log("Found " .. moduleName .. ".server.luau at: " .. module:GetFullName())
+                local success, result = pcall(function()
+                    return require(module)
+                end)
+                if success and result then
+                    return result
                 end
             end
         end
@@ -55,80 +109,17 @@ local function findAndRequireModule(moduleName, paths)
     return nil
 end
 
--- Safe wait for CoreRegistry with timeout
-local function waitForCoreRegistry()
-    log("Waiting for CoreRegistry...")
-    
-    -- First check if it's already in global scope
-    if _G.CoreRegistry then
-        log("CoreRegistry already available in global scope")
-        return _G.CoreRegistry
-    end
-    
-    -- Try the new ModuleLoaderHelper first
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if shared and shared:FindFirstChild("ModuleLoaderHelper") then
-        local success, ModuleLoaderHelper = pcall(function()
-            return require(shared.ModuleLoaderHelper)
-        end)
-        
-        if success and ModuleLoaderHelper and ModuleLoaderHelper.GetCoreRegistry then
-            local registry = ModuleLoaderHelper.GetCoreRegistry()
-            if registry then
-                log("CoreRegistry found via ModuleLoaderHelper")
-                return registry
-            end
-        end
-    end
-    
-    -- Try direct lookup in core folder
-    local core = ServerScriptService:FindFirstChild("Core")
-    if core and core:FindFirstChild("CoreRegistry") then
-        local success, registry = pcall(function()
-            return require(core.CoreRegistry)
-        end)
-        
-        if success and registry then
-            log("CoreRegistry found in Core folder")
-            return registry
-        end
-    end
-    
-    -- Wait with timeout
-    local startTime = os.clock()
-    while os.clock() - startTime < CONFIG.CORE_REGISTRY_TIMEOUT do
-        -- Check global scope again
-        if _G.CoreRegistry then
-            log("CoreRegistry appeared in global scope after " .. (os.clock() - startTime) .. " seconds")
-            return _G.CoreRegistry
-        end
-        
-        task.wait(0.5)
-    end
-    
-    warn("[GymAutomationLoader] Timed out waiting for CoreRegistry")
-    return nil
-end
-
--- Load GymAutomationManager
+-- Load GymAutomation module
 local function loadGymAutomation()
     log("Loading GymAutomation system...")
     
-    -- Define paths to search for the module
-    local searchPaths = {
-        ServerScriptService:FindFirstChild("Core"),
-        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and 
-            ServerScriptService.src.server:FindFirstChild("Core"),
-        ServerScriptService
-    }
-    
     -- First try the new GymAutomationManager
-    local gymAutomation = findAndRequireModule("GymAutomationManager", searchPaths)
+    local gymAutomation = findGymAutomationModule("GymAutomationManager")
     
     -- Fall back to original GymAutomation if needed
     if not gymAutomation then
         log("GymAutomationManager not found, trying GymAutomation")
-        gymAutomation = findAndRequireModule("GymAutomation", searchPaths)
+        gymAutomation = findGymAutomationModule("GymAutomation")
     end
     
     -- Check if we found GymAutomation
@@ -140,154 +131,158 @@ local function loadGymAutomation()
     return gymAutomation
 end
 
--- Check if global functions are registered
-local function checkGlobalFunctions()
-    local requiredFunctions = {
-        "AutomateGym",
-        "AutomateAllGyms",
-        "ProcessEquipment",
-        "BatchProcessModels"
-    }
+-- Try to get CoreRegistry through different methods
+local function getCoreRegistry()
+    -- Try to find it in shared scope
+    local success, coreRegistry = pcall(function()
+        return require(ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("CoreRegistry"))
+    end)
+    if success and coreRegistry then
+        return coreRegistry
+    end
     
-    local missing = {}
-    for _, funcName in ipairs(requiredFunctions) do
-        if not _G[funcName] then
-            table.insert(missing, funcName)
+    -- Try to find it in ServerScriptService
+    local coreRegistryModule = findGymAutomationModule("CoreRegistry")
+    if coreRegistryModule then
+        return coreRegistryModule
+    end
+    
+    warn("[GymAutomationLoader] CoreRegistry not found")
+    return nil
+end
+
+-- Register automation functions in shared context
+local function registerAutomationFunctions(gymAutomation)
+    if not gymAutomation then
+        return false
+    end
+
+    local sharedContext = ReplicatedStorage:FindFirstChild("shared")
+    if not sharedContext then
+        sharedContext = Instance.new("Folder")
+        sharedContext.Name = "shared"
+        sharedContext.Parent = ReplicatedStorage
+    end
+    
+    -- Find or create AutomationFunctions module
+    local automationFunctions = sharedContext:FindFirstChild("AutomationFunctions")
+    if not automationFunctions then
+        automationFunctions = Instance.new("ModuleScript")
+        automationFunctions.Name = "AutomationFunctions"
+        automationFunctions.Parent = sharedContext
+    end
+    
+    -- Create function implementations
+    local functionSource = [[
+local GymAutomation = require(script.Parent.Parent:WaitForChild("server"):WaitForChild("GymAutomation"))
+
+local AutomationFunctions = {}
+
+function AutomationFunctions.AutomateGym(tycoonName)
+    if GymAutomation and typeof(GymAutomation.AutomateGym) == "function" then
+        return GymAutomation:AutomateGym(tycoonName)
+    else
+        warn("GymAutomation module not fully initialized. Please try again in a moment.")
+        return false
+    end
+end
+
+function AutomationFunctions.AutomateAllGyms()
+    if GymAutomation and typeof(GymAutomation.AutomateAllGyms) == "function" then
+        return GymAutomation:AutomateAllGyms()
+    else
+        warn("GymAutomation module not fully initialized. Please try again in a moment.")
+        return false
+    end
+end
+
+function AutomationFunctions.ProcessEquipment(tycoonName)
+    if GymAutomation and typeof(GymAutomation.ProcessEquipment) == "function" then
+        return GymAutomation:ProcessEquipment(tycoonName)
+    else
+        warn("GymAutomation module not fully initialized. Please try again in a moment.")
+        return false
+    end
+end
+
+function AutomationFunctions.BatchProcessModels()
+    if GymAutomation and typeof(GymAutomation.AutomateAllGyms) == "function" then
+        local results = GymAutomation:AutomateAllGyms()
+        if GymAutomation.ProcessEquipment then
+            GymAutomation:ProcessEquipment()
         end
-    end
-    
-    if #missing > 0 then
-        warn("[GymAutomationLoader] Missing global functions: " .. table.concat(missing, ", "))
+        return results
+    else
+        warn("GymAutomation module not fully initialized. Please try again in a moment.")
         return false
     end
-    
-    log("All required global functions are registered")
-    return true
 end
 
--- Register GymAutomation with CoreRegistry
-local function registerWithCoreRegistry(gymAutomation)
-    if not gymAutomation then 
-        warn("[GymAutomationLoader] Cannot register nil GymAutomation")
-        return false
-    end
+return AutomationFunctions
+]]
     
-    local CoreRegistry = waitForCoreRegistry()
-    if not CoreRegistry then 
-        warn("[GymAutomationLoader] Cannot register - CoreRegistry not found")
-        return false
-    end
+    automationFunctions.Source = functionSource
+    log("Created AutomationFunctions module in shared context")
     
-    if typeof(CoreRegistry.registerSystem) ~= "function" then
-        warn("[GymAutomationLoader] CoreRegistry missing registerSystem method")
-        return false
+    -- Create a reference for clients
+    if not ReplicatedStorage:FindFirstChild("AutomationEnabled") then
+        local flag = Instance.new("BoolValue")
+        flag.Name = "AutomationEnabled"
+        flag.Value = true
+        flag.Parent = ReplicatedStorage
+        log("Created AutomationEnabled flag")
     end
-    
-    -- Check if already registered
-    if CoreRegistry.hasSystem and CoreRegistry.hasSystem("GymAutomation") then
-        log("GymAutomation already registered with CoreRegistry")
-        return true
-    end
-    
-    -- Register the system
-    CoreRegistry.registerSystem("GymAutomation", gymAutomation, {})
-    log("Successfully registered GymAutomation with CoreRegistry")
     
     return true
 end
 
--- Main loader function
+-- Main loader function with retry mechanism
+local retryAttempts = 0
+
 local function main()
     log("Starting GymAutomation loader...")
     
     -- Load GymAutomation
     local gymAutomation = loadGymAutomation()
     if not gymAutomation then
-        warn("[GymAutomationLoader] Failed to load GymAutomation, scheduling retry...")
-        task.delay(CONFIG.AUTO_RESTART_DELAY, main)
+        retryAttempts = retryAttempts + 1
+        
+        if retryAttempts <= CONFIG.MAX_RETRY_ATTEMPTS then
+            warn("[GymAutomationLoader] Failed to load GymAutomation, scheduling retry... (Attempt " .. retryAttempts .. "/" .. CONFIG.MAX_RETRY_ATTEMPTS .. ")")
+            task.delay(CONFIG.AUTO_RESTART_DELAY, main)
+        else
+            warn("[GymAutomationLoader] Failed to load GymAutomation after " .. CONFIG.MAX_RETRY_ATTEMPTS .. " attempts. Giving up.")
+        end
+        
         return false
     end
     
     -- Register with CoreRegistry
-    registerWithCoreRegistry(gymAutomation)
-    
-    -- Check global functions
-    local functionsOK = checkGlobalFunctions()
-    if not functionsOK then
-        -- Try to initialize GymAutomation if it has an Initialize method
-        if typeof(gymAutomation.Initialize) == "function" then
-            log("Re-initializing GymAutomation...")
-            gymAutomation:Initialize()
-            
-            -- Check again
-            functionsOK = checkGlobalFunctions()
+    local CoreRegistry = getCoreRegistry()
+    if CoreRegistry then
+        if typeof(CoreRegistry.registerSystem) == "function" then
+            -- Check if already registered
+            if (not CoreRegistry.hasSystem) or (not CoreRegistry.hasSystem("GymAutomation")) then
+                CoreRegistry.registerSystem("GymAutomation", gymAutomation)
+                log("Successfully registered GymAutomation with CoreRegistry")
+            end
+        else
+            warn("[GymAutomationLoader] CoreRegistry missing registerSystem method")
         end
     end
     
-    if functionsOK then
-        log("GymAutomation loaded successfully with all required global functions")
+    -- Register automation functions
+    local functionsRegistered = registerAutomationFunctions(gymAutomation)
+    
+    if functionsRegistered then
+        log("GymAutomation loaded successfully with all required functions")
         print("\n===== GYM TYCOON AUTOMATION READY =====")
-        print("Available commands:")
-        print("  _G.AutomateGym([tycoonName]) - Automate a specific gym")
-        print("  _G.AutomateAllGyms() - Automate all gyms in the workspace")
-        print("  _G.ProcessEquipment([tycoonName]) - Process equipment in a gym")
-        print("  _G.BatchProcessModels() - Run all automation functions")
+        print("Available through AutomationFunctions module:")
+        print("  AutomateGym([tycoonName]) - Automate a specific gym")
+        print("  AutomateAllGyms() - Automate all gyms in the workspace")
+        print("  ProcessEquipment([tycoonName]) - Process equipment in a gym")
+        print("  BatchProcessModels() - Run all automation functions")
         print("======================================\n")
-    else
-        -- Create fallbacks for most critical functions
-        log("Creating fallback global functions...")
-        
-        if not _G.AutomateGym then
-            _G.AutomateGym = function(tycoonName)
-                if gymAutomation and typeof(gymAutomation.AutomateGym) == "function" then
-                    return gymAutomation:AutomateGym(tycoonName)
-                else
-                    warn("GymAutomation module not fully initialized. Please try again in a moment.")
-                    return false
-                end
-            end
-            log("Created fallback for _G.AutomateGym")
-        end
-        
-        if not _G.AutomateAllGyms then
-            _G.AutomateAllGyms = function()
-                if gymAutomation and typeof(gymAutomation.AutomateAllGyms) == "function" then
-                    return gymAutomation:AutomateAllGyms()
-                else
-                    warn("GymAutomation module not fully initialized. Please try again in a moment.")
-                    return false
-                end
-            end
-            log("Created fallback for _G.AutomateAllGyms")
-        end
-        
-        if not _G.ProcessEquipment then
-            _G.ProcessEquipment = function(tycoonName)
-                if gymAutomation and typeof(gymAutomation.ProcessEquipment) == "function" then
-                    return gymAutomation:ProcessEquipment(tycoonName)
-                else
-                    warn("GymAutomation module not fully initialized. Please try again in a moment.")
-                    return false
-                end
-            end
-            log("Created fallback for _G.ProcessEquipment")
-        end
-        
-        if not _G.BatchProcessModels then
-            _G.BatchProcessModels = function()
-                if gymAutomation and typeof(gymAutomation.AutomateAllGyms) == "function" then
-                    local results = gymAutomation:AutomateAllGyms()
-                    if gymAutomation.ProcessEquipment then
-                        gymAutomation:ProcessEquipment()
-                    end
-                    return results
-                else
-                    warn("GymAutomation module not fully initialized. Please try again in a moment.")
-                    return false
-                end
-            end
-            log("Created fallback for _G.BatchProcessModels")
-        end
     end
     
     return true
