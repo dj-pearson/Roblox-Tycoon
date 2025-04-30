@@ -1,4 +1,4 @@
--- filepath: c:\Users\dpearson\OneDrive\Documents\RobloxProject\src\server\Core\CoreRegistry.luau
+-- filepath: c:\Users\dpearson\OneDrive\Documents\RobloxProject\src\server\Core\CoreRegistry_clean.luau
 --[[
     CoreRegistry.luau
     

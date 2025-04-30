@@ -75,11 +75,21 @@ function ModuleLoader.findModule(moduleName, searchPaths)
     -- If no search paths provided, use defaults based on context
     if #searchPaths == 0 then
         if RunService:IsServer() then
+            local ServerStorage = game:GetService("ServerStorage")
             searchPaths = {
+                -- ServerScriptService paths
                 ServerScriptService:FindFirstChild("Core"),
                 ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
                 ServerScriptService:FindFirstChild("Systems"),
-                ServerScriptService
+                ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server"),
+                ServerScriptService,
+                
+                -- ServerStorage paths
+                ServerStorage:FindFirstChild("Core"),
+                ServerStorage:FindFirstChild("Systems"),
+                ServerStorage:FindFirstChild("GymStructure"),
+                ServerStorage:FindFirstChild("BuyTiles"),
+                ServerStorage
             }
         else
             searchPaths = {

@@ -58,8 +58,7 @@ local function getGymAutomationManager()
             return GymAutomationManagerInstance
         end
     end
-    
-    -- Define search paths
+      -- Define search paths
     local searchPaths = {
         -- First check in the same folder
         script.Parent and script.Parent:FindFirstChild("GymAutomationManager"),
@@ -69,11 +68,19 @@ local function getGymAutomationManager()
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("GymAutomationManager"),
         ServerScriptService:FindFirstChild("GymAutomation") and ServerScriptService.GymAutomation:FindFirstChild("GymAutomationManager"),
         ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("GymAutomationManager"),
+        ServerScriptService:FindFirstChild("Systems") and ServerScriptService.Systems:FindFirstChild("GymAutomationManager"),
         script.Parent:FindFirstChild("GymAutomation") and script.Parent.GymAutomation:FindFirstChild("GymAutomationManager"),
         
         -- Check server storage
         ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("GymAutomation") and ServerStorage.src.server.GymAutomation:FindFirstChild("GymAutomationManager"),
         ServerStorage:FindFirstChild("GymAutomation") and ServerStorage.GymAutomation:FindFirstChild("GymAutomationManager"),
+        ServerStorage:FindFirstChild("Systems") and ServerStorage.Systems:FindFirstChild("GymAutomationManager"),
+        ServerStorage:FindFirstChild("GymStructure") and ServerStorage.GymStructure:FindFirstChild("GymAutomationManager"),
+        ServerStorage:FindFirstChild("Core") and ServerStorage.Core:FindFirstChild("GymAutomationManager"),
+        
+        -- Check ReplicatedStorage
+        ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("GymAutomationManager"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared") and ReplicatedStorage.src.shared:FindFirstChild("GymAutomationManager"),
     }
     
     -- Try each path

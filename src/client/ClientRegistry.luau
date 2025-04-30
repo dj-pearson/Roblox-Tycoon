@@ -16,9 +16,24 @@ end
 
 -- Find a module by name
 local function findModule(moduleName)
+    -- Get the player and PlayerScripts
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local PlayerScripts = player and player:FindFirstChild("PlayerScripts")
+    
     -- Search paths
     local searchPaths = {
+        -- Client paths
+        PlayerScripts and PlayerScripts:FindFirstChild("src") and PlayerScripts.src:FindFirstChild("client") and PlayerScripts.src.client:FindFirstChild("Core"),
+        PlayerScripts and PlayerScripts:FindFirstChild("src") and PlayerScripts.src.client,
+        PlayerScripts and PlayerScripts:FindFirstChild("Core"),
+        PlayerScripts,
+        player and player:FindFirstChild("ClientModules"),
+        
+        -- ReplicatedStorage paths
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("client"),
         ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("client"),
         ReplicatedStorage:FindFirstChild("shared"),
         ReplicatedStorage
     }
@@ -26,7 +41,20 @@ local function findModule(moduleName)
     -- Look in each path
     for _, path in ipairs(searchPaths) do
         if path then
+            -- Direct match
             local moduleScript = path:FindFirstChild(moduleName)
+            if moduleScript and moduleScript:IsA("ModuleScript") then
+                return moduleScript
+            end
+            
+            -- Check with .luau extension
+            moduleScript = path:FindFirstChild(moduleName .. ".luau")
+            if moduleScript and moduleScript:IsA("ModuleScript") then
+                return moduleScript
+            end
+            
+            -- Check with .client.luau extension
+            moduleScript = path:FindFirstChild(moduleName .. ".client.luau")
             if moduleScript and moduleScript:IsA("ModuleScript") then
                 return moduleScript
             end
@@ -45,6 +73,25 @@ local ClientRegistry = {
 
 -- Private registry store to avoid global variables
 local registry = {}
+
+-- Try to get CoreRegistryRemotes to communicate with server
+local serverRemotes = ReplicatedStorage:FindFirstChild("CoreRegistryRemotes")
+local getSystemRemote = serverRemotes and serverRemotes:FindFirstChild("GetSystem")
+
+-- Attempt to get server systems through remotes
+local function getServerSystem(systemName)
+    if getSystemRemote and getSystemRemote:IsA("RemoteFunction") then
+        local success, result = pcall(function()
+            return getSystemRemote:InvokeServer(systemName)
+        end)
+        
+        if success and result then
+            return result
+        end
+    end
+    
+    return nil
+end
 
 -- Debug logging
 local function log(message, level)
@@ -89,7 +136,37 @@ function ClientRegistry:Get(name)
         return nil
     end
     
-    return registry[name]
+    -- First check local registry
+    if registry[name] then
+        return registry[name]
+    end
+    
+    -- If not found locally, try to load the module
+    local moduleScript = findModule(name)
+    if moduleScript then
+        local success, result = pcall(function()
+            return require(moduleScript)
+        end)
+        
+        if success and result then
+            -- Register the loaded module
+            registry[name] = result
+            log("Auto-loaded and registered: " .. name, "Success")
+            return result
+        end
+    end
+    
+    -- If still not found, try to get from server
+    local serverSystem = getServerSystem(name)
+    if serverSystem then
+        -- Register the server system
+        registry[name] = serverSystem
+        log("Retrieved from server and registered: " .. name, "Success")
+        return serverSystem
+    end
+    
+    log("System not found: " .. name, "Error")
+    return nil
 end
 
 -- Alternative names for Get to maintain compatibility
@@ -127,38 +204,51 @@ function ClientRegistry:Unregister(name)
     return true
 end
 
--- Initialize with core systems
+-- Initialize the registry
 function ClientRegistry:Initialize()
-    log("Initializing ClientRegistry...", "Info")
+    -- Check if already initialized
+    if self.Initialized then
+        return true
+    end
     
-    -- Register self
+    log("Initializing ClientRegistry...")
+    
+    -- Register self in the registry
     self:Register("ClientRegistry", self)
     
-    -- Try to load and register essential modules
-    local essentialModules = {
-        "UIComponents", 
-        "UIRegistry", 
-        "AssetValidator",
-        "ModuleLoader"
-    }
-    
-    for _, moduleName in ipairs(essentialModules) do
-        local moduleScript = findModule(moduleName)
-        if moduleScript then
-            local success, module = pcall(function()
-                return require(moduleScript)
-            end)
-            
-            if success and module then
-                self:Register(moduleName, module)
-                log("Auto-registered: " .. moduleName, "Success")
+    -- Try to connect to server CoreRegistry
+    if not serverRemotes then
+        serverRemotes = ReplicatedStorage:WaitForChild("CoreRegistryRemotes", 5)
+        if serverRemotes then
+            getSystemRemote = serverRemotes:WaitForChild("GetSystem", 2)
+            if getSystemRemote then
+                log("Connected to server CoreRegistry", "Success")
             else
-                log("Failed to auto-register: " .. moduleName, "Error")
+                log("Failed to find GetSystem remote", "Error")
             end
+        else
+            log("Failed to find CoreRegistryRemotes folder", "Error")
         end
     end
     
-    log("ClientRegistry initialization complete", "Success")
+    -- Try to load and register critical UI systems
+    local criticalSystems = {
+        "UIComponents",
+        "AssetValidator",
+        "EventBridge"
+    }
+    
+    local loadedCount = 0
+    for _, systemName in ipairs(criticalSystems) do
+        local system = self:Get(systemName)
+        if system then
+            loadedCount += 1
+        end
+    end
+    
+    log("Loaded " .. loadedCount .. "/" .. #criticalSystems .. " critical UI systems")
+    
+    self.Initialized = true
     return true
 end
 

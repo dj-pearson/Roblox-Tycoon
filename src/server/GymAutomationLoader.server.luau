@@ -56,6 +56,14 @@ local function findGymAutomationModule(moduleName)
         ServerStorage:FindFirstChild("GymAutomation"),
         ServerStorage:FindFirstChild("Systems"),
         ServerStorage:FindFirstChild("Core"),
+        ServerStorage:FindFirstChild("GymStructure"),
+        ServerStorage:FindFirstChild("BuyTiles"),
+        
+        -- ReplicatedStorage locations
+        ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild(moduleName),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared") and ReplicatedStorage.src.shared:FindFirstChild(moduleName),
         
         -- Current script location (script.Parent)
         script.Parent,

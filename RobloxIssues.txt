@@ -1,6 +1,6 @@
 # Roblox Issues Tracking Document
 
-## GymAutomationLoader Failures (✅ FIXED - April 30, 2025)
+## GymAutomationLoader Failures (❌ REGRESSION - April 30, 2025)
 
 **Error Message:** 
 - `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
@@ -15,31 +15,30 @@
 **Frequency:** Occurs consistently on game start and repeatedly during gameplay (scheduled retries).
 
 **Status:** 
-- ✅ Fixed: Completely rewrote GymAutomationLoader.server.luau with proper error handling
-- ✅ Fixed: Created GymAutomationManager.luau in src/server/Core and src/server/GymAutomation
-- ✅ Fixed: Created GymAutomation.luau wrapper in src/server
-- ✅ Fixed: Implemented comprehensive path search for modules
-- ✅ Fixed: Added retry mechanism with proper limits and delay
+- ❌ Regression: Previously fixed but issue has returned
+- ❌ Retry mechanism reaches maximum attempts (5/5) and gives up
+- ❌ Search paths not finding required modules
+- ❌ Error observed: `[GymAutomationLoader] Failed to load GymAutomation after 5 attempts. Giving up.`
 
-**Solution Implemented:**
-1. Fixed path resolution in GymAutomationLoader with comprehensive search paths
-2. Created proper GymAutomationManager module in both Core and GymAutomation folders
-3. Implemented GymAutomation wrapper that safely locates the GymAutomationManager
-4. Fixed retry mechanism with limits and proper delay between attempts
-5. Added ModuleScriptAccessor for centralized module loading
+**Required Actions:**
+1. Verify that GymAutomationManager.luau still exists in src/server/Core and src/server/GymAutomation
+2. Check path resolution logic in GymAutomationLoader
+3. Restore GymAutomation.luau wrapper in src/server if missing
+4. Investigate why the search paths aren't finding the modules
+5. Review recent changes that might have broken the previously working paths
 
-## CoreRegistry Missing Systems (✅ FIXED - April 30, 2025)
+## CoreRegistry Missing Systems (❌ REGRESSION - April 30, 2025)
 
 **Error Message:**
-- `[CoreRegistry] Critical system missing: ModuleLoader` ✅ FIXED
-- `[CoreRegistry] Critical system missing: DataManager` ✅ FIXED
-- `[CoreRegistry] Critical system missing: UIComponents` ✅ FIXED
-- `[CoreRegistry] Critical system missing: AssetValidator` ✅ FIXED
-- `[CoreRegistry] Critical system missing: BuyTileSystem` ✅ FIXED
-- `[CoreRegistry] Critical system missing: TycoonSystem` ✅ FIXED
-- `[CoreRegistry] Critical system missing: EventBridge` ✅ FIXED
-- `[CoreRegistry] Registry status set to: Error` ✅ FIXED
-- `[CoreRegistry] Registry status set to: Degraded` ✅ FIXED
+- `[CoreRegistry] Critical system missing: ModuleLoader` ❌ REGRESSION
+- `[CoreRegistry] Critical system missing: DataManager` ❌ REGRESSION
+- `[CoreRegistry] Critical system missing: UIComponents` ❌ REGRESSION
+- `[CoreRegistry] Critical system missing: AssetValidator` ❌ REGRESSION
+- `[CoreRegistry] Critical system missing: BuyTileSystem` ❌ REGRESSION
+- `[CoreRegistry] Critical system missing: TycoonSystem` ❌ REGRESSION
+- `[CoreRegistry] Critical system missing: EventBridge` ❌ REGRESSION
+- `[CoreRegistry] Registry status set to: Error` ❌ REGRESSION
+- `[CoreRegistry] Registry status set to: Degraded` ❌ REGRESSION
 
 **Context:** CoreRegistry is the central system managing module dependencies and system registration. Critical systems are not being registered correctly.
 
@@ -48,62 +47,64 @@
 **Frequency:** Consistent on every game start and throughout gameplay.
 
 **Status:** 
-- ✅ Fixed: Created new CoreRegistry implementation
-- ✅ Fixed: Created DataManager module with data persistence
-- ✅ Fixed: Created ModuleLoader for dependency management
-- ✅ Fixed: Created UIComponents with comprehensive UI factories
-- ✅ Fixed: Created AssetValidator for asset verification
-- ✅ Fixed: Created BuyTileSystem with tile management logic
-- ✅ Fixed: Created TycoonSystem with player ownership and tycoon management
-- ✅ Fixed: Created EventBridge for cross-boundary communication
+- ❌ Regression: All critical systems are missing from CoreRegistry again
+- ❌ CoreRegistry initialized with 0/7 critical systems
+- ❌ Registry status set to "Error" on initialization and "Degraded" during runtime
+- ❌ CoreRegistryMonitor reporting missing critical systems in repeated checks
 
-**Solution Implemented:**
-1. Created new CoreRegistry implementation with proper status management and system registration
-2. Implemented DataManager with auto-saving and player data handling
-3. Created ModuleLoader with comprehensive dependency resolution and circular dependency detection
-4. Built UIComponents with factories for buttons, frames, dialogs, and notifications
-5. Implemented AssetValidator for asset verification, preloading, and management
-6. Created BuyTileSystem with tile purchasing, ownership tracking, and progression logic
-7. Built TycoonSystem with comprehensive tycoon management, player ownership, and data persistence
-8. Implemented EventBridge with secure client-server communication and rate limiting
+**Required Actions:**
+1. Restore CoreRegistry implementation with proper status management and system registration
+2. Re-implement DataManager or fix its registration with CoreRegistry
+3. Fix ModuleLoader dependency resolution and registration
+4. Restore UIComponents and their factories
+5. Re-implement AssetValidator or fix its registration
+6. Fix BuyTileSystem registration and initialization
+7. Fix TycoonSystem registration and tycoon management functionality
+8. Restore EventBridge integration with CoreRegistry
 
-**Result:** All critical systems are now properly implemented and registered with CoreRegistry. The registry status should now report as "Ready" with all systems available.
+**Issues Observed:**
+- FixesManager, FixesBootstrap, and SystemsBootstrap report missing critical modules
+- Initialization failures cascade through dependent systems
+- CoreRegistry health check consistently failing with missing systems
+- Multiple diagnostic tools reporting ERROR status for CoreRegistry
 
-## Client UI System Failures (⏳ IN PROGRESS - April 30, 2025)
+## Client UI System Failures (❌ WORSENED - April 30, 2025)
 
 **Error Message:** Multiple UI component errors and failed tests:
-- `[UISystemTester] Tests Run: 12, Tests Passed: 3, Tests Failed: 9`
-- `[UISystemTester] Pass Rate: 25%`
+- `[UISystemTester] Tests Run: 11, Tests Passed: 1, Tests Failed: 10`
+- `[UISystemTester] Pass Rate: 9%`
 
 **Context:** The UI system is critical for player interaction with the game.
 
-**Impact:** High. Several UI components are failing, impacting player experience.
+**Impact:** High. Almost all UI components are failing, severely impacting player experience.
 
 **Frequency:** Consistent on every game start.
 
 **Specific Errors:**
-- `✗ AssetValidator Exists: AssetValidator not found through any method` (⏳ In Progress)
-- `✗ ModuleLoader Exists: ModuleLoader module not found` (⏳ In Progress)
-- `✗ UIComponents Exists: UIComponents not found through any method` (⏳ In Progress)
-- `✗ UIRegistry Can Show Notifications: DialogFactory not available` (⏳ In Progress)
-- `✗ UIRegistry Exists: UIRegistry not found` (⏳ In Progress)
-- `✗ UIRegistry.ButtonFactory: ` (⏳ In Progress)
-- `✗ UIRegistry.DialogFactory: ` (⏳ In Progress)
-- `✗ UIRegistry.IconSet: ` (⏳ In Progress)
-- `✗ UIRegistry.UIStyle: ` (⏳ In Progress)
+- `✗ ClientRegistry Exists: ClientRegistry not found through any method`
+- `✗ ClientBootstrap Exists: ClientBootstrap not found in PlayerScripts`
+- `✗ UIComponents Exists: UIComponents not found through any method`
+- `✗ AssetValidator Exists: AssetValidator not found through any method`
+- `✗ UIRegistry Exists: UIRegistry not found`
+- `✗ UIRegistry.RegisterComponent: UIRegistry not found`
+- `✗ UIComponents.CreateButton: UIComponents not found`
+- `✗ AssetValidator.ValidateAsset: AssetValidator not found`
+- `✗ UIComponents Function: UIComponents not found`
+- `[UISystemEnhancer] Failed to show MainMenuUI after 10 attempts`
 
 **Status:** 
-- ⏳ In Progress: Several UI components missing or not loaded correctly
-- ⏳ In Progress: UIRegistry module not found
-- ⏳ In Progress: Factories and UI styling components not available
+- ❌ Worsened: Only 1 of 11 UI tests now passing (previously 3 of 12)
+- ❌ ClientRegistry system not found - table reported in numerous errors
+- ❌ Multiple infinite yields due to missing modules
+- ❌ Failed attempts to show UI after multiple retries
 
 **Required Actions:**
-1. Create or fix missing UI modules (AssetValidator, ModuleLoader, UIComponents)
+1. Fix ClientRegistry module or its registration
 2. Fix UIRegistry module and ensure it's properly loaded
 3. Implement UI factories and styling components
 4. Fix DialogFactory to enable notifications
 
-## DiagnosticsAndRepair System Issues (⏳ IN PROGRESS - April 30, 2025)
+## DiagnosticsAndRepair System Issues (❌ FAILING - April 30, 2025)
 
 **Error Message:**
 - `[DiagnosticsAndRepair] TycoonStructure diagnostic result: WARNING`
@@ -111,83 +112,392 @@
 - `[DiagnosticsAndRepair] DataPersistence diagnostic result: ERROR`
 - `[DiagnosticsAndRepair] BuyTileSystem diagnostic result: WARNING`
 - `[DiagnosticsAndRepair] Auto-fix is enabled, attempting to repair issues`
+- `[DiagnosticsAndRepair] Re-running diagnostics after repairs`
+- `[DiagnosticsAndRepair] CoreRegistry diagnostic result after repair: ERROR`
+- `[DiagnosticsAndRepair] DataPersistence diagnostic result after repair: ERROR`
 
-**Context:** DiagnosticsAndRepair system is trying to automatically fix critical issues but is failing.
+**Context:** DiagnosticsAndRepair system is critical for automatic detection and repair of runtime issues.
 
-**Impact:** High. Automated repair functionality not working correctly.
+**Impact:** High. Automated repair functionality is completely failing to resolve critical errors.
 
-**Frequency:** Runs at regular intervals but fails to resolve the issues.
+**Frequency:** Runs at game startup and at regular intervals, consistently failing to repair issues.
 
 **Status:** 
-- ⏳ In Progress: Auto-repair features running but not fixing issues
-- ⏳ In Progress: Multiple diagnostics showing ERROR and WARNING states
-- ⏳ In Progress: Re-running diagnostics shows issues persist after attempted repair
+- ❌ Failing: Auto-repair features running but unable to fix any critical issues
+- ❌ Multiple diagnostics showing ERROR and WARNING states before and after repair attempts
+- ❌ System shows "Re-running diagnostics after repairs" but reports identical errors
+- ❌ System unable to locate or recreate critical modules needed for repair
+
+**Specific Repair Failures:**
+- CoreRegistry repair fails due to missing source modules
+- DataPersistence repair fails due to dependency on CoreRegistry
+- TycoonStructure partial repair (folders created but not properly configured)
+- BuyTileSystem repair attempted but fails due to missing dependencies
 
 **Required Actions:**
-1. Fix CoreRegistry repair functionality
-2. Fix DataPersistence repair functionality
-3. Address TycoonStructure issues
-4. Fix BuyTileSystem issues
+1. Fix or replace CoreRegistry repair functionality
+2. Ensure critical module templates exist for auto-creation
+3. Implement fallback repair strategies that don't depend on missing modules
+4. Add proper error recovery to repair critical paths independently
 
-## BuyTile System Issues (⏳ IN PROGRESS - April 30, 2025)
+## BuyTile System and Tycoon Structure Issues (⚠️ PARTIAL FUNCTIONING - April 30, 2025)
 
 **Error Message:**
-- `[BuyTile] ERROR: Could not find BuyTile with ID 41`
-- `[BuyTile] Failed to find next Buy Tile with ID: 41`
+- `[DataManager] Using fallback spawnGymPart for ID: Xdjpearsonx`
+- `Could not find gym part with ID: Xdjpearsonx`
 - `[DataSystemBridge] Unable to locate BuyTile system`
 - `[DataSystemBridge] No BuyTile system found, cannot create spawn function`
+- `[BuyTileIntegration] No tile data found, attempting auto setup`
+- `[TycoonFolderFixer] Running periodic structure integrity check`
+- `[TycoonFolderFixer] Fixing Tycoon structure for Xdjpearsonx`
 
-**Context:** BuyTile system is essential for player progression, allowing purchase and placement of gym components.
+**Context:** BuyTile system is critical for player progression, managing the purchase and placement of gym components in the tycoon.
 
-**Impact:** Medium. Tile purchase works, but system has limitations when reaching certain IDs.
+**Impact:** High. Tycoon structure exists but tile functionality is severely limited.
 
-**Frequency:** Occurs when players reach specific tile IDs (e.g., ID 41).
+**Frequency:** Occurs consistently during player data loading and tycoon operation.
 
 **Status:** 
-- ⏳ In Progress: BuyTile purchases work up to a certain ID
-- ⏳ In Progress: System initialization issues with CoreRegistry
-- ⏳ In Progress: BuyTileSystem not properly integrated with DataSystemBridge
+- ⚠️ Partial Functioning: Basic tycoon structure exists and is maintained by TycoonFolderFixer
+- ⚠️ Partial Functioning: Some tiles load but with missing components or functionality
+- ❌ BuyTileSystem not registered with CoreRegistry
+- ❌ DataSystemBridge unable to locate BuyTile system for spawning functions
+- ❌ Tile data generation failing or incomplete
+- ❌ Gym parts not being found by ID
+
+**Specific Issues:**
+- TycoonFolderFixer running constantly to maintain basic folder structure
+- Fallback spawn mechanisms being used but producing incomplete results
+- Auto setup for tile data attempting to run but failing in many cases
+- GymStructure folder missing in ServerStorage according to diagnostics
 
 **Required Actions:**
-1. Fix BuyTile ID resolution for higher IDs
-2. Ensure proper registration with CoreRegistry
-3. Fix integration with DataSystemBridge
-4. Address warnings in DiagnosticsAndRepair
+1. Fix BuyTileSystem integration with CoreRegistry
+2. Repair the DataSystemBridge connection to BuyTileSystem
+3. Restore GymStructure folder with proper templates in ServerStorage
+4. Fix the tile data generation and loading functionality
+5. Address the gym part spawning and ID resolution system
 
-## Data Persistence Issues (⏳ IN PROGRESS - April 30, 2025)
+## Data Persistence System Issues (⚠️ PARTIAL FUNCTIONING - April 30, 2025)
 
 **Error Message:**
-- `[DataPersistenceFix] Regular save successful for: Xdjpearsonx (Attempt 1)`
-- `[DataPersistenceManager] Game closing, saving all player data...`
-- `[DataManager] Game closing, saving all player data...`
+- `[DataPersistenceFix] Failed to save data for player`
+- `[DataSystemBridge] No data manager found, cannot create data interface`
+- `[DataSystemBridge] Unable to locate DataAccessLayer, creating basic version`
+- `[DiagnosticsAndRepair] DataPersistence diagnostic result: ERROR`
+- `[SystemBootstrap][Error] Required dependency failed: DataManager for system: TycoonManager`
+- `[FixesVerificationTest] ✗ FAIL: DataPersistenceManager Test - DataPersistenceManager module not found`
 
-**Context:** Multiple data systems appear to be functioning in parallel (DataPersistenceFix, DataPersistenceManager, DataManager).
+**Context:** Data persistence is critical for saving player progress, tycoon configurations, and game state.
 
-**Impact:** Medium. Data is being saved, but the redundancy may cause issues or conflicts.
+**Impact:** Medium-High. Basic data saving appears to function through fallbacks despite errors.
 
-**Frequency:** Occurs during regular saves and on game shutdown.
+**Frequency:** Occurs during gameplay, tile restoration, and on player leave events.
 
 **Status:** 
-- ⏳ In Progress: Multiple data systems operating simultaneously
-- ⏳ In Progress: Data is being saved successfully, but system needs consolidation
+- ⚠️ Partial Functioning: Multiple fallback mechanisms ensuring some data is saved
+- ⚠️ Partial Functioning: Basic data loading allowing limited game functionality
+- ❌ DataManager failing as a required dependency for multiple systems
+- ❌ DataSystemBridge failing to create proper data interfaces
+- ❌ DiagnosticsAndRepair unable to fix DataPersistence errors
+- ❌ DataPersistenceManager module not found in verification tests
+
+**Specific Issues:**
+- DataManager listed as missing in CoreRegistry critical systems
+- Multiple systems creating minimal/basic data implementations as fallbacks
+- SystemBootstrap failing to initialize TycoonManager due to missing DataManager
+- DataAccessLayer missing or not properly initialized
 
 **Required Actions:**
-1. Consolidate redundant data systems
-2. Ensure consistent data saving across systems
-3. Fix DataPersistence diagnostic errors
+1. Restore DataPersistenceManager module in the correct location
+2. Fix DataManager registration with CoreRegistry
+3. Implement proper DataSystemBridge interfaces
+4. Consolidate multiple fallback data systems into a single robust solution
+5. Fix diagnostic and repair capabilities for data systems
 
-## System Integration Priority List
+## System Test Results (April 30, 2025)
 
-1. Fix GymAutomationLoader and module path resolution
-2. Fix CoreRegistry and critical system registration
-3. Address UI System failures and missing components
-4. Fix DiagnosticsAndRepair system to properly resolve issues
-5. Address BuyTile system limitations
-6. Consolidate data persistence systems
+**Server Tests:**
+- `[FixesVerificationTest] ✗ FAIL: CoreRegistry Module Test - CoreRegistry module not found`
+- `[FixesVerificationTest] ✗ FAIL: SafeRequire Module Test - SafeRequire module not found in shared folder`
+- `[FixesVerificationTest] ✗ FAIL: DataPersistenceManager Test - DataPersistenceManager module not found`
+- `[FixStatusReport] Core Modules: 0/10 (0%)`
+- `[FixStatusReport] Overall Fix Implementation: 5/15 (33%)`
+- `[AprilFixesTestSuite] ❌ testSystemFunctions: FAILED - CoreRegistry not found, cannot test system functions`
 
-## Recent Progress (April 30, 2025)
+**Client Tests:**
+- `[UISystemTester] Tests Run: 11, Tests Passed: 1, Tests Failed: 10`
+- `[UISystemTester] Pass Rate: 9%`
+- `[ClientBootstrap] ClientRegistry not found`
+- `[ClientBootstrap] UIComponents not found`
+- `[ClientBootstrap] AssetValidator not found`
+- `[ClientBootstrap] ⚠️ Client initialized with errors - missing critical components`
 
-- Created new GymAutomation.luau module but still experiencing path resolution issues
-- Basic UI System tests show slight improvement (25% pass rate vs. previous 9%)
-- CoreRegistry status shows signs of partial operation with Degraded status
-- Data persistence showing successful saves despite diagnostic errors
+## System Integration Priority List (REVISED April 30, 2025)
+
+1. Fix filesystem structure and restore missing critical folders
+2. Restore CoreRegistry module and critical system registration
+3. Fix initialization sequence and autorun configuration
+4. Repair module discovery and path resolution system
+5. Fix GymAutomationLoader path resolution issues
+6. Repair ClientRegistry and UI component loading 
+7. Address BuyTile and tycoon structure issues
+8. Consolidate and fix data persistence systems
+
+## Regression Summary (April 30, 2025)
+
+- Major filesystem structure issues with missing critical folders and modules
+- Broken initialization sequence preventing proper system bootstrap
+- CoreRegistry initialized with 0/7 critical systems (previously all systems registered)
+- GymAutomationLoader completely failing after 5 retries (previously working)
+- UI System pass rate dropped from 25% to 9%
+- BuyTile system only loading 1 of 40 tiles
+- Multiple fallback systems active, masking deeper architectural issues
+- DiagnosticsAndRepair unable to resolve critical system issues
+- Capability errors preventing automated fixes from creating required modules
+
+## System Initialization and Bootstrap Failures (❌ CRITICAL - April 30, 2025)
+
+**Error Message:**
+- `[SystemBootstrap] SystemBootstrap.luau not found in ServerScriptService/Core`
+- `[SystemBootstrap] Total systems initialized: 0/12 (0%)`
+- `[SystemBootstrap] Required systems initialized: 0/6 (0%)`
+- `[SystemBootstrap] Not all required systems were initialized. Game functionality may be limited.`
+- `[SystemsBootstrap] CoreRegistryInitializer not found!`
+- `[SystemsBootstrap] GymAutomationLoader not found!`
+
+**Context:** The system bootstrap process is responsible for initializing and connecting all core systems of the game.
+
+**Impact:** Critical. Complete failure of system initialization causing cascading failures throughout the game.
+
+**Frequency:** Occurs on every game start.
+
+**Status:** 
+- ❌ Critical bootstrap scripts missing or failing to load
+- ❌ All system initialization failing during bootstrap phase
+- ❌ Required dependencies for initialization not found
+- ❌ Multiple bootstrap systems running simultaneously with contradicting results
+
+**Required Dependencies Missing:**
+- CoreRegistry
+- ModuleLoader
+- SafeRequire
+- SafeWaitForChild
+- DataManager
+- SystemBootstrap
+- CoreRegistryInitializer
+- GymAutomationLoader
+
+**Required Actions:**
+1. Restore missing bootstrap scripts in correct locations
+2. Fix initialization order and dependency resolution
+3. Consolidate multiple bootstrap systems (SystemBootstrap, SystemsBootstrap, FixesBootstrap)
+4. Ensure critical modules are properly loaded before system initialization
+5. Address capability errors ("lacking capability PluginOrOpenCloud") preventing auto-fixes
+
+## Module Discovery and Path Resolution (❌ CRITICAL - April 30, 2025)
+
+**Error Message:**
+- Numerous `Attempted to call require with invalid argument(s).` errors
+- Multiple `Infinite yield possible on '[Path]:WaitForChild("[Module]")'` errors
+- `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
+- `[ClientRegistryFixer] Could not find UIRegistry module`
+
+**Context:** The module discovery and path resolution system is critical for loading dependencies and ensuring systems can find each other.
+
+**Impact:** Critical. Systems cannot locate their dependencies, causing widespread failures.
+
+**Frequency:** Occurs consistently throughout game startup and gameplay.
+
+**Status:**
+- ❌ Multiple invalid require() attempts across various systems
+- ❌ Infinite yield errors when waiting for modules that never appear
+- ❌ Search paths not finding critical modules
+- ❌ Attempted fixes (ClientRegistryFixer, FixesManager) unable to resolve missing modules
+
+**Required Actions:**
+1. Implement consistent module path resolution across all systems
+2. Restore critical modules to their expected locations
+3. Fix SafeRequire and ModuleLoader to handle missing modules properly
+4. Create a centralized module registry or service locator
+5. Fix the module search paths in GymAutomationLoader and other critical systems
+
+## Filesystem Structure and Module Location Issues (❌ CRITICAL - April 30, 2025)
+
+**Error Message:**
+- `[SystemDiagnostics] GymStructure folder not found in ServerStorage`
+- `[FixesManager] Could not find required module: CoreRegistry`
+- `[FixesManager] Could not find required module: TycoonFolderFixer`
+- `[FixesManager] Could not find required module: DataPersistenceManager`
+- `Infinite yield possible on 'ReplicatedStorage.shared:WaitForChild("SafeRequire")'`
+- `[EnsureFixScriptsAutorun] ❌ AprilFixesStartup`
+- `[EnsureFixScriptsAutorun] ❌ ClientFixDistributor`
+- `[EnsureFixScriptsAutorun] ❌ CoreRegistryRestorer`
+- `[EnsureFixScriptsAutorun] Autorun configuration failed with some issues`
+
+**Context:** Proper filesystem structure and module placement is critical for the game's architecture and module loading system.
+
+**Impact:** Critical. Files and folders are missing or in incorrect locations, preventing core systems from loading.
+
+**Frequency:** Constant. The structural issues persist throughout runtime.
+
+**Status:**
+- ❌ Critical required folders missing or not in expected locations
+- ❌ Core module scripts not found in their designated paths
+- ❌ Fix script autorun configuration failed due to missing scripts
+- ❌ Infinite yield errors when attempting to access expected paths
+
+**Required File/Folder Structure:**
+- ServerStorage/GymStructure folder missing
+- ReplicatedStorage/shared folder exists but missing critical modules
+- ServerScriptService/Server/Core missing expected modules
+- Fix scripts not in expected autorun configuration
+
+**Required Actions:**
+1. Restore the proper folder structure based on Documentation/ConsolidationPlan.md
+2. Recreate missing critical folders in ServerStorage (GymStructure, BuyTiles)
+3. Restore Core modules in their expected locations (CoreRegistry, DataManager, etc.)
+4. Fix the shared modules in ReplicatedStorage (SafeRequire, ModuleLoader)
+5. Restore fix scripts in their proper autorun configuration
+6. Implement folder integrity checks as part of the bootstrap process
+
+## Autorun and Initialization Sequence Issues (❌ CRITICAL - April 30, 2025)
+
+**Error Message:**
+- `[SystemBootstrap] SystemBootstrap.luau not found in ServerScriptService/Core`
+- `[Phase3Loader] DataManagerFix not found or failed to load`
+- `[Phase3Loader] SoundSystemManager not found or failed to load`
+- `[Phase3Loader] AssetDiagnosticsSystem not found or failed to load`
+- `[AprilFixesClientStartup] UISystemPatcher not found, cannot proceed with UI fixes`
+
+**Context:** The game relies on a specific initialization sequence of autorun scripts to correctly bootstrap systems.
+
+**Impact:** Critical. The initialization sequence is broken, preventing proper system startup.
+
+**Frequency:** Occurs on every game start.
+
+**Status:**
+- ❌ Critical initialization scripts missing or failing to load
+- ❌ Bootstrap sequence failing at multiple points
+- ❌ Phase3Loader unable to find required fix modules
+- ❌ Client-side initialization failing due to missing UI system patchers
+- ❌ April fixes not being applied due to missing startup scripts
+
+**Initialization Sequence Failures:**
+1. CriticalFixesStartup attempts to run but can't create required sources
+2. FixesBootstrap fails to find critical fix modules
+3. SystemBootstrap not found in expected location
+4. Phase3Loader can't find any of its required systems
+5. AprilFixesClientStartup can't find UI patching systems
+
+**Required Actions:**
+1. Restore the initialization sequence based on Documentation/CriticalFixModulesIntegrationGuide.md
+2. Fix the CriticalFixesStartup script to handle missing dependencies gracefully
+3. Ensure SystemBootstrap is properly located in ServerScriptService/Core
+4. Restore Phase3Loader dependencies
+5. Fix the April fixes startup scripts and patchers
+
+## Comprehensive Recovery Plan (April 30, 2025)
+
+### Phase 1: Filesystem Structure Restoration
+
+1. **Review and Restore Folder Structure**
+   - Refer to Documentation/ConsolidationPlan.md for the correct structure
+   - Recreate missing folders in ServerStorage (GymStructure, BuyTiles)
+   - Ensure ReplicatedStorage/shared folder contains all required modules
+   - Verify ServerScriptService/Server/Core contains core system modules
+
+2. **Restore Critical Module Scripts**
+   - Restore CoreRegistry.luau in ServerScriptService/Server/Core
+   - Restore SafeRequire.luau and SafeWaitForChild.luau in ReplicatedStorage/shared
+   - Restore SystemBootstrap.luau in ServerScriptService/Core
+   - Restore ModuleLoader.luau in ReplicatedStorage/shared
+   - Restore all critical modules referenced in error logs
+
+3. **Fix Autorun Configuration**
+   - Ensure CriticalFixesStartup.server.lua is properly configured
+   - Fix AprilFixesStartup configuration
+   - Configure ClientFixDistributor for proper autorun
+   - Verify CoreRegistryRestorer is set up correctly
+
+### Phase 2: Core System Restoration
+
+1. **Restore CoreRegistry Functionality**
+   - Fix CoreRegistry implementation based on CoreRegistry_Fix_Solution.md
+   - Ensure CoreRegistry.registerSystem() method works properly
+   - Implement CoreRegistry status management (Error, Degraded, Ready)
+   - Fix CoreRegistryMonitor to correctly track critical systems
+
+2. **Restore Module Loading System**
+   - Fix ModuleLoader based on Module_Loading_System_Documentation.md
+   - Implement proper dependency resolution
+   - Fix circular dependency detection
+   - Restore path resolution for modules
+
+3. **Fix GymAutomationLoader**
+   - Review GymAutomationLoader implementation
+   - Fix path resolution to correctly find GymAutomationManager
+   - Restore GymAutomation wrapper module
+   - Fix retry mechanism with appropriate limits
+
+### Phase 3: Client-Side Systems Restoration
+
+1. **Fix ClientRegistry**
+   - Restore ClientRegistry module in correct location
+   - Fix system registration and lookup methods
+   - Ensure client-side systems can properly register
+
+2. **Restore UI Component System**
+   - Fix UIComponents module based on UI_Module_Design.md
+   - Restore UI factories (ButtonFactory, DialogFactory)
+   - Implement UIRegistry and component registration
+   - Fix AssetValidator for UI assets
+
+3. **Fix UI Loading and Display**
+   - Restore UISystemEnhancer functionality
+   - Fix MainMenuUI display issues
+   - Implement UIBootstrapper correctly
+   - Restore notification system
+
+### Phase 4: Game Systems Restoration
+
+1. **Fix BuyTile and Tycoon System**
+   - Restore BuyTileSystem and ensure registration with CoreRegistry
+   - Fix TycoonSystem module and player ownership tracking
+   - Repair tile data initialization and loading
+   - Fix GymPart spawning functionality
+
+2. **Restore Data Persistence**
+   - Consolidate data systems based on Data_System_Implementation.md
+   - Fix DataManager and ensure registration with CoreRegistry
+   - Implement proper DataSystemBridge interfaces
+   - Fix data saving and loading for all critical data types
+
+3. **Repair DiagnosticsAndRepair System**
+   - Review and fix DiagnosticsAndRepair implementation
+   - Ensure it can properly diagnose system issues
+   - Implement robust repair capabilities
+   - Add logging for repair attempts
+
+### Testing and Verification
+
+1. **Run Comprehensive Tests**
+   - Execute UISystemTester to verify UI functionality
+   - Run FixesVerificationTest to check critical systems
+   - Verify CoreRegistry contains all critical systems
+   - Test BuyTile functionality and tile restoration
+   - Validate data saving and loading
+
+2. **Monitor System Health**
+   - Use CoreRegistryMonitor to track system status
+   - Check DiagnosticsAndRepair results
+   - Monitor error logs for persistent issues
+   - Verify initialization sequence completes successfully
+
+## Implementation Timeline
+
+- **Day 1 (April 30, 2025):** Complete Phase 1 - Filesystem structure restoration
+- **Day 2 (May 1, 2025):** Complete Phase 2 - Core system restoration
+- **Day 3 (May 2, 2025):** Complete Phase 3 - Client-side systems restoration
+- **Day 4 (May 3, 2025):** Complete Phase 4 - Game systems restoration
+- **Day 5 (May 4, 2025):** Testing, verification, and final fixes
