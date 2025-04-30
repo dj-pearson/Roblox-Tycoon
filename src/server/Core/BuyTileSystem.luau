@@ -43,8 +43,22 @@ local function getCoreRegistry()
     -- Try standard paths
     local standardPaths = {
         ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistry"),
-        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("CoreRegistry")
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("CoreRegistry"),
+        ServerScriptService:FindFirstChild("server") and ServerScriptService.server:FindFirstChild("Core") and ServerScriptService.server.Core:FindFirstChild("CoreRegistry")
     }
+    
+    -- Try to find via ModuleLoader if available
+    local success, ModuleLoader = pcall(function()
+        return require(ReplicatedStorage:FindFirstChild("shared", true) and ReplicatedStorage:FindFirstChild("shared", true):FindFirstChild("ModuleLoader"))
+    end)
+    
+    if success and ModuleLoader then
+        local CoreRegistry = ModuleLoader.require("CoreRegistry")
+        if CoreRegistry then
+            log("Found CoreRegistry via ModuleLoader")
+            return CoreRegistry
+        end
+    end
     
     for _, path in ipairs(standardPaths) do
         if path and path:IsA("ModuleScript") then
@@ -96,12 +110,18 @@ function BuyTileSystem.initialize()
     end
     
     log("Initializing BuyTileSystem...")
-    
-    -- Register with CoreRegistry if available
+      -- Register with CoreRegistry if available
     local CoreRegistry = getCoreRegistry()
-    if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
-        CoreRegistry.registerSystem("BuyTileSystem", BuyTileSystem)
-        log("Registered with CoreRegistry")
+    if CoreRegistry then
+        if typeof(CoreRegistry.Register) == "function" then
+            CoreRegistry:Register("BuyTileSystem", BuyTileSystem)
+            log("Registered with CoreRegistry using Register function")
+        elseif typeof(CoreRegistry.registerSystem) == "function" then
+            CoreRegistry.registerSystem("BuyTileSystem", BuyTileSystem)
+            log("Registered with CoreRegistry using registerSystem function")
+        else
+            log("CoreRegistry found but no registration function available")
+        end
     else
         log("CoreRegistry not found, but BuyTileSystem will still function")
     end

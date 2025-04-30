@@ -56,8 +56,14 @@ local function findGymAutomationModule(moduleName)
         ServerStorage:FindFirstChild("GymAutomation"),
         ServerStorage:FindFirstChild("Systems"),
         ServerStorage:FindFirstChild("Core"),
+        
+        -- New paths for ServerStorage structure
         ServerStorage:FindFirstChild("GymStructure"),
+        ServerStorage:FindFirstChild("GymStructure") and ServerStorage.GymStructure:FindFirstChild(moduleName),
+        ServerStorage:FindFirstChild("GymStructure") and ServerStorage.GymStructure:FindFirstChild("Core"),
         ServerStorage:FindFirstChild("BuyTiles"),
+        ServerStorage:FindFirstChild("BuyTiles") and ServerStorage.BuyTiles:FindFirstChild(moduleName),
+        ServerStorage:FindFirstChild("BuyTiles") and ServerStorage.BuyTiles:FindFirstChild("Systems"),
         
         -- ReplicatedStorage locations
         ReplicatedStorage:FindFirstChild("shared"),
@@ -141,17 +147,29 @@ end
 
 -- Try to get CoreRegistry through different methods
 local function getCoreRegistry()
+    -- Try to use ModuleLoader if available
+    local moduleLoader = findGymAutomationModule("ModuleLoader")
+    if moduleLoader and typeof(moduleLoader.loadModule) == "function" then
+        local coreRegistry = moduleLoader.loadModule("CoreRegistry")
+        if coreRegistry then
+            log("Found CoreRegistry using ModuleLoader")
+            return coreRegistry
+        end
+    end
+    
     -- Try to find it in shared scope
     local success, coreRegistry = pcall(function()
         return require(ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("CoreRegistry"))
     end)
     if success and coreRegistry then
+        log("Found CoreRegistry in ReplicatedStorage.shared")
         return coreRegistry
     end
     
-    -- Try to find it in ServerScriptService
+    -- Try to find it directly in ServerScriptService paths
     local coreRegistryModule = findGymAutomationModule("CoreRegistry")
     if coreRegistryModule then
+        log("Found CoreRegistry through direct path search")
         return coreRegistryModule
     end
     
@@ -264,19 +282,33 @@ local function main()
         
         return false
     end
-    
-    -- Register with CoreRegistry
+      -- Register with CoreRegistry
     local CoreRegistry = getCoreRegistry()
     if CoreRegistry then
         if typeof(CoreRegistry.registerSystem) == "function" then
             -- Check if already registered
-            if (not CoreRegistry.hasSystem) or (not CoreRegistry.hasSystem("GymAutomation")) then
+            local isRegistered = false
+            
+            -- Check if hasSystem method exists
+            if typeof(CoreRegistry.hasSystem) == "function" then
+                isRegistered = CoreRegistry.hasSystem("GymAutomation")
+            end
+            
+            -- If not registered, register it
+            if not isRegistered then
                 CoreRegistry.registerSystem("GymAutomation", gymAutomation)
                 log("Successfully registered GymAutomation with CoreRegistry")
+            else
+                log("GymAutomation already registered with CoreRegistry")
             end
         else
             warn("[GymAutomationLoader] CoreRegistry missing registerSystem method")
         end
+    else
+        -- Create a local CoreRegistry-like interface if CoreRegistry is missing
+        log("Creating local system registry since CoreRegistry was not found")
+        _G.LocalRegistry = _G.LocalRegistry or {}
+        _G.LocalRegistry.GymAutomation = gymAutomation
     end
     
     -- Register automation functions

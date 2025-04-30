@@ -321,7 +321,69 @@ function DataManager.updateNestedValue(player, path, value)
     return true
 end
 
+-- Register with CoreRegistry
+local function registerWithCoreRegistry()
+    log("Attempting to register with CoreRegistry")
+    
+    -- Try multiple paths to find CoreRegistry
+    local CoreRegistry
+    local paths = {
+        "server.Core.CoreRegistry",
+        "server.CoreRegistry",
+        "CoreRegistry",
+        "shared.CoreRegistry"
+    }
+    
+    for _, path in ipairs(paths) do
+        local success, result = pcall(function()
+            -- Use require to load the module
+            return require(game:GetService("ServerScriptService"):FindFirstChild(path, true) or 
+                   ReplicatedStorage:FindFirstChild(path, true))
+        end)
+        
+        if success and result then
+            CoreRegistry = result
+            log("Found CoreRegistry via path: " .. path)
+            break
+        end
+    end
+    
+    -- Try direct script reference if paths failed
+    if not CoreRegistry then
+        local ServerScriptService = game:GetService("ServerScriptService")
+        local scripts = ServerScriptService:GetDescendants()
+        
+        for _, script in ipairs(scripts) do
+            if script:IsA("ModuleScript") and script.Name == "CoreRegistry" then
+                local success, result = pcall(function()
+                    return require(script)
+                end)
+                
+                if success and result then
+                    CoreRegistry = result
+                    log("Found CoreRegistry via direct reference")
+                    break
+                end
+            end
+        end
+    end
+    
+    if CoreRegistry and type(CoreRegistry.Register) == "function" then
+        CoreRegistry:Register("DataManager", DataManager)
+        log("Successfully registered with CoreRegistry")
+        return true
+    else
+        warn("[DataManager] Could not find CoreRegistry to register with")
+        return false
+    end
+end
+
 -- Initialize the DataManager
 DataManager.initialize()
+
+-- Register with CoreRegistry after initialization
+spawn(function()
+    registerWithCoreRegistry()
+end)
 
 return DataManager

@@ -853,6 +853,128 @@ function TycoonSystem:getClientInterface()
     return clientInterface
 end
 
+-- Get the CoreRegistry if available
+local function getCoreRegistry()
+    -- Try standard paths
+    local standardPaths = {
+        ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistry"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("CoreRegistry"),
+        ServerScriptService:FindFirstChild("server") and ServerScriptService.server:FindFirstChild("Core") and ServerScriptService.server.Core:FindFirstChild("CoreRegistry")
+    }
+    
+    -- Try to find via ModuleLoader if available
+    local moduleLoaderSuccess, ModuleLoader = pcall(function()
+        return require(ReplicatedStorage:FindFirstChild("shared", true) and ReplicatedStorage:FindFirstChild("shared", true):FindFirstChild("ModuleLoader"))
+    end)
+    
+    if moduleLoaderSuccess and ModuleLoader then
+        local coreRegistrySuccess, CoreRegistry = pcall(function() 
+            return ModuleLoader.require("CoreRegistry")
+        end)
+        if coreRegistrySuccess and CoreRegistry then
+            log("Found CoreRegistry via ModuleLoader")
+            return CoreRegistry
+        end
+    end
+    
+    for _, path in ipairs(standardPaths) do
+        if path and path:IsA("ModuleScript") then
+            local success, result = pcall(function()
+                return require(path)
+            end)
+            
+            if success and result then
+                return result
+            end
+        end
+    end
+    
+    -- Try to find in any module with the name CoreRegistry
+    local function searchInDescendants(parent)
+        for _, child in ipairs(parent:GetDescendants()) do
+            if child:IsA("ModuleScript") and child.Name == "CoreRegistry" then
+                local success, result = pcall(function()
+                    return require(child)
+                end)
+                
+                if success and result then
+                    return result
+                end
+            end
+        end
+        return nil
+    end
+    
+    return searchInDescendants(game)
+end
+
+-- Initialize the TycoonSystem
+function TycoonSystem.initialize()
+    if TycoonSystem.initialized then
+        log("TycoonSystem already initialized")
+        return true
+    end
+    
+    log("Initializing TycoonSystem...")
+    
+    -- Create tycoons folder in workspace if it doesn't exist
+    local tycoonsFolder = Workspace:FindFirstChild(CONFIG.TYCOONS_FOLDER_NAME)
+    if not tycoonsFolder then
+        tycoonsFolder = Instance.new("Folder")
+        tycoonsFolder.Name = CONFIG.TYCOONS_FOLDER_NAME
+        tycoonsFolder.Parent = Workspace
+        log("Created tycoons folder")
+    end
+    
+    -- Register with CoreRegistry if available
+    local CoreRegistry = getCoreRegistry()
+    if CoreRegistry then
+        if typeof(CoreRegistry.Register) == "function" then
+            CoreRegistry:Register("TycoonSystem", TycoonSystem)
+            log("Registered with CoreRegistry using Register function")
+        elseif typeof(CoreRegistry.registerSystem) == "function" then
+            CoreRegistry.registerSystem("TycoonSystem", TycoonSystem)
+            log("Registered with CoreRegistry using registerSystem function")
+        else
+            log("CoreRegistry found but no registration function available")
+        end
+    else
+        log("CoreRegistry not found, but TycoonSystem will still function")
+    end
+    
+    -- Set up player added/removed events
+    Players.PlayerAdded:Connect(function(player)
+        task.spawn(function()
+            TycoonSystem:setupPlayerTycoon(player)
+        end)
+    end)
+    
+    Players.PlayerRemoving:Connect(function(player)
+        TycoonSystem:cleanupPlayerTycoon(player)
+    end)
+    
+    -- Set up auto cleanup for abandoned tycoons
+    if CONFIG.AUTO_CLEANUP_ABANDONED then
+        task.spawn(function()
+            while true do
+                wait(60) -- Check every minute
+                TycoonSystem:checkForAbandonedTycoons()
+            end
+        end)
+    end
+    
+    -- Initialize existing players
+    for _, player in ipairs(Players:GetPlayers()) do
+        task.spawn(function()
+            TycoonSystem:setupPlayerTycoon(player)
+        end)
+    end
+    
+    TycoonSystem.initialized = true
+    log("TycoonSystem initialized successfully")
+    return true
+end
+
 -- Initialize the TycoonSystem
 TycoonSystem.initialize()
 

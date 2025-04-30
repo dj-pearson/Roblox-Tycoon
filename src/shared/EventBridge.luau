@@ -417,15 +417,63 @@ EventBridge.initialize()
 -- Register with registry system if available
 if isServer then
     local CoreRegistry = safeRequire(findModule("CoreRegistry"))
-    if CoreRegistry and CoreRegistry.registerSystem then
-        CoreRegistry.registerSystem("EventBridge", EventBridge)
-        print("EventBridge: Registered with CoreRegistry")
+    if CoreRegistry then
+        if typeof(CoreRegistry.Register) == "function" then
+            CoreRegistry:Register("EventBridge", EventBridge)
+            print("EventBridge: Registered with CoreRegistry using Register")
+        elseif typeof(CoreRegistry.registerSystem) == "function" then
+            CoreRegistry.registerSystem("EventBridge", EventBridge)
+            print("EventBridge: Registered with CoreRegistry using registerSystem")
+        end
+    else
+        -- Try to find CoreRegistry in server scripts
+        local ServerScriptService = game:GetService("ServerScriptService")
+        local success, registry = pcall(function()
+            return require(ServerScriptService:FindFirstChild("Core", true) and 
+                           ServerScriptService:FindFirstChild("Core", true):FindFirstChild("CoreRegistry"))
+        end)
+        
+        if success and registry then
+            if typeof(registry.Register) == "function" then
+                registry:Register("EventBridge", EventBridge)
+                print("EventBridge: Registered with CoreRegistry using alternative path")
+            elseif typeof(registry.registerSystem) == "function" then
+                registry.registerSystem("EventBridge", EventBridge)
+                print("EventBridge: Registered with CoreRegistry using alternative path")
+            end
+        end
     end
 else
     local ClientRegistry = safeRequire(findModule("ClientRegistry"))
-    if ClientRegistry and ClientRegistry.registerSystem then
-        ClientRegistry.registerSystem("EventBridge", EventBridge)
-        print("EventBridge: Registered with ClientRegistry")
+    if ClientRegistry then
+        if typeof(ClientRegistry.Register) == "function" then
+            ClientRegistry:Register("EventBridge", EventBridge)
+            print("EventBridge: Registered with ClientRegistry using Register")
+        elseif typeof(ClientRegistry.registerSystem) == "function" then
+            ClientRegistry.registerSystem("EventBridge", EventBridge)
+            print("EventBridge: Registered with ClientRegistry using registerSystem")
+        end
+    else
+        -- Try to find ClientRegistry in player scripts
+        local Players = game:GetService("Players")
+        if isClient and Players.LocalPlayer then
+            local playerScripts = Players.LocalPlayer:FindFirstChild("PlayerScripts")
+            if playerScripts then
+                local success, registry = pcall(function()
+                    return require(playerScripts:FindFirstChild("ClientRegistry"))
+                end)
+                
+                if success and registry then
+                    if typeof(registry.Register) == "function" then
+                        registry:Register("EventBridge", EventBridge)
+                        print("EventBridge: Registered with ClientRegistry using alternative path")
+                    elseif typeof(registry.registerSystem) == "function" then
+                        registry.registerSystem("EventBridge", EventBridge)
+                        print("EventBridge: Registered with ClientRegistry using alternative path")
+                    end
+                end
+            end
+        end
     end
 end
 
