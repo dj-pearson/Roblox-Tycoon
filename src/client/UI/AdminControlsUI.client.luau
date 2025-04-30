@@ -317,7 +317,7 @@ local function isPlayerAdmin()
 	end
 	
 	-- Check admin users list in ReplicatedStorage
-	local adminListCheck = pcall(function()
+	pcall(function() -- Use pcall directly without assigning to unused variable
 		local adminList = game.ReplicatedStorage:FindFirstChild("AdminUsers")
 		if adminList and adminList:IsA("ModuleScript") then
 			local admins = require(adminList)
@@ -986,9 +986,23 @@ function AdminControlsUI:CreateGameSettingsTab(parent)
             "Setup BuyTile System",
             "Are you sure you want to run the BuyTile System setup? This will scan the GymParts folder and regenerate all tile data.",
             function()
-                -- Execute the _G.SetupBuyTileSystem() function
+                -- Execute the SetupBuyTileSystem function - use proper module reference instead of _G
                 local success, result = pcall(function()
-                    return _G.SetupBuyTileSystem()
+                    -- Try to find the BuyTileSystemIntegration module
+                    local CoreRegistry = game:GetService("ServerScriptService"):FindFirstChild("Core"):FindFirstChild("CoreRegistry")
+                    local BuyTileSystemIntegration
+                    
+                    if CoreRegistry then
+                        BuyTileSystemIntegration = require(CoreRegistry):GetSystem("BuyTileSystemIntegration")
+                    end
+                    
+                    if BuyTileSystemIntegration and typeof(BuyTileSystemIntegration.generateTileData) == "function" then
+                        return BuyTileSystemIntegration.generateTileData("auto")
+                    elseif game:GetService("ServerScriptService"):FindFirstChild("Core"):FindFirstChild("TileDataInitializer") then
+                        return require(game:GetService("ServerScriptService").Core.TileDataInitializer).initializeTileData()
+                    else
+                        error("SetupBuyTileSystem function not found")
+                    end
                 end)
                 
                 if success and result then
@@ -2044,12 +2058,22 @@ function AdminControlsUI:ExecuteCommand(commandText)
 end
 
 -- Toggle the admin panel visibility
+-- Primary implementation of ToggleAdminPanel
+-- Primary implementation of the ToggleAdminPanel function
 function AdminControlsUI:ToggleAdminPanel()
+    local adminPanel = uiState.menuElements.adminPanel
+    if not adminPanel then
+        warn("Admin panel not initialized")
+        return
+    end
+    
+    uiState.adminPanelVisible = not uiState.adminPanelVisible
+    
     local padding = Instance.new("UIPadding")
     padding.PaddingLeft = UDim.new(0, 10)
-    padding.PaddingRight = UDim2.new(0, 10)
-    padding.PaddingTop = UDim2.new(0, 10)
-    padding.PaddingBottom = UDim2.new(0, 10)
+    padding.PaddingRight = UDim.new(0, 10)
+    padding.PaddingTop = UDim.new(0, 10)
+    padding.PaddingBottom = UDim.new(0, 10)
     padding.Parent = scrollFrame
 
     -- Function to create a command category
