@@ -1,222 +1,207 @@
---!strict
 --[[
     ClientRegistryFixer.client.luau
     
-    A script that ensures the ClientRegistry is properly initialized and accessible to all client scripts.
+    Ensures all required client UI components are properly registered and available.
+    This script runs at client startup to fix any issues with UI components registration.
     
-    Created: April 25, 2025
-    
-    This script:
-    1. Loads very early in the client lifecycle
-    2. Creates or finds the ClientRegistry
-    3. Sets up global references to ensure it's accessible everywhere
-    4. Handles Studio permissions correctly
+    Created: April 30, 2025
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- Constants
-local LocalPlayer = Players.LocalPlayer
-local DEBUG_ENABLED = true
+-- Only run in client
+if not RunService:IsClient() then
+    return
+end
 
--- Debug logging
-local function log(message)
-    if DEBUG_ENABLED then
-        print("[ClientRegistryFixer] " .. message)
+print("\n==== RUNNING CLIENT REGISTRY FIXER ====")
+
+-- Helper functions
+local function findModule(name, paths)
+    for _, path in ipairs(paths) do
+        if path then
+            local module = path:FindFirstChild(name)
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
+            
+            -- Try with extensions
+            local extensions = {".luau", ".client.luau", ".lua"}
+            for _, ext in ipairs(extensions) do
+                module = path:FindFirstChild(name .. ext)
+                if module and module:IsA("ModuleScript") then
+                    return module
+                end
+            end
+        end
     end
+    
+    return nil
 end
 
--- Find shared folder or create it
-local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
-if not sharedFolder then
-    sharedFolder = Instance.new("Folder")
-    sharedFolder.Name = "shared"
-    sharedFolder.Parent = ReplicatedStorage
-    log("Created shared folder in ReplicatedStorage")
-end
-
--- Find client folder in PlayerScripts
-local clientFolder = LocalPlayer.PlayerScripts:FindFirstChild("Client")
-if not clientFolder then
-    clientFolder = Instance.new("Folder")
-    clientFolder.Name = "Client"
-    clientFolder.Parent = LocalPlayer.PlayerScripts
-    log("Created Client folder in PlayerScripts")
-end
-
--- Find Core folder in client folder
-local coreFolder = clientFolder:FindFirstChild("Core")
-if not coreFolder then
-    coreFolder = Instance.new("Folder")
-    coreFolder.Name = "Core"
-    coreFolder.Parent = clientFolder
-    log("Created Core folder in Client folder")
-end
-
--- Find UIComponents module in shared folder
-local UIComponentsModule = sharedFolder:FindFirstChild("UIComponents")
-if UIComponentsModule and UIComponentsModule:IsA("ModuleScript") then
-    log("Found UIComponents module")
-else
-    log("UIComponents module not found, some UI elements may not function correctly")
-end
-
--- Safe require utility
-local function requireSafely(module)
-    if not module then
-        return nil
-    end
+local function safeRequire(module)
+    if not module then return nil end
     
     local success, result = pcall(function()
         return require(module)
     end)
     
-    if not success then
-        warn("[ClientRegistryFixer] Failed to require module: ", module:GetFullName())
+    if success then
+        return result
+    else
+        warn("[ClientRegistryFixer] Failed to require: " .. tostring(module:GetFullName()) .. " - " .. tostring(result))
         return nil
     end
-    
-    return result
 end
 
--- Find or create ClientRegistry
-local function findClientRegistry()
-    -- Look in Core folder first
-    local registryInCore = coreFolder:FindFirstChild("ClientRegistry")
-    if registryInCore and registryInCore:IsA("ModuleScript") then
-        log("Found ClientRegistry in Core folder")
-        return requireSafely(registryInCore)
+-- Get ModuleScriptAccessor
+local function getModuleScriptAccessor()
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        return safeRequire(shared.ModuleScriptAccessor)
     end
-    
-    -- Look in shared folder
-    local registryInShared = sharedFolder:FindFirstChild("ClientRegistry")
-    if registryInShared and registryInShared:IsA("ModuleScript") then
-        log("Found ClientRegistry in shared folder")
-        return requireSafely(registryInShared)
-    end
-    
-    -- Not found, will create new one
-    log("ClientRegistry not found, creating one")
     return nil
 end
 
--- Create references to ClientRegistry in various locations
-local function createReferences(registry)
-    if not registry then
-        log("Cannot create references: registry is nil")
-        return
+-- Get CoreRegistry
+local function getCoreRegistry()
+    local ModuleScriptAccessor = getModuleScriptAccessor()
+    if ModuleScriptAccessor then
+        return ModuleScriptAccessor.getCoreRegistry()
     end
-    
-    -- Create global reference if it doesn't exist
-    if _G and not _G.ClientRegistry then
-        _G.ClientRegistry = registry
-        log("Created global reference to ClientRegistry")
-    end
-    
-    -- Create reference in shared folder
-    local success, err = pcall(function()
-        if not sharedFolder:FindFirstChild("ClientRegistry") then
-            local reference = Instance.new("ModuleScript")
-            reference.Name = "ClientRegistry"
-            reference.Source = "-- Reference to ClientRegistry\nreturn _G.ClientRegistry or require(game:GetService('Players').LocalPlayer.PlayerScripts.Client.Core.ClientRegistry)"
-            reference.Parent = sharedFolder
-        end
-    end)
-    
-    if success then
-        log("Created reference in shared folder")
-    else
-        warn("[ClientRegistryFixer] Failed to create reference in shared folder: " .. tostring(err))
-    end
-    
-    -- Create reference as ObjectValue for scripts that can't use require
-    local success, err = pcall(function()
-        local objectRef = coreFolder:FindFirstChild("ClientRegistryRef") 
-        if not objectRef then
-            objectRef = Instance.new("ObjectValue")
-            objectRef.Name = "ClientRegistryRef"
-            objectRef.Value = coreFolder:FindFirstChild("ClientRegistry")
-            objectRef.Parent = coreFolder
-        end
-    end)
-    
-    if success then
-        log("Created ObjectValue reference")
-    else
-        warn("[ClientRegistryFixer] Failed to create ObjectValue reference: " .. tostring(err))
-    end
-    
-    return true
+    return nil
 end
 
--- Main execution
-local function main()
-    log("Starting ClientRegistryFixer")
+-- Wait for player to be available
+local player = Players.LocalPlayer
+if not player then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    player = Players.LocalPlayer
+end
+
+-- Wait for character
+if not player.Character then
+    player.CharacterAdded:Wait()
+end
+
+-- Define search paths for client modules
+local clientSearchPaths = {
+    ReplicatedStorage:FindFirstChild("shared"),
+    player:FindFirstChild("PlayerScripts"),
+    player.PlayerScripts:FindFirstChild("src") and player.PlayerScripts.src:FindFirstChild("client") and player.PlayerScripts.src.client:FindFirstChild("Core")
+}
+
+-- Define critical UI components to fix
+local criticalUIComponents = {
+    {
+        name = "UIRegistry",
+        searchPaths = clientSearchPaths
+    },
+    {
+        name = "UIComponents",
+        searchPaths = clientSearchPaths
+    },
+    {
+        name = "AssetValidator",
+        searchPaths = {ReplicatedStorage:FindFirstChild("shared")}
+    },
+    {
+        name = "ModuleLoader",
+        searchPaths = {ReplicatedStorage:FindFirstChild("shared")}
+    },
+    {
+        name = "ButtonFactory",
+        searchPaths = clientSearchPaths
+    },
+    {
+        name = "DialogFactory",
+        searchPaths = clientSearchPaths
+    },
+    {
+        name = "NotificationSystem",
+        searchPaths = clientSearchPaths
+    }
+}
+
+-- Try to get CoreRegistry
+local CoreRegistry = getCoreRegistry()
+if not CoreRegistry then
+    warn("[ClientRegistryFixer] CoreRegistry not found, attempting to find it directly")
     
-    -- Find or require ClientRegistry
-    local registry = findClientRegistry()
+    -- Try to find CoreRegistry directly
+    local coreRegistryModule = findModule("CoreRegistry", {
+        ReplicatedStorage:FindFirstChild("shared"),
+        player.PlayerScripts:FindFirstChild("src") and player.PlayerScripts.src:FindFirstChild("client") and player.PlayerScripts.src.client:FindFirstChild("Core")
+    })
     
-    -- If we don't have a registry, try using ModuleLoader to find it
-    if not registry then
-        -- Try to find ModuleLoader
-        local moduleLoader
-        local moduleLoaderInShared = sharedFolder:FindFirstChild("ModuleLoader")
-        if moduleLoaderInShared then
-            moduleLoader = requireSafely(moduleLoaderInShared)
-            
-            if moduleLoader then
-                log("Found ModuleLoader, using it to find ClientRegistry")
-                registry = moduleLoader.requireModule("ClientRegistry")
-            end
-        end
+    if coreRegistryModule then
+        CoreRegistry = safeRequire(coreRegistryModule)
+        print("[ClientRegistryFixer] Found CoreRegistry directly")
+    else
+        warn("[ClientRegistryFixer] CoreRegistry not found, UI components may not function correctly")
+    end
+end
+
+-- Fix UI components
+local fixedCount = 0
+for _, component in ipairs(criticalUIComponents) do
+    -- Check if already registered
+    if CoreRegistry and CoreRegistry.hasSystem and CoreRegistry.hasSystem(component.name) then
+        print("[ClientRegistryFixer] " .. component.name .. " is already registered with CoreRegistry")
+        fixedCount += 1
+        continue
     end
     
-    -- Create references
-    if registry then
-        createReferences(registry)
-        
-        -- Try to initialize the registry
-        if typeof(registry) == "table" and typeof(registry.initialize) == "function" then
-            log("Initializing ClientRegistry")
-            registry:initialize()
-        end
+    -- Try to find the module
+    local moduleScript = findModule(component.name, component.searchPaths)
+    if not moduleScript then
+        warn("[ClientRegistryFixer] Could not find " .. component.name .. " module")
+        continue
+    end
+    
+    -- Require the module
+    local moduleInstance = safeRequire(moduleScript)
+    if not moduleInstance then
+        warn("[ClientRegistryFixer] Failed to require " .. component.name)
+        continue
+    end
+    
+    -- Register with CoreRegistry if available
+    if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
+        CoreRegistry.registerSystem(component.name, moduleInstance)
+        print("[ClientRegistryFixer] Successfully registered " .. component.name .. " with CoreRegistry")
+        fixedCount += 1
     else
-        -- Try to load the ClientRegistry we just created in our other fix
-        if coreFolder:FindFirstChild("ClientRegistry") then
-            registry = requireSafely(coreFolder.ClientRegistry)
-            
-            if registry then
-                log("Loaded newly created ClientRegistry")
-                createReferences(registry)
-                
-                if typeof(registry) == "table" and typeof(registry.initialize) == "function" then
-                    log("Initializing newly created ClientRegistry")
-                    registry:initialize()
-                end
-            else
-                warn("[ClientRegistryFixer] Failed to load ClientRegistry, UI systems may not function correctly")
-            end
+        warn("[ClientRegistryFixer] CoreRegistry not available, couldn't register " .. component.name)
+    end
+    
+    -- Initialize if needed
+    if typeof(moduleInstance.initialize) == "function" and not moduleInstance.initialized then
+        local success = moduleInstance.initialize()
+        if success then
+            print("[ClientRegistryFixer] Successfully initialized " .. component.name)
         else
-            warn("[ClientRegistryFixer] Could not find or create ClientRegistry, UI systems may not function correctly")
+            warn("[ClientRegistryFixer] Failed to initialize " .. component.name)
         end
     end
-    
-    -- Load UIComponents and register with ClientRegistry if available
-    local UIComponents = requireSafely(UIComponentsModule)
-    if UIComponents and registry then
-        log("Registering UIComponents with ClientRegistry")
-        if typeof(UIComponents.registerWithClientRegistry) == "function" then
-            UIComponents.registerWithClientRegistry(registry)
-        end
-    end
-    
-    log("ClientRegistryFixer completed")
 end
 
--- Run in a protected call to avoid breaking the entire client
-local success, err = pcall(main)
-if not success then
-    warn("[ClientRegistryFixer] Error during execution: " .. tostring(err))
-end
+print("[ClientRegistryFixer] Fixed " .. fixedCount .. "/" .. #criticalUIComponents .. " UI components")
+
+-- Create notification to show success
+task.delay(1, function()
+    -- Try to use UIRegistry to show notification
+    local UIRegistry = CoreRegistry and CoreRegistry.getSystem and CoreRegistry.getSystem("UIRegistry")
+    if UIRegistry and UIRegistry.DialogFactory and UIRegistry.DialogFactory.showNotification then
+        UIRegistry.DialogFactory.showNotification(
+            "UI System Fixed", 
+            "Fixed " .. fixedCount .. "/" .. #criticalUIComponents .. " UI components",
+            fixedCount == #criticalUIComponents and "success" or "warning",
+            5
+        )
+    end
+end)
+
+print("==== CLIENT REGISTRY FIXES COMPLETE ====\n")
