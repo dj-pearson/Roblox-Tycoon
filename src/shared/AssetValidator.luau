@@ -1,261 +1,202 @@
 --[[
     AssetValidator.luau
     
-    Validates and preloads game assets to ensure they're available when needed.
-    This module handles asset verification, preloading, and management.
+    Utility for validating and managing game assets.
+    Provides functionality for verifying asset IDs, preloading assets,
+    and handling asset loading failures.
     
     Created: April 30, 2025
 ]]
 
-local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local ContentProvider = game:GetService("ContentProvider")
 
 local AssetValidator = {}
 AssetValidator.initialized = false
 
 -- Configuration
-local CONFIG = {
-    DEBUG_MODE = true,
-    PRELOAD_ENABLED = true,
-    MAX_PARALLEL_PRELOADS = 10,
-    PRELOAD_BATCH_SIZE = 20,
-    VALIDATION_ENABLED = true
+local Config = {
+    DEBUG = true,
+    PRELOAD_RETRIES = 3,
+    PRELOAD_RETRY_DELAY = 1,
+    PRELOAD_BATCH_SIZE = 10,
+    PRELOAD_BATCH_DELAY = 0.1
 }
 
--- Asset tracking
-local assetCache = {}
-local preloadQueue = {}
+-- Asset caches
 local validatedAssets = {}
+local preloadedAssets = {}
 local failedAssets = {}
-local preloadingActive = false
 
--- Log function
-local function log(message, forceLog)
-    if CONFIG.DEBUG_MODE or forceLog then
+-- Log a message to the output
+local function log(message)
+    if Config.DEBUG then
         print("[AssetValidator] " .. message)
     end
 end
 
--- Safe require function
-local function safeRequire(module)
-    if not module then return nil end
+-- Validate an asset ID
+function AssetValidator.validateAssetId(assetId)
+    -- Clean up assetId if it's in rbxassetid:// format
+    local cleanId = tostring(assetId):gsub("rbxassetid://", "")
     
-    local success, result = pcall(function()
-        return require(module)
-    end)
-    
-    if success then
-        return result
-    else
-        warn("[AssetValidator] Failed to require module:", result)
-        return nil
-    end
-end
-
--- Get ModuleScriptAccessor if available
-local function getModuleScriptAccessor()
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
-        return safeRequire(shared.ModuleScriptAccessor)
-    end
-    return nil
-end
-
--- Register with CoreRegistry if available
-local function registerWithCoreRegistry()
-    local ModuleScriptAccessor = getModuleScriptAccessor()
-    if ModuleScriptAccessor then
-        local CoreRegistry = ModuleScriptAccessor.getCoreRegistry()
-        if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
-            CoreRegistry.registerSystem("AssetValidator", AssetValidator)
-            log("Registered with CoreRegistry")
-            return true
-        end
+    -- Check if we've already validated this asset
+    if validatedAssets[cleanId] ~= nil then
+        return validatedAssets[cleanId]
     end
     
-    log("CoreRegistry not available, working in standalone mode")
-    return false
-end
-
--- Check if an asset ID or instance is valid
-function AssetValidator.validateAsset(asset)
-    if not CONFIG.VALIDATION_ENABLED then
-        return true
+    -- Validate format (should be numeric)
+    if not tonumber(cleanId) then
+        validatedAssets[cleanId] = false
+        failedAssets[cleanId] = "Invalid format"
+        return false
     end
     
-    -- Skip if already validated
-    local assetId = typeof(asset) == "string" and asset or asset:GetFullName()
-    if validatedAssets[assetId] ~= nil then
-        return validatedAssets[assetId]
-    end
-    
-    -- Perform validation
-    local success = pcall(function()
-        if typeof(asset) == "string" then
-            -- Check if it's an asset ID (rbxassetid://)
-            if string.match(asset, "^rbxassetid://") then
-                ContentProvider:PreloadAsync({asset})
-            else
-                -- Assume it's a path and try to find it
-                local instance = game
-                for part in string.gmatch(asset, "[^%.]+") do
-                    instance = instance:FindFirstChild(part)
-                    if not instance then
-                        error("Path not found: " .. asset)
-                    end
-                end
-            end
-        else
-            -- Instance validation
-            if not asset:IsDescendantOf(game) then
-                error("Instance not in game: " .. asset:GetFullName())
-            end
-        end
-    end)
-    
-    -- Record validation result
-    validatedAssets[assetId] = success
-    if not success then
-        failedAssets[assetId] = true
-        warn("[AssetValidator] Asset validation failed for: " .. assetId)
-    end
-    
-    return success
-end
-
--- Preload an asset or list of assets
-function AssetValidator.preloadAsset(asset, callback)
-    if not CONFIG.PRELOAD_ENABLED then
-        if callback then
-            callback(true)
-        end
-        return true
-    end
-    
-    if type(asset) == "table" then
-        -- Handle array of assets
-        for _, singleAsset in ipairs(asset) do
-            AssetValidator.preloadAsset(singleAsset)
-        end
-        
-        if callback then
-            callback(true)
-        end
-        return true
-    end
-    
-    -- Skip if already in cache
-    local assetId = typeof(asset) == "string" and asset or asset:GetFullName()
-    if assetCache[assetId] then
-        if callback then
-            callback(true)
-        end
-        return true
-    end
-    
-    -- Add to preload queue
-    table.insert(preloadQueue, {
-        asset = asset,
-        callback = callback
-    })
-    
-    -- Start preload process if not already running
-    if not preloadingActive then
-        AssetValidator.processPreloadQueue()
-    end
-    
+    -- For actual validation, we'd need to make a request to Roblox API
+    -- But since we're in a game context, we'll just assume it's valid if it's numeric
+    validatedAssets[cleanId] = true
     return true
 end
 
--- Process the preload queue
-function AssetValidator.processPreloadQueue()
-    if #preloadQueue == 0 or preloadingActive then
+-- Format an asset ID for use in game
+function AssetValidator.formatAssetId(assetId)
+    if not assetId then return nil end
+    
+    local cleanId = tostring(assetId):gsub("rbxassetid://", "")
+    if not AssetValidator.validateAssetId(cleanId) then
+        return nil
+    end
+    
+    return "rbxassetid://" .. cleanId
+end
+
+-- Preload a single asset
+function AssetValidator.preloadAsset(assetId, callback)
+    callback = callback or function() end
+    
+    -- Clean up assetId if it's in rbxassetid:// format
+    local cleanId = tostring(assetId):gsub("rbxassetid://", "")
+    
+    -- Check if already preloaded
+    if preloadedAssets[cleanId] then
+        callback(true, cleanId)
         return
     end
     
-    preloadingActive = true
-    
-    -- Process in batches
-    local function processBatch()
-        if #preloadQueue == 0 then
-            preloadingActive = false
-            return
-        end
-        
-        local batch = {}
-        local callbacks = {}
-        local batchSize = math.min(CONFIG.PRELOAD_BATCH_SIZE, #preloadQueue)
-        
-        for i = 1, batchSize do
-            local item = table.remove(preloadQueue, 1)
-            table.insert(batch, item.asset)
-            if item.callback then
-                table.insert(callbacks, item.callback)
-            end
-        end
-        
-        log("Preloading batch of " .. #batch .. " assets")
-        
-        ContentProvider:PreloadAsync(batch, function(assetId, status)
-            local success = (status == Enum.AssetFetchStatus.Success)
-            if success then
-                assetCache[assetId] = true
-            else
-                warn("[AssetValidator] Failed to preload asset: " .. assetId)
-                failedAssets[assetId] = true
-            end
-        end)
-        
-        -- Call callbacks
-        for _, callback in ipairs(callbacks) do
-            task.spawn(callback, true)
-        end
-        
-        -- Schedule next batch
-        task.delay(0.1, processBatch)
+    -- Validate asset ID first
+    if not AssetValidator.validateAssetId(cleanId) then
+        callback(false, cleanId, "Invalid asset ID")
+        return
     end
     
-    -- Start processing
-    processBatch()
+    -- Create the content to preload
+    local formattedId = "rbxassetid://" .. cleanId
+    local success = pcall(function()
+        ContentProvider:PreloadAsync({formattedId})
+    end)
+    
+    if success then
+        preloadedAssets[cleanId] = true
+        callback(true, cleanId)
+    else
+        failedAssets[cleanId] = "Preload failed"
+        callback(false, cleanId, "Preload failed")
+    end
+end
+
+-- Preload multiple assets
+function AssetValidator.preloadAssets(assetIds, progressCallback, completionCallback)
+    local total = #assetIds
+    local processed = 0
+    local successful = 0
+    
+    -- Process assets in batches
+    local function processNextBatch(startIndex)
+        local endIndex = math.min(startIndex + Config.PRELOAD_BATCH_SIZE - 1, total)
+        
+        for i = startIndex, endIndex do
+            local assetId = assetIds[i]
+            
+            AssetValidator.preloadAsset(assetId, function(success)
+                processed = processed + 1
+                if success then
+                    successful = successful + 1
+                end
+                
+                -- Call progress callback if provided
+                if progressCallback and typeof(progressCallback) == "function" then
+                    progressCallback(processed, total, successful)
+                end
+                
+                -- If all processed, call completion callback
+                if processed == total and completionCallback and typeof(completionCallback) == "function" then
+                    completionCallback(successful, total)
+                end
+            end)
+        end
+        
+        -- Process next batch if needed
+        if endIndex < total then
+            task.delay(Config.PRELOAD_BATCH_DELAY, function()
+                processNextBatch(endIndex + 1)
+            end)
+        end
+    end
+    
+    -- Start processing the first batch
+    processNextBatch(1)
 end
 
 -- Check if an asset is preloaded
-function AssetValidator.isAssetPreloaded(asset)
-    local assetId = typeof(asset) == "string" and asset or asset:GetFullName()
-    return assetCache[assetId] == true
+function AssetValidator.isPreloaded(assetId)
+    local cleanId = tostring(assetId):gsub("rbxassetid://", "")
+    return preloadedAssets[cleanId] == true
 end
 
--- Get validation statistics
-function AssetValidator.getValidationStats()
-    local validCount = 0
-    local invalidCount = 0
+-- Get list of failed assets
+function AssetValidator.getFailedAssets()
+    local result = {}
+    for id, reason in pairs(failedAssets) do
+        table.insert(result, {id = id, reason = reason})
+    end
+    return result
+end
+
+-- Get statistics
+function AssetValidator.getStats()
+    local validatedCount = 0
+    local preloadedCount = 0
+    local failedCount = 0
     
-    for _, valid in pairs(validatedAssets) do
-        if valid then
-            validCount += 1
-        else
-            invalidCount += 1
-        end
+    for _ in pairs(validatedAssets) do 
+        validatedCount = validatedCount + 1 
+    end
+    
+    for _ in pairs(preloadedAssets) do 
+        preloadedCount = preloadedCount + 1 
+    end
+    
+    for _ in pairs(failedAssets) do 
+        failedCount = failedCount + 1 
     end
     
     return {
-        validated = validCount,
-        failed = invalidCount,
-        total = validCount + invalidCount,
-        preloaded = table.getn(assetCache)
+        validated = validatedCount,
+        preloaded = preloadedCount,
+        failed = failedCount
     }
 end
 
--- Debug utility: Show all failed assets
-function AssetValidator.debugShowFailedAssets()
-    local failedList = {}
-    for assetId, _ in pairs(failedAssets) do
-        table.insert(failedList, assetId)
-    end
+-- Load common assets used in the UI
+function AssetValidator.preloadCommonAssets(callback)
+    local commonAssets = {
+        "9801447135", -- Success icon
+        "9801447023", -- Error icon
+        "9801447287", -- Warning icon
+        "9801446906"  -- Info icon
+    }
     
-    log("Failed assets: " .. table.concat(failedList, ", "), true)
-    return failedList
+    AssetValidator.preloadAssets(commonAssets, nil, callback)
 end
 
 -- Initialize the module
@@ -264,19 +205,30 @@ function AssetValidator.initialize()
         return true
     end
     
-    log("Initializing AssetValidator...")
-    
-    -- Register with CoreRegistry
-    registerWithCoreRegistry()
-    
-    -- Set up automatic validation for critical assets
-    if CONFIG.VALIDATION_ENABLED then
-        -- Example: Validate critical assets here
+    -- Try to find ModuleScriptAccessor
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        local success, ModuleScriptAccessor = pcall(function()
+            return require(shared.ModuleScriptAccessor)
+        end)
+        
+        if success and ModuleScriptAccessor then
+            -- Try to register with CoreRegistry
+            local CoreRegistry = ModuleScriptAccessor.getCoreRegistry()
+            if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
+                CoreRegistry.registerSystem("AssetValidator", AssetValidator)
+                log("Registered with CoreRegistry")
+            end
+        end
     end
     
-    AssetValidator.initialized = true
-    log("AssetValidator initialized")
+    -- Preload common assets
+    AssetValidator.preloadCommonAssets(function(successful, total)
+        log(string.format("Preloaded %d/%d common assets", successful, total))
+    end)
     
+    log("AssetValidator initialized")
+    AssetValidator.initialized = true
     return true
 end
 

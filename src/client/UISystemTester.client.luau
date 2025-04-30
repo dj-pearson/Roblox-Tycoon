@@ -1,49 +1,91 @@
 --[[
     UISystemTester.client.luau
     
-    Tests the functionality of UI System components on the client.
-    This script validates that all critical UI systems are available and functioning.
+    Tests the functionality of the UI system components.
+    This script verifies that all UI modules are properly loaded and functioning.
     
     Created: April 30, 2025
 ]]
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
--- Only run in client
-if not RunService:IsClient() then
+local player = Players.LocalPlayer
+if not player then
+    warn("[UISystemTester] No LocalPlayer found, exiting test")
     return
 end
 
--- Wait for the player to fully load
-if not Players.LocalPlayer then
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+print("\n==== RUNNING UI SYSTEM TESTS ====")
+
+-- Test results tracking
+local testResults = {
+    total = 0,
+    passed = 0,
+    failed = 0
+}
+
+-- Run a test
+local function runTest(testName, testFunc)
+    testResults.total = testResults.total + 1
+    
+    local success, result = pcall(testFunc)
+    
+    if success and result then
+        testResults.passed = testResults.passed + 1
+        print("✓ " .. testName)
+        return true
+    else
+        testResults.failed = testResults.failed + 1
+        local errorMsg = (type(result) == "string" and result ~= "") and (": " .. result) or ""
+        warn("✗ " .. testName .. errorMsg)
+        return false
+    end
 end
 
-local player = Players.LocalPlayer
-while not player:IsDescendantOf(game) or not player.Character do
-    task.wait(0.1)
+-- Get ModuleScriptAccessor
+local function getModuleScriptAccessor()
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        local success, result = pcall(function()
+            return require(shared.ModuleScriptAccessor)
+        end)
+        
+        if success and result then
+            return result
+        end
+    end
+    return nil
 end
 
-print("\n==== RUNNING UI SYSTEM CLIENT TESTER ====")
-print("Testing critical UI systems...")
-
--- Helper functions
-local function findModule(name, paths)
-    for _, path in ipairs(paths) do
+-- Find a module using various methods
+local function findModule(moduleName)
+    -- Try through ModuleScriptAccessor first
+    local moduleAccessor = getModuleScriptAccessor()
+    if moduleAccessor then
+        local module = moduleAccessor.getSystem(moduleName)
+        if module then
+            return module
+        end
+    end
+    
+    -- Try direct paths
+    local searchPaths = {
+        ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("client") and ReplicatedStorage.src.client:FindFirstChild("Core")
+    }
+    
+    for _, path in ipairs(searchPaths) do
         if path then
-            local module = path:FindFirstChild(name)
-            if module and module:IsA("ModuleScript") then
-                return module
-            end
-            
-            -- Try with extensions
-            local extensions = {".luau", ".client.luau", ".lua"}
-            for _, ext in ipairs(extensions) do
-                module = path:FindFirstChild(name .. ext)
-                if module and module:IsA("ModuleScript") then
-                    return module
+            local module = path:FindFirstChild(moduleName)
+            if module then
+                local success, result = pcall(function()
+                    return require(module)
+                end)
+                
+                if success and result then
+                    return result
                 end
             end
         end
@@ -52,223 +94,168 @@ local function findModule(name, paths)
     return nil
 end
 
-local function safeRequire(module)
-    if not module then return nil end
-    
-    local success, result = pcall(function()
-        return require(module)
-    end)
-    
-    if success then
-        return result
-    else
-        warn("[UISystemTester] Failed to require: " .. tostring(module:GetFullName()) .. " - " .. tostring(result))
-        return nil
+-- Test 1: Check if ModuleScriptAccessor exists
+runTest("ModuleScriptAccessor Exists", function()
+    local moduleAccessor = getModuleScriptAccessor()
+    if not moduleAccessor then
+        return false, "ModuleScriptAccessor not found"
     end
-end
-
--- Try to get ModuleScriptAccessor
-local function getModuleScriptAccessor()
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
-        return safeRequire(shared.ModuleScriptAccessor)
-    end
-    return nil
-end
-
--- Get a system from ModuleScriptAccessor if available
-local function getSystem(systemName)
-    local ModuleScriptAccessor = getModuleScriptAccessor()
-    if ModuleScriptAccessor then
-        return ModuleScriptAccessor.getSystem(systemName)
-    end
-    return nil
-end
-
--- Check if UI registry is available
-local UIRegistry = getSystem("UIRegistry")
-if not UIRegistry then
-    -- Try direct paths
-    local searchPaths = {
-        ReplicatedStorage:FindFirstChild("shared"),
-        player:FindFirstChild("PlayerScripts"),
-        player.PlayerScripts:FindFirstChild("src") and player.PlayerScripts.src:FindFirstChild("client") and player.PlayerScripts.src.client:FindFirstChild("Core")
-    }
-    
-    local uiRegistryModule = findModule("UIRegistry", searchPaths)
-    if uiRegistryModule then
-        UIRegistry = safeRequire(uiRegistryModule)
-    end
-end
-
-if UIRegistry then
-    print("[UISystemTester] ✅ UIRegistry found")
-    
-    -- Test if UIRegistry can be initialized
-    if UIRegistry.initialize then
-        local success = UIRegistry.initialize()
-        if success then
-            print("[UISystemTester] ✅ UIRegistry initialized successfully")
-        else
-            warn("[UISystemTester] ❌ UIRegistry initialization failed")
-        end
-    end
-    
-    -- Test button factory
-    if UIRegistry.ButtonFactory then
-        print("[UISystemTester] ✅ ButtonFactory available")
-        
-        -- Create a test button
-        local testButton = UIRegistry.ButtonFactory.createStyledButton("primary", {
-            Text = "Test Button",
-            Position = UDim2.new(0.5, -100, 0.8, -25),
-            Size = UDim2.new(0, 200, 0, 50),
-            Parent = player:FindFirstChild("PlayerGui"),
-            Callback = function()
-                print("Test button clicked!")
-                UIRegistry.DialogFactory.showNotification("Button Test", "The button was clicked successfully!", "success", 3)
-            end
-        })
-        
-        if testButton then
-            print("[UISystemTester] ✅ Test button created successfully")
-            
-            -- Create a container for the button if needed
-            if not testButton.Parent then
-                local screenGui = Instance.new("ScreenGui")
-                screenGui.Name = "UISystemTesterGui"
-                screenGui.ResetOnSpawn = false
-                screenGui.Parent = player.PlayerGui
-                testButton.Parent = screenGui
-                
-                print("[UISystemTester] Created ScreenGui container for test UI elements")
-            end
-        else
-            warn("[UISystemTester] ❌ Failed to create test button")
-        end
-    else
-        warn("[UISystemTester] ❌ ButtonFactory not available")
-    end
-    
-    -- Test dialog factory
-    if UIRegistry.DialogFactory then
-        print("[UISystemTester] ✅ DialogFactory available")
-        
-        -- Show a test notification
-        local testNotification = UIRegistry.DialogFactory.showNotification(
-            "UI System Test", 
-            "UI components are working correctly!",
-            "info",
-            5
-        )
-        
-        if testNotification then
-            print("[UISystemTester] ✅ Test notification created successfully")
-        else
-            warn("[UISystemTester] ❌ Failed to create test notification")
-        end
-    else
-        warn("[UISystemTester] ❌ DialogFactory not available")
-    end
-      -- Test UI styling
-    if UIRegistry.UIStyle then
-        print("[UISystemTester] ✅ UIStyle utilities available")
-        
-        -- Get color names
-        local colorNames = {}
-        for name, _ in pairs(UIRegistry.UIStyle.COLORS) do
-            table.insert(colorNames, name)
-        end
-        print("[UISystemTester] Available colors:", table.concat(colorNames, ", "))
-    else
-        warn("[UISystemTester] ❌ UIStyle utilities not available")
-    end
-    
-    -- Test icon set
-    if UIRegistry.IconSet then
-        print("[UISystemTester] ✅ IconSet available")
-        
-        -- Get icon names
-        local iconNames = {}
-        for name, value in pairs(UIRegistry.IconSet) do
-            if type(value) ~= "function" then
-                table.insert(iconNames, name)
-            end
-        end
-        print("[UISystemTester] Available icons:", table.concat(iconNames, ", "))
-        -- Create a test icon
-        local screenGui = player.PlayerGui:FindFirstChild("UISystemTesterGui")
-        if not screenGui then
-            screenGui = Instance.new("ScreenGui")
-            screenGui.Name = "UISystemTesterGui"
-            screenGui.ResetOnSpawn = false
-            screenGui.Parent = player.PlayerGui
-        end
-        
-        local testIcon = Instance.new("ImageLabel")
-        testIcon.Size = UDim2.new(0, 32, 0, 32)
-        testIcon.Position = UDim2.new(0.5, -16, 0.7, -16)
-        testIcon.BackgroundTransparency = 1
-        testIcon.Image = UIRegistry.IconSet.SUCCESS
-        testIcon.Name = "TestIcon"
-        testIcon.Parent = screenGui
-        
-        print("[UISystemTester] ✅ Created test icon successfully")
-    else
-        warn("[UISystemTester] ❌ IconSet not available")
-    end
-else
-    warn("[UISystemTester] ❌ UIRegistry not found!")
-end
-
--- Check for other critical UI components
-local criticalUIComponents = {
-    "UIComponents",
-    "AssetValidator",
-    "DialogFactory",
-    "NotificationSystem"
-}
-
-for _, componentName in ipairs(criticalUIComponents) do
-    local component = getSystem(componentName)
-    if component then
-        print("[UISystemTester] ✅ " .. componentName .. " found")
-    else
-        warn("[UISystemTester] ❌ " .. componentName .. " not found")
-    end
-end
-
--- Create a cleanup button
-local screenGui = player.PlayerGui:FindFirstChild("UISystemTesterGui")
-if not screenGui then
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "UISystemTesterGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = player.PlayerGui
-end
-
-local cleanupButton = Instance.new("TextButton")
-cleanupButton.Size = UDim2.new(0, 120, 0, 30)
-cleanupButton.Position = UDim2.new(0.5, -60, 0.9, -15)
-cleanupButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-cleanupButton.Font = Enum.Font.SourceSansSemibold
-cleanupButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-cleanupButton.TextSize = 14
-cleanupButton.Text = "Clean Up Test UI"
-cleanupButton.Parent = screenGui
-
--- Add corner radius
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 6)
-corner.Parent = cleanupButton
-
--- Cleanup function
-cleanupButton.MouseButton1Click:Connect(function()
-    if screenGui and screenGui.Parent then
-        screenGui:Destroy()
-        print("[UISystemTester] Test UI elements cleaned up")
-    end
+    return true
 end)
 
-print("[UISystemTester] UI System test completed")
-print("[UISystemTester] You can clean up the test UI elements by clicking the red button at the bottom of the screen\n")
+-- Test 2: Check if ModuleLoader exists
+runTest("ModuleLoader Exists", function()
+    local moduleLoader = findModule("ModuleLoader")
+    if not moduleLoader then
+        return false, "ModuleLoader module not found"
+    end
+    return true
+end)
+
+-- Test 3: Check if AssetValidator exists
+runTest("AssetValidator Exists", function()
+    local assetValidator = findModule("AssetValidator")
+    if not assetValidator then
+        return false, "AssetValidator not found through any method"
+    end
+    return true
+end)
+
+-- Test 4: Check if UIComponents exists
+runTest("UIComponents Exists", function()
+    local uiComponents = findModule("UIComponents")
+    if not uiComponents then
+        return false, "UIComponents not found through any method"
+    end
+    return true
+end)
+
+-- Test 5: Check if UIRegistry exists
+runTest("UIRegistry Exists", function()
+    local uiRegistry = findModule("UIRegistry")
+    if not uiRegistry then
+        return false, "UIRegistry not found"
+    end
+    return true
+end)
+
+-- Test 6: Check UIRegistry.ButtonFactory
+runTest("UIRegistry.ButtonFactory", function()
+    local uiRegistry = findModule("UIRegistry")
+    if not uiRegistry or not uiRegistry.ButtonFactory or not uiRegistry.ButtonFactory.createBasicButton then
+        return false, "ButtonFactory not available or missing createBasicButton function"
+    end
+    return true
+end)
+
+-- Test 7: Check UIRegistry.DialogFactory
+runTest("UIRegistry.DialogFactory", function()
+    local uiRegistry = findModule("UIRegistry")
+    if not uiRegistry or not uiRegistry.DialogFactory or not uiRegistry.DialogFactory.createNotification then
+        return false, "DialogFactory not available or missing createNotification function"
+    end
+    return true
+end)
+
+-- Test 8: Check UIRegistry.IconSet
+runTest("UIRegistry.IconSet", function()
+    local uiRegistry = findModule("UIRegistry")
+    if not uiRegistry or not uiRegistry.IconSet or not uiRegistry.IconSet.getIcon then
+        return false, "IconSet not available or missing getIcon function"
+    end
+    return true
+end)
+
+-- Test 9: Check UIRegistry.UIStyle
+runTest("UIRegistry.UIStyle", function()
+    local uiRegistry = findModule("UIRegistry")
+    if not uiRegistry or not uiRegistry.UIStyle or not uiRegistry.UIStyle.applyStyle then
+        return false, "UIStyle not available or missing applyStyle function"
+    end
+    return true
+end)
+
+-- Test 10: Check if UIRegistry can show notifications
+runTest("UIRegistry Can Show Notifications", function()
+    local uiRegistry = findModule("UIRegistry")
+    if not uiRegistry or not uiRegistry.DialogFactory or not uiRegistry.DialogFactory.showNotification then
+        return false, "DialogFactory not available or missing showNotification function"
+    end
+    
+    local notification = uiRegistry.DialogFactory.showNotification("Test", "This is a test notification", "info", 3)
+    if not notification then
+        return false, "Failed to create notification"
+    end
+    
+    return true
+end)
+
+-- Test 11: Check CoreRegistry integration
+runTest("CoreRegistry Integration", function()
+    local moduleAccessor = getModuleScriptAccessor()
+    if not moduleAccessor then
+        return false, "ModuleScriptAccessor not found"
+    end
+    
+    local coreRegistry = moduleAccessor.getCoreRegistry()
+    if not coreRegistry then
+        return false, "CoreRegistry not found"
+    end
+    
+    if not coreRegistry.getSystem or not coreRegistry.hasSystem then
+        return false, "CoreRegistry missing required functions"
+    end
+    
+    return true
+end)
+
+-- Test 12: Check if required UI systems are registered with CoreRegistry
+runTest("Required UI Systems Registration", function()
+    local moduleAccessor = getModuleScriptAccessor()
+    if not moduleAccessor then
+        return false, "ModuleScriptAccessor not found"
+    end
+    
+    local coreRegistry = moduleAccessor.getCoreRegistry()
+    if not coreRegistry or not coreRegistry.hasSystem then
+        return false, "CoreRegistry not found or missing hasSystem function"
+    end
+    
+    local requiredSystems = {
+        "UIComponents",
+        "UIRegistry",
+        "AssetValidator",
+        "ModuleLoader"
+    }
+    
+    local missingCount = 0
+    local missingSystems = {}
+    
+    for _, systemName in ipairs(requiredSystems) do
+        if not coreRegistry.hasSystem(systemName) then
+            missingCount = missingCount + 1
+            table.insert(missingSystems, systemName)
+        end
+    end
+    
+    if missingCount > 0 then
+        return false, missingCount .. " systems not registered: " .. table.concat(missingSystems, ", ")
+    end
+    
+    return true
+end)
+
+-- Print test summary
+local passRate = math.floor((testResults.passed / testResults.total) * 100)
+print("\n[UISystemTester] Tests Run: " .. testResults.total .. ", Tests Passed: " .. testResults.passed .. ", Tests Failed: " .. testResults.failed)
+print("[UISystemTester] Pass Rate: " .. passRate .. "%")
+
+-- Show notification with test results if UIRegistry available
+local uiRegistry = findModule("UIRegistry")
+if uiRegistry and uiRegistry.DialogFactory and uiRegistry.DialogFactory.showNotification then
+    local notificationType = passRate >= 70 and "success" or (passRate >= 40 and "warning" or "error")
+    local message = "Tests Run: " .. testResults.total .. "\nPassed: " .. testResults.passed .. "\nFailed: " .. testResults.failed
+    uiRegistry.DialogFactory.showNotification("UI System Test Results", message, notificationType, 10)
+end
+
+print("==== UI SYSTEM TESTS COMPLETE ====\n")
