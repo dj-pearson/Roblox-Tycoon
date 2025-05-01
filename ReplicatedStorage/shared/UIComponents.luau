@@ -11,6 +11,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+-- Try to load our dependencies
+local SafeRequire = require(ReplicatedStorage:WaitForChild("shared"):WaitForChild("SafeRequire"))
+
 -- Make sure we're on the client
 if not RunService:IsClient() then
     warn("[UIComponents] UIComponents should only be used on the client")
@@ -28,7 +31,13 @@ local function getClientRegistry()
     local PlayerScripts = player:FindFirstChild("PlayerScripts")
     if not PlayerScripts then return nil end
     
-    -- Try to find ClientRegistry module
+    -- Try to find ClientRegistry module using SafeRequire
+    local clientRegistry = SafeRequire.requireFromPath("ClientRegistry")
+    if clientRegistry then
+        return clientRegistry
+    end
+    
+    -- Fallback: try to find ClientRegistry module
     local searchPaths = {
         PlayerScripts:FindFirstChild("src") and PlayerScripts.src:FindFirstChild("client"),
         PlayerScripts:FindFirstChild("Core"),

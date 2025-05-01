@@ -48,7 +48,61 @@ end
 local function checkCoreRegistry()
     -- Try multiple methods to access CoreRegistry
     local methods = {
-        -- Method 1: CoreRegistryAccess
+        -- Method 1: Direct parent reference
+        function()
+            if script.Parent:FindFirstChild("CoreRegistry") then
+                local success, result = pcall(function()
+                    return require(script.Parent.CoreRegistry)
+                end)
+                
+                if success and result then
+                    log("Found CoreRegistry via direct parent reference")
+                    return result
+                end
+            end
+            return nil
+        end,
+        
+        -- Method 2: SafeRequire
+        function()
+            local shared = ReplicatedStorage:FindFirstChild("shared")
+            if shared and shared:FindFirstChild("SafeRequire") then
+                local success, result = pcall(function()
+                    local safeRequire = require(shared.SafeRequire)
+                    return safeRequire.requireFromPath("CoreRegistry")
+                end)
+                
+                if success and result then
+                    log("Found CoreRegistry via SafeRequire")
+                    return result
+                end
+            end
+            return nil
+        end,
+        
+        -- Method 3: Search different paths
+        function()
+            local paths = {
+                ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Core"),
+                ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
+                ServerScriptService:FindFirstChild("Core")
+            }
+            
+            for _, path in ipairs(paths) do
+                if path and path:FindFirstChild("CoreRegistry") then
+                    local success, result = pcall(function()
+                        return require(path.CoreRegistry)
+                    end)
+                    
+                    if success and result then
+                        log("Found CoreRegistry at " .. path.CoreRegistry:GetFullName())
+                        return result
+                    end
+                end
+            end
+            return nil
+        end
+    }
         function()
             local CoreRegistryAccess = require(ReplicatedStorage.shared.CoreRegistryAccess)
             return CoreRegistryAccess:GetRegistry()

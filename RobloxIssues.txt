@@ -27,7 +27,7 @@
 4. Investigate why the search paths aren't finding the modules
 5. Review recent changes that might have broken the previously working paths
 
-## CoreRegistry Missing Systems (❌ REGRESSION - April 30, 2025)
+## CoreRegistry Missing Systems (❌ REGRESSION - May 1, 2025)
 
 **Error Message:**
 - `[CoreRegistry] Critical system missing: ModuleLoader` ❌ REGRESSION
@@ -51,6 +51,8 @@
 - ❌ CoreRegistry initialized with 0/7 critical systems
 - ❌ Registry status set to "Error" on initialization and "Degraded" during runtime
 - ❌ CoreRegistryMonitor reporting missing critical systems in repeated checks
+- ❌ NEW (May 1): CoreRegistryFeedback check failed (3/3) with detailed failure report
+- ❌ NEW (May 1): CoreRegistryMonitor consistently showing "Critical system missing: DataManager" and "Critical system missing: TycoonSystem"
 
 **Required Actions:**
 1. Restore CoreRegistry implementation with proper status management and system registration
@@ -61,18 +63,22 @@
 6. Fix BuyTileSystem registration and initialization
 7. Fix TycoonSystem registration and tycoon management functionality
 8. Restore EventBridge integration with CoreRegistry
+9. NEW: Fix CoreRegistryFeedback system to properly repair detected issues
 
 **Issues Observed:**
 - FixesManager, FixesBootstrap, and SystemsBootstrap report missing critical modules
 - Initialization failures cascade through dependent systems
 - CoreRegistry health check consistently failing with missing systems
 - Multiple diagnostic tools reporting ERROR status for CoreRegistry
+- NEW: Detailed failure report from CoreRegistryFeedback: `{"registryStatus":false,"systemsStatus":{"EventBridge":false,"ModuleLoaderHelper":false,"DataThrottler":false},"fixesApplied":[],"registryAccessMethod":"All methods failed","timestamp":1746119784,"recoveryCount":0,"failureCount":3}`
 
-## Client UI System Failures (❌ WORSENED - April 30, 2025)
+## Client UI System Failures (❌ WORSENED - May 1, 2025)
 
 **Error Message:** Multiple UI component errors and failed tests:
 - `[UISystemTester] Tests Run: 11, Tests Passed: 1, Tests Failed: 10`
 - `[UISystemTester] Pass Rate: 9%`
+- `[UIAccessRestrictor] User is admin, keeping development UIs`
+- `[UIAccessRestrictor] Player is admin, keeping dev UIs`
 
 **Context:** The UI system is critical for player interaction with the game.
 
@@ -91,18 +97,27 @@
 - `✗ AssetValidator.ValidateAsset: AssetValidator not found`
 - `✗ UIComponents Function: UIComponents not found`
 - `[UISystemEnhancer] Failed to show MainMenuUI after 10 attempts`
+- `[AdminAccessRestrictor] Player is an admin, admin UIs permitted`
 
 **Status:** 
 - ❌ Worsened: Only 1 of 11 UI tests now passing (previously 3 of 12)
 - ❌ ClientRegistry system not found - table reported in numerous errors
 - ❌ Multiple infinite yields due to missing modules
 - ❌ Failed attempts to show UI after multiple retries
+- ❌ NEW (May 1): Emergency UI remains persistent despite game state
+- ❌ NEW (May 1): Rebirth Button still showing when it should be hidden
+- ❌ NEW (May 1): Development UIs visible to players (admin restriction not working properly)
+- ❌ NEW (May 1): DarkOverlayFix running but not detecting overlays that are visible
 
 **Required Actions:**
 1. Fix ClientRegistry module or its registration
 2. Fix UIRegistry module and ensure it's properly loaded
 3. Implement UI factories and styling components
 4. Fix DialogFactory to enable notifications
+5. NEW: Implement proper hiding of Emergency UI during normal gameplay
+6. NEW: Fix Rebirth Button visibility logic
+7. NEW: Fix UIAccessRestrictor to properly hide development UIs
+8. NEW: Fix DarkOverlayFix to detect and remove persistent dark overlays
 
 ## DiagnosticsAndRepair System Issues (❌ FAILING - April 30, 2025)
 
@@ -140,7 +155,7 @@
 3. Implement fallback repair strategies that don't depend on missing modules
 4. Add proper error recovery to repair critical paths independently
 
-## BuyTile System and Tycoon Structure Issues (⚠️ PARTIAL FUNCTIONING - April 30, 2025)
+## BuyTile System and Tycoon Structure Issues (⚠️ PARTIAL FUNCTIONING - May 1, 2025)
 
 **Error Message:**
 - `[DataManager] Using fallback spawnGymPart for ID: Xdjpearsonx`
@@ -150,6 +165,9 @@
 - `[BuyTileIntegration] No tile data found, attempting auto setup`
 - `[TycoonFolderFixer] Running periodic structure integrity check`
 - `[TycoonFolderFixer] Fixing Tycoon structure for Xdjpearsonx`
+- `[BuyTile] Spawned gym part X at position: X, Y, Z`
+- `[BuyTile] Set Black Wall-Bottom as primary part for Glass Group X`
+- `[BuyTile] Successfully spawned gym part with ID: X`
 
 **Context:** BuyTile system is critical for player progression, managing the purchase and placement of gym components in the tycoon.
 
@@ -164,12 +182,22 @@
 - ❌ DataSystemBridge unable to locate BuyTile system for spawning functions
 - ❌ Tile data generation failing or incomplete
 - ❌ Gym parts not being found by ID
+- ❌ NEW (May 1): Models not maintaining proper placement when spawned
+- ❌ NEW (May 1): Walls appearing in incorrect positions (middle of playable areas)
+- ❌ NEW (May 1): Missing doors in some expected locations
+- ❌ NEW (May 1): Doors spawning too high (Y-position incorrect)
+- ❌ NEW (May 1): Spawned models not aligning correctly with grid system
 
 **Specific Issues:**
 - TycoonFolderFixer running constantly to maintain basic folder structure
 - Fallback spawn mechanisms being used but producing incomplete results
 - Auto setup for tile data attempting to run but failing in many cases
 - GymStructure folder missing in ServerStorage according to diagnostics
+- NEW: Model Glass Group placement coordinates inconsistent with expected positions
+- NEW: Black Wall-Bottom primary parts not correctly positioned
+- NEW: Door elements spawning at incorrect heights (e.g. 44.27 instead of standard height)
+- NEW: Position coordinates not properly synchronized across related elements
+- NEW: Primary parts being set incorrectly during spawning process
 
 **Required Actions:**
 1. Fix BuyTileSystem integration with CoreRegistry
@@ -177,6 +205,11 @@
 3. Restore GymStructure folder with proper templates in ServerStorage
 4. Fix the tile data generation and loading functionality
 5. Address the gym part spawning and ID resolution system
+6. NEW: Fix model spawn position calculation to ensure consistent placement
+7. NEW: Implement position validation to prevent spawning in invalid locations
+8. NEW: Create height normalization for door and wall elements
+9. NEW: Add coordinate verification during primary part assignment
+10. NEW: Fix grid alignment system to ensure models align properly with game world
 
 ## Data Persistence System Issues (⚠️ PARTIAL FUNCTIONING - April 30, 2025)
 

@@ -36,6 +36,9 @@ end
 local function findGymAutomationModule(moduleName)
     -- Define all possible search paths for the module
     local searchPaths = {
+        -- Direct access to src/server/Core
+        script.Parent:FindFirstChild("Core"),
+        
         -- Server locations
         ServerScriptService:FindFirstChild("Core"),
         ServerScriptService:FindFirstChild(moduleName),
