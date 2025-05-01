@@ -56,6 +56,35 @@ local function fixModelPosition(model, tileObj)
     local offsetZ = model:GetAttribute("OffsetZ") or 0
     local rotationY = model:GetAttribute("RotationY") or 0
     
+    -- Grid alignment correction
+    local gridSize = 4 -- Standard grid size
+    local gridAlignX = model:GetAttribute("GridAlignX")
+    local gridAlignZ = model:GetAttribute("GridAlignZ")
+    
+    -- Apply grid alignment if specified
+    if gridAlignX then
+        offsetX = math.floor(offsetX / gridSize) * gridSize
+    end
+    if gridAlignZ then
+        offsetZ = math.floor(offsetZ / gridSize) * gridSize
+    end
+    
+    -- Special handling for doors
+    if string.find(model.Name, "Door") then
+        -- Ensure doors are at the right height
+        if not model:GetAttribute("OffsetY") then
+            -- Standard door height relative to floor
+            offsetY = 0
+        end
+    end
+    
+    -- Special handling for walls
+    if string.find(model.Name, "Wall") then
+        -- Ensure walls are aligned with grid
+        offsetX = math.floor(offsetX / gridSize) * gridSize
+        offsetZ = math.floor(offsetZ / gridSize) * gridSize
+    end
+    
     -- Create adjusted CFrame
     local tileCFrame = tileObj.CFrame or tileObj:GetPivot()
     local adjustedCFrame = tileCFrame * CFrame.new(offsetX, offsetY, offsetZ) * CFrame.Angles(0, math.rad(rotationY), 0)
@@ -101,6 +130,9 @@ local function fixModelPosition(model, tileObj)
         model.CFrame = adjustedCFrame
     end
     
+    -- Mark the model as fixed
+    model:SetAttribute("PositionFixed", true)
+    
     debugPrint("New position:", tostring(model:GetPivot().Position))
 end
 
@@ -128,10 +160,71 @@ local function fixExistingModels()
             -- Skip non-model objects and special system objects
             if (child:IsA("Model") or child:IsA("BasePart")) and 
                not (child.Name == "BillboardGui" or child.Name == "ClickDetector" or child.Name == "BuyTilePart") then
+                
+                -- Special handling for doors
+                if string.find(child.Name, "Door") then
+                    local doorHeight = child:GetAttribute("StandardHeight") or 44
+                    child:SetAttribute("OffsetY", doorHeight - tile.Position.Y)
+                    debugPrint("Normalized door height for: " .. child.Name)
+                end
+                
+                -- Special handling for glass groups
+                if string.find(child.Name, "Glass Group") and child:IsA("Model") then
+                    -- Find suitable primary part for glass groups
+                    for _, part in pairs(child:GetDescendants()) do
+                        if part:IsA("BasePart") and string.find(part.Name, "Wall") then
+                            child.PrimaryPart = part
+                            debugPrint("Set " .. part.Name .. " as primary part for " .. child.Name)
+                            break
+                        end
+                    end
+                end
+                
+                -- Fix the position
                 fixModelPosition(child, tile)
+                
+                -- Mark as fixed
+                child:SetAttribute("PositionFixed", true)
             end
         end
     end
+    
+    -- Search for problematic models that aren't attached to BuyTile objects
+    local problemModels = {"Glass Group", "Door", "Wall-Bottom", "Wall-Top"}
+    
+    for _, modelName in ipairs(problemModels) do
+        for _, workspace in pairs(game.Workspace:GetChildren()) do
+            if workspace:IsA("Model") and workspace.Name:match("Tycoon_") then
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if (obj:IsA("Model") or obj:IsA("BasePart")) and 
+                       string.find(obj.Name, modelName) and
+                       not obj:GetAttribute("PositionFixed") then
+                        
+                        -- Find the nearest BuyTile to use as reference
+                        local nearestTile = nil
+                        local shortestDistance = math.huge
+                        
+                        local objPosition = obj:GetPivot().Position
+                        for _, tile in ipairs(buyTiles) do
+                            local distance = (tile.Position - objPosition).Magnitude
+                            if distance < shortestDistance then
+                                shortestDistance = distance
+                                nearestTile = tile
+                            end
+                        end
+                        
+                        if nearestTile and shortestDistance < 50 then -- Only fix if reasonably close to a tile
+                            debugPrint("Fixing orphaned model: " .. obj.Name .. " using nearby tile")
+                            fixModelPosition(obj, nearestTile)
+                            obj:SetAttribute("PositionFixed", true)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    debugPrint("Completed fixing existing models")
 end
 
 -- Monkey patch the BuyTileSystem to fix model placement on new purchases
@@ -163,10 +256,46 @@ local function monkeyPatchBuyTileSystem()
             if tileObj then
                 -- Wait briefly for model to be fully created
                 task.delay(0.1, function()
+                    -- Fix models in the tile
                     for _, child in pairs(tileObj:GetChildren()) do
-                        if child.Name == gymPartId then
+                        if (child:IsA("Model") or child:IsA("BasePart")) and
+                           (child.Name == gymPartId or 
+                            -- Also fix doors, walls, and glass elements which may need special handling
+                            string.find(child.Name, "Door") or 
+                            string.find(child.Name, "Wall") or 
+                            string.find(child.Name, "Glass")) then
+                            
+                            -- Apply special height normalization for doors
+                            if string.find(child.Name, "Door") then
+                                local doorHeight = child:GetAttribute("StandardHeight") or 44
+                                child:SetAttribute("OffsetY", doorHeight - tileObj.Position.Y)
+                                debugPrint("Normalized door height for: " .. child.Name)
+                            end
+                            
+                            -- Special handling for glass groups
+                            if string.find(child.Name, "Glass Group") and child:IsA("Model") then
+                                -- Find suitable primary part for glass groups
+                                for _, part in pairs(child:GetDescendants()) do
+                                    if part:IsA("BasePart") and string.find(part.Name, "Wall") then
+                                        child.PrimaryPart = part
+                                        debugPrint("Set " .. part.Name .. " as primary part for " .. child.Name)
+                                        break
+                                    end
+                                end
+                            end
+                            
                             fixModelPosition(child, tileObj)
-                            break
+                        end
+                    end
+                end)
+                
+                -- Also do a second pass after a longer delay to catch any late-loading models
+                task.delay(1, function()
+                    for _, child in pairs(tileObj:GetChildren()) do
+                        if (child:IsA("Model") or child:IsA("BasePart")) and 
+                           not child:GetAttribute("PositionFixed") then
+                            fixModelPosition(child, tileObj)
+                            child:SetAttribute("PositionFixed", true)
                         end
                     end
                 end)
@@ -190,7 +319,15 @@ if success then
     -- Fix existing models after a short delay to ensure everything is loaded
     task.delay(1, function()
         fixExistingModels()
-        debugPrint("Completed fixing existing models")
+        debugPrint("Completed initial fixing of existing models")
+        
+        -- Set up periodic checking for models that might have been missed
+        task.spawn(function()
+            while true do
+                task.wait(30) -- Run every 30 seconds
+                fixExistingModels()
+            end
+        end)
     end)
     
     -- Set global flag for testing purposes
@@ -201,8 +338,29 @@ if success then
     if BuyTileSystem then
         BuyTileSystem._positionFixApplied = true
     end
+    
+    -- Register events for new model spawns
+    game.Players.PlayerAdded:Connect(function(player)
+        task.delay(5, function() -- Wait for player's tycoon to be created
+            fixExistingModels() -- Fix models for this player
+        end)
+    end)
 else
     warn("Failed to patch BuyTileSystem - position issues may persist")
+    
+    -- Even if patching failed, try to fix existing models
+    task.delay(2, function()
+        fixExistingModels()
+        debugPrint("Completed fixing existing models despite patch failure")
+        
+        -- Set up fallback periodic checking for models
+        task.spawn(function()
+            while true do
+                task.wait(15) -- Run more frequently if patch failed
+                fixExistingModels()
+            end
+        end)
+    end)
 end
 
 -- Return true to indicate successful initialization

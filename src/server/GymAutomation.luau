@@ -12,13 +12,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
--- Try to get ModuleScriptAccessor for better module finding
-local function getModuleScriptAccessor()
+-- Try to get SafeRequire for better module finding
+local function getSafeRequire()
     -- Try to find in ReplicatedStorage/shared
     local shared = ReplicatedStorage:FindFirstChild("shared")
-    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+    if shared and shared:FindFirstChild("SafeRequire") then
         local success, result = pcall(function()
-            return require(shared.ModuleScriptAccessor)
+            return require(shared.SafeRequire)
         end)
         
         if success and result then
@@ -28,9 +28,9 @@ local function getModuleScriptAccessor()
     
     -- Try to find in src/shared
     local srcShared = ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("shared")
-    if srcShared and srcShared:FindFirstChild("ModuleScriptAccessor") then
+    if srcShared and srcShared:FindFirstChild("SafeRequire") then
         local success, result = pcall(function()
-            return require(srcShared.ModuleScriptAccessor)
+            return require(srcShared.SafeRequire)
         end)
         
         if success and result then
@@ -48,19 +48,22 @@ local function getGymAutomationManager()
         return GymAutomationManagerInstance
     end
     
-    -- First, try to use ModuleScriptAccessor if available
-    local accessor = getModuleScriptAccessor()
-    if accessor then
-        local manager = accessor.getSystem("GymAutomationManager")
+    -- First, try to use SafeRequire if available
+    local safeRequire = getSafeRequire()
+    if safeRequire then
+        local manager = safeRequire.requireFromPath("GymAutomationManager")
         if manager then
-            print("[GymAutomation] Found GymAutomationManager via ModuleScriptAccessor")
+            print("[GymAutomation] Found GymAutomationManager via SafeRequire")
             GymAutomationManagerInstance = manager
             return GymAutomationManagerInstance
         end
-    end      -- Define search paths
+    end
+    
+    -- Define search paths
     local searchPaths = {
         -- First check in the same folder
         script.Parent and script.Parent:FindFirstChild("GymAutomationManager"),
+        script.Parent:FindFirstChild("Core") and script.Parent.Core:FindFirstChild("GymAutomationManager"),
         
         -- Check standard server script paths
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("GymAutomation") and ServerScriptService.src.server.GymAutomation:FindFirstChild("GymAutomationManager"),
@@ -182,5 +185,29 @@ end
 
 -- Try to initialize on load
 GymAutomation.initialize()
+
+-- Register with CoreRegistry if available
+task.spawn(function()
+    -- Try to get SafeRequire
+    local safeRequire = getSafeRequire()
+    if safeRequire then
+        local CoreRegistry = safeRequire.requireFromPath("CoreRegistry")
+        if CoreRegistry then
+            if typeof(CoreRegistry.registerSystem) == "function" then
+                CoreRegistry.registerSystem("GymAutomation", GymAutomation)
+                print("[GymAutomation] Successfully registered with CoreRegistry")
+            elseif typeof(CoreRegistry.Register) == "function" then
+                CoreRegistry:Register("GymAutomation", GymAutomation)
+                print("[GymAutomation] Successfully registered with CoreRegistry")
+            else
+                warn("[GymAutomation] CoreRegistry found but no registration method available")
+            end
+        else
+            warn("[GymAutomation] Could not find CoreRegistry for registration")
+        end
+    end
+end)
+
+return GymAutomation
 
 return GymAutomation
