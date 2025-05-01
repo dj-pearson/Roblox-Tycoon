@@ -3,21 +3,14 @@
     RebirthUIComponent.luau
     
     Unified Rebirth UI component for the gym tycoon game.
-    Consolidates functionality from multiple rebirth UI scripts into a single coherent system.
     
-    Features:
-    - Rebirth progression display
-    - Benefits visualization
-    - Requirements tracking
-    - Confirmation dialog
-    - Post-rebirth effects
-    
-    Author: Updated April 26, 2025
+    Author: Updated May 1, 2025
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -34,7 +27,6 @@ local lastUpdateTime = 0
 -- Safe require utility
 local function requireSafely(moduleScript)
     if not moduleScript or not moduleScript:IsA("ModuleScript") then
-        warn("Invalid module script provided to requireSafely")
         return nil
     end
     
@@ -93,11 +85,9 @@ local CONFIG = {
     },
     minimumRebirthLevel = 10,
     minimumCash = 50000,
-    refreshInterval = 5, -- seconds
+    refreshInterval = 5,
     animationDuration = 0.3
 }
-
--- Utility Functions --
 
 -- Format currency with $ sign and commas
 local function formatCurrency(amount)
@@ -126,11 +116,12 @@ local function showRebirthEffects(callback)
     effectFrame.Parent = PlayerGui
     
     -- Create flash effect
-    TweenService:Create(
+    local flashTween = TweenService:Create(
         effectFrame,
         TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
         { BackgroundTransparency = 0 }
-    ):Play()
+    )
+    flashTween:Play()
     
     -- Add text
     local rebirthText = Instance.new("TextLabel")
@@ -146,30 +137,32 @@ local function showRebirthEffects(callback)
     rebirthText.Parent = effectFrame
     
     -- Fade in text
-    TweenService:Create(
+    local textInTween = TweenService:Create(
         rebirthText,
         TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out, 0, false, 0.5),
         { TextTransparency = 0 }
-    ):Play()
+    )
+    textInTween:Play()
     
     -- Fade out effect after delay
     task.delay(2.5, function()
-        TweenService:Create(
+        local fadeTween = TweenService:Create(
             effectFrame,
             TweenInfo.new(1, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
             { BackgroundTransparency = 1 }
-        ):Play()
+        )
+        fadeTween:Play()
         
-        TweenService:Create(
+        local textOutTween = TweenService:Create(
             rebirthText,
             TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
             { TextTransparency = 1 }
-        ):Play()
+        )
+        textOutTween:Play()
         
         -- Remove effect and call callback
         task.delay(1, function()
             effectFrame:Destroy()
-            
             if callback then
                 callback()
             end
@@ -283,8 +276,7 @@ local function createConfirmationDialog()
     message.TextYAlignment = Enum.TextYAlignment.Center
     message.Parent = dialogFrame
     
-    -- Create buttons using ButtonFactory
-    -- Store buttons in dialog's references for potential future access
+    -- Store buttons in dialog's references
     dialogFrame.ConfirmButton = ButtonFactory:createPrimaryButton({
         text = "Confirm",
         backgroundColor = CONFIG.colors.buttonPrimary,
@@ -292,7 +284,6 @@ local function createConfirmationDialog()
         position = UDim2.new(0.25, -75, 1, -60),
         parent = dialogFrame,
         callback = function()
-            -- Handle rebirth confirmation
             performRebirth()
             confirmationVisible = false
             dialogFrame:Destroy()
@@ -306,7 +297,6 @@ local function createConfirmationDialog()
         position = UDim2.new(0.75, -75, 1, -60),
         parent = dialogFrame,
         callback = function()
-            -- Close dialog
             confirmationVisible = false
             dialogFrame:Destroy()
         end
@@ -320,8 +310,7 @@ local function createConfirmationDialog()
     local targetPosition = UDim2.new(0.5, -200, 0.5, -125)
     
     -- Create and play tween
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    local sizeTween = TweenService:Create(dialogFrame, tweenInfo, {
+    local sizeTween = TweenService:Create(dialogFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = targetSize,
         Position = targetPosition
     })
@@ -413,245 +402,6 @@ local function createRebirthUI()
     description.TextWrapped = true
     description.Parent = contentFrame
     
-    -- Create stats section
-    local statsFrame = Instance.new("Frame")
-    statsFrame.Name = "StatsFrame"
-    statsFrame.Size = UDim2.new(0.5, -10, 0, 150)
-    statsFrame.Position = UDim2.new(0, 0, 0, 70)
-    statsFrame.BackgroundColor3 = CONFIG.colors.background:Lerp(Color3.new(1, 1, 1), 0.1)
-    statsFrame.BorderSizePixel = 0
-    statsFrame.Parent = contentFrame
-    
-    -- Add corner radius to stats frame
-    local statsCorner = Instance.new("UICorner")
-    statsCorner.CornerRadius = UDim.new(0, 8)
-    statsCorner.Parent = statsFrame
-    
-    -- Add stats title
-    local statsTitle = Instance.new("TextLabel")
-    statsTitle.Name = "Title"
-    statsTitle.Size = UDim2.new(1, 0, 0, 30)
-    statsTitle.BackgroundTransparency = 1
-    statsTitle.Text = "Current Progress"
-    statsTitle.TextColor3 = CONFIG.colors.text
-    statsTitle.Font = Enum.Font.GothamBold
-    statsTitle.TextSize = 18
-    statsTitle.Parent = statsFrame
-    
-    -- Create benefits section
-    local benefitsFrame = Instance.new("Frame")
-    benefitsFrame.Name = "BenefitsFrame"
-    benefitsFrame.Size = UDim2.new(0.5, -10, 0, 150)
-    benefitsFrame.Position = UDim2.new(0.5, 10, 0, 70)
-    benefitsFrame.BackgroundColor3 = CONFIG.colors.background:Lerp(Color3.new(1, 1, 1), 0.1)
-    benefitsFrame.BorderSizePixel = 0
-    benefitsFrame.Parent = contentFrame
-    
-    -- Add corner radius to benefits frame
-    local benefitsCorner = Instance.new("UICorner")
-    benefitsCorner.CornerRadius = UDim.new(0, 8)
-    benefitsCorner.Parent = benefitsFrame
-    
-    -- Add benefits title
-    local benefitsTitle = Instance.new("TextLabel")
-    benefitsTitle.Name = "Title"
-    benefitsTitle.Size = UDim2.new(1, 0, 0, 30)
-    benefitsTitle.BackgroundTransparency = 1
-    benefitsTitle.Text = "Next Rebirth Benefits"
-    benefitsTitle.TextColor3 = CONFIG.colors.text
-    benefitsTitle.Font = Enum.Font.GothamBold
-    benefitsTitle.TextSize = 18
-    benefitsTitle.Parent = benefitsFrame
-    
-    -- Add revenue multiplier
-    local revenueLabel = Instance.new("TextLabel")
-    revenueLabel.Name = "RevenueLabel"
-    revenueLabel.Size = UDim2.new(0.5, 0, 0, 25)
-    revenueLabel.Position = UDim2.new(0, 10, 0, 40)
-    revenueLabel.BackgroundTransparency = 1
-    revenueLabel.Text = "Revenue:"
-    revenueLabel.TextColor3 = CONFIG.colors.textDim
-    revenueLabel.Font = Enum.Font.Gotham
-    revenueLabel.TextSize = 16
-    revenueLabel.TextXAlignment = Enum.TextXAlignment.Left
-    revenueLabel.Parent = statsFrame
-    
-    local revenueValue = Instance.new("TextLabel")
-    revenueValue.Name = "RevenueValue"
-    revenueValue.Size = UDim2.new(0.5, -10, 0, 25)
-    revenueValue.Position = UDim2.new(0.5, 0, 0, 40)
-    revenueValue.BackgroundTransparency = 1
-    revenueValue.Text = "$0"
-    revenueValue.TextColor3 = CONFIG.colors.text
-    revenueValue.Font = Enum.Font.GothamBold
-    revenueValue.TextSize = 16
-    revenueValue.TextXAlignment = Enum.TextXAlignment.Right
-    revenueValue.Parent = statsFrame
-    
-    -- Add gym level
-    local levelLabel = Instance.new("TextLabel")
-    levelLabel.Name = "LevelLabel"
-    levelLabel.Size = UDim2.new(0.5, 0, 0, 25)
-    levelLabel.Position = UDim2.new(0, 10, 0, 70)
-    levelLabel.BackgroundTransparency = 1
-    levelLabel.Text = "Gym Level:"
-    levelLabel.TextColor3 = CONFIG.colors.textDim
-    levelLabel.Font = Enum.Font.Gotham
-    levelLabel.TextSize = 16
-    levelLabel.TextXAlignment = Enum.TextXAlignment.Left
-    levelLabel.Parent = statsFrame
-    
-    local levelValue = Instance.new("TextLabel")
-    levelValue.Name = "LevelValue"
-    levelValue.Size = UDim2.new(0.5, -10, 0, 25)
-    levelValue.Position = UDim2.new(0.5, 0, 0, 70)
-    levelValue.BackgroundTransparency = 1
-    levelValue.Text = "1"
-    levelValue.TextColor3 = CONFIG.colors.text
-    levelValue.Font = Enum.Font.GothamBold
-    levelValue.TextSize = 16
-    levelValue.TextXAlignment = Enum.TextXAlignment.Right
-    levelValue.Parent = statsFrame
-    
-    -- Add current rebirth level
-    local rebirthLevelLabel = Instance.new("TextLabel")
-    rebirthLevelLabel.Name = "RebirthLevelLabel"
-    rebirthLevelLabel.Size = UDim2.new(0.5, 0, 0, 25)
-    rebirthLevelLabel.Position = UDim2.new(0, 10, 0, 100)
-    rebirthLevelLabel.BackgroundTransparency = 1
-    rebirthLevelLabel.Text = "Rebirth Level:"
-    rebirthLevelLabel.TextColor3 = CONFIG.colors.textDim
-    rebirthLevelLabel.Font = Enum.Font.Gotham
-    rebirthLevelLabel.TextSize = 16
-    rebirthLevelLabel.TextXAlignment = Enum.TextXAlignment.Left
-    rebirthLevelLabel.Parent = statsFrame
-    
-    local rebirthLevelValue = Instance.new("TextLabel")
-    rebirthLevelValue.Name = "RebirthLevelValue"
-    rebirthLevelValue.Size = UDim2.new(0.5, -10, 0, 25)
-    rebirthLevelValue.Position = UDim2.new(0.5, 0, 0, 100)
-    rebirthLevelValue.BackgroundTransparency = 1
-    rebirthLevelValue.Text = "0"
-    rebirthLevelValue.TextColor3 = CONFIG.colors.text
-    rebirthLevelValue.Font = Enum.Font.GothamBold
-    rebirthLevelValue.TextSize = 16
-    rebirthLevelValue.TextXAlignment = Enum.TextXAlignment.Right
-    rebirthLevelValue.Parent = statsFrame
-    
-    -- Add revenue multiplier benefit
-    local revenueMultLabel = Instance.new("TextLabel")
-    revenueMultLabel.Name = "RevenueMultLabel"
-    revenueMultLabel.Size = UDim2.new(0.5, 0, 0, 25)
-    revenueMultLabel.Position = UDim2.new(0, 10, 0, 40)
-    revenueMultLabel.BackgroundTransparency = 1
-    revenueMultLabel.Text = "Cash Multiplier:"
-    revenueMultLabel.TextColor3 = CONFIG.colors.textDim
-    revenueMultLabel.Font = Enum.Font.Gotham
-    revenueMultLabel.TextSize = 16
-    revenueMultLabel.TextXAlignment = Enum.TextXAlignment.Left
-    revenueMultLabel.Parent = benefitsFrame
-    
-    local revenueMultValue = Instance.new("TextLabel")
-    revenueMultValue.Name = "RevenueMultValue"
-    revenueMultValue.Size = UDim2.new(0.5, -10, 0, 25)
-    revenueMultValue.Position = UDim2.new(0.5, 0, 0, 40)
-    revenueMultValue.BackgroundTransparency = 1
-    revenueMultValue.Text = "+5%"
-    revenueMultValue.TextColor3 = CONFIG.colors.positive
-    revenueMultValue.Font = Enum.Font.GothamBold
-    revenueMultValue.TextSize = 16
-    revenueMultValue.TextXAlignment = Enum.TextXAlignment.Right
-    revenueMultValue.Parent = benefitsFrame
-    
-    -- Add equipment discount benefit
-    local equipmentLabel = Instance.new("TextLabel")
-    equipmentLabel.Name = "EquipmentLabel"
-    equipmentLabel.Size = UDim2.new(0.5, 0, 0, 25)
-    equipmentLabel.Position = UDim2.new(0, 10, 0, 70)
-    equipmentLabel.BackgroundTransparency = 1
-    equipmentLabel.Text = "Equipment Cost:"
-    equipmentLabel.TextColor3 = CONFIG.colors.textDim
-    equipmentLabel.Font = Enum.Font.Gotham
-    equipmentLabel.TextSize = 16
-    equipmentLabel.TextXAlignment = Enum.TextXAlignment.Left
-    equipmentLabel.Parent = benefitsFrame
-    
-    local equipmentValue = Instance.new("TextLabel")
-    equipmentValue.Name = "EquipmentValue"
-    equipmentValue.Size = UDim2.new(0.5, -10, 0, 25)
-    equipmentValue.Position = UDim2.new(0.5, 0, 0, 70)
-    equipmentValue.BackgroundTransparency = 1
-    equipmentValue.Text = "-10%"
-    equipmentValue.TextColor3 = CONFIG.colors.positive
-    equipmentValue.Font = Enum.Font.GothamBold
-    equipmentValue.TextSize = 16
-    equipmentValue.TextXAlignment = Enum.TextXAlignment.Right
-    equipmentValue.Parent = benefitsFrame
-    
-    -- Add startup bonus benefit
-    local startupLabel = Instance.new("TextLabel")
-    startupLabel.Name = "StartupLabel"
-    startupLabel.Size = UDim2.new(0.5, 0, 0, 25)
-    startupLabel.Position = UDim2.new(0, 10, 0, 100)
-    startupLabel.BackgroundTransparency = 1
-    startupLabel.Text = "Startup Bonus:"
-    startupLabel.TextColor3 = CONFIG.colors.textDim
-    startupLabel.Font = Enum.Font.Gotham
-    startupLabel.TextSize = 16
-    startupLabel.TextXAlignment = Enum.TextXAlignment.Left
-    startupLabel.Parent = benefitsFrame
-    
-    local startupValue = Instance.new("TextLabel")
-    startupValue.Name = "StartupValue"
-    startupValue.Size = UDim2.new(0.5, -10, 0, 25)
-    startupValue.Position = UDim2.new(0.5, 0, 0, 100)
-    startupValue.BackgroundTransparency = 1
-    startupValue.Text = "$5,000"
-    startupValue.TextColor3 = CONFIG.colors.positive
-    startupValue.Font = Enum.Font.GothamBold
-    startupValue.TextSize = 16
-    startupValue.TextXAlignment = Enum.TextXAlignment.Right
-    startupValue.Parent = benefitsFrame
-    
-    -- Add requirements
-    local requirementsLabel = Instance.new("TextLabel")
-    requirementsLabel.Name = "RequirementsLabel"
-    requirementsLabel.Size = UDim2.new(1, 0, 0, 25)
-    requirementsLabel.Position = UDim2.new(0, 0, 0, 230)
-    requirementsLabel.BackgroundTransparency = 1
-    requirementsLabel.Text = "Requirements to Rebirth:"
-    requirementsLabel.TextColor3 = CONFIG.colors.text
-    requirementsLabel.Font = Enum.Font.GothamBold
-    requirementsLabel.TextSize = 16
-    requirementsLabel.TextXAlignment = Enum.TextXAlignment.Left
-    requirementsLabel.Parent = contentFrame
-    
-    -- Add level requirement
-    local levelRequirement = Instance.new("TextLabel")
-    levelRequirement.Name = "LevelRequirement"
-    levelRequirement.Size = UDim2.new(1, 0, 0, 25)
-    levelRequirement.Position = UDim2.new(0, 0, 0, 255)
-    levelRequirement.BackgroundTransparency = 1
-    levelRequirement.Text = "• Gym Level " .. CONFIG.minimumRebirthLevel .. " or higher"
-    levelRequirement.TextColor3 = CONFIG.colors.textDim
-    levelRequirement.Font = Enum.Font.Gotham
-    levelRequirement.TextSize = 16
-    levelRequirement.TextXAlignment = Enum.TextXAlignment.Left
-    levelRequirement.Parent = contentFrame
-    
-    -- Add cash requirement
-    local cashRequirement = Instance.new("TextLabel")
-    cashRequirement.Name = "CashRequirement"
-    cashRequirement.Size = UDim2.new(1, 0, 0, 25)
-    cashRequirement.Position = UDim2.new(0, 0, 0, 285)
-    cashRequirement.BackgroundTransparency = 1
-    cashRequirement.Text = "• " .. formatCurrency(CONFIG.minimumCash) .. " cash"
-    cashRequirement.TextColor3 = CONFIG.colors.textDim
-    cashRequirement.Font = Enum.Font.Gotham
-    cashRequirement.TextSize = 16
-    cashRequirement.TextXAlignment = Enum.TextXAlignment.Left
-    cashRequirement.Parent = contentFrame
-    
     -- Add status label
     local statusLabel = Instance.new("TextLabel")
     statusLabel.Name = "StatusLabel"
@@ -676,21 +426,16 @@ local function createRebirthUI()
             local canDoRebirth, reason = canRebirth()
             
             if canDoRebirth then
-                -- Show confirmation dialog
                 createConfirmationDialog()
             else
-                -- Update status label
                 statusLabel.Text = reason
                 statusLabel.TextColor3 = CONFIG.colors.negative
                 
-                -- Shake the button to indicate it can't be pressed
                 local originalPosition = mainFrame.RebirthButton.Position
-                
                 for i = 1, 5 do
                     mainFrame.RebirthButton.Position = originalPosition + UDim2.new(0, (i % 2 == 0) and 5 or -5, 0, 0)
                     task.wait(0.05)
                 end
-                
                 mainFrame.RebirthButton.Position = originalPosition
             end
         end
@@ -703,7 +448,6 @@ end
 function RebirthUIComponent:updateUI()
     if not rebirthGui or not rebirthGui.Parent then return end
     
-    -- Get player data from server
     local success, data = pcall(function()
         return rebirthEvent:InvokeServer("getRebirthData")
     end)
@@ -713,25 +457,7 @@ function RebirthUIComponent:updateUI()
         return
     end
     
-    -- Update cached data
     playerData = data
-    
-    -- Update stats display
-    local statsFrame = rebirthGui.MainFrame.Content.StatsFrame
-    if statsFrame then
-        statsFrame.RevenueValue.Text = formatCurrency(data.revenue or 0)
-        statsFrame.LevelValue.Text = tostring(data.gymLevel or 1)
-        statsFrame.RebirthLevelValue.Text = tostring(data.rebirthLevel or 0)
-    end
-    
-    -- Update benefits display
-    local benefitsFrame = rebirthGui.MainFrame.Content.BenefitsFrame
-    if benefitsFrame then
-        local nextLevel = (data.rebirthLevel or 0) + 1
-        benefitsFrame.RevenueMultValue.Text = string.format("+%d%%", nextLevel * 5)
-        benefitsFrame.EquipmentValue.Text = string.format("-%d%%", nextLevel * 2)
-        benefitsFrame.StartupValue.Text = formatCurrency(5000 * nextLevel)
-    end
     
     -- Update status
     local canDoRebirth, reason = canRebirth()
@@ -745,20 +471,8 @@ function RebirthUIComponent:updateUI()
         statusLabel.TextColor3 = CONFIG.colors.negative
     end
     
-    -- Update requirements
-    local contentFrame = rebirthGui.MainFrame.Content
-    contentFrame.LevelRequirement.TextColor3 = (data.gymLevel or 0) >= CONFIG.minimumRebirthLevel 
-        and CONFIG.colors.positive 
-        or CONFIG.colors.textDim
-        
-    contentFrame.CashRequirement.TextColor3 = (data.revenue or 0) >= CONFIG.minimumCash 
-        and CONFIG.colors.positive 
-        or CONFIG.colors.textDim
-    
     lastUpdateTime = os.time()
 end
-
---[[ Public API Functions ]]--
 
 -- Initialize the component
 function RebirthUIComponent:initialize()
@@ -766,17 +480,13 @@ function RebirthUIComponent:initialize()
         return self
     end
     
-    -- Create the UI
     rebirthGui = createRebirthUI()
     
-    -- Register the component with UIRegistry
     if UIRegistry and UIRegistry.registerComponent then
         UIRegistry:registerComponent("RebirthUI", self, "1.0.0")
     end
     
-    -- Setup periodic refresh
     self.refreshConnection = RunService.Heartbeat:Connect(function()
-        -- Only refresh every CONFIG.refreshInterval seconds
         if os.time() - lastUpdateTime >= CONFIG.refreshInterval then
             self:updateUI()
         end
@@ -792,17 +502,14 @@ function RebirthUIComponent:show()
         self:initialize()
     end
     
-    -- Update the UI before showing
     self:updateUI()
     
-    -- Set initial state for animation
     local mainFrame = rebirthGui.MainFrame
     mainFrame.Size = UDim2.new(0, 500, 0, 350)
     mainFrame.Position = UDim2.new(0.5, -250, 0.4, -175)
     mainFrame.BackgroundTransparency = 1
     mainFrame.Visible = true
     
-    -- Create and play entrance animation
     local positionTween = TweenService:Create(
         mainFrame,
         TweenInfo.new(CONFIG.animationDuration, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
@@ -829,7 +536,6 @@ function RebirthUIComponent:hide()
     
     local mainFrame = rebirthGui.MainFrame
     
-    -- Create and play exit animation
     local positionTween = TweenService:Create(
         mainFrame,
         TweenInfo.new(CONFIG.animationDuration, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
@@ -842,7 +548,6 @@ function RebirthUIComponent:hide()
         { BackgroundTransparency = 1 }
     )
     
-    -- Hide after animation completes
     transparencyTween.Completed:Connect(function()
         mainFrame.Visible = false
     end)
@@ -855,13 +560,11 @@ end
 
 -- Destroy the component
 function RebirthUIComponent:destroy()
-    -- Clean up refresh connection
     if self.refreshConnection then
         self.refreshConnection:Disconnect()
         self.refreshConnection = nil
     end
     
-    -- Remove UI
     if rebirthGui then
         rebirthGui:Destroy()
         rebirthGui = nil
@@ -870,5 +573,7 @@ function RebirthUIComponent:destroy()
     return true
 end
 
--- Return the module
+-- Initialize on module load
+RebirthUIComponent:initialize()
+
 return RebirthUIComponent

@@ -17,7 +17,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+-- Not using UserInputService in this module yet
+-- local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -55,7 +56,8 @@ end
 
 local clientFolder = srcFolder:FindFirstChild("client")
 local clientUIFolder = clientFolder and clientFolder:FindFirstChild("UI")
-local clientCoreFolder = clientFolder and clientFolder:FindFirstChild("Core")
+-- Commenting out unused variable:
+-- local clientCoreFolder = clientFolder and clientFolder:FindFirstChild("Core")
 local uiCoreFolder = clientUIFolder and clientUIFolder:FindFirstChild("Core")
 
 -- Required modules
@@ -64,7 +66,8 @@ local ButtonFactory = requireSafely(sharedFolder:FindFirstChild("ButtonFactory")
 local DialogFactory = requireSafely(sharedFolder:FindFirstChild("DialogFactory"))
 local UIManager = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIManager"))
 local UIRegistry = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIRegistry"))
-local ClientRegistry = requireSafely(clientCoreFolder and clientCoreFolder:FindFirstChild("ClientRegistry"))
+-- Not using ClientRegistry in this module yet, but might need it later
+-- local ClientRegistry = requireSafely(clientCoreFolder and clientCoreFolder:FindFirstChild("ClientRegistry"))
 
 -- Create fallbacks for critical modules
 if not UIStyle then
@@ -130,6 +133,18 @@ local uiElements = {
     menuButtons = {},
     statusElements = {}
 }
+
+-- Forward declarations for functions to prevent "not defined" errors
+local createStatusIndicators
+local populateCategoryContent
+local createGymContent
+local createEquipmentContent
+local createStaffContent
+local createMembersContent
+local createResearchContent
+local createStatisticsContent
+local createShopContent
+local createSettingsContent
 
 -- Configuration
 local CONFIG = {
@@ -245,15 +260,15 @@ local function createMainUI()
     statusBar.BorderSizePixel = 0
     statusBar.Parent = mainFrame
     
-    -- Create status indicators
-    createStatusIndicators(statusBar)
-    
     -- Store references
     uiElements.mainFrame = mainFrame
     uiElements.sidebar = sidebar
     uiElements.content = content
     uiElements.statusBar = statusBar
     uiElements.screenGui = screenGui
+    
+    -- Create status indicators (will be called after function is defined)
+    createStatusIndicators(statusBar)
     
     return mainFrame
 end
@@ -324,7 +339,7 @@ local function createCategoryContents(content)
 end
 
 -- Populate content for a specific category
-local function populateCategoryContent(category, frame)
+populateCategoryContent = function(category, frame)
     -- Title for the category
     local title = Instance.new("TextLabel")
     title.Name = "Title"
@@ -357,7 +372,7 @@ local function populateCategoryContent(category, frame)
 end
 
 -- Create status indicators
-local function createStatusIndicators(statusBar)
+createStatusIndicators = function(statusBar)
     local indicators = {
         { name = "Money", icon = "💰", value = "$0" },
         { name = "Members", icon = "👥", value = "0" },
@@ -418,7 +433,7 @@ end
 --[[ Category Content Creation Functions ]]--
 
 -- Create Gym category content
-local function createGymContent(frame)
+createGymContent = function(frame)
     -- Description
     local description = Instance.new("TextLabel")
     description.Name = "Description"
@@ -541,7 +556,7 @@ local function createGymContent(frame)
 end
 
 -- Create Equipment category content
-local function createEquipmentContent(frame)
+createEquipmentContent = function(frame)
     -- Description
     local description = Instance.new("TextLabel")
     description.Name = "Description"
@@ -685,7 +700,7 @@ local function createEquipmentContent(frame)
 end
 
 -- Create Staff category content (simplified)
-local function createStaffContent(frame)
+createStaffContent = function(frame)
     local description = Instance.new("TextLabel")
     description.Name = "Description"
     description.Size = UDim2.new(1, 0, 0, 40)
@@ -731,7 +746,7 @@ local function createStaffContent(frame)
 end
 
 -- Create Members category content (simplified)
-local function createMembersContent(frame)
+createMembersContent = function(frame)
     local description = Instance.new("TextLabel")
     description.Name = "Description"
     description.Size = UDim2.new(1, 0, 0, 40)
@@ -779,7 +794,7 @@ local function createMembersContent(frame)
 end
 
 -- Create Research category content (simplified)
-local function createResearchContent(frame)
+createResearchContent = function(frame)
     local description = Instance.new("TextLabel")
     description.Name = "Description"
     description.Size = UDim2.new(1, 0, 0, 40)
@@ -806,7 +821,7 @@ local function createResearchContent(frame)
 end
 
 -- Create Statistics category content (simplified)
-local function createStatisticsContent(frame)
+createStatisticsContent = function(frame)
     local description = Instance.new("TextLabel")
     description.Name = "Description"
     description.Size = UDim2.new(1, 0, 0, 40)
@@ -854,7 +869,7 @@ local function createStatisticsContent(frame)
 end
 
 -- Create Shop category content (simplified)
-local function createShopContent(frame)
+createShopContent = function(frame)
     local description = Instance.new("TextLabel")
     description.Name = "Description"
     description.Size = UDim2.new(1, 0, 0, 40)
@@ -929,21 +944,20 @@ local function createShopContent(frame)
         name.TextColor3 = UIStyle.Colors.Text
         name.TextXAlignment = Enum.TextXAlignment.Left
         name.Parent = itemFrame
-        
-        -- Item description
-        local description = Instance.new("TextLabel")
-        description.Name = "Description"
-        description.Size = UDim2.new(1, -130, 0, 40)
-        description.Position = UDim2.new(0, 60, 0, 35)
-        description.BackgroundTransparency = 1
-        description.Text = item.description
-        description.Font = UIStyle.Fonts.Regular
-        description.TextSize = 14
-        description.TextColor3 = UIStyle.Colors.TextDisabled
-        description.TextXAlignment = Enum.TextXAlignment.Left
-        description.TextYAlignment = Enum.TextYAlignment.Top
-        description.TextWrapped = true
-        description.Parent = itemFrame
+          -- Item description
+        local shopItemDesc = Instance.new("TextLabel")
+        shopItemDesc.Name = "Description"
+        shopItemDesc.Size = UDim2.new(1, -130, 0, 40)
+        shopItemDesc.Position = UDim2.new(0, 60, 0, 35)
+        shopItemDesc.BackgroundTransparency = 1
+        shopItemDesc.Text = item.description
+        shopItemDesc.Font = UIStyle.Fonts.Regular
+        shopItemDesc.TextSize = 14
+        shopItemDesc.TextColor3 = UIStyle.Colors.TextDisabled
+        shopItemDesc.TextXAlignment = Enum.TextXAlignment.Left
+        shopItemDesc.TextYAlignment = Enum.TextYAlignment.Top
+        shopItemDesc.TextWrapped = true
+        shopItemDesc.Parent = itemFrame
         
         -- Item cost
         local costLabel = Instance.new("TextLabel")
@@ -993,7 +1007,7 @@ local function createShopContent(frame)
 end
 
 -- Create Settings category content (simplified)
-local function createSettingsContent(frame)
+createSettingsContent = function(frame)
     local description = Instance.new("TextLabel")
     description.Name = "Description"
     description.Size = UDim2.new(1, 0, 0, 40)
@@ -1111,10 +1125,8 @@ function MainMenuUI:initialize()
         UIManager:registerUI("MainMenu", self) -- Also register as MainMenu for compatibility
         print("MainMenuUI: Registered with UIManager as both MainMenuUI and MainMenu")
     end
-    
-    -- Create global access point for emergency fallback
-    _G.MainMenuUI = self
-    print("MainMenuUI: Created global access point _G.MainMenuUI")
+      -- No longer using global access point for better code structure
+    print("MainMenuUI: Initialization complete")
     
     return self
 end

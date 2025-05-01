@@ -37,12 +37,29 @@ local function requireSafely(moduleScript)
     end
 end
 
--- Try to find dependencies
-local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+-- Find paths to important folders
+local srcFolder = ReplicatedStorage:FindFirstChild("src") 
+if not srcFolder then
+    error("Source folder not found")
+    return
+end
+
+local sharedFolder = srcFolder:FindFirstChild("shared")
+if not sharedFolder then
+    error("Shared folder not found")
+    return
+end
+
+local clientFolder = srcFolder:FindFirstChild("client")
+local clientUIFolder = clientFolder and clientFolder:FindFirstChild("UI")
+-- local clientCoreFolder = clientFolder and clientFolder:FindFirstChild("Core") -- Commented out as it's unused
+local uiCoreFolder = clientUIFolder and clientUIFolder:FindFirstChild("Core")
+
+-- Required modules
 local ButtonFactory = requireSafely(sharedFolder and sharedFolder:FindFirstChild("ButtonFactory"))
 local UIStyle = requireSafely(sharedFolder and sharedFolder:FindFirstChild("UIStyle"))
-local clientCoreFolder = LocalPlayer.PlayerScripts:FindFirstChild("Client") and
-                         LocalPlayer.PlayerScripts.Client:FindFirstChild("Core")
+local UIManager = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIManager"))
+local UIRegistry = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIRegistry"))
 local RebirthRemote = ReplicatedStorage:FindFirstChild("Remotes") and
                      ReplicatedStorage.Remotes:FindFirstChild("RebirthRemote")
 
@@ -116,9 +133,8 @@ local function createMainUI()
     titleText.TextColor3 = UIStyle.Colors.Text
     titleText.TextXAlignment = Enum.TextXAlignment.Left
     titleText.Parent = titleBar
-    
-    -- Add close button
-    local closeButton = ButtonFactory.createButton({
+      -- Add close button
+    uiElements.closeButton = ButtonFactory.createButton({
         size = UDim2.new(0, 30, 0, 30),
         position = UDim2.new(1, -35, 0, 5),
         backgroundColor = UIStyle.Colors.Danger,
