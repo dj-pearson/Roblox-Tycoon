@@ -65,6 +65,19 @@ function DataSystemBridge:findDataManager()
         return result
     end
     
+    -- Try also DataPersistenceManager as an alternative
+    success, result = pcall(function()
+        return require(ServerScriptService.Core.DataPersistenceManager)
+    end)
+    
+    if success and result then
+        CoreRegistry:registerSystem("DataPersistenceManager", result)
+        -- Also register as DataManager for backward compatibility
+        CoreRegistry:registerSystem("DataManager", result)
+        log("Found DataPersistenceManager in Core folder and registered as DataManager")
+        return result
+    end
+    
     -- Try to locate it in Data folder
     success, result = pcall(function()
         return require(ServerScriptService.Data.GymTycoonDataManager)
@@ -197,6 +210,8 @@ function DataSystemBridge:createDataPersistenceInterface()
             return dataManager.loadData(player)
         elseif dataManager.loadPlayerData then
             return dataManager.loadPlayerData(player)
+        elseif dataManager.getData then
+            return dataManager.getData(player)
         elseif dataManager.loadedData and dataManager.loadedData[player.UserId] then
             return dataManager.loadedData[player.UserId]
         end
@@ -212,8 +227,34 @@ function DataSystemBridge:createDataPersistenceInterface()
             return dataManager.savePlayerData(player, immediate)
         elseif dataManager.save then
             return dataManager.save(player, immediate)
+        elseif dataManager.saveAsync then
+            task.spawn(function()
+                dataManager.saveAsync(player)
+            end)
+            return true
         end
         log("No compatible save function found for player: " .. player.Name)
+        return false
+    end
+    
+    -- Standardized data update function
+    interface.updateData = function(player, key, value)
+        if dataManager.updatePlayerData then
+            return dataManager.updatePlayerData(player, key, value)
+        elseif dataManager.updateData then
+            return dataManager.updateData(player, key, value)
+        elseif dataManager.setData then
+            return dataManager.setData(player, key, value)
+        elseif dataManager.loadedData and dataManager.loadedData[player.UserId] then
+            -- Try to update directly
+            dataManager.loadedData[player.UserId][key] = value
+            -- Trigger a save
+            if interface.saveData then
+                interface.saveData(player, false)
+            end
+            return true
+        end
+        log("No compatible update function found for player: " .. player.Name)
         return false
     end
     
@@ -258,6 +299,101 @@ function DataSystemBridge:getDataAccessLayer()
     if dataAccessLayer then
         log("Found DataAccessLayer in CoreRegistry")
         return dataAccessLayer
+    end
+    
+    -- Try to find it in Core folder
+    local success, result = pcall(function()
+        return require(ServerScriptService.Core.DataAccessLayer)
+    end)
+    
+    if success and result then
+        CoreRegistry:registerSystem("DataAccessLayer", result)
+        log("Found DataAccessLayer in Core folder")
+        return result
+    end
+    
+    -- Create a simplified implementation that connects to our data interface
+    log("Unable to locate DataAccessLayer, creating basic version")
+    
+    local interface = self:createDataPersistenceInterface()
+    dataAccessLayer = {
+        getPlayerData = function(player)
+            if interface and interface.loadData then
+                return interface.loadData(player)
+            end
+            return nil
+        end,
+        setPlayerData = function(player, key, value)
+            if interface and interface.updateData then
+                return interface.updateData(player, key, value)
+            end
+            return false
+        end,
+        savePlayerData = function(player, immediate)
+            if interface and interface.saveData then
+                return interface.saveData(player, immediate)
+            end
+            return false
+        end,
+        initialize = function()
+            log("Initialized basic DataAccessLayer")
+            return true
+        end
+    }
+    
+    -- Register this implementation
+    CoreRegistry:registerSystem("DataAccessLayer", dataAccessLayer)
+    
+    return dataAccessLayer
+    end
+    
+    -- Try to find it in Core folder
+    local success, result = pcall(function()
+        return require(ServerScriptService.Core.DataAccessLayer)
+    end)
+    
+    if success and result then
+        CoreRegistry:registerSystem("DataAccessLayer", result)
+        log("Found DataAccessLayer in Core folder")
+        return result
+    end
+    
+    -- Create a simplified implementation that connects to our data interface
+    log("Unable to locate DataAccessLayer, creating basic version")
+    
+    dataAccessLayer = {
+        interface = self:createDataPersistenceInterface(),
+        getPlayerData = function(player)
+            local interface = self:createDataPersistenceInterface()
+            if interface and interface.loadData then
+                return interface.loadData(player)
+            end
+            return nil
+        end,
+        setPlayerData = function(player, key, value)
+            local interface = self:createDataPersistenceInterface()
+            if interface and interface.updateData then
+                return interface.updateData(player, key, value)
+            end
+            return false
+        end,
+        savePlayerData = function(player, immediate)
+            local interface = self:createDataPersistenceInterface()
+            if interface and interface.saveData then
+                return interface.saveData(player, immediate)
+            end
+            return false
+        end,
+        initialize = function()
+            log("Initialized basic DataAccessLayer")
+            return true
+        end
+    }
+    
+    -- Register this implementation
+    CoreRegistry:registerSystem("DataAccessLayer", dataAccessLayer)
+    
+    return dataAccessLayer
     end
     
     -- Try Core folder

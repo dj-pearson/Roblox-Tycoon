@@ -183,14 +183,18 @@ local Diagnostics = {
         log("TycoonStructure diagnostic result: OK")
         return "OK"
     end,
-    
-    -- Check DataPersistence
+      -- Check DataPersistence
     DataPersistence = function()
         log("Running DataPersistence diagnostic")
         
-        -- Try to load DataManager
+        -- Try to load DataManager first
         local safeRequire = getSafeRequire()
         local DataManager = getSystem("DataManager", safeRequire)
+        
+        -- If not found, try DataPersistenceManager
+        if not DataManager then
+            DataManager = getSystem("DataPersistenceManager", safeRequire)
+        end
         
         if not DataManager then
             log("DataPersistence diagnostic result: ERROR (DataManager not found)")
@@ -435,9 +439,31 @@ local Repairs = {
         -- Try to load DataManager
         local DataManager = getSystem("DataManager", getSafeRequire())
         
+        -- If not found, try DataPersistenceManager
         if not DataManager then
-            log("DataPersistence repair: DataManager not found, cannot repair")
-            return false
+            DataManager = getSystem("DataPersistenceManager", getSafeRequire())
+        }
+        
+        if not DataManager then
+            -- Try to find it directly and register with CoreRegistry
+            local safeRequire = getSafeRequire()
+            local success, module = pcall(function()
+                return safeRequire(ServerScriptService.Core.DataPersistenceManager)
+            end)
+            
+            if success and module then
+                DataManager = module
+                log("Found DataPersistenceManager module, registering with CoreRegistry")
+                local CoreRegistry = getSystem("CoreRegistry")
+                if CoreRegistry then
+                    CoreRegistry:registerSystem("DataPersistenceManager", DataManager)
+                    CoreRegistry:registerSystem("DataManager", DataManager) -- For backward compatibility
+                    log("DataPersistence repair: registered DataManager with CoreRegistry")
+                end
+            else
+                log("DataPersistence repair: DataManager not found, cannot repair")
+                return false
+            end
         end
         
         -- Attempt to reinitialize
