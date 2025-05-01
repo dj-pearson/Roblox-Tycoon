@@ -1,4 +1,4 @@
---[[
+﻿--[[
     EventBridge.luau
     
     Core system for cross-boundary event communication.
@@ -242,15 +242,14 @@ function EventBridge.handleEventFromServer(eventName, ...)
         if #eventHistory > CONFIG.MAX_EVENT_HISTORY then
             table.remove(eventHistory, 1)
         end
-    end    -- Call any registered handlers
+    end
+    
+    -- Call any registered handlers
     local handlers = eventHandlers[eventName]
     if handlers then
-        local args = table.pack(...)
         for _, handler in ipairs(handlers) do
             task.spawn(function()
-                local success, result = pcall(function()
-                    return handler(table.unpack(args, 1, args.n))
-                end)
+                local success, result = pcall(handler, ...)
                 if not success then
                     warn("[EventBridge] Error in handler for " .. eventName .. ": " .. tostring(result))
                 end
@@ -547,7 +546,9 @@ function EventBridge.onServerEvent(eventName, callback)
         if not validateEventData(player, eventName, ...) then
             log("Validation failed for " .. eventName .. " by " .. player.Name)
             return
-        end        -- Record in history
+        end
+        
+        -- Record in history
         if CONFIG.LOG_TRAFFIC then
             table.insert(eventHistory, {
                 time = os.time(),
@@ -564,12 +565,8 @@ function EventBridge.onServerEvent(eventName, callback)
         end
         
         -- Call the callback
-        -- Capture varargs locally
-        local args = table.pack(...)
         task.spawn(function()
-            local success, result = pcall(function()
-                return callback(player, table.unpack(args, 1, args.n))
-            end)
+            local success, result = pcall(callback, player, ...)
             if not success then
                 warn("[EventBridge] Error in handler for " .. eventName .. ": " .. tostring(result))
             end
@@ -749,15 +746,15 @@ function EventBridge.invokeServer(functionName, ...)
             args = {...}
         })
         
-        -- Trim history if needed        if #eventHistory > CONFIG.MAX_EVENT_HISTORY then
+        -- Trim history if needed
+        if #eventHistory > CONFIG.MAX_EVENT_HISTORY then
             table.remove(eventHistory, 1)
         end
     end
     
     -- Call the function
-    local args = table.pack(...)
     local success, result = pcall(function()
-        return remote:InvokeServer(table.unpack(args, 1, args.n))
+        return remote:InvokeServer(...)
     end)
     
     if not success then
@@ -803,9 +800,8 @@ function EventBridge.invokeClient(client, functionName, ...)
     end
     
     -- Call the function
-    local args = table.pack(...)
     local success, result = pcall(function()
-        return remote:InvokeClient(client, table.unpack(args, 1, args.n))
+        return remote:InvokeClient(client, ...)
     end)
     
     if not success then
@@ -862,3 +858,4 @@ end
 EventBridge.initialize()
 
 return EventBridge
+
