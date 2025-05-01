@@ -1,1 +1,12 @@
 std = "roblox"
+
+[rules]
+# Enable additional checks
+multiple_statements = "warn"
+shadowing = "warn"
+unused_variable = "warn"
+if_same_then_else = "warn"
+
+[config]
+# Auto-detect luau files
+luau = true
