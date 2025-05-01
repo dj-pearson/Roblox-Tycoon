@@ -316,101 +316,6 @@ function DataSystemBridge:getDataAccessLayer()
     log("Unable to locate DataAccessLayer, creating basic version")
     
     local interface = self:createDataPersistenceInterface()
-    dataAccessLayer = {
-        getPlayerData = function(player)
-            if interface and interface.loadData then
-                return interface.loadData(player)
-            end
-            return nil
-        end,
-        setPlayerData = function(player, key, value)
-            if interface and interface.updateData then
-                return interface.updateData(player, key, value)
-            end
-            return false
-        end,
-        savePlayerData = function(player, immediate)
-            if interface and interface.saveData then
-                return interface.saveData(player, immediate)
-            end
-            return false
-        end,
-        initialize = function()
-            log("Initialized basic DataAccessLayer")
-            return true
-        end
-    }
-    
-    -- Register this implementation
-    CoreRegistry:registerSystem("DataAccessLayer", dataAccessLayer)
-    
-    return dataAccessLayer
-    end
-    
-    -- Try to find it in Core folder
-    local success, result = pcall(function()
-        return require(ServerScriptService.Core.DataAccessLayer)
-    end)
-    
-    if success and result then
-        CoreRegistry:registerSystem("DataAccessLayer", result)
-        log("Found DataAccessLayer in Core folder")
-        return result
-    end
-    
-    -- Create a simplified implementation that connects to our data interface
-    log("Unable to locate DataAccessLayer, creating basic version")
-    
-    dataAccessLayer = {
-        interface = self:createDataPersistenceInterface(),
-        getPlayerData = function(player)
-            local interface = self:createDataPersistenceInterface()
-            if interface and interface.loadData then
-                return interface.loadData(player)
-            end
-            return nil
-        end,
-        setPlayerData = function(player, key, value)
-            local interface = self:createDataPersistenceInterface()
-            if interface and interface.updateData then
-                return interface.updateData(player, key, value)
-            end
-            return false
-        end,
-        savePlayerData = function(player, immediate)
-            local interface = self:createDataPersistenceInterface()
-            if interface and interface.saveData then
-                return interface.saveData(player, immediate)
-            end
-            return false
-        end,
-        initialize = function()
-            log("Initialized basic DataAccessLayer")
-            return true
-        end
-    }
-    
-    -- Register this implementation
-    CoreRegistry:registerSystem("DataAccessLayer", dataAccessLayer)
-    
-    return dataAccessLayer
-    end
-    
-    -- Try Core folder
-    local success, result = pcall(function() 
-        return require(ServerScriptService.Core.DataAccessLayer)
-    end)
-    
-    if success and result then
-        CoreRegistry:registerSystem("DataAccessLayer", result)
-        log("Found DataAccessLayer in Core folder")
-        return result
-    end
-    
-    log("Unable to locate DataAccessLayer, creating basic version")
-    
-    -- Create a basic version
-    local interface = self:createDataPersistenceInterface()
     
     if not interface then
         log("Cannot create DataAccessLayer, no data interface available")
@@ -419,21 +324,42 @@ function DataSystemBridge:getDataAccessLayer()
     
     -- Create basic DataAccessLayer
     dataAccessLayer = {
+        getPlayerData = function(player)
+            if interface and interface.loadData then
+                return interface.loadData(player)
+            end
+            return nil
+        end,
+        setPlayerData = function(player, key, value)
+            if interface and interface.updateData then
+                return interface.updateData(player, key, value)
+            end
+            return false
+        end,
+        savePlayerData = function(player, immediate)
+            if interface and interface.saveData then
+                return interface.saveData(player, immediate)
+            end
+            return false
+        end,
+        initialize = function()
+            log("Initialized basic DataAccessLayer")
+            return true
+        end,
         GetAllPlayerData = function(player)
             return interface.loadData(player)
         end,
-        
         SavePlayerData = function(player, immediate)
             return interface.saveData(player, immediate)
         end,
-        
         RestorePlayerEquipment = function(player)
             return interface.restoreEquipment(player)
         end
     }
     
+    -- Register this implementation
     CoreRegistry:registerSystem("DataAccessLayer", dataAccessLayer)
-    return dataAccessLayer
+      return dataAccessLayer
 end
 
 -- Fix integration issues between systems

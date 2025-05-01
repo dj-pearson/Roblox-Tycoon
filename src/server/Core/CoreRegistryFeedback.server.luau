@@ -101,26 +101,27 @@ local function checkCoreRegistry()
                 end
             end
             return nil
-        end
-    }
+        end,
+        
+        -- Method 4: CoreRegistryAccess
         function()
             local CoreRegistryAccess = require(ReplicatedStorage.shared.CoreRegistryAccess)
             return CoreRegistryAccess:GetRegistry()
         end,
         
-        -- Method 2: UniversalSystemFinder
+        -- Method 5: UniversalSystemFinder
         function()
             local UniversalSystemFinder = require(ReplicatedStorage.shared.UniversalSystemFinder) 
             return UniversalSystemFinder:GetCoreRegistry()
         end,
         
-        -- Method 3: ModuleLoaderHelper
+        -- Method 6: ModuleLoaderHelper
         function()
             local ModuleLoaderHelper = require(ReplicatedStorage.shared.ModuleLoaderHelper)
             return ModuleLoaderHelper.getCoreRegistry()
         end,
         
-        -- Method 4: Direct require
+        -- Method 7: Direct require
         function()
             return require(ServerScriptService.Core.CoreRegistry)
         end
