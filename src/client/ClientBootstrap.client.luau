@@ -456,6 +456,51 @@ local function initializeClient()
     if ClientRegistry and typeof(ClientRegistry.FireEvent) == "function" then
         ClientRegistry.FireEvent("ClientReady", clientStatus)
     end
+    
+    -- Load UISystemEnhancer to fix UI display issues
+    if clientStatus == STATUS.READY or initializeAttempts >= MAX_RETRIES then
+        task.spawn(function()
+            logClient("Loading UISystemEnhancer...")
+            local UIFolder = ensureFolderPath(Players.LocalPlayer.PlayerScripts, {"UI"})
+            
+            -- Check if UISystemEnhancer exists
+            local uiSystemEnhancerModule = findModule("UISystemEnhancer")
+            if not uiSystemEnhancerModule then
+                logClient("UISystemEnhancer not found, skipping UI enhancements", true)
+                return
+            end
+            
+            -- Try to require UISystemEnhancer
+            local success, uiSystemEnhancer = pcall(function()
+                return require(uiSystemEnhancerModule)
+            end)
+            
+            if success and uiSystemEnhancer then
+                logClient("UISystemEnhancer loaded successfully")
+                
+                -- Register UISystemEnhancer with ClientRegistry
+                if ClientRegistry and typeof(ClientRegistry.RegisterComponent) == "function" then
+                    ClientRegistry.RegisterComponent("UISystemEnhancer", uiSystemEnhancer)
+                    logClient("Registered UISystemEnhancer with ClientRegistry")
+                end
+                
+                -- Initialize MainMenuUI
+                if uiSystemEnhancer.showUI then
+                    task.spawn(function()
+                        logClient("Attempting to show MainMenuUI...")
+                        local shown = uiSystemEnhancer.showUI("MainMenuUI")
+                        if shown then
+                            logClient("MainMenuUI displayed successfully")
+                        else
+                            logClient("Failed to show MainMenuUI after attempts", true)
+                        end
+                    end)
+                end
+            else
+                logClient("Failed to load UISystemEnhancer", true)
+            end
+        end)
+    end
 end
 
 -- Wait for player to be available and start initialization
@@ -469,9 +514,18 @@ else
     end)
 end
 
+-- Expose client bootstrap for debugging
+_G.__ClientBootstrap = {
+    getStatus = function() return clientStatus end,
+    initialize = initializeClient,
+    isInitialized = function() return initialized end,
+    version = "1.1.0"
+}
+
 -- Return a simple API for external scripts
 return {
     getStatus = function() return clientStatus end,
     initialize = initializeClient,
-    isInitialized = function() return initialized end
+    isInitialized = function() return initialized end,
+    version = "1.1.0"
 }
