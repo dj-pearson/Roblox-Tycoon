@@ -9,7 +9,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local EventBridge = {}
@@ -30,7 +29,6 @@ EventBridge.DEBUG = true
 -- Internal state
 local events = {}
 local eventHandlers = {}
-local functionHandlers = {}
 local eventHistory = {}
 local securityRules = {}
 
@@ -739,8 +737,7 @@ function EventBridge.invokeServer(functionName, ...)
         warn("[EventBridge] Failed to get remote function: " .. functionName)
         return nil, "Function not found"
     end
-    
-    -- Record in history
+      -- Record in history
     if CONFIG.LOG_TRAFFIC then
         table.insert(eventHistory, {
             time = os.time(),
@@ -748,16 +745,16 @@ function EventBridge.invokeServer(functionName, ...)
             func = functionName,
             args = {...}
         })
-        
-        -- Trim history if needed        if #eventHistory > CONFIG.MAX_EVENT_HISTORY then
+          -- Trim history if needed
+        if #eventHistory > CONFIG.MAX_EVENT_HISTORY then
             table.remove(eventHistory, 1)
         end
     end
     
     -- Call the function
-    local args = table.pack(...)
+    local invokeArgs = table.pack(...)
     local success, result = pcall(function()
-        return remote:InvokeServer(table.unpack(args, 1, args.n))
+        return remote:InvokeServer(table.unpack(invokeArgs, 1, invokeArgs.n))
     end)
     
     if not success then
@@ -801,11 +798,10 @@ function EventBridge.invokeClient(client, functionName, ...)
             table.remove(eventHistory, 1)
         end
     end
-    
-    -- Call the function
-    local args = table.pack(...)
+      -- Call the function
+    local invokeArgs = table.pack(...)
     local success, result = pcall(function()
-        return remote:InvokeClient(client, table.unpack(args, 1, args.n))
+        return remote:InvokeClient(client, table.unpack(invokeArgs, 1, invokeArgs.n))
     end)
     
     if not success then

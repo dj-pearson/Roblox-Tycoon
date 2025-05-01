@@ -14,7 +14,6 @@ local RunService = game:GetService("RunService")
 
 -- Constants
 local IsServer = RunService:IsServer()
-local IsClient = RunService:IsClient()
 
 --------------------------------------------------------
 -- STEP 1: Load ModuleLoaderHelper first
@@ -34,15 +33,16 @@ do
             warn("[ModuleLoaderExample] Failed to load ModuleLoaderHelper: " .. tostring(result))
         end
     end
-    
-    -- If ModuleLoaderHelper wasn't found, create a minimal version
+      -- If ModuleLoaderHelper wasn't found, create a minimal version
     if not ModuleLoaderHelper then
         ModuleLoaderHelper = {
             GetModule = function(_, moduleName)
                 if ReplicatedStorage:FindFirstChild("shared") then
                     local module = ReplicatedStorage.shared:FindFirstChild(moduleName)
                     if module then
-                        return pcall(function() return require(module) end)
+                        return pcall(function() 
+                            return require(module) 
+                        end)
                     end
                 end
                 return nil
@@ -99,10 +99,10 @@ local DataManager = ModuleLoaderHelper:GetSystem("DataManager")
 local AssetValidator = ModuleLoaderHelper:GetSystem("AssetValidator")
 
 -- Load optional dependencies - won't error if missing
-local OptionalSystem = ModuleLoaderHelper:GetSystem("OptionalSystem")
+local _ = ModuleLoaderHelper:GetSystem("OptionalSystem")
 
 -- You can also load any module directly
-local Constants = ModuleLoaderHelper:GetModule("Constants")
+local _ = ModuleLoaderHelper:GetModule("Constants")
 
 --------------------------------------------------------
 -- STEP 3: Define your module
@@ -138,11 +138,10 @@ function YourModule:Initialize()
     if not DataManager then
         warn("[YourModule] DataManager not found - data operations will not work")
     end
-    
-    -- Set up any event connections
+      -- Set up any event connections
     if EventBridge then
-        EventBridge:connectEvent("ExampleEvent", function(...)
-            self:HandleExampleEvent(...)
+        EventBridge:connectEvent("ExampleEvent", function(eventData)
+            self:HandleExampleEvent(eventData)
         end)
     else
         warn("[YourModule] EventBridge not found - events will not work")
@@ -154,7 +153,7 @@ function YourModule:Initialize()
 end
 
 -- Example event handler
-function YourModule:HandleExampleEvent(...)
+function YourModule:HandleExampleEvent(_)
     self:Log("ExampleEvent received")
     -- Handle event
 end
@@ -183,9 +182,7 @@ end
 -- STEP 4: Register with Registry if available
 --------------------------------------------------------
 if Registry then
-    if IsServer and typeof(Registry.registerSystem) == "function" then
-        Registry:registerSystem("YourModule", YourModule)
-    elseif IsClient and typeof(Registry.registerSystem) == "function" then
+    if typeof(Registry.registerSystem) == "function" then
         Registry:registerSystem("YourModule", YourModule)
     end
 end
