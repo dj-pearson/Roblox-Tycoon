@@ -6,7 +6,16 @@ multiple_statements = "warn"
 shadowing = "warn"
 unused_variable = "warn"
 if_same_then_else = "warn"
+unexpect_dots = "deny" # Catch vararg mistakes more aggressively
 
 [config]
 # Auto-detect luau files
 luau = true
+
+# Exclude temporary files and copies
+[files]
+exclude = [
+    "EventBridge_copy.luau",
+    "EventBridge_fixed.luau",
+    "temp_fix.lua"
+]
