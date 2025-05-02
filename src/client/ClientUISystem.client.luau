@@ -192,6 +192,14 @@ function ClientUISystem:initialize()
         log("Initializing UIComponents...")
         self.modules.UIComponents:initialize()
     end
+
+    -- Require and initialize PlayerStatsDisplay
+    local playerStatsDisplayModule = requireSafely(LocalPlayer.PlayerScripts.Client.UI.PlayerStatsDisplay)
+    if playerStatsDisplayModule and typeof(playerStatsDisplayModule.initialize) == "function" then
+        log("Initializing PlayerStatsDisplay...")
+        playerStatsDisplayModule:initialize()
+    end
+
     
     self.initialized = true
     log("ClientUISystem initialization complete")
