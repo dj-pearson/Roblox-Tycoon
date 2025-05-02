@@ -6,89 +6,14 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 -- Log function
-local function log(message)
+local function log(message: string)
     print("[MenuButtonCreator] " .. message)
 end
 
--- Define icons for our menu system
-local ICONS = {}
+-- Load UIElementsData module
+local UIElementsData = require(script.Parent:WaitForChild("UI"):WaitForChild("UIElementsData"))
+local ICONS = UIElementsData.Icons
 
--- Hardcoded icon IDs from AdminControlsUI
-local hardcodedIcons = {
-    Close = "rbxassetid://6031094678",
-    Settings = "rbxassetid://6031280882", 
-    Player = "rbxassetid://6031302920",
-    Warning = "rbxassetid://6031094670",
-    Success = "rbxassetid://6031094661",
-    Error = "rbxassetid://6031094667",
-    Info = "rbxassetid://6026568247"
-}
-
--- Get icons from AdminControlsUI or use hardcoded values
-local function loadIconsFromAdminUI()
-    -- First try to load them dynamically 
-    local success, adminUI = pcall(function()
-        -- Try to find AdminControlsUI in various locations
-        local ui = script.Parent:FindFirstChild("UI")
-        if ui and ui:FindFirstChild("AdminControlsUI") then
-            log("Found AdminControlsUI in script.Parent.UI")
-            return require(ui.AdminControlsUI)
-        end
-        
-        local repStorage = game:GetService("ReplicatedStorage")
-        if repStorage:FindFirstChild("UI") and
-           repStorage.UI:FindFirstChild("AdminControlsUI") then
-            log("Found AdminControlsUI in ReplicatedStorage.UI")
-            return require(repStorage.UI.AdminControlsUI)
-        end
-        
-        -- Check in workspace
-        local workspace = game:GetService("Workspace")
-        if workspace:FindFirstChild("UI") and
-           workspace.UI:FindFirstChild("AdminControlsUI") then 
-            log("Found AdminControlsUI in workspace.UI")
-            return require(workspace.UI.AdminControlsUI)
-        end
-        
-        return nil
-    end)
-      if success and adminUI then
-        -- Try to get IconSet from the AdminControlsUI module
-        if adminUI.tryRequireUIModule then
-            local iconModule = adminUI.tryRequireUIModule("IconSet")
-            if iconModule and iconModule.Icons then
-                log("Successfully loaded icons from AdminControlsUI")
-                -- Return our mapped icons using the found icons
-                return {
-                    Shop = iconModule.Icons.Settings or hardcodedIcons.Settings,
-                    Stats = iconModule.Icons.Success or hardcodedIcons.Success,
-                    Settings = iconModule.Icons.Player or hardcodedIcons.Player,
-                    Leaderboard = iconModule.Icons.Info or hardcodedIcons.Info,
-                    Gym = iconModule.Icons.Close or hardcodedIcons.Close,
-                    Data = iconModule.Icons.Warning or hardcodedIcons.Warning,
-                    Competition = iconModule.Icons.Settings or hardcodedIcons.Settings,
-                    Social = iconModule.Icons.Player or hardcodedIcons.Player
-                }
-            end
-        end
-    end
-    
-    -- Use hardcoded icons as a fallback
-    log("Using hardcoded icon assets")
-    return {
-        Shop = hardcodedIcons.Settings,      -- Shopping cart icon (using Settings icon)
-        Stats = hardcodedIcons.Success,      -- Stats chart icon (using Success icon)
-        Settings = hardcodedIcons.Player,    -- Gear icon (using Player icon) 
-        Leaderboard = hardcodedIcons.Info,   -- Trophy icon (using Info icon)
-        Gym = hardcodedIcons.Close,          -- Gym icon (using Close icon)
-        Data = hardcodedIcons.Warning,       -- Data icon (using Warning icon)
-        Competition = hardcodedIcons.Settings, -- Competition icon (using Settings icon)
-        Social = hardcodedIcons.Player       -- Social icon (using Player icon)
-    }
-end
-
--- Load icons
-ICONS = loadIconsFromAdminUI()
 
 -- Safely require a module with fallback paths
 local function safeRequire(moduleName)
@@ -156,6 +81,7 @@ local function safeRequire(moduleName)
 end
 
 -- Menu button configurations
+
 local MENU_BUTTONS = {
     {
         name = "Shop",
@@ -165,40 +91,12 @@ local MENU_BUTTONS = {
         callback = function()
             -- Handle shop button click
             log("Shop button clicked")
-            local shopModule = safeRequire("ShopUI")
+            local shopModule = safeRequire("ShopMenuUI")
             if shopModule then
                 if typeof(shopModule.ToggleVisibility) == "function" then
                     shopModule.ToggleVisibility()
                 else
-                    log("ShopUI found but ToggleVisibility function not available")
-                end
-            else
-                -- Create placeholder UI
-                log("ShopUI module not found - showing placeholder")
-                local gui = Instance.new("ScreenGui")
-                gui.Name = "ShopUIPlaceholder"
-                gui.ResetOnSpawn = false
-                
-                local frame = Instance.new("Frame")
-                frame.Size = UDim2.new(0, 300, 0, 200)
-                frame.Position = UDim2.new(0.5, -150, 0.5, -100)
-                frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                frame.BorderSizePixel = 0
-                frame.Parent = gui
-                
-                local title = Instance.new("TextLabel")
-                title.Size = UDim2.new(1, 0, 0, 30)
-                title.Text = "Shop (Placeholder UI)"
-                title.TextColor3 = Color3.fromRGB(255, 255, 255)
-                title.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-                title.BorderSizePixel = 0
-                title.Parent = frame
-                
-                gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-                
-                -- Auto-close after 2 seconds
-                task.delay(2, function()
-                    gui:Destroy()
+                    log("ShopMenuUI found but ToggleVisibility function not available")
                 end)
             end
         end
@@ -210,126 +108,13 @@ local MENU_BUTTONS = {
         callback = function()
             -- Handle gym management button click
             log("Gym management button clicked")
-              -- Direct loading approach for the gym module
-            local success, result = pcall(function()
-                -- Try to load directly from the script's parent
-                if script.Parent:FindFirstChild("GymTycoonMenuUI") then
-                    log("Found GymTycoonMenuUI directly in script.Parent")
-                    local gymModuleFromParent = require(script.Parent.GymTycoonMenuUI)
-                    
-                    -- Check if it has the expected function
-                    if typeof(gymModuleFromParent.ToggleManagementMenu) == "function" then
-                        gymModuleFromParent:ToggleManagementMenu()
-                        return true
-                    else
-                        log("GymTycoonMenuUI found but ToggleManagementMenu not available")
-                    end
+            local gymModule = safeRequire("GymMenuUI")
+            if gymModule then
+                if typeof(gymModule.ToggleVisibility) == "function" then
+                    gymModule.ToggleVisibility()
+                else
+                    log("GymMenuUI found but ToggleVisibility function not available")
                 end
-                
-                -- Try with safeRequire as backup
-                local gymModuleFromSafe = safeRequire("GymTycoonMenuUI")
-                if gymModuleFromSafe and typeof(gymModuleFromSafe.ToggleManagementMenu) == "function" then
-                    log("Found GymTycoonMenuUI via safeRequire")
-                    gymModuleFromSafe:ToggleManagementMenu()
-                    return true
-                end
-                
-                -- Try to initialize the module manually if it exists but wasn't initialized
-                if script.Parent:FindFirstChild("GymTycoonMenuUI") then
-                    log("Trying to initialize GymTycoonMenuUI manually")
-                    local gymModuleInit = require(script.Parent.GymTycoonMenuUI)
-                    if typeof(gymModuleInit.Initialize) == "function" then
-                        gymModuleInit:Initialize()
-                        if typeof(gymModuleInit.ToggleManagementMenu) == "function" then
-                            gymModuleInit:ToggleManagementMenu()
-                            return true
-                        end
-                    end
-                end
-                
-                return false
-            end)
-            
-            -- Show placeholder if all approaches failed
-            if not success or not result then
-                log("GymTycoonMenuUI could not be loaded or toggled - showing placeholder")
-                -- Create a simplified version of the gym management UI directly
-                local gui = Instance.new("ScreenGui")
-                gui.Name = "GymManagementUI"
-                gui.ResetOnSpawn = false
-                
-                local frame = Instance.new("Frame")
-                frame.Size = UDim2.new(0, 400, 0, 300)
-                frame.Position = UDim2.new(0.5, -200, 0.5, -150)
-                frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                frame.BorderSizePixel = 0
-                frame.Parent = gui
-                
-                -- Add corner radius
-                local corner = Instance.new("UICorner")
-                corner.CornerRadius = UDim.new(0, 10)
-                corner.Parent = frame
-                
-                -- Title bar
-                local titleBar = Instance.new("Frame")
-                titleBar.Size = UDim2.new(1, 0, 0, 40)
-                titleBar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-                titleBar.BorderSizePixel = 0
-                titleBar.Parent = frame
-                
-                -- Title
-                local title = Instance.new("TextLabel")
-                title.Size = UDim2.new(1, -50, 1, 0)
-                title.Position = UDim2.new(0, 20, 0, 0)
-                title.BackgroundTransparency = 1
-                title.Text = "Gym Management"
-                title.TextColor3 = Color3.fromRGB(255, 255, 255)
-                title.TextSize = 18
-                title.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
-                title.TextXAlignment = Enum.TextXAlignment.Left
-                title.Parent = titleBar
-                
-                -- Close button
-                local closeButton = Instance.new("TextButton")
-                closeButton.Size = UDim2.new(0, 30, 0, 30)
-                closeButton.Position = UDim2.new(1, -35, 0, 5)
-                closeButton.BackgroundTransparency = 1
-                closeButton.Text = "✕"
-                closeButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-                closeButton.TextSize = 20
-                closeButton.Parent = titleBar
-                
-                closeButton.MouseButton1Click:Connect(function()
-                    gui:Destroy()
-                end)
-                
-                -- Content
-                local content = Instance.new("TextLabel")
-                content.Size = UDim2.new(1, -40, 0, 30)
-                content.Position = UDim2.new(0, 20, 0, 60)
-                content.BackgroundTransparency = 1
-                content.Text = "Gym Management module is being loaded..."
-                content.TextColor3 = Color3.fromRGB(255, 255, 255)
-                content.TextSize = 16
-                content.TextXAlignment = Enum.TextXAlignment.Left
-                content.Parent = frame
-                
-                gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-                
-                -- Try to load the module again after a delay
-                task.delay(3, function()
-                    if gui and gui.Parent then
-                        gui:Destroy()
-                        
-                        -- Try the callback again
-                        pcall(function()
-                            local gymModule = safeRequire("GymTycoonMenuUI")
-                            if gymModule and typeof(gymModule.ToggleManagementMenu) == "function" then
-                                gymModule:ToggleManagementMenu()
-                            end
-                        end)
-                    end
-                end)
             end
         end
     },{
@@ -340,41 +125,13 @@ local MENU_BUTTONS = {
         callback = function()
             -- Handle stats button click
             log("Stats button clicked")
-            local statsModule = safeRequire("StatsUI")
+            local statsModule = safeRequire("StatsMenuUI")
             if statsModule then
                 if typeof(statsModule.ToggleVisibility) == "function" then
                     statsModule.ToggleVisibility()
                 else
-                    log("StatsUI found but ToggleVisibility function not available")
+                    log("StatsMenuUI found but ToggleVisibility function not available")
                 end
-            else
-                log("StatsUI module not found - showing placeholder")
-                -- Create placeholder notification
-                local gui = Instance.new("ScreenGui")
-                gui.Name = "StatsUIPlaceholder"
-                gui.ResetOnSpawn = false
-                
-                local frame = Instance.new("Frame")
-                frame.Size = UDim2.new(0, 300, 0, 200)
-                frame.Position = UDim2.new(0.5, -150, 0.5, -100)
-                frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                frame.BorderSizePixel = 0
-                frame.Parent = gui
-                
-                local title = Instance.new("TextLabel")
-                title.Size = UDim2.new(1, 0, 0, 30)
-                title.Text = "Stats (Placeholder UI)"
-                title.TextColor3 = Color3.fromRGB(255, 255, 255)
-                title.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-                title.BorderSizePixel = 0
-                title.Parent = frame
-                
-                gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-                
-                -- Auto-close after 2 seconds
-                task.delay(2, function()
-                    gui:Destroy()
-                end)
             end
         end
     },
@@ -386,41 +143,13 @@ local MENU_BUTTONS = {
         callback = function()
             -- Handle leaderboard button click
             log("Leaderboard button clicked")
-            local leaderboardModule = safeRequire("LeaderboardUI")
+            local leaderboardModule = safeRequire("LeaderboardMenuUI")
             if leaderboardModule then
                 if typeof(leaderboardModule.ToggleVisibility) == "function" then
                     leaderboardModule.ToggleVisibility()
                 else
-                    log("LeaderboardUI found but ToggleVisibility function not available")
+                    log("LeaderboardMenuUI found but ToggleVisibility function not available")
                 end
-            else
-                log("LeaderboardUI module not found - showing placeholder")
-                -- Create placeholder notification
-                local gui = Instance.new("ScreenGui")
-                gui.Name = "LeaderboardUIPlaceholder"
-                gui.ResetOnSpawn = false
-                
-                local frame = Instance.new("Frame")
-                frame.Size = UDim2.new(0, 300, 0, 200)
-                frame.Position = UDim2.new(0.5, -150, 0.5, -100)
-                frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                frame.BorderSizePixel = 0
-                frame.Parent = gui
-                
-                local title = Instance.new("TextLabel")
-                title.Size = UDim2.new(1, 0, 0, 30)
-                title.Text = "Leaderboard (Placeholder UI)"
-                title.TextColor3 = Color3.fromRGB(255, 255, 255)
-                title.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-                title.BorderSizePixel = 0
-                title.Parent = frame
-                
-                gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-                
-                -- Auto-close after 2 seconds
-                task.delay(2, function()
-                    gui:Destroy()
-                end)
             end
         end
     },
@@ -432,40 +161,12 @@ local MENU_BUTTONS = {
         callback = function()
             -- Handle competition button click
             log("Competition button clicked")
-            local competitionModule = safeRequire("CompetitionUI")
+            local competitionModule = safeRequire("CompetitionMenuUI")
             if competitionModule then
                 if typeof(competitionModule.ToggleVisibility) == "function" then
                     competitionModule.ToggleVisibility()
                 else
-                    log("CompetitionUI found but ToggleVisibility function not available")
-                end
-            else
-                log("CompetitionUI module not found - showing placeholder")
-                -- Create placeholder notification
-                local gui = Instance.new("ScreenGui")
-                gui.Name = "CompetitionUIPlaceholder"
-                gui.ResetOnSpawn = false
-                
-                local frame = Instance.new("Frame")
-                frame.Size = UDim2.new(0, 300, 0, 200)
-                frame.Position = UDim2.new(0.5, -150, 0.5, -100)
-                frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                frame.BorderSizePixel = 0
-                frame.Parent = gui
-                
-                local title = Instance.new("TextLabel")
-                title.Size = UDim2.new(1, 0, 0, 30)
-                title.Text = "Competition (Placeholder UI)"
-                title.TextColor3 = Color3.fromRGB(255, 255, 255)
-                title.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-                title.BorderSizePixel = 0
-                title.Parent = frame
-                
-                gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-                
-                -- Auto-close after 2 seconds
-                task.delay(2, function()
-                    gui:Destroy()
+                    log("CompetitionMenuUI found but ToggleVisibility function not available")
                 end)
             end
         end
@@ -477,57 +178,13 @@ local MENU_BUTTONS = {
         callback = function()
             -- Handle data button click
             log("Data button clicked")
-            
-            -- The direct approach - we know DataManagementUI exists
-            local success, result = pcall(function()
-                -- Try to load directly from the current script's parent
-                if script.Parent:FindFirstChild("DataManagementUI") then
-                    local dataModule = require(script.Parent.DataManagementUI)
-                    -- Check if it has the expected interface
-                    if typeof(dataModule.ToggleVisibility) == "function" then
-                        dataModule.ToggleVisibility()
-                        return true
-                    end
-                end
-                
-                -- If that fails, try the fallback approach
-                local dataModule = safeRequire("DataManagementUI")
-                if dataModule and typeof(dataModule.ToggleVisibility) == "function" then
+            local dataModule = safeRequire("DataMenuUI")
+            if dataModule then
+                if typeof(dataModule.ToggleVisibility) == "function" then
                     dataModule.ToggleVisibility()
-                    return true
+                else
+                    log("DataMenuUI found but ToggleVisibility function not available")
                 end
-                
-                return false
-            end)
-            
-            if not success or not result then
-                log("DataManagementUI module not found or error occurred - showing placeholder")
-                -- Create placeholder notification
-                local gui = Instance.new("ScreenGui")
-                gui.Name = "DataUIPlaceholder"
-                gui.ResetOnSpawn = false
-                
-                local frame = Instance.new("Frame")
-                frame.Size = UDim2.new(0, 300, 0, 200)
-                frame.Position = UDim2.new(0.5, -150, 0.5, -100)
-                frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-                frame.BorderSizePixel = 0
-                frame.Parent = gui
-                
-                local title = Instance.new("TextLabel")
-                title.Size = UDim2.new(1, 0, 0, 30)
-                title.Text = "Data Management (Placeholder UI)"
-                title.TextColor3 = Color3.fromRGB(255, 255, 255)
-                title.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-                title.BorderSizePixel = 0
-                title.Parent = frame
-                
-                gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-                
-                -- Auto-close after 2 seconds
-                task.delay(2, function()
-                    gui:Destroy()
-                end)
             end
         end
     }
