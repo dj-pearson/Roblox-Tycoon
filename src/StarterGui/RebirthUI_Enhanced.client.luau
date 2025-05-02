@@ -37,8 +37,7 @@ local rebirthUIElements = {
 -- Color configurations and UI constants integrated with UIStyle
 local CONFIG = {
     animationDuration = 0.3,
-    tabCount = 4,
-    toggleButtonSize = UDim2.new(0, 120, 0, 40),
+    tabCount = 4
 }
 
 -- Forward declarations of functions we'll define later
@@ -315,25 +314,12 @@ local function createRebirthUI()
         zIndex = UIStyle.ZIndex.Standard
     })
     fastestRebirthLabel.Parent = statsContainer
-    
-    -- Toggle button using ButtonFactory
-    local toggleButton = ButtonFactory.createActionButton({
-        name = "RebirthToggleButton",
-        size = CONFIG.toggleButtonSize,
-        position = UDim2.new(1, -130, 0, 10),
-        anchorPoint = Vector2.new(1, 0),
-        text = "Rebirth",
-        icon = IconSet.getIconId("Rebirth"),
-        color = UIStyle.Colors.Secondary,
-        hoverColor = UIStyle.Colors.SecondaryHover,
-        textSize = 16,
-        cornerRadius = UDim.new(0, 8),
-        zIndex = UIStyle.ZIndex.Float
-    })
-    toggleButton.Parent = screenGui
-    
-    -- Initially hide the main frame
+      -- Toggle button removed as requested
+      -- Initially hide the main frame
     mainFrame.Visible = false
+    
+    -- Note: The Rebirth toggle button has been removed.
+    -- The Rebirth panel can now only be opened via other UI elements or scripts.
     
     -- Store UI elements for access throughout the module
     rebirthUIElements = {
@@ -355,12 +341,10 @@ local function createRebirthUI()
         ScrollFrames = {
             Features = featuresTabContent.ChildrenContents.ScrollFrame,
             Perks = perksTabContent.ChildrenContents.ScrollFrame,
-            Achievements = achievementsTabContent.ChildrenContents.ScrollFrame
-        },
+            Achievements = achievementsTabContent.ChildrenContents.ScrollFrame        },
         RebirthButton = rebirthButton,
         TotalRebirthsLabel = totalRebirthsLabel,
-        FastestRebirthLabel = fastestRebirthLabel,
-        ToggleButton = toggleButton
+        FastestRebirthLabel = fastestRebirthLabel
     }
     
     return screenGui
@@ -848,33 +832,14 @@ end)
 local function initialize()
     local screenGui = createRebirthUI()
     screenGui.Parent = PlayerGui
-    
-    -- Connect tab button clicks
+      -- Connect tab button clicks
     for tabName, button in pairs(rebirthUIElements.TabButtons) do
         button.MouseButton1Click:Connect(function()
             switchToTab(tabName)
         end)
     end
     
-    -- Connect toggle button click
-    rebirthUIElements.ToggleButton.MouseButton1Click:Connect(function()
-        rebirthUIElements.MainFrame.Visible = not rebirthUIElements.MainFrame.Visible
-        
-        -- Animate the opening/closing using UIStyle animations
-        if rebirthUIElements.MainFrame.Visible then
-            -- Pop-in animation
-            rebirthUIElements.MainFrame.Size = UDim2.new(0, 480, 0, 380)
-            rebirthUIElements.MainFrame.BackgroundTransparency = 0.5
-            
-            TweenService:Create(rebirthUIElements.MainFrame, UIStyle.Animations.PopIn, {
-                Size = UDim2.new(0, 500, 0, 400),
-                BackgroundTransparency = 0.1
-            }):Play()
-            
-            -- Update the rebirth info
-            updateRebirthInfo()
-        end
-    end)
+    -- Toggle button click handler removed as requested
     
     -- Connect close button
     rebirthUIElements.MainFrame.CloseButton.MouseButton1Click:Connect(function()
@@ -912,10 +877,41 @@ end
 RebirthUI = {
     initialize = initialize,
     updateRebirthInfo = updateRebirthInfo,
-    showNotification = showNotification
+    showNotification = showNotification,
+    
+    -- Added direct method to show UI since toggle button was removed
+    showRebirthUI = function()
+        if rebirthUIElements and rebirthUIElements.MainFrame then
+            rebirthUIElements.MainFrame.Visible = true
+            
+            -- Apply animation
+            rebirthUIElements.MainFrame.Size = UDim2.new(0, 480, 0, 380)
+            rebirthUIElements.MainFrame.BackgroundTransparency = 0.5
+            
+            TweenService:Create(rebirthUIElements.MainFrame, UIStyle.Animations.PopIn, {
+                Size = UDim2.new(0, 500, 0, 400),
+                BackgroundTransparency = 0.1
+            }):Play()
+            
+            -- Update the rebirth info
+            updateRebirthInfo()
+        end
+    end,
+    
+    hideRebirthUI = function()
+        if rebirthUIElements and rebirthUIElements.MainFrame then
+            rebirthUIElements.MainFrame.Visible = false
+        end
+    end
 }
 
 -- Auto-initialize
 initialize()
+
+-- Note: The Rebirth toggle button has been removed from the top-right corner.
+-- To open the UI, use one of these methods:
+-- 1. Call RebirthUI.showRebirthUI() directly from scripts
+-- 2. Use RebirthClient:OpenRebirthUI() which will find and use this module
+-- The UI can still be closed with the Close button within the interface
 
 return RebirthUI

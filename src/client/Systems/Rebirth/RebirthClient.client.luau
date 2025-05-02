@@ -355,6 +355,19 @@ function RebirthClient:OpenRebirthUI()
     if UIManager then
         UIManager:OpenScreen("RebirthScreen")
     else
+        -- Use the enhanced RebirthUI if available
+        local success, result = pcall(function()
+            return game:GetService("StarterGui"):FindFirstChild("RebirthUI_Enhanced")
+        end)
+        
+        if success and result then
+            local enhancedUI = require(result)
+            if enhancedUI and enhancedUI.showRebirthUI then
+                enhancedUI.showRebirthUI()
+                return
+            end
+        end
+        
         -- Legacy fallback
         local screenGui = LocalPlayer.PlayerGui:FindFirstChild("RebirthUI")
         if screenGui then
