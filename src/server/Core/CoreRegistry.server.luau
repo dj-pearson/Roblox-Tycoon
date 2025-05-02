@@ -1,11 +1,15 @@
 --[[
     CoreRegistry.server.luau
     
-    A foundation module for the Roblox game that provides centralized registration
-    and retrieval of game systems. This version includes robust error handling,
-    health monitoring, and diagnostics.
+    DEPRECATED: This module is being replaced by the new unified Registry System.
+    This version now forwards all operations to the new system through RegistryBridge.
     
-    Created to fix CoreRegistry System Failure identified in RobloxIssues.txt
+    Please migrate to using these modules directly:
+    - src/shared/Registry/SharedRegistry.luau (For cross-context components)
+    - src/server/Core/Registry/ServerRegistry.luau (For server-only components)
+    - src/client/Core/Registry/ClientRegistry.luau (For client-only components)
+    
+    Last Updated: May 2, 2025
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
