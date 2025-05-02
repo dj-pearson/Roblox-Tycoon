@@ -1,4 +1,4 @@
-lua
+--lua
 --!strict
 --[[
     PlayerStatsDisplay.client.luau
