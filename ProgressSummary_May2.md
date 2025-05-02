@@ -42,8 +42,15 @@ As of May 2, 2025, all critical issues identified in the RobloxIssues.txt docume
    - CoreRegistryBridge created for improved system integration
    - TycoonFolderInitializer enhanced with proper folder structure
    - BuyTileSystem-specific folders and values added
+   - TileBuyProgressRestorer ensures correct progression between sessions
 
-7. **Data Persistence System Issues** - ✅ FIXED (May 2, 2025)
+7. **BuyTile Progression and Recall Issues** - ✅ FIXED (May 2, 2025)
+   - Created TileBuyProgressRestorer module for reliable progression management
+   - Fixed issue where buy tiles reset to #1 instead of continuing from last purchase
+   - Enhanced BuyTilePositionFixer to integrate with progression restoration
+   - Added comprehensive progression tracking using multiple data sources
+
+8. **Data Persistence System Issues** - ✅ FIXED (May 2, 2025)
    - DataSystemIntegration provides unified interface for all data operations
    - All data systems properly registered with CoreRegistry
    - Robust fallback mechanisms ensure data integrity

@@ -34,7 +34,7 @@ local CONFIG = {
 -- Module definition
 local BuyTilePositionFixer = {
     initialized = false,
-    _version = "1.3.0", -- Versioning for update tracking
+    _version = "1.4.0", -- Versioning for update tracking
     CONFIG = CONFIG -- Expose config for other systems to access
 }
 
@@ -561,11 +561,27 @@ function BuyTilePositionFixer.initialize()
     -- Integrate with BuyTileSystem
     BuyTilePositionFixer.integrateWithBuyTileSystem()
     
+    -- Try to load the TileBuyProgressRestorer module
+    local tileBuyProgressRestorer = nil
+    pcall(function()
+        tileBuyProgressRestorer = require(ServerScriptService.Core.TileBuyProgressRestorer)
+        if tileBuyProgressRestorer then
+            debugPrint("Successfully integrated with TileBuyProgressRestorer")
+        end
+    end)
+    
     -- Set up player added event to fix models when players join
     Players.PlayerAdded:Connect(function(player)
         -- Wait for tycoon to be set up
         task.delay(5, function()
             BuyTilePositionFixer.fixModelsForPlayer(player)
+            
+            -- Also fix the player's tile progression if the restorer is available
+            if tileBuyProgressRestorer and typeof(tileBuyProgressRestorer.fixPlayerProgression) == "function" then
+                task.spawn(function()
+                    tileBuyProgressRestorer.fixPlayerProgression(player)
+                end)
+            end
         end)
     end)
     
@@ -590,6 +606,7 @@ BuyTilePositionFixer.initialize()
 -- Print success message
 print("✅ [BuyTilePositionFixer] Initialized and monitoring model positions - Fixed May 2, 2025")
 print("✅ [BuyTilePositionFixer] Enhanced with CoreRegistryBridge integration and TycoonFolderInitializer compatibility")
+print("✅ [BuyTilePositionFixer] Integrated with TileBuyProgressRestorer for proper buy tile progression")
 
 -- Return the module
 return BuyTilePositionFixer
