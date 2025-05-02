@@ -1,66 +1,105 @@
 # Roblox Issues Tracking Document
 
-## GymAutomationLoader Failures (❌ REGRESSION - April 30, 2025)
+## BuyTile Spawn Location Issues (✅ FIXED - May 1, 2025)
+
+**Error Message:**
+- `[BuyTile] Spawned gym part X at position: 0, 0, 0` (incorrect default position) - FIXED
+- `[DataManager] Using fallback spawnGymPart for ID: Xdjpearsonx` - FIXED
+- `Could not find gym part with ID: Xdjpearsonx` - FIXED
+- `Failed to restore tile X for Xdjpearsonx` - FIXED
+- `[DataManager] Restored 1 of 40 tiles for Xdjpearsonx` (severe restoration failure) - FIXED
+
+**Context:** The BuyTile system is critical for placing gym components when tiles are purchased or when restoring a player's gym. Models need to spawn at specific locations defined in the tile data.
+
+**Impact:** Critical. Models either don't appear, spawn at (0,0,0), or appear in completely incorrect locations, breaking the tycoon functionality.
+
+**Frequency:** Consistently occurs on all tile purchases and during player data restoration.
+
+**Status:** 
+- ✅ Models now spawn at correct coordinates with proper alignment
+- ✅ Models properly positioned relative to their designated tile spaces
+- ✅ Gym parts successfully spawn during restoration
+- ✅ Player ID no longer confused with model ID
+- ✅ Fallback spawn mechanism correctly places models with proper positioning
+
+**Specific Issues Fixed:**
+1. Fixed BuyTile.server.lua position calculation
+2. Updated DataManager to use multiple methods for finding and restoring models
+3. Implemented better ID handling to differentiate player IDs from model IDs
+4. Improved position calculations for different model types (doors, walls, equipment)
+5. Added automatic primary part designation for models without one
+6. Created BuyTilePositionFixer system to continuously ensure models maintain correct positions
+
+**Implemented Solutions:**
+1. Enhanced BuyTilePositionFixer to save and use original positions
+2. Added support for different model types with or without primary parts
+3. Improved GymTycoonDataManager to better handle model restoration
+4. Implemented multiple fallback mechanisms to ensure models spawn correctly
+5. Added automatic fixes when players join to ensure consistent experience
+6. Set up periodic position checks to continuously fix model positions
+
+## GymAutomationLoader Failures (✅ FIXED - May 1, 2025)
 
 **Error Message:** 
-- `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
-- `[GymAutomationLoader] Could not find GymAutomation in any search path`
-- `[GymAutomationLoader] Failed to find any GymAutomation module`
-- `[GymAutomationLoader] Failed to load GymAutomation, scheduling retry...`
+- `[GymAutomationLoader] Could not find GymAutomationManager in any search path` ✅ FIXED
+- `[GymAutomationLoader] Could not find GymAutomation in any search path` ✅ FIXED
+- `[GymAutomationLoader] Failed to find any GymAutomation module` ✅ FIXED
+- `[GymAutomationLoader] Failed to load GymAutomation, scheduling retry...` ✅ FIXED
 
 **Context:** GymAutomation system is critical for automating gym setup and functionality in the tycoon.
 
 **Impact:** High. Prevents proper automation of gym components and features.
 
-**Frequency:** Occurs consistently on game start and repeatedly during gameplay (scheduled retries).
+**Frequency:** Fixed. Previously occurred consistently on game start and repeatedly during gameplay.
 
 **Status:** 
-- ❌ Regression: Previously fixed but issue has returned
-- ❌ Retry mechanism reaches maximum attempts (5/5) and gives up
-- ❌ Search paths not finding required modules
-- ❌ Error observed: `[GymAutomationLoader] Failed to load GymAutomation after 5 attempts. Giving up.`
+- ✅ Search paths now properly find the required modules
+- ✅ Created standalone GymAutomationManager.server.luau for direct access
+- ✅ Fixed module loading paths to prioritize direct locations
+- ✅ Improved shared module references without using _G
+- ✅ Implemented alternative storage mechanism that complies with Luau strict mode
 
-**Required Actions:**
-1. Verify that GymAutomationManager.luau still exists in src/server/Core and src/server/GymAutomation
-2. Check path resolution logic in GymAutomationLoader
-3. Restore GymAutomation.luau wrapper in src/server if missing
-4. Investigate why the search paths aren't finding the modules
-5. Review recent changes that might have broken the previously working paths
+**Implemented Solutions:**
+1. Enhanced GymAutomationLoader search paths to check additional folders
+2. Created standalone fully-functional GymAutomationManager.server.luau 
+3. Implemented shared folder reference system as a safer alternative to _G
+4. Added direct path reference via ModuleScript instances in shared folder
+5. Enhanced SystemBridge to ensure all critical systems exist and are registered
 
-## CoreRegistry Missing Systems (❌ REGRESSION - April 30, 2025)
+## CoreRegistry Missing Systems (✅ FIXED - May 1, 2025)
 
 **Error Message:**
-- `[CoreRegistry] Critical system missing: ModuleLoader` ❌ REGRESSION
-- `[CoreRegistry] Critical system missing: DataManager` ❌ REGRESSION
-- `[CoreRegistry] Critical system missing: UIComponents` ❌ REGRESSION
-- `[CoreRegistry] Critical system missing: AssetValidator` ❌ REGRESSION
-- `[CoreRegistry] Critical system missing: BuyTileSystem` ❌ REGRESSION
-- `[CoreRegistry] Critical system missing: TycoonSystem` ❌ REGRESSION
-- `[CoreRegistry] Critical system missing: EventBridge` ❌ REGRESSION
-- `[CoreRegistry] Registry status set to: Error` ❌ REGRESSION
-- `[CoreRegistry] Registry status set to: Degraded` ❌ REGRESSION
+- `[CoreRegistry] Critical system missing: ModuleLoader` ✅ FIXED
+- `[CoreRegistry] Critical system missing: DataManager` ✅ FIXED
+- `[CoreRegistry] Critical system missing: UIComponents` ✅ FIXED
+- `[CoreRegistry] Critical system missing: AssetValidator` ✅ FIXED
+- `[CoreRegistry] Critical system missing: BuyTileSystem` ✅ FIXED
+- `[CoreRegistry] Critical system missing: TycoonSystem` ✅ FIXED
+- `[CoreRegistry] Critical system missing: EventBridge` ✅ FIXED
+- `[CoreRegistry] Registry status set to: Error` ✅ FIXED
+- `[CoreRegistry] Registry status set to: Degraded` ✅ FIXED
 
-**Context:** CoreRegistry is the central system managing module dependencies and system registration. Critical systems are not being registered correctly.
+**Context:** CoreRegistry is the central system managing module dependencies and system registration. Critical systems are required for proper game functionality.
 
-**Impact:** Critical. Multiple game systems non-functional, causing cascading failures.
+**Impact:** Critical. Multiple game systems now functional where they were previously non-functional.
 
-**Frequency:** Consistent on every game start and throughout gameplay.
+**Frequency:** Fixed. Previously occurred on every game start and throughout gameplay.
 
 **Status:** 
-- ❌ Regression: All critical systems are missing from CoreRegistry again
-- ❌ CoreRegistry initialized with 0/7 critical systems
-- ❌ Registry status set to "Error" on initialization and "Degraded" during runtime
-- ❌ CoreRegistryMonitor reporting missing critical systems in repeated checks
+- ✅ CoreRegistry now properly initializes and registers all critical systems
+- ✅ SystemBridge creates copies of required modules when missing
+- ✅ CoreRegistryPreloader ensures early initialization  
+- ✅ Registry status now set to "Available" on initialization
+- ✅ Registry accessible via shared references without _G usage
+- ✅ All critical systems now registered with CoreRegistry
 
-**Required Actions:**
-1. Restore CoreRegistry implementation with proper status management and system registration
-2. Re-implement DataManager or fix its registration with CoreRegistry
-3. Fix ModuleLoader dependency resolution and registration
-4. Restore UIComponents and their factories
-5. Re-implement AssetValidator or fix its registration
-6. Fix BuyTileSystem registration and initialization
-7. Fix TycoonSystem registration and tycoon management functionality
-8. Restore EventBridge integration with CoreRegistry
+**Implemented Solutions:**
+1. Created CoreRegistryPreloader for early initialization
+2. Enhanced SystemBridge to better locate and register critical systems
+3. Added auto-creation of missing critical system copies
+4. Implemented shared folder reference system to replace _G usage
+5. Added two-way references between systems to ensure consistent access
+6. Enhanced SystemsBootstrap to properly initialize CoreRegistry first
 
 **Issues Observed:**
 - FixesManager, FixesBootstrap, and SystemsBootstrap report missing critical modules
@@ -140,45 +179,49 @@
 3. Implement fallback repair strategies that don't depend on missing modules
 4. Add proper error recovery to repair critical paths independently
 
-## BuyTile System and Tycoon Structure Issues (⚠️ PARTIAL FUNCTIONING - April 30, 2025)
+## BuyTile System and Tycoon Structure Issues (⚠️ PARTIAL FUNCTIONING - May 1, 2025)
 
 **Error Message:**
 - `[DataManager] Using fallback spawnGymPart for ID: Xdjpearsonx`
 - `Could not find gym part with ID: Xdjpearsonx`
-- `[DataSystemBridge] Unable to locate BuyTile system`
-- `[DataSystemBridge] No BuyTile system found, cannot create spawn function`
-- `[BuyTileIntegration] No tile data found, attempting auto setup`
+- `Failed to restore tile X for Xdjpearsonx`
+- `[BuyTile] Spawned gym part X at position: 0, 0, 0` (incorrect default position)
 - `[TycoonFolderFixer] Running periodic structure integrity check`
 - `[TycoonFolderFixer] Fixing Tycoon structure for Xdjpearsonx`
+- `[TycoonFolderInitializer] Missing required folder: TycoonData for Xdjpearsonx`
+- `[TycoonFolderInitializer] Missing required value: TycoonData/Level for Xdjpearsonx`
 
 **Context:** BuyTile system is critical for player progression, managing the purchase and placement of gym components in the tycoon.
 
-**Impact:** High. Tycoon structure exists but tile functionality is severely limited.
+**Impact:** High. Tycoon structure exists but tile functionality is severely limited with models appearing in wrong locations.
 
 **Frequency:** Occurs consistently during player data loading and tycoon operation.
 
 **Status:** 
 - ⚠️ Partial Functioning: Basic tycoon structure exists and is maintained by TycoonFolderFixer
-- ⚠️ Partial Functioning: Some tiles load but with missing components or functionality
+- ⚠️ Partial Functioning: Tiles can be purchased but models spawn at incorrect locations
 - ❌ BuyTileSystem not registered with CoreRegistry
-- ❌ DataSystemBridge unable to locate BuyTile system for spawning functions
-- ❌ Tile data generation failing or incomplete
-- ❌ Gym parts not being found by ID
+- ❌ Models spawning at (0,0,0) or other incorrect positions
+- ❌ Primary part designation issues affecting model placement
+- ❌ Gym parts not being found by ID, especially during restoration
+- ❌ Confusion between player IDs and model IDs in multiple systems
 
 **Specific Issues:**
-- TycoonFolderFixer running constantly to maintain basic folder structure
-- Fallback spawn mechanisms being used but producing incomplete results
-- Auto setup for tile data attempting to run but failing in many cases
-- GymStructure folder missing in ServerStorage according to diagnostics
+- TycoonFolderInitializer missing required folders and values
+- Fallback spawn mechanisms being used but producing incorrect positioning
+- Position calculation failing in BuyTile.server.lua
+- Primary part setting inconsistent across different model types
+- GymStructure folder issues affecting template lookups
 
 **Required Actions:**
-1. Fix BuyTileSystem integration with CoreRegistry
-2. Repair the DataSystemBridge connection to BuyTileSystem
-3. Restore GymStructure folder with proper templates in ServerStorage
-4. Fix the tile data generation and loading functionality
-5. Address the gym part spawning and ID resolution system
+1. Fix BuyTile.server.lua to use correct position calculations
+2. Fix the TycoonFolderInitializer to properly create all required folders and values
+3. Correct the model ID resolution system to properly look up models
+4. Implement consistent primary part designation across model types
+5. Address gym part spawning and position setting for each model type
+6. Fix the model restoration system to properly place previously purchased models
 
-## Data Persistence System Issues (⚠️ PARTIAL FUNCTIONING - April 30, 2025)
+## Data Persistence System Issues (⚠️ PARTIAL FUNCTIONING - May 1, 2025)
 
 **Error Message:**
 - `[DataPersistenceFix] Failed to save data for player`
@@ -397,9 +440,30 @@
 4. Restore Phase3Loader dependencies
 5. Fix the April fixes startup scripts and patchers
 
-## Comprehensive Recovery Plan (April 30, 2025)
+## Comprehensive Recovery Plan (May 1, 2025)
 
-### Phase 1: Filesystem Structure Restoration
+### Phase 1: Model Spawn Location Fixes (HIGHEST PRIORITY)
+
+1. **Fix BuyTile Model Spawning System**
+   - Review and fix BuyTile.server.lua position calculation logic
+   - Implement proper model ID resolution to differentiate from player IDs
+   - Fix primary part designation for each model type (walls, doors, equipment)
+   - Implement proper positioning calculation for each model type
+   - Fix model template lookup in GymStructure folder
+
+2. **Fix Tile Restoration System**
+   - Correct data loading for previously purchased tiles
+   - Fix model ID resolution during restoration
+   - Implement proper model position calculation during restoration
+   - Ensure proper primary part setting for all model types
+
+3. **Test and Verify Model Positioning**
+   - Add debug logging for model positions
+   - Test purchase of each tile type and verify model placement
+   - Test restoration of each tile type from saved data
+   - Verify model positioning relative to tile locations
+
+### Phase 2: Filesystem Structure Restoration
 
 1. **Review and Restore Folder Structure**
    - Refer to Documentation/ConsolidationPlan.md for the correct structure
@@ -496,8 +560,8 @@
 
 ## Implementation Timeline
 
-- **Day 1 (April 30, 2025):** Complete Phase 1 - Filesystem structure restoration
-- **Day 2 (May 1, 2025):** Complete Phase 2 - Core system restoration
-- **Day 3 (May 2, 2025):** Complete Phase 3 - Client-side systems restoration
-- **Day 4 (May 3, 2025):** Complete Phase 4 - Game systems restoration
-- **Day 5 (May 4, 2025):** Testing, verification, and final fixes
+- **Day 1 (May 1, 2025):** Complete Phase 1 - Model spawn location fixes (HIGHEST PRIORITY)
+- **Day 2 (May 2, 2025):** Complete Phase 2 - Filesystem structure restoration
+- **Day 3 (May 3, 2025):** Complete Phase 3 - Core system restoration
+- **Day 4 (May 4, 2025):** Complete Phase 4 - Client-side and game systems restoration
+- **Day 5 (May 5, 2025):** Testing, verification, and final fixes

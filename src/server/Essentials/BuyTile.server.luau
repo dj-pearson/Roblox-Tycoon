@@ -311,54 +311,127 @@ local function spawnBuyTile(id)
 end
 
 -- Function to find and spawn a Gym Part by ID
-local function spawnGymPart(partId)
-	local function recursiveSearch(folder)
-		for _, item in ipairs(folder:GetChildren()) do
-			if item:IsA("Model") and item:GetAttribute("ID") == partId then
-				local partClone = item:Clone()
-
-				-- Make sure all parts are anchored
-				for _, part in pairs(partClone:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.Anchored = true
-					end
-				end
-
-				-- Get the position before parenting
-				local originalPosition = nil
-				if partClone.PrimaryPart then
-					originalPosition = partClone.PrimaryPart.Position
-				end
-
-				-- Parent to workspace
-				partClone.Parent = Workspace
-
-				-- Log position for debugging
-				debugPrint("Spawned gym part " .. partId .. " at position: " .. tostring(partClone:GetPivot().Position))
-
-				-- Simply ensure visibility
-				animateModelAppearance(partClone)
-
-				return partClone
-			elseif item:IsA("Folder") then
-				local found = recursiveSearch(item)
-				if found then return found end
-			end
-		end
+local function spawnGymPart(partId, position, parent, rotation)
+	debugPrint("Spawning gym part with ID: " .. tostring(partId))
+	
+	-- Default values if not provided
+	position = position or Vector3.new(0, 0, 0)
+	rotation = rotation or Vector3.new(0, 0, 0)
+	parent = parent or Workspace
+	
+	-- Find the part template
+	local template = findGymPartByID(partId)
+	if not template then
+		debugPrint("ERROR: Could not find gym part with ID: " .. tostring(partId))
 		return nil
 	end
-
-	-- Search in GymPartsFolder
-	local part = recursiveSearch(GymPartsFolder)
-
-	-- If not found, provide debug information
-	if not part then
-		debugPrint("Could not find gym part with ID: " .. partId)
-	else
-		debugPrint("Successfully spawned gym part with ID: " .. partId)
+	
+	-- Clone the template
+	local partClone = template:Clone()
+	
+	-- Make sure all parts are anchored
+	for _, part in pairs(partClone:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Anchored = true
+		end
 	end
+	
+	-- Find or set the primary part
+	if not partClone.PrimaryPart then
+		debugPrint("WARNING: No primary part set for gym part " .. tostring(partId) .. ". Finding largest part...")
+		
+		-- Find the largest part to use as primary part
+		local largestPart = nil
+		local largestVolume = 0
+		
+		for _, part in pairs(partClone:GetDescendants()) do
+			if part:IsA("BasePart") then
+				local volume = part.Size.X * part.Size.Y * part.Size.Z
+				if volume > largestVolume then
+					largestPart = part
+					largestVolume = volume
+				end
+			end
+		end
+		
+		if largestPart then
+			debugPrint("Setting " .. largestPart.Name .. " as primary part for model " .. partClone.Name)
+			partClone.PrimaryPart = largestPart
+		else
+			debugPrint("ERROR: Could not find any parts in the model to set as primary part")
+			return nil
+		end
+	end
+	
+	-- Parent to specified parent (before positioning to avoid workspace origin flicker)
+	partClone.Parent = parent
+	
+	-- Position and rotate the model properly
+	local rotationInRadians = CFrame.Angles(
+		math.rad(rotation.X),
+		math.rad(rotation.Y),
+		math.rad(rotation.Z)
+	)
+	
+	partClone:SetPrimaryPartCFrame(CFrame.new(position) * rotationInRadians)
+	
+	-- Store original position as attribute for restoration purposes
+	partClone:SetAttribute("OriginalPosition", tostring(position))
+	if rotation ~= Vector3.new(0, 0, 0) then
+		partClone:SetAttribute("OriginalRotation", tostring(rotation))
+	end
+	
+	-- Log position for debugging
+	debugPrint("Spawned gym part " .. tostring(partId) .. " at position: " .. tostring(position))
+	
+	-- Simply ensure visibility
+	animateModelAppearance(partClone)
+	
+	return partClone
+end
 
-	return part
+-- Function to spawn a gym part at a specific position
+local function spawnGymPartAtPosition(partId, position, rotation, parent)
+	debugPrint("Spawning gym part with ID: " .. tostring(partId) .. " at position: " .. tostring(position))
+	
+	-- Default values if not provided
+	position = position or Vector3.new(0, 0, 0)
+	rotation = rotation or Vector3.new(0, 0, 0)
+	parent = parent or Workspace
+	
+	-- Get the model
+	local gymPart = spawnGymPart(partId)
+	if not gymPart then
+		debugPrint("ERROR: Failed to spawn gym part with ID: " .. tostring(partId))
+		return nil
+	end
+	
+	-- Position and rotate the model properly
+	if gymPart.PrimaryPart then
+		local rotationInRadians = CFrame.Angles(
+			math.rad(rotation.X),
+			math.rad(rotation.Y),
+			math.rad(rotation.Z)
+		)
+		
+		gymPart:SetPrimaryPartCFrame(CFrame.new(position) * rotationInRadians)
+		
+		-- Store original position as attribute for restoration purposes
+		gymPart:SetAttribute("OriginalPosition", tostring(position))
+		if rotation ~= Vector3.new(0, 0, 0) then
+			gymPart:SetAttribute("OriginalRotation", tostring(rotation))
+		end
+		
+		-- Reparent to specified parent
+		gymPart.Parent = parent
+		
+		debugPrint("Successfully positioned gym part with ID: " .. tostring(partId) .. " at: " .. tostring(position))
+		return gymPart
+	else
+		debugPrint("ERROR: Gym part with ID: " .. tostring(partId) .. " has no PrimaryPart for positioning")
+		gymPart:Destroy()
+		return nil
+	end
 end
 
 local function removeUnwantedGUIs(player)
@@ -965,6 +1038,60 @@ local function handleTilePurchase(buyTile)
 			else
 				-- Fallback handling
 				debugPrint("GymTycoonConnector not found, using fallback")
+
+				-- Spawn gym part aligned with the buy tile position
+				local tycoonModel = player:FindFirstChild("Tycoon") and player:FindFirstChild("Tycoon").Value
+				if tycoonModel then
+					-- Calculate proper position based on the buy tile, with a slight elevation
+					local gymPartPosition = buyTile:GetPivot().Position + Vector3.new(0, 1, 0)
+					
+					-- Save original position for restoration
+					local originalPosition = gymPartPosition
+					
+					-- Spawn the gym part
+					local gymPart = spawnGymPart(id)
+					if gymPart then
+						-- Ensure it has a primary part
+						if not gymPart.PrimaryPart then
+							-- Find the largest part
+							local largestPart = nil
+							local largestVolume = 0
+							
+							for _, part in pairs(gymPart:GetDescendants()) do
+								if part:IsA("BasePart") then
+									local volume = part.Size.X * part.Size.Y * part.Size.Z
+									if volume > largestVolume then
+										largestPart = part
+										largestVolume = volume
+									end
+								end
+							end
+							
+							if largestPart then
+								gymPart.PrimaryPart = largestPart
+								debugPrint("Set " .. largestPart.Name .. " as primary part for gym part " .. id)
+							end
+						end
+						
+						if gymPart.PrimaryPart then
+							-- Position correctly based on the buytile's position
+							gymPart:SetPrimaryPartCFrame(CFrame.new(gymPartPosition))
+							
+							-- Store original position for restoration
+							gymPart:SetAttribute("OriginalPosition", tostring(originalPosition))
+							
+							-- Parent to tycoon
+							gymPart.Parent = tycoonModel
+							
+							debugPrint("Successfully spawned and positioned gym part " .. id .. " at " .. tostring(gymPartPosition))
+						else
+							debugPrint("Failed to set primary part for gym part " .. id)
+							gymPart:Destroy()
+						end
+					else
+						debugPrint("Failed to spawn gym part for ID: " .. id)
+					end
+				end
 
 				-- Update equipment count
 				local tycoon = player:FindFirstChild("Tycoon")

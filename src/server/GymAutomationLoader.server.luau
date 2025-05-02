@@ -36,14 +36,15 @@ end
 local function findGymAutomationModule(moduleName)
     -- Define all possible search paths for the module
     local searchPaths = {
-        -- Server locations
+        -- Server locations (direct paths first)
+        ServerScriptService,
         ServerScriptService:FindFirstChild("Core"),
         ServerScriptService:FindFirstChild(moduleName),
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild(moduleName),
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("GymAutomation"),
-        ServerScriptService:FindFirstChild("GymAutomation"),
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server"),
+        ServerScriptService:FindFirstChild("GymAutomation"),
         ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Core"),
         ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Systems"),
         ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("GymAutomation"),
@@ -303,12 +304,24 @@ local function main()
             end
         else
             warn("[GymAutomationLoader] CoreRegistry missing registerSystem method")
+        end    else
+        -- Create shared access via ReplicatedStorage 
+        log("Creating shared references since CoreRegistry was not found")
+        -- Store it in a shared folder for access by other scripts
+        local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+        if not sharedFolder then
+            sharedFolder = Instance.new("Folder")
+            sharedFolder.Name = "shared"
+            sharedFolder.Parent = ReplicatedStorage
         end
-    else
-        -- Create a local CoreRegistry-like interface if CoreRegistry is missing
-        log("Creating local system registry since CoreRegistry was not found")
-        _G.LocalRegistry = _G.LocalRegistry or {}
-        _G.LocalRegistry.GymAutomation = gymAutomation
+        -- Create a ModuleScript that returns the GymAutomation
+        local gymAutomationModule = sharedFolder:FindFirstChild("GymAutomationSharedRef")
+        if not gymAutomationModule then
+            gymAutomationModule = Instance.new("ModuleScript")
+            gymAutomationModule.Name = "GymAutomationSharedRef"
+            gymAutomationModule.Source = "return " .. (gymAutomation and "require(script.Parent.Parent.server.GymAutomation)" or "nil")
+            gymAutomationModule.Parent = sharedFolder
+        end
     end
     
     -- Register automation functions

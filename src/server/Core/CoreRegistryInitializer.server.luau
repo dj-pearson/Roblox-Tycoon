@@ -155,8 +155,7 @@ local function initializeCoreRegistry()
             end
         end
     end
-    
-    -- Make sure ModuleLoader is available
+      -- Make sure ModuleLoader is available
     local moduleLoaderModule = findModule("ModuleLoader")
     local ModuleLoader = nil
     
@@ -171,9 +170,21 @@ local function initializeCoreRegistry()
         warn("CoreRegistryInitializer: ModuleLoader not found, some dependencies may fail to load")
     end
     
-    -- Check if CoreRegistry is available globally
-    if not _G.CoreRegistry then
-        _G.CoreRegistry = CoreRegistry
+    -- Create a shared reference to CoreRegistry
+    local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+    if not sharedFolder then
+        sharedFolder = Instance.new("Folder")
+        sharedFolder.Name = "shared"
+        sharedFolder.Parent = ReplicatedStorage
+    end
+    
+    -- Create a ModuleScript that returns CoreRegistry
+    local coreRegistryRef = sharedFolder:FindFirstChild("CoreRegistryRef")
+    if not coreRegistryRef then
+        coreRegistryRef = Instance.new("ModuleScript")
+        coreRegistryRef.Name = "CoreRegistryRef"
+        coreRegistryRef.Source = "return require(game:GetService('ServerScriptService').Core.CoreRegistry)"
+        coreRegistryRef.Parent = sharedFolder
     end
     
     print("✅ CoreRegistryInitializer: CoreRegistry successfully initialized!")

@@ -40,11 +40,20 @@ end
 local function findModule(moduleName)
     -- Define search paths
     local searchPaths = {
+        -- Direct (main) paths first for faster access
+        ServerScriptService,
         ServerScriptService:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server"),
+        -- Subfolders
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
         ServerScriptService:FindFirstChild("Systems"),
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Systems"),
-        ServerScriptService
+        -- Specialized folders
+        ServerScriptService:FindFirstChild("GymAutomation"),
+        ServerScriptService:FindFirstChild("Data"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Data"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("GymAutomation")
+    }
     }
     
     -- Try each path
@@ -137,6 +146,7 @@ end
 
 -- Register all critical systems
 function SystemBridge.registerCriticalSystems()
+    -- Define list of critical systems
     local criticalSystems = {
         "ModuleLoader",
         "DataManager",
@@ -145,9 +155,59 @@ function SystemBridge.registerCriticalSystems()
         "BuyTileSystem",
         "TycoonSystem",
         "EventBridge",
-        "GymAutomation"
+        "GymAutomation" 
     }
     
+    -- Force create correct copies of systems if they're missing
+    local function ensureSystemExists(systemName)
+        -- Check if the system already exists
+        local existing = findModule(systemName)
+        if existing then
+            log("System " .. systemName .. " found at " .. existing:GetFullName())
+            return true
+        end
+        
+        -- System is missing, check for copies in other locations
+        local alternateLocations = {
+            -- Standard paths with extensions
+            {ServerScriptService, systemName .. ".luau"},
+            {ServerScriptService, systemName .. ".server.luau"},
+            {ServerScriptService:FindFirstChild("Core"), systemName .. ".luau"},
+            {ServerScriptService:FindFirstChild("Core"), systemName .. ".server.luau"},
+            -- Special folder paths
+            {ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild(systemName), systemName .. ".luau"},
+            {ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"), systemName .. ".luau"},
+            {ServerScriptService:FindFirstChild("GymAutomation"), systemName .. ".luau"},
+        }
+        
+        -- Try each alternate location
+        for _, location in ipairs(alternateLocations) do
+            local folder = location[1]
+            local fileName = location[2]
+            
+            if folder and folder:FindFirstChild(fileName) then
+                local module = folder:FindFirstChild(fileName)
+                if module and module:IsA("ModuleScript") then
+                    -- Found a copy, now create a direct version
+                    local copy = module:Clone()
+                    copy.Name = systemName
+                    copy.Parent = ServerScriptService
+                    log("Created copy of " .. systemName .. " in ServerScriptService")
+                    return true
+                end
+            end
+        end
+        
+        log("Could not find " .. systemName .. " in any location", "warn")
+        return false
+    end
+    
+    -- Ensure all systems exist
+    for _, systemName in ipairs(criticalSystems) do
+        ensureSystemExists(systemName)
+    end
+    
+    -- Register systems with CoreRegistry
     local successCount = 0
     for _, systemName in ipairs(criticalSystems) do
         if SystemBridge.registerSystem(systemName) then
@@ -156,6 +216,13 @@ function SystemBridge.registerCriticalSystems()
     end
     
     log("Registered " .. successCount .. "/" .. #criticalSystems .. " critical systems")
+    
+    -- Running health check on CoreRegistry
+    local CoreRegistry = SystemBridge.getCoreRegistry()
+    if CoreRegistry and typeof(CoreRegistry.runHealthCheck) == "function" then
+        CoreRegistry.runHealthCheck()
+    end
+    
     return successCount == #criticalSystems
 end
 

@@ -501,13 +501,44 @@ function DataManager.restorePurchasedEquipment(player)
 		end
 
 		if not exists then
-			-- For first tile, use spawnBuyTile
+			-- For first tile, use spawnBuyTile if available
 			local part = nil
 			if id == 1 then
-				part = buyTileSystem.spawnBuyTile(id)
+				if buyTileSystem.spawnBuyTile then
+					part = buyTileSystem.spawnBuyTile(id)
+				end
 			else
-				-- Pass player as first argument, since the function expects it
-				part = buyTileSystem.spawnGymPart(player, id)
+				-- Try different spawn functions based on what's available
+				if buyTileSystem.spawnGymPartAtPosition then
+					-- Get tile position based on ID (simple implementation)
+					local basePos = Vector3.new(-164, 0.5, 105) -- Starting position
+					local position = basePos + Vector3.new(((id-1) % 5) * 10, 0, math.floor((id-1) / 5) * 10)
+					log("Using spawnGymPartAtPosition for tile", id, "at position", tostring(position))
+					part = buyTileSystem.spawnGymPartAtPosition(id, position, Vector3.new(0, 0, 0), tycoon.Value)
+				elseif buyTileSystem.spawnGymPart then
+					if typeof(buyTileSystem.spawnGymPart) == "function" then
+						-- Check function signature by the arguments it takes
+						-- Try the standard approach first (partId, position, parent)
+						local success, result = pcall(function()
+							local basePos = Vector3.new(-164, 0.5, 105) -- Starting position
+							local position = basePos + Vector3.new(((id-1) % 5) * 10, 0, math.floor((id-1) / 5) * 10)
+							log("Using spawnGymPart with position for tile", id)
+							return buyTileSystem.spawnGymPart(id, position, tycoon.Value)
+						end)
+						
+						if success and result then
+							part = result
+						else
+							-- Fall back to player-first signature
+							log("Falling back to player-first spawnGymPart for tile", id)
+							part = buyTileSystem.spawnGymPart(player, id)
+						end
+					end
+				else
+					-- Last resort - use DataManager's fallback function
+					log("Using fallback spawnGymPart for ID:", id)
+					part = DataManager.fallbackSpawnGymPart(player, id, tycoon.Value)
+				end
 			end
 
 			if part then
@@ -664,10 +695,27 @@ function DataManager.setupPlayer(player)
 	-- Apply data to player
 	DataManager.applyDataToPlayer(player)
 
-	-- Wait for tycoon to be fully set up
+	-- Wait for tycoon to be fully set up before restoring equipment
 	task.delay(3, function()
 		if player and player.Parent then
-			DataManager.restorePurchasedEquipment(player)
+			local success = DataManager.restorePurchasedEquipment(player)
+			
+			-- If restoration was successful, run the position fixer once more
+			if success then
+				task.delay(2, function()
+					-- Try to get the BuyTilePositionFixer
+					local positionFixer = nil
+					pcall(function()
+						local serverScripts = game:GetService("ServerScriptService")
+						positionFixer = require(serverScripts.Server.BuyTilePositionFixer)
+					end)
+					
+					if positionFixer and positionFixer.fixExistingModels then
+						log("Running position fixer for player:", player.Name)
+						positionFixer.fixExistingModels()
+					end
+				end)
+			end
 		end
 	end)
 
@@ -762,6 +810,186 @@ function DataManager.fixCommonIssues()
 
 	log("Fixed common issues")
 	return true
+end
+
+-- Fallback function to spawn gym parts when other methods fail
+function DataManager.fallbackSpawnGymPart(player, partId, parent)
+	log("Using fallback spawnGymPart for player:", player.Name, "part ID:", partId)
+	
+	-- Search for template in various locations
+	local template = nil
+	local searchPaths = {
+		game.ServerStorage:FindFirstChild("GymParts"),
+		game.ServerStorage:FindFirstChild("GymStructure"),
+		game.ReplicatedStorage:FindFirstChild("GymParts"),
+		game.Workspace:FindFirstChild("GymParts"),
+	}
+	
+	-- Helper function to search recursively
+	local function recursiveSearch(folder, id)
+		for _, item in ipairs(folder:GetChildren()) do
+			local itemId = item:GetAttribute("ID") or (item:FindFirstChild("ID") and item:FindFirstChild("ID").Value)
+			if itemId and (tostring(itemId) == tostring(id)) then
+				return item
+			elseif item:IsA("Folder") then
+				local found = recursiveSearch(item, id)
+				if found then return found end
+			end
+		end
+		return nil
+	end
+	
+	-- Search for matching template
+	for _, path in ipairs(searchPaths) do
+		if path then
+			template = recursiveSearch(path, partId)
+			if template then
+				log("Found template for part ID:", partId, "in", path.Name)
+				break
+			end
+		end
+	end
+	
+	-- Create a default if not found
+	if not template then
+		log("No template found for part ID:", partId, "creating default")
+		
+		-- Create a basic part as fallback
+		template = Instance.new("Model")
+		template.Name = "DefaultGymPart_" .. partId
+		
+		local part = Instance.new("Part")
+		part.Size = Vector3.new(3, 3, 3)
+		part.BrickColor = BrickColor.new("Bright blue")
+		part.Material = Enum.Material.Neon
+		part.Anchored = true
+		part.CanCollide = true
+		part.Parent = template
+		
+		-- Set as primary part
+		template.PrimaryPart = part
+		
+		-- Create a label for debugging
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(2, 0, 1, 0)
+		billboard.StudsOffset = Vector3.new(0, 2, 0)
+		billboard.Parent = part
+		
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Text = "Fallback Gym Part #" .. partId
+		label.TextScaled = true
+		label.Parent = billboard
+	end
+	
+	-- Clone the template
+	local part = template:Clone()
+	part.Name = "GymPart_" .. partId
+	
+	-- Set ID attribute if not present
+	if not part:GetAttribute("ID") then
+		part:SetAttribute("ID", partId)
+	end
+	
+	-- Set owner attribute
+	part:SetAttribute("Owner", player.UserId)
+	
+	-- Calculate position based on ID
+	local basePos = Vector3.new(-164, 0.5, 105)  -- Starting position
+	local position = basePos + Vector3.new(((partId-1) % 5) * 10, 1, math.floor((partId-1) / 5) * 10)
+	
+	-- Store original position for future reference
+	part:SetAttribute("OriginalPosition", tostring(position))
+	
+	-- Set position
+	if part.PrimaryPart then
+		part:SetPrimaryPartCFrame(CFrame.new(position))
+	else
+		-- Find the largest part to use as primary part
+		local largestPart = nil
+		local largestVolume = 0
+		
+		for _, p in pairs(part:GetDescendants()) do
+			if p:IsA("BasePart") then
+				local volume = p.Size.X * p.Size.Y * p.Size.Z
+				if volume > largestVolume then
+					largestPart = p
+					largestVolume = volume
+				end
+			end
+		end
+		
+		if largestPart then
+			part.PrimaryPart = largestPart
+			part:SetPrimaryPartCFrame(CFrame.new(position))
+		else
+			log("No suitable part found for primary part in model:", part.Name)
+			
+			-- Position any parts we can find
+			for _, p in pairs(part:GetDescendants()) do
+				if p:IsA("BasePart") then
+					p.Position = position
+				end
+			end
+		end
+	end
+	
+	-- Parent to specified parent or workspace
+	part.Parent = parent or workspace
+	
+	-- Try to use BuyTilePositionFixer if available
+	task.spawn(function()
+		task.wait(0.2) -- Small delay to ensure part is fully set up
+		
+		-- Look for BuyTilePositionFixer
+		local success, positionFixer = pcall(function()
+			local serverScripts = game:GetService("ServerScriptService")
+			return require(serverScripts.Server.BuyTilePositionFixer)
+		end)
+		
+		if success and positionFixer and positionFixer.fixModelPosition then
+			-- Find or create a tile to use as reference
+			local tileObj = nil
+			
+			-- First look for an existing buy tile with matching ID
+			for _, obj in pairs(parent:GetDescendants()) do
+				if (obj.Name:match("BuyTile") or obj:GetAttribute("IsBuyTile")) and obj:GetAttribute("ID") == partId then
+					tileObj = obj
+					break
+				end
+			end
+			
+			-- If no tile found, create a temporary reference point
+			if not tileObj then
+				local refPoint = Instance.new("Part")
+				refPoint.Anchored = true
+				refPoint.CanCollide = false
+				refPoint.Transparency = 1
+				refPoint.Size = Vector3.new(1, 1, 1)
+				refPoint.Position = position
+				refPoint.Parent = parent
+				tileObj = refPoint
+				
+				-- Use the position fixer
+				positionFixer.fixModelPosition(part, tileObj)
+				
+				-- Clean up temporary reference
+				task.wait(0.1)
+				refPoint:Destroy()
+			else
+				-- Use the position fixer with existing tile
+				positionFixer.fixModelPosition(part, tileObj)
+			end
+			
+			log("Applied BuyTilePositionFixer to model:", part.Name)
+		end
+	end)
+	
+	log("Successfully created fallback gym part with ID:", partId, "at position:", tostring(position))
+	
+	return part
 end
 
 -- Initialize the system

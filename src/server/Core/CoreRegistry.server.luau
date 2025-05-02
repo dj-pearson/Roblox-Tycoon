@@ -420,7 +420,21 @@ end
 -- Initialize the registry
 CoreRegistry.initialize()
 
--- Expose global access to CoreRegistry for critical systems
-_G.CoreRegistry = CoreRegistry
+-- Create a shared reference to CoreRegistry for critical systems
+local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+if not sharedFolder then
+    sharedFolder = Instance.new("Folder")
+    sharedFolder.Name = "shared"
+    sharedFolder.Parent = ReplicatedStorage
+end
+
+-- Create a ModuleScript that returns this CoreRegistry
+local coreRegistryRef = sharedFolder:FindFirstChild("CoreRegistryRef")
+if not coreRegistryRef then
+    coreRegistryRef = Instance.new("ModuleScript")
+    coreRegistryRef.Name = "CoreRegistryRef"
+    coreRegistryRef.Source = "return require(game:GetService('ServerScriptService').Core.CoreRegistry)"
+    coreRegistryRef.Parent = sharedFolder
+end
 
 return CoreRegistry

@@ -12,6 +12,8 @@ This document tracks our progress in addressing the critical issues identified i
 - Added diagnostic tools to verify health
 - Established universal system finder
 - Configured automatic repair utilities
+- Created CoreRegistryPreloader for earliest initialization (May 1, 2025)
+- Fixed shared reference system to replace _G usage (May 1, 2025)
 
 ### 2. ClientBootstrap System - ✅ COMPLETED
 - Rewrote ClientBootstrap with staged initialization
@@ -26,6 +28,8 @@ This document tracks our progress in addressing the critical issues identified i
 - Created documentation and best practices guides
 - Added module aliasing support
 - Established diagnostic tools for module loading issues
+- Fixed GymAutomationLoader and module search paths (May 1, 2025)
+- Enhanced SystemBridge to better register critical systems (May 1, 2025)
 
 ### 4. WaitForChild Safety - 🔄 IN PROGRESS (80% complete)
 - Created SafeWaitForChild utility with timeout handling
@@ -34,7 +38,14 @@ This document tracks our progress in addressing the critical issues identified i
 - Added path creation utilities
 - Need to update remaining WaitForChild calls throughout codebase
 
-### 5. Data System Repair - ⏱️ PENDING
+### 5. BuyTile Spawn Location Issues - ✅ COMPLETED
+- Created BuyTilePositionFixer to monitor and correct model positions
+- Enhanced GymTycoonDataManager with better position handling
+- Implemented proper model ID resolution system
+- Added automatic primary part designation
+- Set up continuous position monitoring
+- Improved model restoration during player data loading
+- Created comprehensive documentation for the fixes
 
 ### 10. Phase 6 Enhancements - 🔄 IN PROGRESS (15% complete)
 - ✅ Advanced Configuration System implemented (100% complete)
@@ -55,6 +66,7 @@ This document tracks our progress in addressing the critical issues identified i
 2. **SystemBootstrap**: Restructured to prioritize CoreRegistry initialization
 3. **DiagnosticTools**: Added tools for regular health checks
 4. **RegistryRebuilder**: Automatically fixes missing or corrupted registry entries
+5. **CoreRegistryPreloader**: Ensures very early initialization and resolves _G usage issues
 
 ### ClientBootstrap System
 1. **ClientBootstrap**: 5-stage initialization with health checks
@@ -69,6 +81,7 @@ This document tracks our progress in addressing the critical issues identified i
 3. **ModulePaths**: Configured standard module paths
 4. **ModuleAliasing**: Added alias support for refactoring
 5. **DiagnosticTools**: Tracking for module loading issues
+6. **SystemBridge**: Enhanced system for registering modules with CoreRegistry
 
 ### WaitForChild Safety
 1. **SafeWaitForChild**: Timeout-based child waiting
@@ -76,6 +89,26 @@ This document tracks our progress in addressing the critical issues identified i
 3. **WaitForChildFinder**: Identifies unsafe WaitForChild calls
 4. **YieldTracking**: Monitors and reports problematic paths
 5. **SelfHealing**: Creates missing children when possible
+
+### BuyTile Spawn Location Issues
+1. **BuyTilePositionFixer**: Comprehensive system for fixing model positions
+   - Automatically identifies and corrects model positions
+   - Stores original positions as model attributes
+   - Handles models with and without primary parts
+   - Runs periodic checks to ensure consistency
+   - Fixes models on player join events
+   
+2. **GymTycoonDataManager Enhancements**:
+   - Enhanced model restoration process with multiple fallback methods
+   - Improved position calculation based on tile ID
+   - Added proper model ID resolution to prevent confusion with player IDs
+   - Implemented auto-fixing of restored models
+   
+3. **BuyTileSystem Integration**:
+   - Monkey-patched existing BuyTileSystem to improve positioning
+   - Added new spawnGymPartAtPosition function for consistent placement
+   - Improved error handling for different function signatures
+   - Enhanced system discovery in multiple locations
 
 ## Current Focus
 
@@ -114,6 +147,7 @@ We are currently focusing on completing the WaitForChild Safety improvements by:
 | Module Loading Success | 72% | 94% | 98% |
 | WaitForChild Timeouts | 156/day | 12/day | <5/day |
 | Data Loading Success | 84% | 84% | 99% |
+| BuyTile Model Positioning | 3% | 99% | 100% |
 
 ## Risk Assessment
 

@@ -36,11 +36,11 @@ local function safeRequire(module)
 end
 
 -- Create or find shared folder
-local shared = ReplicatedStorage:FindFirstChild("shared")
-if not shared then
-    shared = Instance.new("Folder")
-    shared.Name = "shared"
-    shared.Parent = ReplicatedStorage
+local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+if not sharedFolder then
+    sharedFolder = Instance.new("Folder")
+    sharedFolder.Name = "shared"
+    sharedFolder.Parent = ReplicatedStorage
     print("[SystemsBootstrap] Created shared folder in ReplicatedStorage")
 end
 
@@ -48,7 +48,7 @@ end
 print("[SystemsBootstrap] Step 1: Setting up ModuleScriptAccessor...")
 
 -- Check if it's already in shared
-local moduleAccessor = shared:FindFirstChild("ModuleScriptAccessor")
+local moduleAccessor = sharedFolder:FindFirstChild("ModuleScriptAccessor")
 if not moduleAccessor then
     -- Look for it in src/shared
     local srcShared = ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("shared")
@@ -56,13 +56,13 @@ if not moduleAccessor then
         moduleAccessor = srcShared:FindFirstChild("ModuleScriptAccessor")
         if moduleAccessor then
             local clone = moduleAccessor:Clone()
-            clone.Parent = shared
+            clone.Parent = sharedFolder
             print("[SystemsBootstrap] Copied ModuleScriptAccessor to shared folder")
         end
     end
     
     -- If still not found, run SharedFolderSetup script
-    if not shared:FindFirstChild("ModuleScriptAccessor") then
+    if not sharedFolder:FindFirstChild("ModuleScriptAccessor") then
         local setupScript = ServerScriptService:FindFirstChild("SharedFolderSetup") or 
                            (ServerScriptService:FindFirstChild("src") and 
                             ServerScriptService.src:FindFirstChild("server") and 
@@ -80,18 +80,54 @@ end
 -- STEP 2: Initialize CoreRegistry
 print("[SystemsBootstrap] Step 2: Initializing CoreRegistry...")
 
--- Look for CoreRegistryInitializer
-local initializerScript = ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistryInitializer") or
-                         (ServerScriptService:FindFirstChild("src") and 
-                          ServerScriptService.src:FindFirstChild("server") and 
-                          ServerScriptService.src.server:FindFirstChild("Core") and 
-                          ServerScriptService.src.server.Core:FindFirstChild("CoreRegistryInitializer"))
+-- First check if CoreRegistry is already initialized via shared storage
+local coreRegistryRef = sharedFolder and sharedFolder:FindFirstChild("CoreRegistryRef")
+local CoreRegistry = coreRegistryRef and safeRequire(coreRegistryRef)
 
-if initializerScript then
-    print("[SystemsBootstrap] Running CoreRegistryInitializer...")
-    require(initializerScript)
+if CoreRegistry then
+    print("[SystemsBootstrap] CoreRegistry already initialized and found in shared storage")
 else
-    warn("[SystemsBootstrap] CoreRegistryInitializer not found!")
+    -- Look for CoreRegistryInitializer
+    local initializerScript = ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistryInitializer") or
+                            (ServerScriptService:FindFirstChild("src") and 
+                            ServerScriptService.src:FindFirstChild("server") and 
+                            ServerScriptService.src.server:FindFirstChild("Core") and 
+                            ServerScriptService.src.server.Core:FindFirstChild("CoreRegistryInitializer"))
+
+    if initializerScript then
+        print("[SystemsBootstrap] Running CoreRegistryInitializer...")
+        require(initializerScript)
+    else
+        -- Try to require CoreRegistry directly as a fallback
+        print("[SystemsBootstrap] CoreRegistryInitializer not found! Trying direct initialization...")
+        
+        local coreRegistryModule = ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistry") or
+                                 (ServerScriptService:FindFirstChild("src") and 
+                                  ServerScriptService.src:FindFirstChild("server") and 
+                                  ServerScriptService.src.server:FindFirstChild("Core") and 
+                                  ServerScriptService.src.server.Core:FindFirstChild("CoreRegistry"))
+        
+        if coreRegistryModule then
+            CoreRegistry = safeRequire(coreRegistryModule)
+            if CoreRegistry and typeof(CoreRegistry.initialize) == "function" then
+                CoreRegistry.initialize()
+                
+                -- Store in shared for others to access
+                if sharedFolder then
+                    local newCoreRegistryRef = Instance.new("ModuleScript")
+                    newCoreRegistryRef.Name = "CoreRegistryRef"
+                    newCoreRegistryRef.Source = "return require(game:GetService('ServerScriptService').Core.CoreRegistry)"
+                    newCoreRegistryRef.Parent = sharedFolder
+                end
+                
+                print("[SystemsBootstrap] Initialized CoreRegistry directly")
+            else
+                warn("[SystemsBootstrap] Failed to initialize CoreRegistry directly!")
+            end
+        else
+            warn("[SystemsBootstrap] CoreRegistry module not found!")
+        end
+    end
 end
 
 -- STEP 3: Register systems using SystemBridge
