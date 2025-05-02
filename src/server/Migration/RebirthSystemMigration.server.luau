@@ -61,7 +61,7 @@ local function logDebug(...)
     if DEBUG_MODE then
         print("[RebirthMigration]", ...)
     end
-}
+end
 
 -- The migration manager
 local RebirthSystemMigration = {}
@@ -87,7 +87,7 @@ function RebirthSystemMigration:_loadLegacySystems()
     end
     
     return legacySystems
-}
+end
 
 -- Identify the best legacy system to use for migrations
 function RebirthSystemMigration:_identifyActiveLegacySystem(legacySystems)
@@ -104,7 +104,7 @@ function RebirthSystemMigration:_identifyActiveLegacySystem(legacySystems)
     end
     
     return nil, nil
-}
+end
 
 -- Extract rebirth data from a legacy system for a player
 function RebirthSystemMigration:_extractLegacyData(player, legacySystem, legacyType)
@@ -178,7 +178,7 @@ function RebirthSystemMigration:_extractLegacyData(player, legacySystem, legacyT
     end
     
     return legacyData
-}
+end
 
 -- Map a legacy feature name to the new format
 function RebirthSystemMigration:_mapLegacyFeature(legacyName, legacyType)
@@ -198,7 +198,7 @@ function RebirthSystemMigration:_mapLegacyFeature(legacyName, legacyType)
     end
     
     return nil
-}
+end
 
 -- Get the required level for a feature in the new system
 function RebirthSystemMigration:_getRequiredLevelForFeature(featureId)
@@ -221,7 +221,7 @@ function RebirthSystemMigration:_getRequiredLevelForFeature(featureId)
     }
     
     return defaultLevels[featureId] or 1
-}
+end
 
 -- Look up rebirth data from legacy data stores
 function RebirthSystemMigration:_findLegacyDataStoreData(player)
@@ -241,7 +241,7 @@ function RebirthSystemMigration:_findLegacyDataStoreData(player)
     end
     
     return nil, nil
-}
+end
 
 -- Convert legacy data store format to the new format
 function RebirthSystemMigration:_convertLegacyDataStoreData(data)
@@ -287,7 +287,7 @@ function RebirthSystemMigration:_convertLegacyDataStoreData(data)
     end
     
     return state
-}
+end
 
 -- Migrate a player's rebirth data from legacy to new system
 function RebirthSystemMigration:MigratePlayer(player)
@@ -365,7 +365,7 @@ function RebirthSystemMigration:MigratePlayer(player)
     end
     
     return false, "Failed to generate migration data"
-}
+end
 
 -- Count the number of unlocked features
 function RebirthSystemMigration:_countFeatures(featuresTable)
@@ -376,7 +376,7 @@ function RebirthSystemMigration:_countFeatures(featuresTable)
         end
     end
     return count
-}
+end
 
 -- Initialize migration for all current players
 function RebirthSystemMigration:Initialize()

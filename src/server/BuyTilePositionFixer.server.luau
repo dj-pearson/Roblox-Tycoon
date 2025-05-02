@@ -131,7 +131,7 @@ local function fixModelPosition(model, tileObj)
     end
     
     debugPrint("New position:", tostring(model:GetPivot().Position))
-}
+
 end
 
 -- Fix existing models in the workspace

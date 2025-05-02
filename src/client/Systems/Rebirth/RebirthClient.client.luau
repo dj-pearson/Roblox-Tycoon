@@ -156,7 +156,7 @@ function RebirthClient:_handleRebirthRejected(data: {[string]: any})
             type = "error",
         })
     end
-}
+end
 
 -- Play visual and audio effects for rebirth
 function RebirthClient:_playRebirthEffects()
@@ -202,7 +202,7 @@ function RebirthClient:_playRebirthEffects()
             emitter:Destroy()
         end)
     end
-}
+end
 
 -- Play visual and audio effects for feature unlock
 function RebirthClient:_playUnlockEffect(feature: {[string]: any})
@@ -254,7 +254,7 @@ function RebirthClient:_playUnlockEffect(feature: {[string]: any})
             icon:Destroy()
         end)
     end
-}
+end
 
 -- Update UI components with current state
 function RebirthClient:_updateUI()
@@ -267,7 +267,7 @@ function RebirthClient:_updateUI()
     
     -- Fire event for any other listeners
     ClientEventBridge:FireEvent("RebirthStateUpdated", self._state)
-}
+end
 
 -- Public methods
 
@@ -324,19 +324,19 @@ function RebirthClient:RegisterUIComponent(name: string, component: any)
     if typeof(component) == "table" and component.UpdateRebirthInfo then
         component:UpdateRebirthInfo(self._state)
     end
-}
+end
 
 -- Unregister a UI component
 function RebirthClient:UnregisterUIComponent(name: string)
     if name and self._uiComponents[name] then
         self._uiComponents[name] = nil
     end
-}
+end
 
 -- Request rebirth info from the server
 function RebirthClient:RequestRebirthInfo()
     ClientEventBridge:FireEvent("RequestRebirthInfo")
-}
+end
 
 -- Request a rebirth from the server
 function RebirthClient:RequestRebirth()
@@ -347,7 +347,7 @@ function RebirthClient:RequestRebirth()
     
     logDebug("Requesting rebirth")
     ClientEventBridge:FireEvent("RequestRebirth")
-}
+end
 
 -- Open the rebirth UI
 function RebirthClient:OpenRebirthUI()
@@ -361,12 +361,12 @@ function RebirthClient:OpenRebirthUI()
             screenGui.Enabled = true
         end
     end
-}
+end
 
 -- Get the current rebirth state
 function RebirthClient:GetState(): RebirthState
     return table.clone(self._state)
-}
+end
 
 -- Create the public API
 local PublicAPI = {

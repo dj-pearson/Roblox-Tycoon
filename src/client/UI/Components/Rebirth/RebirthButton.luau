@@ -234,7 +234,7 @@ function RebirthButton:_playClickEffect()
         })
         returnTween:Play()
     end)
-}
+end
 
 -- Play "cannot afford" effect
 function RebirthButton:_playCannotAffordEffect()
@@ -265,7 +265,7 @@ function RebirthButton:_playCannotAffordEffect()
     task.delay(0.3, function()
         self.costText.TextColor3 = originalColor
     end)
-}
+end
 
 -- Update the button based on affordability
 function RebirthButton:_updateAvailability(canAfford: boolean)
@@ -282,7 +282,7 @@ function RebirthButton:_updateAvailability(canAfford: boolean)
         self.buttonText.TextColor3 = Color3.fromRGB(180, 180, 180) -- Gray
         self.costText.TextColor3 = Color3.fromRGB(180, 180, 180)
     end
-}
+end
 
 -- Format a number with commas (e.g., 1,000,000)
 function RebirthButton:_formatNumber(num: number): string
@@ -308,13 +308,13 @@ function RebirthButton:UpdateRebirthInfo(state: RebirthState)
     
     -- Update button availability
     self:_updateAvailability(state.canRebirth)
-}
+end
 
 -- Set button enabled state
 function RebirthButton:SetEnabled(enabled: boolean)
     self.enabled = enabled
     self.instance.Visible = enabled
-}
+end
 
 -- Clean up the component
 function RebirthButton:Destroy()
@@ -328,6 +328,6 @@ function RebirthButton:Destroy()
         self.instance:Destroy()
         self.instance = nil
     end
-}
+end
 
 return RebirthButton
