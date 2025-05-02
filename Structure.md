@@ -9,8 +9,8 @@ This document outlines the structure of the Gym Tycoon project, highlighting key
 | UI Systems | 🔄 In Progress | Unified framework implemented with centralized components |
 | Data Management | 🔄 In Progress (80%) | Core system implemented with bridge for legacy code. Final migration in progress |
 | Registry Systems | 🔄 In Progress (90%) | Unified registry with bridges, migration tools, and telemetry implemented. Final testing in progress |
-| Event Systems | 🔄 In Progress | Design document created, implementation started |
-| Rebirth Systems | ⏳ To Be Planned | Analysis phase not yet started |
+| Event Systems | 🔄 In Progress (80%) | Core modules implemented, migration utilities created, integration in progress |
+| Rebirth Systems | 🔄 In Progress (20%) | Analysis complete, consolidation plan created, implementation planning in progress |
 | Tile Purchase Systems | ⏳ To Be Planned | Analysis phase not yet started |
 | Equipment Systems | ⏳ To Be Planned | Analysis phase not yet started |
 
