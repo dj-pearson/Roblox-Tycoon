@@ -77,8 +77,47 @@ local function initializeClientFixes()
         log("Client fixes are disabled via configuration")
         return
     end
+      log("Starting initialization of April 29 client fixes...")
     
-    log("Starting initialization of April 29 client fixes...")
+    -- Load UISystemPatcher
+    local uiSystemPatcherScript = findScript("UISystemPatcher") or
+                               (player.PlayerScripts:FindFirstChild("src") and 
+                                player.PlayerScripts.src:FindFirstChild("client") and 
+                                player.PlayerScripts.src.client:FindFirstChild("UISystemPatcher")) or
+                               (ReplicatedStorage:FindFirstChild("src") and 
+                                ReplicatedStorage.src:FindFirstChild("client") and 
+                                ReplicatedStorage.src.client:FindFirstChild("UISystemPatcher"))
+    
+    if uiSystemPatcherScript then
+        log("Executing UISystemPatcher...")
+        requireSafely(uiSystemPatcherScript)
+    else
+        -- If script not found, try to find it in other locations
+        log("UISystemPatcher not found in common locations, searching more...")
+        
+        -- Search in more locations
+        local locations = {
+            player.PlayerScripts.Core,
+            player.PlayerScripts.UI,
+            player.PlayerScripts.Client,
+            ReplicatedStorage:FindFirstChild("shared"),
+            ReplicatedStorage.src and ReplicatedStorage.src:FindFirstChild("shared"),
+            ReplicatedStorage:FindFirstChild("client")
+        }
+        
+        for _, location in ipairs(locations) do
+            if location and location:FindFirstChild("UISystemPatcher") then
+                uiSystemPatcherScript = location.UISystemPatcher
+                log("Found UISystemPatcher in " .. uiSystemPatcherScript:GetFullName())
+                requireSafely(uiSystemPatcherScript)
+                break
+            end
+        end
+        
+        if not uiSystemPatcherScript then
+            warn("[AprilFixesClientStartup] UISystemPatcher not found - will continue without UI fixes")
+        end
+    end
     
     -- Load UIAccessRestrictor
     local uiAccessRestrictorScript = findScript("UIAccessRestrictor")

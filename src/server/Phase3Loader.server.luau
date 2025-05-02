@@ -76,21 +76,66 @@ function Phase3Loader:InitializeDataFix()
     if not essentialsPath then
         essentialsPath = ensureFolder(ServerScriptService, "Essentials")
     end
-    
-    -- Check for DataManagerFix
-    local dataManagerFixPath = corePath:FindFirstChild("DataManagerFix")
+      -- Check for DataManagerFix (try multiple locations)
+    local dataManagerFixPath = corePath:FindFirstChild("DataManagerFix") or
+                             ServerScriptService:FindFirstChild("src") and 
+                             ServerScriptService.src:FindFirstChild("server") and 
+                             ServerScriptService.src.server:FindFirstChild("Core") and 
+                             ServerScriptService.src.server.Core:FindFirstChild("DataManagerFix")
     
     if not dataManagerFixPath or not moduleExists(dataManagerFixPath) then
         log("DataManagerFix not found or failed to load")
-        return false
+        log("Searching in alternate locations...")
+        
+        -- Search in more locations
+        local locations = {
+            ServerScriptService.Core,
+            ServerScriptService.src and ServerScriptService.src.server and ServerScriptService.src.server.Core,
+            ReplicatedStorage.shared
+        }
+        
+        for _, location in ipairs(locations) do
+            if location and location:FindFirstChild("DataManagerFix") then
+                dataManagerFixPath = location.DataManagerFix
+                log("Found DataManagerFix in " .. dataManagerFixPath:GetFullName())
+                break
+            end
+        end
+        
+        if not dataManagerFixPath or not moduleExists(dataManagerFixPath) then
+            return false
+        end
     end
     
-    -- Check for PlayerProgressRestoration
-    local progressRestorationPath = essentialsPath:FindFirstChild("PlayerProgressRestoration")
+    -- Check for PlayerProgressRestoration (try multiple locations)
+    local progressRestorationPath = essentialsPath:FindFirstChild("PlayerProgressRestoration") or
+                                  ServerScriptService:FindFirstChild("src") and 
+                                  ServerScriptService.src:FindFirstChild("server") and 
+                                  ServerScriptService.src.server:FindFirstChild("Essentials") and 
+                                  ServerScriptService.src.server.Essentials:FindFirstChild("PlayerProgressRestoration")
     
     if not progressRestorationPath or not moduleExists(progressRestorationPath) then
         log("PlayerProgressRestoration not found or failed to load")
-        return false
+        log("Searching in alternate locations...")
+        
+        -- Search in more locations
+        local locations = {
+            ServerScriptService.Essentials,
+            ServerScriptService.Core,
+            ServerScriptService.src and ServerScriptService.src.server and ServerScriptService.src.server.Essentials,
+            ReplicatedStorage.shared
+        }
+        
+        for _, location in ipairs(locations) do
+            if location and location:FindFirstChild("PlayerProgressRestoration") then
+                progressRestorationPath = location.PlayerProgressRestoration
+                log("Found PlayerProgressRestoration in " .. progressRestorationPath:GetFullName())
+                break
+            end
+        end
+          if not progressRestorationPath or not moduleExists(progressRestorationPath) then
+            return false
+        end
     end
     
     -- Load the modules
@@ -112,8 +157,7 @@ function Phase3Loader:InitializeSoundFix()
         log("Skipping sound fix initialization (disabled in config)")
         return false
     end
-    
-    log("Initializing sound system fixes...")
+      log("Initializing sound system fixes...")
     
     -- Ensure paths exist
     local sharedPath = ReplicatedStorage:FindFirstChild("shared")
@@ -121,20 +165,68 @@ function Phase3Loader:InitializeSoundFix()
         sharedPath = ensureFolder(ReplicatedStorage, "shared")
     end
     
-    -- Check for SoundSystemManager
-    local soundSystemPath = sharedPath:FindFirstChild("SoundSystemManager")
+    -- Check for SoundSystemManager in multiple locations
+    local soundSystemPath = sharedPath:FindFirstChild("SoundSystemManager") or
+                          ReplicatedStorage:FindFirstChild("SoundSystemManager") or
+                          (ServerScriptService:FindFirstChild("src") and 
+                           ServerScriptService.src:FindFirstChild("shared") and 
+                           ServerScriptService.src.shared:FindFirstChild("SoundSystemManager"))
     
     if not soundSystemPath or not moduleExists(soundSystemPath) then
         log("SoundSystemManager not found or failed to load")
-        return false
+        log("Searching in alternate locations...")
+        
+        -- Search in more locations
+        local locations = {
+            ServerScriptService.Core,
+            (ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core")),
+            (ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("shared")),
+            (ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"))
+        }
+        
+        for _, location in ipairs(locations) do
+            if location and location:FindFirstChild("SoundSystemManager") then
+                soundSystemPath = location.SoundSystemManager
+                log("Found SoundSystemManager in " .. soundSystemPath:GetFullName())
+                break
+            end
+        end
+        
+        if not soundSystemPath or not moduleExists(soundSystemPath) then
+            return false
+        end
     end
     
-    -- Check for SoundAssetValidator
-    local soundValidatorPath = sharedPath:FindFirstChild("SoundAssetValidator")
+    -- Check for SoundAssetValidator in multiple locations
+    local soundValidatorPath = sharedPath:FindFirstChild("SoundAssetValidator") or
+                             ReplicatedStorage:FindFirstChild("SoundAssetValidator") or
+                             (ServerScriptService:FindFirstChild("src") and 
+                              ServerScriptService.src:FindFirstChild("shared") and 
+                              ServerScriptService.src.shared:FindFirstChild("SoundAssetValidator"))
     
     if not soundValidatorPath or not moduleExists(soundValidatorPath) then
         log("SoundAssetValidator not found or failed to load")
-        return false
+        log("Searching in alternate locations...")
+        
+        -- Search in more locations
+        local locations = {
+            ServerScriptService.Core,
+            (ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core")),
+            (ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("shared")),
+            (ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"))
+        }
+        
+        for _, location in ipairs(locations) do
+            if location and location:FindFirstChild("SoundAssetValidator") then
+                soundValidatorPath = location.SoundAssetValidator
+                log("Found SoundAssetValidator in " .. soundValidatorPath:GetFullName())
+                break
+            end
+        end
+        
+        if not soundValidatorPath or not moduleExists(soundValidatorPath) then
+            return false
+        end
     end
     
     -- Create PlaySoundEvent if it doesn't exist
@@ -181,23 +273,44 @@ function Phase3Loader:InitializeAssetDiagnostics()
         log("Asset diagnostics initialization skipped (client-only)")
         return false
     end
+      log("Initializing asset diagnostics system...")
     
-    log("Initializing asset diagnostics system...")
+    -- Check for AssetDiagnosticsSystem in multiple locations
+    local assetDiagnosticsPath = essentialsPath:FindFirstChild("AssetDiagnosticsSystem") or
+                             ServerScriptService.Core:FindFirstChild("AssetDiagnosticsSystem") or
+                             sharedPath:FindFirstChild("AssetDiagnosticsSystem") or
+                             (ServerScriptService:FindFirstChild("src") and 
+                              ServerScriptService.src:FindFirstChild("server") and 
+                              ServerScriptService.src.server:FindFirstChild("Essentials") and 
+                              ServerScriptService.src.server.Essentials:FindFirstChild("AssetDiagnosticsSystem"))
     
-    -- Check for AssetFailureLogger
-    local essentialsPath = ServerScriptService:FindFirstChild("Essentials")
-    if not essentialsPath then
-        essentialsPath = ensureFolder(ServerScriptService, "Essentials")
-        log("Created missing Essentials folder")
+    if not assetDiagnosticsPath or not moduleExists(assetDiagnosticsPath) then
+        log("AssetDiagnosticsSystem not found or failed to load")
+        log("Searching in alternate locations...")
+        
+        -- Search in more locations
+        local locations = {
+            ServerScriptService.Essentials,
+            ServerScriptService.Core,
+            (ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core")),
+            (ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("shared")),
+            (ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared")),
+            ReplicatedStorage:FindFirstChild("shared")
+        }
+        
+        for _, location in ipairs(locations) do
+            if location and location:FindFirstChild("AssetDiagnosticsSystem") then
+                assetDiagnosticsPath = location.AssetDiagnosticsSystem
+                log("Found AssetDiagnosticsSystem in " .. assetDiagnosticsPath:GetFullName())
+                break
+            end
+        end
+        
+        if not assetDiagnosticsPath or not moduleExists(assetDiagnosticsPath) then
+            return false
+        end
     end
-    
-    local assetLoggerPath = essentialsPath:FindFirstChild("AssetFailureLogger")
-    if not assetLoggerPath or not moduleExists(assetLoggerPath) then
-        log("AssetFailureLogger not found or failed to load")
-        return false
-    end
-    
-    -- Create the report event if it doesn't exist
+      -- Create the report event if it doesn't exist
     if not ReplicatedStorage:FindFirstChild("AssetLoadFailureReport") then
         local reportEvent = Instance.new("RemoteEvent")
         reportEvent.Name = "AssetLoadFailureReport"
@@ -206,10 +319,10 @@ function Phase3Loader:InitializeAssetDiagnostics()
     end
     
     -- Load the module
-    local assetLogger = require(assetLoggerPath)
+    local assetDiagnostics = require(assetDiagnosticsPath)
     
-    if not assetLogger then
-        log("Failed to load AssetFailureLogger module")
+    if not assetDiagnostics then
+        log("Failed to load AssetDiagnosticsSystem module")
         return false
     end
     
@@ -224,8 +337,7 @@ function Phase3Loader:Initialize()
     local dataFixResult = self:InitializeDataFix()
     local soundFixResult = self:InitializeSoundFix()
     local diagnosticsResult = self:InitializeAssetDiagnostics()
-    
-    log("Phase 3 initialization complete:")
+      log("Phase 3 initialization complete:")
     log("- Data Fix: " .. (dataFixResult and "SUCCESS" or "FAILED"))
     log("- Sound Fix: " .. (soundFixResult and "SUCCESS" or "FAILED"))
     log("- Asset Diagnostics: " .. (diagnosticsResult and "SUCCESS" or "FAILED"))
