@@ -101,7 +101,41 @@ local MENU_BUTTONS = {
             end
         end
     },    {
+        name = "Alliance",
+        icon = ICONS.Alliance,
+        position = UDim2.new(0, 10, 0, 310), -- Position it after Data
+        color = Color3.fromRGB(121, 85, 72),
+        callback = function()
+            -- Handle alliance button click
+            log("Alliance button clicked")
+            
+            -- Correctly require the AllianceUI module
+            local AllianceUI = require(script.Parent.Parent.UI.AllianceUI)
+            
+            if AllianceUI and typeof(AllianceUI.toggleMenu) == "function" then
+                AllianceUI.toggleMenu()
+            else
+                log("AllianceUI found but toggleMenu function not available or module not found")
+            end
+        end
+    },
+    
+    {
         name = "Gym",
+        icon = ICONS.Settings,
+        position = UDim2.new(0, 10, 0, 260),
+        color = Color3.fromRGB(46, 125, 50),
+        callback = function()
+            -- Handle settings button click
+            log("Settings button clicked")
+            local settingsModule = require(script.Parent.Parent.UI.SettingsMenuUI)
+            if settingsModule and typeof(settingsModule.ToggleSettingsMenu) == "function" then
+                settingsModule.ToggleSettingsMenu()
+            end
+        end
+    },
+    {
+        name = "Gymm",
         icon = ICONS.Gym,
         position = UDim2.new(0, 10, 0, 260),
         color = Color3.fromRGB(46, 125, 50),
@@ -110,7 +144,7 @@ local MENU_BUTTONS = {
             log("Gym management button clicked")
             local gymModule = safeRequire("GymMenuUI")
             if gymModule then
-                if typeof(gymModule.ToggleVisibility) == "function" then
+                if typeof(gymModule.ToggleVisibility) == "function" then 
                     gymModule.ToggleVisibility()
                 else
                     log("GymMenuUI found but ToggleVisibility function not available")
