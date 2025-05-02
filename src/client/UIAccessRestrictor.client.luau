@@ -69,21 +69,52 @@ end
 -- Find and remove unauthorized UI elements
 local function removeUnauthorizedUI()
     if checkIsAdmin() then
-        print("[UIAccessRestrictor] User is admin, keeping development UIs")
+        -- In studio mode or for admin users, we still want to keep some UIs hidden
+        -- to avoid screen clutter unless they're explicitly enabled
+        local studioOnlyUIs = {
+            "EmergencyUIAccess", 
+            "EmergencyUI",
+            "AlertUI"
+        }
+        
+        -- Check if we should force-hide emergency UI
+        local playerGui = player:FindFirstChild("PlayerGui")
+        if playerGui then
+            for _, name in ipairs(studioOnlyUIs) do
+                local ui = playerGui:FindFirstChild(name)
+                if ui and ui:IsA("ScreenGui") then
+                    -- Only hide if not specifically enabled with attribute
+                    if not ui:GetAttribute("ForceShow") then
+                        print("[UIAccessRestrictor] Hiding studio UI:", name)
+                        ui.Enabled = false
+                    end
+                end
+            end
+        end
+        
+        print("[UIAccessRestrictor] Admin user detected, keeping most developer UIs")
         return
     end
     
     print("[UIAccessRestrictor] Removing development UIs for non-admin user")
-      -- UI elements to remove
+    
+    -- UI elements to remove
     local uiNames = {
-        "EmergencyUIAccess", -- Already removed but included for safety
+        "EmergencyUIAccess",
         "AdminDashboard",
         "AdminPanel",
         "AdminControls",
         "DeveloperConsole",
         "UISystemDebugger",
         "WaitForChildFinder",
-        "RebirthMenuUI" -- Added to ensure it's also removed if present
+        "RebirthMenuUI",
+        "DevTools",
+        "DevConsole",
+        "DebugDisplay",
+        "PerfStats",
+        "PerformanceMonitor",
+        "SystemMonitor",
+        "DiagnosticsGui"
     }
     
     -- Remove from PlayerGui
@@ -93,6 +124,17 @@ local function removeUnauthorizedUI()
             local ui = playerGui:FindFirstChild(name)
             if ui then
                 print("[UIAccessRestrictor] Removing:", name)
+                ui:Destroy()
+            end
+        end
+        
+        -- Also look for all screen GUIs with "Dev" in their name
+        for _, ui in pairs(playerGui:GetChildren()) do
+            if ui:IsA("ScreenGui") and 
+              (string.find(ui.Name, "Dev") or 
+               string.find(ui.Name, "Admin") or 
+               string.find(ui.Name, "Debug")) then
+                print("[UIAccessRestrictor] Removing developer UI:", ui.Name)
                 ui:Destroy()
             end
         end

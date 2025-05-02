@@ -113,14 +113,23 @@ function MainMenuUI:CreateMainMenu()
         screenGui.ResetOnSpawn = false
         screenGui.Parent = player:FindFirstChild("PlayerGui")
     end
-      -- Create background with tween-in effect
+    
+    -- Clear any existing UI elements to prevent duplication
+    for _, child in ipairs(screenGui:GetChildren()) do
+        child:Destroy()
+    end
+    
+    -- Create background with tween-in effect
     local background = Instance.new("Frame")
     background.Name = "Background"
     background.Size = UDim2.new(1, 0, 1, 0)
-    background.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+    background.BackgroundColor3 = UIStyle and UIStyle.Colors and UIStyle.Colors.Background or Color3.fromRGB(10, 10, 20)
     background.BackgroundTransparency = 1.0  -- Start fully transparent (fix for dark haze issue)
     background.BorderSizePixel = 0
     background.Parent = screenGui
+    
+    -- Store for future reference
+    uiState.menuElements.background = background
     
     -- Create logo/title at top
     local logoContainer = Instance.new("Frame")
@@ -388,20 +397,45 @@ end
 -- Show/hide main menu with animation
 function MainMenuUI:ShowMainMenu(visible)
     local background = uiState.menuElements.background
-    if not background then return end
+    if not background then 
+        warn("MainMenuUI:ShowMainMenu - Background element not found, trying to recreate menu")
+        self:CreateMainMenu()
+        background = uiState.menuElements.background
+        if not background then
+            warn("MainMenuUI:ShowMainMenu - Failed to recreate menu")
+            return false
+        end
+    end
     
+    -- Set visibility state
     uiState.menuVisible = visible
-      if visible then
+    
+    local playerGui = player:FindFirstChild("PlayerGui")
+    local screenGui = playerGui:FindFirstChild("MainMenuGui")
+    if not screenGui then
+        warn("MainMenuUI:ShowMainMenu - Screen GUI not found")
+        return false
+    end
+    
+    -- Ensure the ScreenGui is visible
+    screenGui.Enabled = true
+    
+    -- Safely get animation info
+    local animationInfo = (UIStyle and UIStyle.Animations and UIStyle.Animations.Standard) or 
+                          TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    if visible then
         -- Show menu with animation
         background.Visible = true
         background.BackgroundTransparency = 1
         
         -- Fade in background
-        TweenService:Create(
+        local backgroundTween = TweenService:Create(
             background, 
-            UIStyle.Animations.Standard, 
+            animationInfo, 
             { BackgroundTransparency = 0.2 }
-        ):Play()
+        )
+        backgroundTween:Play()
         
         -- Animate in buttons
         for i, buttonName in ipairs({"playButton", "allianceButton", "specializationButton", "eventsButton", "minigamesButton", "settingsButton"}) do
@@ -409,19 +443,29 @@ function MainMenuUI:ShowMainMenu(visible)
             if button then
                 button.Position = UDim2.new(-1, 0, button.Position.Y.Scale, button.Position.Y.Offset)
                 button.Visible = true
-                
-                -- Stagger button animations
+                  -- Stagger button animations
                 TweenService:Create(
                     button,
                     TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, 0.1 * (i - 1)),
                     { Position = UDim2.new(0, 0, button.Position.Y.Scale, button.Position.Y.Offset) }
                 ):Play()
             end
-        end    else
+        end
+        
+        -- Make sure the Emergency UI is not visible
+        if playerGui:FindFirstChild("EmergencyUI") then
+            playerGui.EmergencyUI.Enabled = false
+        end
+        
+        return true
+    else
         -- Hide menu with animation
+        local animationInfo = (UIStyle and UIStyle.Animations and UIStyle.Animations.Standard) or 
+                              TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+        
         local hideAnim = TweenService:Create(
             background, 
-            UIStyle.Animations.Standard, 
+            animationInfo, 
             { BackgroundTransparency = 1 }
         )
         

@@ -382,8 +382,16 @@ end
 DataManager.initialize()
 
 -- Register with CoreRegistry after initialization
-spawn(function()
-    registerWithCoreRegistry()
+task.spawn(function()
+    -- Wait a moment to ensure CoreRegistry is loaded
+    task.wait(1)
+    local success = registerWithCoreRegistry()
+    
+    if not success then
+        -- Try again with a longer delay
+        task.wait(3)
+        registerWithCoreRegistry()
+    end
 end)
 
 return DataManager

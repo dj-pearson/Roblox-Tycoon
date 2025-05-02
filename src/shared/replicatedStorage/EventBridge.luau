@@ -1,51 +1,56 @@
 --[[
     EventBridge.luau
-    
-    Core system for cross-boundary event communication.
-    This module provides a centralized event system for client-server communication.
-    
-    Created: April 30, 2025
+    A cross-server event system for Roblox games.
 ]]
 
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
-local EventBridge = {}
-EventBridge.initialized = false
+-- Check if we're running on the server
+local isServer = RunService:IsServer()
 
 -- Configuration
 local CONFIG = {
-    REMOTE_EVENTS_FOLDER_NAME = "EventBridgeEvents",
-    REMOTE_FUNCTIONS_FOLDER_NAME = "EventBridgeFunctions",
-    MAX_EVENT_HISTORY = 100,
-    SECURITY_LEVEL = 2, -- 0=None, 1=Basic, 2=Standard, 3=High
-    LOG_TRAFFIC = false
+    -- Whether to log all event traffic
+    LOG_TRAFFIC = true,
+    
+    -- Maximum number of events to keep in history
+    MAX_EVENT_HISTORY = 500,
+    
+    -- Whether to validate event data
+    VALIDATE_EVENT_DATA = true,
+    
+    -- Maximum rate of events per second per player
+    MAX_RATE_PER_PLAYER = 20,
+    
+    -- Time window for rate limiting (in seconds)
+    RATE_LIMIT_WINDOW = 5
 }
 
--- Debug settings
-EventBridge.DEBUG = true
-
--- Internal state
+-- Private variables
 local events = {}
+local functions = {}
 local eventHandlers = {}
-local functionHandlers = {}
-local eventHistory = {}
 local securityRules = {}
+local lastEventTimes = {}
+local eventHistory = {}
+local coreRegistry
 
--- Is this running on the server?
-local isServer = RunService:IsServer()
-
--- Log a message to the output
+-- Helper functions
 local function log(message)
-    if EventBridge.DEBUG then
+    if CONFIG.LOG_TRAFFIC then
         print("[EventBridge] " .. message)
     end
 end
 
--- Get the CoreRegistry if available
+-- Try to find the CoreRegistry module
 local function getCoreRegistry()
+    if coreRegistry then
+        return coreRegistry
+    end
+    
     -- Try in ReplicatedStorage
     local shared = ReplicatedStorage:FindFirstChild("shared")
     if shared and shared:FindFirstChild("replicatedStorage") then
@@ -72,11 +77,11 @@ local function getCoreRegistry()
         end
     end
     
-    -- Try server paths if on server
+    -- Try in ServerScriptService
     if isServer then
         local standardPaths = {
-            ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistry"),
-            ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("CoreRegistry")
+            ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and 
+            ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("CoreRegistry")
         }
         
         for _, path in ipairs(standardPaths) do
@@ -95,132 +100,100 @@ local function getCoreRegistry()
     return nil
 end
 
--- Initialize the EventBridge
-function EventBridge.initialize()
-    if EventBridge.initialized then
+-- Rate limiting
+local function checkRateLimit(player, eventName)
+    if not CONFIG.VALIDATE_EVENT_DATA then
         return true
     end
     
-    log("Initializing EventBridge...")
-    
-    -- Register with CoreRegistry if available
-    local CoreRegistry = getCoreRegistry()
-    if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
-        CoreRegistry.registerSystem("EventBridge", EventBridge)
-        log("Registered with CoreRegistry")
-    else
-        log("CoreRegistry not found, but EventBridge will still function")
+    -- Initialize player data if needed
+    if not lastEventTimes[player.UserId] then
+        lastEventTimes[player.UserId] = {}
     end
     
-    -- Create remote event folders
-    local eventsFolder = ReplicatedStorage:FindFirstChild(CONFIG.REMOTE_EVENTS_FOLDER_NAME)
-    if not eventsFolder then
-        eventsFolder = Instance.new("Folder")
-        eventsFolder.Name = CONFIG.REMOTE_EVENTS_FOLDER_NAME
-        eventsFolder.Parent = ReplicatedStorage
-        log("Created remote events folder")
+    -- Get current timestamp
+    local now = tick()
+    
+    -- Get recent event times
+    local playerEvents = lastEventTimes[player.UserId]
+    local recentEvents = {}
+      -- Filter to recent events within the window
+    for _, eventData in ipairs(playerEvents) do
+        if now - eventData.time < CONFIG.RATE_LIMIT_WINDOW then
+            table.insert(recentEvents, eventData)
+        end
     end
     
-    local functionsFolder = ReplicatedStorage:FindFirstChild(CONFIG.REMOTE_FUNCTIONS_FOLDER_NAME)
-    if not functionsFolder then
-        functionsFolder = Instance.new("Folder")
-        functionsFolder.Name = CONFIG.REMOTE_FUNCTIONS_FOLDER_NAME
-        functionsFolder.Parent = ReplicatedStorage
-        log("Created remote functions folder")
+    -- Check if too many events
+    if #recentEvents >= CONFIG.MAX_RATE_PER_PLAYER * CONFIG.RATE_LIMIT_WINDOW then
+        warn("[EventBridge] Rate limit exceeded for player " .. player.Name)
+        return false
     end
     
-    -- Set up security rules
-    EventBridge.setupDefaultSecurityRules()
+    -- Record this event
+    table.insert(playerEvents, {
+        time = now,
+        event = eventName
+    })
     
-    -- If on the client, connect to server events
-    if not isServer then
-        EventBridge.connectToServerEvents()
+    -- Trim history
+    if #playerEvents > CONFIG.MAX_RATE_PER_PLAYER * CONFIG.RATE_LIMIT_WINDOW * 2 then
+        table.remove(playerEvents, 1)
     end
-    
-    EventBridge.initialized = true
-    log("EventBridge initialized" .. (isServer and " (server)" or " (client)"))
     
     return true
 end
 
--- Set up default security rules
-function EventBridge.setupDefaultSecurityRules()
-    if not isServer then
-        return -- Only apply on server
+-- Data validation
+local function validateEventData(player, eventName, ...)
+    if not CONFIG.VALIDATE_EVENT_DATA then
+        return true
     end
     
-    -- Security rule example:
-    -- securityRules["EventName"] = {
-    --     rateLimit = 5,  -- Max 5 calls per second per player
-    --     cooldown = 0.2, -- 0.2 seconds between calls
-    --     validate = function(player, ...) return true end -- Custom validation
-    -- }
+    -- Check if there's a validation rule for this event
+    local rule = securityRules[eventName]
+    if not rule then
+        return true
+    end
     
-    -- Default rules for common events
-    securityRules["PlayerAction"] = {
-        rateLimit = 10,  -- 10 actions per second
-        cooldown = 0.05  -- 50ms cooldown between actions
-    }
+    -- Validate based on rule type
+    if rule.type == "whitelist" then
+        return rule.playerIds[player.UserId] ~= nil
+    elseif rule.type == "validate" and typeof(rule.validate) == "function" then
+        return rule.validate(player, ...)
+    end
     
-    securityRules["ChatMessage"] = {
-        rateLimit = 3,    -- 3 messages per second
-        cooldown = 0.3,   -- 300ms cooldown between messages
-        validate = function(player, message)
-            return type(message) == "string" and #message <= 200
-        end
-    }
-    
-    securityRules["PurchaseItem"] = {
-        rateLimit = 2,    -- 2 purchases per second max
-        cooldown = 0.5,   -- 500ms cooldown between purchases
-        validate = function(player, itemId)
-            return type(itemId) == "string" or type(itemId) == "number"
-        end
-    }
-    
-    log("Set up default security rules")
+    return true
 end
 
--- Connect to server events (client-side)
-function EventBridge.connectToServerEvents()
-    if isServer then 
-        return -- Only used on client
-    end
-    
-    -- Get all remote events
-    local eventsFolder = ReplicatedStorage:FindFirstChild(CONFIG.REMOTE_EVENTS_FOLDER_NAME)
-    if not eventsFolder then
-        log("Events folder not found")
+-- EventBridge API
+local EventBridge = {
+    initialized = false
+}
+
+-- Initialize the event bridge
+function EventBridge.initialize()
+    if EventBridge.initialized then
         return
     end
     
-    for _, remote in ipairs(eventsFolder:GetChildren()) do
-        if remote:IsA("RemoteEvent") then
-            local eventName = remote.Name
-            
-            -- Connect to event if not already connected
-            if not events[eventName] then
-                events[eventName] = remote
-                
-                -- Create event connector
-                remote.OnClientEvent:Connect(function(...)
-                    EventBridge.handleEventFromServer(eventName, ...)
-                end)
-                
-                log("Connected to server event: " .. eventName)
-            end
-        end
+    -- Create folder for remotes if it doesn't exist
+    local remoteFolder = ReplicatedStorage:FindFirstChild("EventBridgeRemotes")
+    if not remoteFolder then
+        remoteFolder = Instance.new("Folder")
+        remoteFolder.Name = "EventBridgeRemotes"
+        remoteFolder.Parent = ReplicatedStorage
     end
     
-    -- Get all remote functions
-    local functionsFolder = ReplicatedStorage:FindFirstChild(CONFIG.REMOTE_FUNCTIONS_FOLDER_NAME)
-    if not functionsFolder then
-        log("Functions folder not found")
-        return
+    -- Set up player cleanup on leave
+    if isServer then
+        Players.PlayerRemoving:Connect(function(player)
+            lastEventTimes[player.UserId] = nil
+        end)
     end
     
-    -- We don't need to connect to RemoteFunctions in the same way,
-    -- as they will be invoked directly
+    EventBridge.initialized = true
+    log("EventBridge initialized")
 end
 
 -- Handle an event from the server (client-side)
@@ -247,9 +220,12 @@ function EventBridge.handleEventFromServer(eventName, ...)
     -- Call any registered handlers
     local handlers = eventHandlers[eventName]
     if handlers then
+        local args = table.pack(...) -- Capture varargs locally
         for _, handler in ipairs(handlers) do
             task.spawn(function()
-                local success, result = pcall(handler, ...)
+                local success, result = pcall(function()
+                    return handler(table.unpack(args, 1, args.n))
+                end)
                 if not success then
                     warn("[EventBridge] Error in handler for " .. eventName .. ": " .. tostring(result))
                 end
@@ -269,33 +245,32 @@ function EventBridge.getRemoteEvent(eventName)
         return events[eventName]
     end
     
-    -- Create or get from folder
-    local eventsFolder = ReplicatedStorage:FindFirstChild(CONFIG.REMOTE_EVENTS_FOLDER_NAME)
-    if not eventsFolder then
-        log("Events folder not found")
+    -- Get the remote folder
+    local remoteFolder = ReplicatedStorage:FindFirstChild("EventBridgeRemotes")
+    if not remoteFolder then
+        warn("[EventBridge] Remote folder not found. Did you initialize?")
         return nil
     end
     
-    -- Check if exists in folder
-    local existingEvent = eventsFolder:FindFirstChild(eventName)
-    if existingEvent and existingEvent:IsA("RemoteEvent") then
-        events[eventName] = existingEvent
-        return existingEvent
+    -- Check if remote already exists
+    local remote = remoteFolder:FindFirstChild("Event_" .. eventName)
+    if not remote then
+        -- Create new remote
+        remote = Instance.new("RemoteEvent")
+        remote.Name = "Event_" .. eventName
+        remote.Parent = remoteFolder
     end
     
-    -- Create new event if on server
-    if isServer then
-        local newEvent = Instance.new("RemoteEvent")
-        newEvent.Name = eventName
-        newEvent.Parent = eventsFolder
-        
-        events[eventName] = newEvent
-        log("Created remote event: " .. eventName)
-        return newEvent
-    else
-        log("Failed to get remote event: " .. eventName)
-        return nil
+    -- Set up event handling on the client
+    if not isServer then
+        remote.OnClientEvent:Connect(function(...)
+            EventBridge.handleEventFromServer(eventName, ...)
+        end)
     end
+    
+    -- Cache and return
+    events[eventName] = remote
+    return remote
 end
 
 -- Create or get a remote function
@@ -304,154 +279,33 @@ function EventBridge.getRemoteFunction(functionName)
         EventBridge.initialize()
     end
     
-    -- Check if exists in folder
-    local functionsFolder = ReplicatedStorage:FindFirstChild(CONFIG.REMOTE_FUNCTIONS_FOLDER_NAME)
-    if not functionsFolder then
-        log("Functions folder not found")
+    -- Check if already exists
+    if functions[functionName] then
+        return functions[functionName]
+    end
+    
+    -- Get the remote folder
+    local remoteFolder = ReplicatedStorage:FindFirstChild("EventBridgeRemotes")
+    if not remoteFolder then
+        warn("[EventBridge] Remote folder not found. Did you initialize?")
         return nil
     end
     
-    local existingFunction = functionsFolder:FindFirstChild(functionName)
-    if existingFunction and existingFunction:IsA("RemoteFunction") then
-        return existingFunction
-    end
-    
-    -- Create new function if on server
-    if isServer then
-        local newFunction = Instance.new("RemoteFunction")
-        newFunction.Name = functionName
-        newFunction.Parent = functionsFolder
-        
-        log("Created remote function: " .. functionName)
-        return newFunction
-    else
-        log("Failed to get remote function: " .. functionName)
-        return nil
-    end
-end
-
--- Track player event rates (server-side)
-local playerEventRates = {}
-local playerCooldowns = {}
-
--- Check rate limit for a player and event
-local function checkRateLimit(player, eventName)
-    if CONFIG.SECURITY_LEVEL <= 0 then
-        return true
-    end
-    
-    local userId = player and player.UserId
-    if not userId then
-        return false
-    end
-    
-    -- Check cooldown first
-    local cooldowns = playerCooldowns[userId]
-    if not cooldowns then
-        cooldowns = {}
-        playerCooldowns[userId] = cooldowns
-    end
-    
-    local rule = securityRules[eventName] or { cooldown = 0, rateLimit = 20 }
-    local lastTime = cooldowns[eventName] or 0
-    local now = os.time()
-    
-    if now - lastTime < rule.cooldown then
-        return false
-    end
-    
-    -- Update cooldown
-    cooldowns[eventName] = now
-    
-    -- Check rate limit
-    if CONFIG.SECURITY_LEVEL >= 2 and rule.rateLimit then
-        local rates = playerEventRates[userId]
-        if not rates then
-            rates = {}
-            playerEventRates[userId] = rates
-        end
-        
-        local eventRate = rates[eventName]
-        if not eventRate then
-            eventRate = {
-                count = 0,
-                lastReset = now
-            }
-            rates[eventName] = eventRate
-        end
-        
-        -- Reset counter if more than 1 second has passed
-        if now - eventRate.lastReset >= 1 then
-            eventRate.count = 0
-            eventRate.lastReset = now
-        end
-        
-        -- Check if rate limit is exceeded
-        if eventRate.count >= rule.rateLimit then
-            return false
-        end
-        
-        -- Increment counter
-        eventRate.count = eventRate.count + 1
-    end
-    
-    return true
-end
-
--- Validate event data
-local function validateEventData(player, eventName, ...)
-    if CONFIG.SECURITY_LEVEL <= 1 then
-        return true
-    end
-    
-    local rule = securityRules[eventName]
-    if rule and rule.validate then
-        return rule.validate(player, ...)
-    end
-    
-    return true
-end
-
--- Fire an event from server to client(s)
-function EventBridge.fireClient(client, eventName, ...)
-    if not isServer then
-        warn("[EventBridge] fireClient can only be called from server")
-        return false
-    end
-    
-    if not client then
-        warn("[EventBridge] Client is required for fireClient")
-        return false
-    end
-    
-    local remote = EventBridge.getRemoteEvent(eventName)
+    -- Check if remote already exists
+    local remote = remoteFolder:FindFirstChild("Function_" .. functionName)
     if not remote then
-        warn("[EventBridge] Failed to get remote event: " .. eventName)
-        return false
+        -- Create new remote
+        remote = Instance.new("RemoteFunction")
+        remote.Name = "Function_" .. functionName
+        remote.Parent = remoteFolder
     end
     
-    -- Record in history
-    if CONFIG.LOG_TRAFFIC then
-        table.insert(eventHistory, {
-            time = os.time(),
-            direction = "to_client",
-            target = typeof(client) == "Instance" and client.Name or "multiple",
-            event = eventName,
-            args = {...}
-        })
-        
-        -- Trim history if needed
-        if #eventHistory > CONFIG.MAX_EVENT_HISTORY then
-            table.remove(eventHistory, 1)
-        end
-    end
-    
-    -- Fire the event
-    remote:FireClient(client, ...)
-    return true
+    -- Cache and return
+    functions[functionName] = remote
+    return remote
 end
 
--- Fire an event from server to all clients
+-- Send an event from server to all clients
 function EventBridge.fireAllClients(eventName, ...)
     if not isServer then
         warn("[EventBridge] fireAllClients can only be called from server")
@@ -479,12 +333,46 @@ function EventBridge.fireAllClients(eventName, ...)
         end
     end
     
-    -- Fire the event
+    -- Fire event
     remote:FireAllClients(...)
     return true
 end
 
--- Fire an event from client to server
+-- Send an event from server to a specific client
+function EventBridge.fireClient(client, eventName, ...)
+    if not isServer then
+        warn("[EventBridge] fireClient can only be called from server")
+        return false
+    end
+    
+    local remote = EventBridge.getRemoteEvent(eventName)
+    if not remote then
+        warn("[EventBridge] Failed to get remote event: " .. eventName)
+        return false
+    end
+    
+    -- Record in history
+    if CONFIG.LOG_TRAFFIC then
+        table.insert(eventHistory, {
+            time = os.time(),
+            direction = "to_client",
+            target = client.Name,
+            event = eventName,
+            args = {...}
+        })
+        
+        -- Trim history if needed
+        if #eventHistory > CONFIG.MAX_EVENT_HISTORY then
+            table.remove(eventHistory, 1)
+        end
+    end
+    
+    -- Fire event
+    remote:FireClient(client, ...)
+    return true
+end
+
+-- Send an event from client to server
 function EventBridge.fireServer(eventName, ...)
     if isServer then
         warn("[EventBridge] fireServer can only be called from client")
@@ -512,7 +400,7 @@ function EventBridge.fireServer(eventName, ...)
         end
     end
     
-    -- Fire the event
+    -- Fire event
     remote:FireServer(...)
     return true
 end
@@ -565,8 +453,11 @@ function EventBridge.onServerEvent(eventName, callback)
         end
         
         -- Call the callback
+        local args = table.pack(...) -- Capture varargs locally
         task.spawn(function()
-            local success, result = pcall(callback, player, ...)
+            local success, result = pcall(function()
+                return callback(player, table.unpack(args, 1, args.n))
+            end)
             if not success then
                 warn("[EventBridge] Error in handler for " .. eventName .. ": " .. tostring(result))
             end
@@ -589,35 +480,25 @@ function EventBridge.onClientEvent(eventName, callback)
         return false
     end
     
-    -- Create handlers array if needed
+    -- Initialize the event handlers array if needed
     if not eventHandlers[eventName] then
         eventHandlers[eventName] = {}
     end
     
-    -- Add to handlers
+    -- Add the handler
     table.insert(eventHandlers[eventName], callback)
     
-    -- Make sure we're connected to the event
-    if not events[eventName] then
-        local remote = EventBridge.getRemoteEvent(eventName)
-        if remote then
-            events[eventName] = remote
-            
-            -- Connect to event
-            remote.OnClientEvent:Connect(function(...)
-                EventBridge.handleEventFromServer(eventName, ...)
-            end)
-        end
-    end
+    -- Make sure we have a remote event and are connected
+    EventBridge.getRemoteEvent(eventName)
     
     log("Added client handler for event: " .. eventName)
     return true
 end
 
--- Set up a server function handler
-function EventBridge.setServerFunction(functionName, callback)
+-- Register a server function handler
+function EventBridge.onServerInvoke(functionName, callback)
     if not isServer then
-        warn("[EventBridge] setServerFunction can only be called from server")
+        warn("[EventBridge] onServerInvoke can only be called from server")
         return false
     end
     
@@ -628,20 +509,20 @@ function EventBridge.setServerFunction(functionName, callback)
     
     local remote = EventBridge.getRemoteFunction(functionName)
     if not remote then
-        warn("[EventBridge] Failed to create remote function: " .. functionName)
+        warn("[EventBridge] Failed to get remote function: " .. functionName)
         return false
     end
     
-    -- Set server handler
+    -- Set up the callback
     remote.OnServerInvoke = function(player, ...)
-        -- Check security rules (similar to events)
+        -- Check security rules
         if not checkRateLimit(player, functionName) then
-            log("Rate limit exceeded for function " .. functionName .. " by " .. player.Name)
+            log("Rate limit exceeded for " .. functionName .. " by " .. player.Name)
             return nil, "Rate limit exceeded"
         end
         
         if not validateEventData(player, functionName, ...) then
-            log("Validation failed for function " .. functionName .. " by " .. player.Name)
+            log("Validation failed for " .. functionName .. " by " .. player.Name)
             return nil, "Validation failed"
         end
         
@@ -671,14 +552,14 @@ function EventBridge.setServerFunction(functionName, callback)
         return result
     end
     
-    log("Set server function handler for: " .. functionName)
+    log("Registered server function handler: " .. functionName)
     return true
 end
 
--- Set up a client function handler
-function EventBridge.setClientFunction(functionName, callback)
+-- Register a client function handler
+function EventBridge.onClientInvoke(functionName, callback)
     if isServer then
-        warn("[EventBridge] setClientFunction can only be called from client")
+        warn("[EventBridge] onClientInvoke can only be called from client")
         return false
     end
     
@@ -693,7 +574,7 @@ function EventBridge.setClientFunction(functionName, callback)
         return false
     end
     
-    -- Set client handler
+    -- Set up the callback
     remote.OnClientInvoke = function(...)
         -- Record in history
         if CONFIG.LOG_TRAFFIC then
@@ -720,7 +601,7 @@ function EventBridge.setClientFunction(functionName, callback)
         return result
     end
     
-    log("Set client function handler for: " .. functionName)
+    log("Registered client function handler: " .. functionName)
     return true
 end
 
@@ -753,8 +634,9 @@ function EventBridge.invokeServer(functionName, ...)
     end
     
     -- Call the function
+    local args = table.pack(...) -- Capture varargs locally
     local success, result = pcall(function()
-        return remote:InvokeServer(...)
+        return remote:InvokeServer(table.unpack(args, 1, args.n))
     end)
     
     if not success then
@@ -770,11 +652,6 @@ function EventBridge.invokeClient(client, functionName, ...)
     if not isServer then
         warn("[EventBridge] invokeClient can only be called from server")
         return nil, "Can only be called from server"
-    end
-    
-    if not client or not client:IsA("Player") then
-        warn("[EventBridge] Client must be a Player")
-        return nil, "Client must be a Player"
     end
     
     local remote = EventBridge.getRemoteFunction(functionName)
@@ -800,8 +677,9 @@ function EventBridge.invokeClient(client, functionName, ...)
     end
     
     -- Call the function
+    local args = table.pack(...) -- Capture varargs locally
     local success, result = pcall(function()
-        return remote:InvokeClient(client, ...)
+        return remote:InvokeClient(client, table.unpack(args, 1, args.n))
     end)
     
     if not success then
@@ -819,42 +697,58 @@ function EventBridge.setSecurityRule(name, rule)
         return false
     end
     
-    if not name or type(name) ~= "string" or not rule or type(rule) ~= "table" then
-        warn("[EventBridge] Invalid parameters for setSecurityRule")
-        return false
-    end
-    
     securityRules[name] = rule
     log("Set security rule for: " .. name)
     return true
 end
 
--- Get event traffic history
-function EventBridge.getTrafficHistory()
+-- Get event history
+function EventBridge.getEventHistory()
     return eventHistory
 end
 
--- Clear event traffic history
-function EventBridge.clearTrafficHistory()
-    eventHistory = {}
-    log("Cleared traffic history")
-    return true
-end
-
--- Client interface that's safe to expose to clients
-function EventBridge:getClientInterface()
-    -- For security, we only expose a limited set of functions to clients
-    local clientInterface = {
-        fireServer = self.fireServer,
-        onClientEvent = self.onClientEvent,
-        setClientFunction = self.setClientFunction,
-        invokeServer = self.invokeServer
-    }
+-- Example security rules
+if isServer then    -- Chat filter rule example
+    EventBridge.setSecurityRule("sendChatMessage", {
+        type = "validate",
+        validate = function(_, message)
+            -- Basic length check
+            return type(message) == "string" and #message < 200
+        end
+    })
     
-    return clientInterface
+    -- Inventory rule example
+    EventBridge.setSecurityRule("purchaseItem", {
+        type = "validate",
+        validate = function(_, itemId)
+            -- Would check if player has enough currency and item exists
+            return type(itemId) == "string" or type(itemId) == "number"
+        end
+    })
+    
+    -- Admin-only rule example
+    EventBridge.setSecurityRule("adminCommand", {
+        type = "whitelist",
+        playerIds = {
+            [1234567890] = true, -- Example admin
+            [2345678901] = true  -- Another admin
+        }
+    })
 end
 
--- Initialize the EventBridge
+-- Setup connection with CoreRegistry if available
+local function setupCoreRegistry()
+    local CR = getCoreRegistry()
+    if CR and typeof(CR.RegisterPublicModule) == "function" then
+        CR.RegisterPublicModule("EventBridge", EventBridge)
+        log("Registered with CoreRegistry")
+    end
+end
+
+-- Try to register with CoreRegistry
+task.spawn(setupCoreRegistry)
+
+-- Initialize on load
 EventBridge.initialize()
 
 return EventBridge

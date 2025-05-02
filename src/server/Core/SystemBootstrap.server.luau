@@ -13,16 +13,41 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Look for a module
 local function findModule(moduleName)
     local searchPaths = {
+        -- Direct paths
+        script.Parent,
+        script.Parent.Parent,
+        
+        -- Server paths
         ServerScriptService:FindFirstChild("Core"),
         ServerScriptService:FindFirstChild("Server"),
+        ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Core"),
         ServerScriptService,
+        
+        -- Src paths
+        ServerScriptService:FindFirstChild("src"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
+        
+        -- Shared paths
         ReplicatedStorage:FindFirstChild("shared"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
         ReplicatedStorage
     }
     
     for _, path in ipairs(searchPaths) do
         if path then
             local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
+            
+            -- Also check with extensions
+            module = path:FindFirstChild(moduleName .. ".luau")
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
+            
+            module = path:FindFirstChild(moduleName .. ".server.luau")
             if module and module:IsA("ModuleScript") then
                 return module
             end

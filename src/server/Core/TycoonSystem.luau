@@ -57,6 +57,29 @@ end
 
 -- Get the CoreRegistry if available
 local function getCoreRegistry()
+    -- Try to use SafeRequire first
+    local safeRequirePaths = {
+        ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("SafeRequire"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared") and ReplicatedStorage.src.shared:FindFirstChild("SafeRequire"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("shared") and ServerScriptService.src.shared:FindFirstChild("SafeRequire")
+    }
+    
+    for _, path in ipairs(safeRequirePaths) do
+        if path then
+            local success, safeRequire = pcall(function()
+                return require(path)
+            end)
+            
+            if success and safeRequire and typeof(safeRequire.requireFromPath) == "function" then
+                local CoreRegistry = safeRequire.requireFromPath("CoreRegistry")
+                if CoreRegistry then
+                    log("Found CoreRegistry via SafeRequire")
+                    return CoreRegistry
+                end
+            end
+        end
+    end
+    
     -- Try standard paths
     local standardPaths = {
         ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistry"),
@@ -977,5 +1000,23 @@ end
 
 -- Initialize the TycoonSystem
 TycoonSystem.initialize()
+
+-- Try to register with CoreRegistry
+task.spawn(function()
+    local CoreRegistry = getCoreRegistry()
+    if CoreRegistry then
+        if typeof(CoreRegistry.registerSystem) == "function" then
+            CoreRegistry.registerSystem("TycoonSystem", TycoonSystem)
+            log("Successfully registered with CoreRegistry via registerSystem")
+        elseif typeof(CoreRegistry.Register) == "function" then
+            CoreRegistry:Register("TycoonSystem", TycoonSystem)
+            log("Successfully registered with CoreRegistry via Register")
+        else
+            warn("[TycoonSystem] CoreRegistry found but no registration method available")
+        end
+    else
+        warn("[TycoonSystem] Could not find CoreRegistry for registration")
+    end
+end)
 
 return TycoonSystem

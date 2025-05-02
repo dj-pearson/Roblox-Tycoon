@@ -160,6 +160,77 @@ function EventBridge:connectRemoteEvent(eventName, callback)
     end
 end
 
+-- Initialize Event Bridge
+EventBridge:initialize()
+
 -- Register with CoreRegistry
-local CoreRegistry = require(script.Parent.CoreRegistry)
-return CoreRegistry.registerSystem("EventBridge", EventBridge, {})
+local function registerWithCoreRegistry()
+    -- Try to find CoreRegistry in standard locations
+    local CoreRegistry = nil
+    
+    -- Try ReplicatedStorage/shared/SafeRequire first
+    local success, result = pcall(function()
+        local shared = ReplicatedStorage:FindFirstChild("shared")
+        if shared and shared:FindFirstChild("SafeRequire") then
+            local SafeRequire = require(shared.SafeRequire)
+            if SafeRequire and SafeRequire.requireFromPath then
+                return SafeRequire.requireFromPath("CoreRegistry")
+            end
+        end
+        return nil
+    end)
+    
+    if success and result then
+        CoreRegistry = result
+        log("Found CoreRegistry via SafeRequire")
+    end
+    
+    -- Try script.Parent approach
+    if not CoreRegistry then
+        local CoreRegistryModule = script.Parent:FindFirstChild("CoreRegistry")
+        if CoreRegistryModule then
+            local success, result = pcall(function()
+                return require(CoreRegistryModule)
+            end)
+            
+            if success and result then
+                CoreRegistry = result
+                log("Found CoreRegistry in parent folder")
+            end
+        end
+    end
+    
+    if CoreRegistry then
+        -- Check for register or registerSystem method (account for both naming conventions)
+        if type(CoreRegistry.registerSystem) == "function" then
+            CoreRegistry.registerSystem("EventBridge", EventBridge)
+            log("Successfully registered with CoreRegistry using registerSystem")
+            return true
+        elseif type(CoreRegistry.Register) == "function" then
+            CoreRegistry:Register("EventBridge", EventBridge)
+            log("Successfully registered with CoreRegistry using Register")
+            return true
+        else
+            warn("[EventBridge] CoreRegistry found but has no registration method")
+            return false
+        end
+    else
+        warn("[EventBridge] Could not find CoreRegistry to register with")
+        return false
+    end
+end
+
+-- Register with CoreRegistry after initialization
+task.spawn(function()
+    -- Wait a moment to ensure CoreRegistry is loaded
+    task.wait(1)
+    local success = registerWithCoreRegistry()
+    
+    if not success then
+        -- Try again with a longer delay
+        task.wait(3)
+        registerWithCoreRegistry()
+    end
+end)
+
+return EventBridge

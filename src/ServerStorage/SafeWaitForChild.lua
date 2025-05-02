@@ -1,4 +1,4 @@
-lua
+--lua
 local function SafeWaitForChild(parent, childName)
   local child = parent:FindFirstChild(childName)
   if child then

@@ -478,9 +478,10 @@ end
 -- Hide a UI with animation
 function UIManager:hideUI(name, animationType, duration, callback)
     local component = visibleUIs[name]
-    
-    if not component then
-        if callback then callback() end
+      if not component then
+        if callback then 
+            callback() 
+        end
         return false
     end
     
@@ -544,10 +545,11 @@ function UIManager:hideUI(name, animationType, duration, callback)
         -- Call the callback if provided
         if callback then
             callback()
-        end
-    else
+        end    else
         -- No instance or hide method
-        if callback then callback() end
+        if callback then 
+            callback() 
+        end
         return false
     end
     
@@ -1162,20 +1164,17 @@ function UIManager:getButtonColor(style, multiplier)
     
     if UIStyle then
         local baseColor
+          local colorMap = {
+            primary = "Primary",
+            secondary = "Secondary",
+            danger = "Error",
+            success = "Success",
+            warning = "Warning"
+        }
         
-        if style == "primary" then
-            baseColor = UIStyle:getColor("Primary")
-        elseif style == "secondary" then
-            baseColor = UIStyle:getColor("Secondary")
-        elseif style == "danger" then
-            baseColor = UIStyle:getColor("Error")
-        elseif style == "success" then
-            baseColor = UIStyle:getColor("Success")
-        elseif style == "warning" then
-            baseColor = UIStyle:getColor("Warning")
-        else
-            baseColor = UIStyle:getColor("Primary")
-        end
+        -- Get the appropriate color or default to Primary
+        local colorName = colorMap[style] or "Primary"
+        baseColor = UIStyle:getColor(colorName)
         
         if multiplier ~= 1 then
             return baseColor:Lerp(Color3.new(1, 1, 1), 1 - multiplier)
@@ -1207,10 +1206,9 @@ function UIManager:initialize()
     task.spawn(function()
         while true do
             task.wait(1)
-            
-            -- Check for expired notifications
+              -- Check for expired notifications
             local now = os.time()
-            for i, notification in ipairs(activeNotifications) do
+            for _, notification in ipairs(activeNotifications) do
                 local elapsed = now - notification.timeCreated
                 
                 -- Check if notification has expired

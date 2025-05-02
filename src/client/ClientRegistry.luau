@@ -306,15 +306,3 @@ task.spawn(function()
 end)
 
 return ClientRegistry
-    
-    self.Initialized = true
-    log("ClientRegistry initialized successfully!", "Success")
-    return true
-end
-
--- Auto-initialize on require
-task.spawn(function()
-    ClientRegistry:Initialize()
-end)
-
-return ClientRegistry

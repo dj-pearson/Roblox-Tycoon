@@ -466,6 +466,13 @@ else
 end
         BuyTileSystem._positionFixApplied = true
     end
+    
+    -- Register events for new model spawns
+    game.Players.PlayerAdded:Connect(function(player)
+        task.delay(5, function() -- Wait for player's tycoon to be created
+            fixExistingModels() -- Fix models for this player
+        end)
+    end)
 else
     warn("Failed to patch BuyTileSystem - position issues may persist")
 end
