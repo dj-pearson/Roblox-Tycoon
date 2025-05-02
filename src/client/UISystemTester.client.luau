@@ -71,6 +71,12 @@ local function findModule(moduleName)
     
     -- Try direct paths
     local searchPaths = {
+        -- Player scripts
+        player.PlayerScripts:FindFirstChild("Client") and player.PlayerScripts.Client:FindFirstChild("Core"),
+        player.PlayerScripts:FindFirstChild("Core"),
+        player.PlayerScripts,
+        
+        -- Standard ReplicatedStorage paths
         ReplicatedStorage:FindFirstChild("shared"),
         ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
         ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("client") and ReplicatedStorage.src.client:FindFirstChild("Core")

@@ -358,6 +358,15 @@ local function initializeClient()
     
     clientStatus = STATUS.INITIALIZING
     
+    -- Try to load ClientRegistryPreloader first
+    local clientRegistryPreloaderModule = findModule("ClientRegistryPreloader")
+    if clientRegistryPreloaderModule then
+        pcall(function()
+            require(clientRegistryPreloaderModule)
+            logClient("Loaded ClientRegistryPreloader")
+        end)
+    end
+    
     -- Ensure client structure
     if not initializeClientStructures() then
         logClient("Failed to initialize client structures", true)

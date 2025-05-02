@@ -34,33 +34,44 @@ end
 local dependencies = {
     ClientRegistry = {
         paths = {
-            ReplicatedStorage.shared.ClientRegistry,
-            LocalPlayer.PlayerScripts.Client.Core.ClientRegistry
+            LocalPlayer.PlayerScripts.Client.Core.ClientRegistry,
+            ReplicatedStorage.shared.ClientRegistry
         }
     },
     UIStyle = {
         paths = {
+            LocalPlayer.PlayerScripts.Client.Core.UIStyle,
             ReplicatedStorage.shared.UIStyle
         }
     },
     IconSet = {
         paths = {
+            LocalPlayer.PlayerScripts.Client.Core.IconSet,
             ReplicatedStorage.shared.IconSet
         }
     },
     ButtonFactory = {
         paths = {
+            LocalPlayer.PlayerScripts.Client.Core.ButtonFactory,
             ReplicatedStorage.shared.ButtonFactory
         }
     },
     DialogFactory = {
         paths = {
+            LocalPlayer.PlayerScripts.Client.Core.DialogFactory,
             ReplicatedStorage.shared.DialogFactory
         }
     },
     UIComponents = {
         paths = {
+            LocalPlayer.PlayerScripts.Client.Core.UIComponents,
             ReplicatedStorage.shared.UIComponents
+        }
+    },
+    UIRegistry = {
+        paths = {
+            LocalPlayer.PlayerScripts.Client.Core.UIRegistry,
+            ReplicatedStorage.shared.UIRegistry
         }
     }
 }
@@ -95,6 +106,22 @@ local function loadModule(name, pathsTable)
             local module = requireSafely(path)
             if module then
                 log("Successfully loaded " .. name)
+                return module
+            end
+        end
+    end
+    
+    -- Try to find through ModuleScriptAccessor
+    local shared = ReplicatedStorage:FindFirstChild("shared")
+    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
+        local success, accessor = pcall(function()
+            return require(shared.ModuleScriptAccessor)
+        end)
+        
+        if success and accessor and typeof(accessor.getSystem) == "function" then
+            local module = accessor.getSystem(name)
+            if module then
+                log("Successfully loaded " .. name .. " via ModuleScriptAccessor")
                 return module
             end
         end
@@ -180,9 +207,21 @@ function ClientUISystem:registerUIComponents()
     
     log("Registering UI components with ClientRegistry...")
     
+    -- Check which registration method to use
+    local registerMethod = "registerUIComponent"
+    if typeof(self.modules.ClientRegistry.registerUIComponent) ~= "function" then
+        if typeof(self.modules.ClientRegistry.registerSystem) == "function" then
+            registerMethod = "registerSystem"
+            log("Using registerSystem method instead of registerUIComponent")
+        else
+            warn_log("ClientRegistry missing both registerUIComponent and registerSystem methods")
+            return false
+        end
+    end
+    
     -- Register UIStyle
     if self.modules.UIStyle then
-        self.modules.ClientRegistry:registerUIComponent("UIStyle", self.modules.UIStyle)
+        self.modules.ClientRegistry[registerMethod]("UIStyle", self.modules.UIStyle)
         log("Registered UIStyle with ClientRegistry")
         self.registeredUI.UIStyle = true
     else
@@ -191,7 +230,7 @@ function ClientUISystem:registerUIComponents()
     
     -- Register IconSet
     if self.modules.IconSet then
-        self.modules.ClientRegistry:registerUIComponent("IconSet", self.modules.IconSet)
+        self.modules.ClientRegistry[registerMethod]("IconSet", self.modules.IconSet)
         log("Registered IconSet with ClientRegistry")
         self.registeredUI.IconSet = true
     else
