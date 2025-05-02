@@ -2,10 +2,12 @@
 -- TycoonFolderInitializer.server.luau
 -- Handles proper initialization and validation of Tycoon folder structures
 -- Created on April 29, 2025 to fix critical tycoon folder structure issues
+-- Updated on May 2, 2025 to support BuyTileSystem integration and model position fixing
 
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Import SafeWaitForChild utility if available
 local SafeWaitForChild = nil
@@ -70,6 +72,14 @@ local REQUIRED_FOLDERS = {
     {"FrontDesk", "Folder"},
     {"Progress", "Folder"},
     {"Settings", "Folder"},
+    {"Staff", "Folder"},
+    {"Customers", "Folder"},
+    {"GymStructure", "Folder"},
+    {"GymStructure/Models", "Folder"}, -- Added for BuyTileSystem
+    {"GymStructure/Tiles", "Folder"},  -- Added for BuyTileSystem
+    {"GymStructure/Layout", "Folder"}, -- Added for BuyTileSystem
+    {"Data", "Folder"},
+    {"Data/BuyTiles", "Folder"},       -- Added for BuyTileSystem
 }
 
 -- Required values for newly initialized tycoon
@@ -81,10 +91,14 @@ local REQUIRED_VALUES = {
     {"Stats/Reputation", "NumberValue", 50},
     {"Stats/Members", "IntValue", 0},
     {"Stats/Satisfaction", "NumberValue", 100},
+    {"Stats/EquipmentCount", "IntValue", 0},
     {"Equipment/EquipmentCount", "IntValue", 0},
     {"FrontDesk/HasStaff", "BoolValue", false},
     {"Progress/TilesUnlocked", "IntValue", 1},
     {"Progress/LastSaveTimestamp", "NumberValue", os.time()},
+    {"Data/TycoonId", "StringValue", ""},
+    {"Data/BuyTiles/OwnedTiles", "StringValue", "[]"}, -- Added for BuyTileSystem
+    {"GymStructure/TileMetadata", "StringValue", "{}"}, -- Added for BuyTileSystem
 }
 
 -- Initialize tycoon folder structure for a player
@@ -116,7 +130,12 @@ local function initializeTycoonStructure(player)
             
             -- Set default value if instance is newly created
             if instanceType == "StringValue" then
-                instance.Value = defaultValue
+                -- Special case for TycoonId - set to player name if empty
+                if parentPath == "Data" and instanceName == "TycoonId" and (instance.Value == "" or instance.Value == nil) then
+                    instance.Value = player.Name
+                else
+                    instance.Value = defaultValue
+                end
             elseif instanceType == "BoolValue" then
                 instance.Value = defaultValue
             elseif instanceType == "IntValue" or instanceType == "NumberValue" then
@@ -216,8 +235,38 @@ local function validateTycoonStructure(player)
                 instance.Value = defaultValue
             end
             
-            madeChanges = true
-        end
+            madeChanges = true        end
+    end
+    
+    -- Try to call BuyTilePositionFixer.fixModelsForPlayer if tycoon structure was corrected
+    if madeChanges then
+        task.spawn(function()
+            -- Find BuyTilePositionFixer in various possible locations
+            local fixerPaths = {
+                ServerScriptService:FindFirstChild("BuyTilePositionFixer"),
+                ServerScriptService:FindFirstChild("server") and ServerScriptService.server:FindFirstChild("BuyTilePositionFixer"),
+                ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("BuyTilePositionFixer")
+            }
+            
+            for _, path in ipairs(fixerPaths) do
+                if path and typeof(path) == "Instance" then
+                    -- Check if it has a fixModelsForPlayer function
+                    local success, result = pcall(function()
+                        if typeof(path) == "Instance" and path:IsA("ModuleScript") then
+                            local module = require(path)
+                            if typeof(module) == "table" and typeof(module.fixModelsForPlayer) == "function" then
+                                return module.fixModelsForPlayer(player)
+                            end
+                        end
+                    end)
+                    
+                    if success and result then
+                        print("[TycoonFolderInitializer] Successfully called BuyTilePositionFixer for " .. player.Name)
+                        break
+                    end
+                end
+            end
+        end)
     end
     
     return not madeChanges
@@ -291,4 +340,5 @@ task.spawn(function()
 end)
 
 print("[TycoonFolderInitializer] Initialized and active")
+print("✅ [DataManagement/TycoonFolderInitializer] Enhanced with BuyTileSystem support - May 2, 2025")
 return true

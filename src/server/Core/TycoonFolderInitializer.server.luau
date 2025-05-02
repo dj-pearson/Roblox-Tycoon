@@ -6,6 +6,9 @@
     as highest priority in RobloxIssues.txt.
     
     Creates all required subfolders and validates existing structures.
+    
+    UPDATED: May 1, 2025 - Enhanced to properly integrate with BuyTilePositionFixer
+    and fix BuyTile System and Tycoon Structure Issues marked in RobloxIssues.txt.
 ]]
 
 local Players = game:GetService("Players")
@@ -105,12 +108,17 @@ local tycoonFolderStructure = {
     "Staff",
     "Customers",
     "Stats",
+    "TycoonData", -- Added for compatibility with DataManagement TycoonFolderInitializer
+    "Purchases",  -- Added for compatibility with DataManagement TycoonFolderInitializer
+    "Progress",   -- Added for compatibility with DataManagement TycoonFolderInitializer
+    "GymStructure", -- Added for compatibility with BuyTileSystem
     
     -- Data subfolders
     {"Data", "Purchases"},
     {"Data", "Upgrades"},
     {"Data", "Progress"},
     {"Data", "Settings"},
+    {"Data", "BuyTiles"}, -- Added for BuyTileSystem integration
     
     -- Equipment subfolders
     {"Equipment", "Gym"},
@@ -132,7 +140,12 @@ local tycoonFolderStructure = {
     -- Stats subfolders
     {"Stats", "Daily"},
     {"Stats", "Weekly"},
-    {"Stats", "Monthly"}
+    {"Stats", "Monthly"},
+    
+    -- GymStructure subfolders (for BuyTileSystem)
+    {"GymStructure", "Models"},
+    {"GymStructure", "Tiles"},
+    {"GymStructure", "Layout"}
 }
 
 -- Initialize tycoon folder for a player
@@ -166,6 +179,42 @@ local function initializeTycoonFolder(player)
             frontDeskData.Value = "Welcome to your gym!"
             frontDeskData.Parent = dataFolder
         end
+        
+        -- BuyTile data store - needed for BuyTileSystem
+        local buyTilesFolder = SafeWaitForChild.wait(dataFolder, "BuyTiles", 1, true)
+        if buyTilesFolder then
+            local buyTilesData = buyTilesFolder:FindFirstChild("OwnedTiles")
+            if not buyTilesData then
+                buyTilesData = Instance.new("StringValue")
+                buyTilesData.Name = "OwnedTiles"
+                buyTilesData.Value = "[]" -- Empty JSON array
+                buyTilesData.Parent = buyTilesFolder
+            end
+        end
+    end
+    
+    -- TycoonData folder needed by DataManagement TycoonFolderInitializer
+    local tycoonDataFolder = SafeWaitForChild.wait(tycoonFolder, "TycoonData", 1, true)
+    if tycoonDataFolder then
+        -- Create required values if they don't exist
+        local requiredValues = {
+            {"Level", "IntValue", 1},
+            {"Experience", "IntValue", 0},
+            {"Money", "NumberValue", 100},
+            {"GymName", "StringValue", "My Gym"}
+        }
+        
+        for _, valueInfo in ipairs(requiredValues) do
+            local name, valueType, defaultValue = valueInfo[1], valueInfo[2], valueInfo[3]
+            local value = tycoonDataFolder:FindFirstChild(name)
+            
+            if not value then
+                value = Instance.new(valueType)
+                value.Name = name
+                value.Value = defaultValue
+                value.Parent = tycoonDataFolder
+            end
+        end
     end
     
     -- Equipment status values
@@ -177,6 +226,37 @@ local function initializeTycoonFolder(player)
             statusValue.Name = "EquipmentStatus"
             statusValue.Value = "functional"
             statusValue.Parent = equipmentFolder
+        end
+        
+        -- Add equipment count for compatibility
+        local equipmentCount = equipmentFolder:FindFirstChild("EquipmentCount") 
+        if not equipmentCount then
+            equipmentCount = Instance.new("IntValue")
+            equipmentCount.Name = "EquipmentCount"
+            equipmentCount.Value = 0
+            equipmentCount.Parent = equipmentFolder
+        end
+    end
+    
+    -- GymStructure folder - needed by BuyTileSystem
+    local gymStructureFolder = SafeWaitForChild.wait(tycoonFolder, "GymStructure", 1, true)
+    if gymStructureFolder then
+        -- Models folder for BuyTileSystem
+        local modelsFolder = SafeWaitForChild.wait(gymStructureFolder, "Models", 1, true)
+        if modelsFolder then
+            -- Add a TilePositions attribute to hold model positions
+            if not modelsFolder:GetAttribute("TilePositions") then
+                modelsFolder:SetAttribute("TilePositions", "{}")
+            end
+        end
+        
+        -- Tiles folder for BuyTileSystem
+        local tilesFolder = SafeWaitForChild.wait(gymStructureFolder, "Tiles", 1, true)
+        if tilesFolder then
+            -- Add a TileMetadata attribute
+            if not tilesFolder:GetAttribute("TileMetadata") then
+                tilesFolder:SetAttribute("TileMetadata", "{}")
+            end
         end
     end
     
@@ -244,9 +324,99 @@ local function validateTycoonFolder(player)
             tycoonIdValue.Value = player.Name
             tycoonIdValue.Parent = dataFolder
         end
+        
+        -- BuyTile data store - needed for BuyTileSystem
+        local buyTilesFolder = dataFolder:FindFirstChild("BuyTiles")
+        if not buyTilesFolder then
+            buyTilesFolder = Instance.new("Folder")
+            buyTilesFolder.Name = "BuyTiles"
+            buyTilesFolder.Parent = dataFolder
+            
+            local buyTilesData = Instance.new("StringValue")
+            buyTilesData.Name = "OwnedTiles"
+            buyTilesData.Value = "[]" -- Empty JSON array
+            buyTilesData.Parent = buyTilesFolder
+        end
+    end
+    
+    -- TycoonData folder needed by DataManagement TycoonFolderInitializer
+    local tycoonDataFolder = tycoonFolder:FindFirstChild("TycoonData")
+    if not tycoonDataFolder then
+        tycoonDataFolder = Instance.new("Folder")
+        tycoonDataFolder.Name = "TycoonData"
+        tycoonDataFolder.Parent = tycoonFolder
+        
+        -- Create required values
+        local requiredValues = {
+            {"Level", "IntValue", 1},
+            {"Experience", "IntValue", 0},
+            {"Money", "NumberValue", 100},
+            {"GymName", "StringValue", "My Gym"}
+        }
+        
+        for _, valueInfo in ipairs(requiredValues) do
+            local name, valueType, defaultValue = valueInfo[1], valueInfo[2], valueInfo[3]
+            local value = Instance.new(valueType)
+            value.Name = name
+            value.Value = defaultValue
+            value.Parent = tycoonDataFolder
+        end
+    end
+    
+    -- GymStructure folder - needed by BuyTileSystem and BuyTilePositionFixer
+    local gymStructureFolder = tycoonFolder:FindFirstChild("GymStructure")
+    if not gymStructureFolder then
+        gymStructureFolder = Instance.new("Folder")
+        gymStructureFolder.Name = "GymStructure"
+        gymStructureFolder.Parent = tycoonFolder
+        
+        -- Create required subfolders
+        local modelsFolder = Instance.new("Folder")
+        modelsFolder.Name = "Models"
+        modelsFolder.Parent = gymStructureFolder
+        modelsFolder:SetAttribute("TilePositions", "{}")
+        
+        local tilesFolder = Instance.new("Folder")
+        tilesFolder.Name = "Tiles"
+        tilesFolder.Parent = gymStructureFolder
+        tilesFolder:SetAttribute("TileMetadata", "{}")
+        
+        local layoutFolder = Instance.new("Folder")
+        layoutFolder.Name = "Layout"
+        layoutFolder.Parent = gymStructureFolder
     end
     
     print("TycoonFolderInitializer: Validated and fixed tycoon folder structure for " .. player.Name)
+    
+    -- Call BuyTilePositionFixer if available to ensure models are correctly positioned
+    task.spawn(function()
+        -- Find BuyTilePositionFixer in various possible locations
+        local fixerPaths = {
+            game:GetService("ServerScriptService"):FindFirstChild("BuyTilePositionFixer"),
+            game:GetService("ServerScriptService"):FindFirstChild("server") and game:GetService("ServerScriptService").server:FindFirstChild("BuyTilePositionFixer"),
+            game:GetService("ServerScriptService"):FindFirstChild("src") and game:GetService("ServerScriptService").src:FindFirstChild("server") and game:GetService("ServerScriptService").src.server:FindFirstChild("BuyTilePositionFixer")
+        }
+        
+        for _, path in ipairs(fixerPaths) do
+            if path and typeof(path) == "Instance" then
+                -- Check if it has a fixModelsForPlayer function
+                local success, result = pcall(function()
+                    if typeof(path) == "Instance" and path:IsA("ModuleScript") then
+                        local module = require(path)
+                        if typeof(module) == "table" and typeof(module.fixModelsForPlayer) == "function" then
+                            return module.fixModelsForPlayer(player)
+                        end
+                    end
+                end)
+                
+                if success and result then
+                    print("TycoonFolderInitializer: Successfully called BuyTilePositionFixer for " .. player.Name)
+                    break
+                end
+            end
+        end
+    end)
+    
     return tycoonFolder
 end
 
@@ -272,3 +442,4 @@ end)
 initializeAllPlayers()
 
 print("✅ TycoonFolderInitializer: Running and monitoring player tycoon folder structures")
+print("✅ [BuyTileSystem/TycoonFolderInitializer] Fixed and integrated with BuyTilePositionFixer - May 1, 2025")
