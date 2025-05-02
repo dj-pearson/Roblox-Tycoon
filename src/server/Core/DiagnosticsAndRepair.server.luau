@@ -14,6 +14,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+-- Module cache reference
+local packageCache = _G.packageCache or {}
+if not _G.packageCache then
+    _G.packageCache = packageCache
+end
+
 -- Configuration
 local CONFIG = {
     debug = true,
@@ -145,15 +151,54 @@ local diagnostics = {
         
         return results
     end,
-    
-    DataPersistence = function()
+      DataPersistence = function()
         local results = {
             status = "OK",
             issues = {}
         }
         
-        -- Look for data manager
+        -- Try to find DataSystemIntegration first (preferred)
+        local dataSystemIntegration
+        pcall(function()
+            dataSystemIntegration = require(ServerScriptService.Data.DataSystemIntegration)
+        end)
+        
+        if dataSystemIntegration then
+            -- Run diagnostics if available
+            if dataSystemIntegration.runDiagnostics then
+                local diagnostics = dataSystemIntegration.runDiagnostics()
+                
+                -- Check if critical components are missing
+                if not diagnostics.dataPersistenceManager and not diagnostics.dataManager then
+                    table.insert(results.issues, "Both DataPersistenceManager and DataManager are missing")
+                    results.status = "ERROR"
+                elseif not diagnostics.dataPersistenceManager then
+                    table.insert(results.issues, "DataPersistenceManager is missing")
+                    results.status = "WARNING"
+                end
+                
+                -- Check CoreRegistry registration
+                if not diagnostics.coreRegistryAvailable then
+                    table.insert(results.issues, "CoreRegistry not available for DataSystem")
+                    results.status = "WARNING"
+                end
+                
+                -- If any backup systems are missing
+                if not diagnostics.dataBackup or not diagnostics.versionedDataStore then
+                    table.insert(results.issues, "Data backup systems incomplete")
+                    results.status = results.status == "ERROR" and "ERROR" or "WARNING"
+                end
+                
+                log("DataSystemIntegration diagnostics completed with status: " .. results.status)
+                return results
+            end
+        end
+        
+        -- If DataSystemIntegration not found or diagnostics unavailable, fall back to manual checks
+        
+        -- Look for data manager modules
         local dataManager
+        local dataPersistenceManager
         local dataManagerSearchPaths = {
             ServerScriptService.Core and ServerScriptService.Core:FindFirstChild("DataPersistenceManager"),
             ServerScriptService.Core and ServerScriptService.Core:FindFirstChild("DataManager"),
@@ -162,6 +207,7 @@ local diagnostics = {
             ServerScriptService:FindFirstChild("GymTycoonDataManager")
         }
         
+        -- Try to find DataPersistenceManager first
         for _, path in ipairs(dataManagerSearchPaths) do
             if path and path:IsA("ModuleScript") then
                 local success, manager = pcall(function()
@@ -169,36 +215,82 @@ local diagnostics = {
                 end)
                 
                 if success and manager then
-                    dataManager = manager
-                    break
+                    if path.Name == "DataPersistenceManager" then
+                        dataPersistenceManager = manager
+                    else
+                        dataManager = manager
+                    end
                 end
             end
         end
         
-        if not dataManager then
-            table.insert(results.issues, "Data manager module not found or failed to load")
+        -- Prioritize DataPersistenceManager if found
+        local activeManager = dataPersistenceManager or dataManager
+        
+        if not activeManager then
+            table.insert(results.issues, "No data manager module found or failed to load")
             results.status = "ERROR"
             return results
         end
         
+        -- Check if registered with CoreRegistry
+        local coreRegistry
+        pcall(function()
+            coreRegistry = require(ServerScriptService.Core.CoreRegistry)
+        end)
+        
+        if coreRegistry then
+            local managerRegistered = false
+            local persistenceManagerRegistered = false
+            
+            if coreRegistry.hasSystem then
+                managerRegistered = coreRegistry:hasSystem("DataManager")
+                persistenceManagerRegistered = coreRegistry:hasSystem("DataPersistenceManager")
+            elseif coreRegistry.systems then
+                managerRegistered = coreRegistry.systems["DataManager"] ~= nil
+                persistenceManagerRegistered = coreRegistry.systems["DataPersistenceManager"] ~= nil
+            end
+            
+            if not managerRegistered and not persistenceManagerRegistered then
+                table.insert(results.issues, "Data managers not registered with CoreRegistry")
+                results.status = "WARNING"
+            end
+        end
+        
         -- Check required functions
-        local requiredFunctions = {"saveData", "loadData"}
+        local requiredFunctions = {"saveData", "loadData", "getDefaultData"}
         for _, funcName in ipairs(requiredFunctions) do
-            if type(dataManager[funcName]) ~= "function" then
+            if type(activeManager[funcName]) ~= "function" then
                 table.insert(results.issues, "Data manager missing " .. funcName .. " function")
                 results.status = "ERROR"
             end
         end
         
+        -- Check for backup functionality
+        local hasBackup = type(activeManager.backup) == "function" or type(activeManager.createBackup) == "function"
+        if not hasBackup then
+            table.insert(results.issues, "Data manager missing backup functionality")
+            results.status = results.status == "ERROR" and "ERROR" or "WARNING"
+        end
+        
         -- Check save stats if available
-        if dataManager.getStats and type(dataManager.getStats) == "function" then
-            local stats = dataManager.getStats()
-            if stats and stats.failedSaves and stats.failedSaves > 0 then
-                table.insert(results.issues, "Data manager has " .. stats.failedSaves .. " failed saves")
-                results.status = "WARNING"
+        if activeManager.getStats and type(activeManager.getStats) == "function" then
+            local stats = activeManager.getStats()
+            if stats then
+                if stats.failedSaves and stats.failedSaves > 0 then
+                    table.insert(results.issues, "Data manager has " .. stats.failedSaves .. " failed saves")
+                    results.status = results.status == "ERROR" and "ERROR" or "WARNING"
+                end
+                
+                if stats.failedLoads and stats.failedLoads > 0 then
+                    table.insert(results.issues, "Data manager has " .. stats.failedLoads .. " failed loads")
+                    results.status = results.status == "ERROR" and "ERROR" or "WARNING"
+                end
             end
-            
-            if stats and stats.failedLoads and stats.failedLoads > 0 then
+        end
+        
+        return results
+    end,
                 table.insert(results.issues, "Data manager has " .. stats.failedLoads .. " failed loads")
                 results.status = "WARNING"
             end
@@ -359,11 +451,12 @@ local repairs = {
         
         -- If CoreRegistry exists but has issues, try to reload it
         if coreRegistryPath and coreRegistryPath:IsA("ModuleScript") then
-            log("Reloading CoreRegistry module")
-            
+            log("Reloading CoreRegistry module")            
             -- Clear from cache to force reload
-            local success = pcall(function()
-                package.loaded[coreRegistryPath:GetFullName()] = nil
+            local reloadSuccess = pcall(function()
+                -- Using _G as a cache instead of package.loaded
+                _G.moduleCache = _G.moduleCache or {}
+                _G.moduleCache[coreRegistryPath:GetFullName()] = nil
             end)
             
             if success then
@@ -386,44 +479,109 @@ local repairs = {
             end
         end
     end,
-    
-    DataPersistence = function(results)
+      DataPersistence = function(results)
         log("Attempting to fix DataPersistence issues")
         
-        -- For most data persistence issues, we need to ensure the module is properly loaded
+        -- First try to use DataSystemIntegration if available
+        local dataSystemIntegration
+        local success = pcall(function()
+            dataSystemIntegration = require(ServerScriptService.Data.DataSystemIntegration)
+        end)
+        
+        if success and dataSystemIntegration then
+            log("Using DataSystemIntegration to repair data systems")
+            
+            -- If it's already initialized, reinitialize it
+            if dataSystemIntegration.initialized then
+                log("Reinitializing DataSystemIntegration")
+                
+                -- Force reload the module
+                pcall(function()
+                    package.loaded[ServerScriptService.Data.DataSystemIntegration:GetFullName()] = nil
+                    dataSystemIntegration = require(ServerScriptService.Data.DataSystemIntegration)
+                    dataSystemIntegration:init()
+                end)
+            end
+            
+            -- Let's see if DataSystemIntegration fixed the issues
+            if dataSystemIntegration.runDiagnostics then
+                local diagnostics = dataSystemIntegration.runDiagnostics()
+                if (diagnostics.dataPersistenceManager or diagnostics.dataManager) and diagnostics.initialized then
+                    log("DataSystemIntegration successfully repaired the data system")
+                    return
+                end
+            end
+        end
+        
+        -- If DataSystemIntegration isn't available or couldn't fix it, 
+        -- try to fix DataPersistenceManager and DataManager directly
+        
+        -- Find and reload DataPersistenceManager
         local dataManagerPath
         local searchPaths = {
             ServerScriptService.Core and ServerScriptService.Core:FindFirstChild("DataPersistenceManager"),
-            ServerScriptService:FindFirstChild("DataPersistenceManager")
+            ServerScriptService.Core and ServerScriptService.Core:FindFirstChild("DataManager"),
+            ServerScriptService:FindFirstChild("DataPersistenceManager"),
+            ServerScriptService:FindFirstChild("DataManager")
         }
         
         for _, path in ipairs(searchPaths) do
             if path and path:IsA("ModuleScript") then
                 dataManagerPath = path
+                log("Found data manager at " .. path:GetFullName())
                 break
             end
         end
         
         if dataManagerPath then
-            log("Reloading Data Manager module")
+            log("Reloading Data Manager module: " .. dataManagerPath.Name)
             
             -- Clear from cache to force reload
-            local success = pcall(function()
+            local reloadSuccess = pcall(function()
                 package.loaded[dataManagerPath:GetFullName()] = nil
             end)
             
-            if success then
+            if reloadSuccess then
                 -- Try to require it
-                success, _ = pcall(function()
+                local requireSuccess, dataManager = pcall(function()
                     return require(dataManagerPath)
                 end)
                 
-                if success then
+                if requireSuccess and dataManager then
                     log("Successfully reloaded Data Manager module")
+                    
+                    -- Register with CoreRegistry if possible
+                    local coreRegistry
+                    pcall(function()
+                        coreRegistry = require(ServerScriptService.Core.CoreRegistry)
+                    end)
+                    
+                    if coreRegistry and coreRegistry.registerSystem then
+                        if dataManagerPath.Name == "DataPersistenceManager" then
+                            log("Registering DataPersistenceManager with CoreRegistry")
+                            coreRegistry:registerSystem("DataPersistenceManager", dataManager)
+                            
+                            -- Also register as DataManager for compatibility
+                            coreRegistry:registerSystem("DataManager", dataManager)
+                        else
+                            log("Registering DataManager with CoreRegistry")
+                            coreRegistry:registerSystem("DataManager", dataManager)
+                        end
+                    end
+                    
+                    -- Initialize if needed
+                    if dataManager.init and not dataManager.initialized then
+                        log("Initializing Data Manager")
+                        pcall(function()
+                            dataManager:init()
+                        end)
+                    end
                 else
                     log("Failed to reload Data Manager module")
                 end
             end
+        else
+            log("No data manager module found to repair")
         end
     end,
     

@@ -96,6 +96,58 @@ local function log(message)
     end
 end
 
+-- Ensure DataPersistenceManager is properly integrated
+local DataPersistenceManager
+pcall(function()
+    DataPersistenceManager = require(ServerScriptService.Core.DataPersistenceManager)
+    if DataPersistenceManager then
+        log("Found DataPersistenceManager module")
+    end
+end)
+
+-- Make sure all data-related systems are registered with CoreRegistry
+local function ensureRegistration()
+    if not CoreRegistry or not CoreRegistry.registerSystem then
+        log("CoreRegistry not available for registration")
+        return
+    end
+    
+    -- Register DataManager if found
+    if DataManager and not CoreRegistry:getSystem("DataManager") then
+        CoreRegistry:registerSystem("DataManager", DataManager)
+        log("Registered DataManager with CoreRegistry")
+    end
+    
+    -- Register DataPersistenceManager if found
+    if DataPersistenceManager and not CoreRegistry:getSystem("DataPersistenceManager") then
+        CoreRegistry:registerSystem("DataPersistenceManager", DataPersistenceManager)
+        log("Registered DataPersistenceManager with CoreRegistry")
+        
+        -- Also register as DataManager for compatibility if needed
+        if not CoreRegistry:getSystem("DataManager") then
+            CoreRegistry:registerSystem("DataManager", DataPersistenceManager)
+            log("Also registered DataPersistenceManager as DataManager for compatibility")
+        end
+    end
+    
+    -- Register other data systems
+    if DataBackup and not CoreRegistry:getSystem("DataBackup") then
+        CoreRegistry:registerSystem("DataBackup", DataBackup)
+        log("Registered DataBackup with CoreRegistry")
+    end
+    
+    if VersionedDataStore and not CoreRegistry:getSystem("VersionedDataStore") then
+        CoreRegistry:registerSystem("VersionedDataStore", VersionedDataStore)
+        log("Registered VersionedDataStore with CoreRegistry")
+    end
+    
+    -- Register this module itself
+    if not CoreRegistry:getSystem("DataSystemIntegration") then
+        CoreRegistry:registerSystem("DataSystemIntegration", script)
+        log("Registered DataSystemIntegration with CoreRegistry")
+    end
+end
+
 -- Utility function to safely call functions
 local function safeCall(funcOrObj, method, ...)
     if not funcOrObj then
