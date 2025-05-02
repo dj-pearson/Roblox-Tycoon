@@ -2,10 +2,15 @@
 --[[
     DataManager.server.luau
     
-    A robust data management system with built-in validation, redundancy,
-    and recovery features to address the data system issues identified.
+    DEPRECATED: This module is being replaced by the new modular data system.
+    This is now a compatibility wrapper that forwards calls to the new system.
     
-    Created: April 26, 2025
+    Please update references to use the new data system components directly:
+    - src/server/Core/Data/DataManager.luau (Main entry point)
+    - src/server/Core/Data/PlayerDataService.luau (Player data operations)
+    - src/server/Core/Data/TycoonDataService.luau (Tycoon data operations)
+    
+    Last Updated: May 2, 2025
 ]]
 
 -- Services
@@ -16,7 +21,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
--- Find CoreRegistry
+-- Using the new bridge system
+local DataSystemBridge = require(script.Parent:WaitForChild("DataSystemBridge"))
+
+-- For backward compatibility
 local CoreRegistry
 pcall(function()
     CoreRegistry = require(ServerScriptService.Core.CoreRegistry)

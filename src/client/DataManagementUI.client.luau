@@ -2,17 +2,21 @@
 --[[
     DataManagementUI.client.luau
     
-    A graphical interface for data management operations.
-    This UI allows admins to perform data operations through
-    a visual interface rather than chat commands.
+    DEPRECATED: This UI is being replaced by components in the new UI system.
+    This version now uses ClientDataBridge to connect with the new data system.
     
-    Author: Created April 2025
+    For new development, please use the components in src/client/UI/Components/DataManagement/
+    
+    Last Updated: May 2, 2025
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
+
+-- Load the bridge to the new system
+local ClientDataBridge = require(script.Parent:WaitForChild("ClientDataBridge"))
 
 -- UI Components
 local UIComponents = {}
