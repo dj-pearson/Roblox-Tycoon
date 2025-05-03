@@ -8,6 +8,8 @@ The Module Loading System provides a standardized way to load modules throughout
 - Infinite yield on WaitForChild
 - Cascading failures when modules can't be found
 - Difficulty in refactoring module paths
+- Circular dependencies between modules
+- Inconsistent module loading patterns
 
 ## Key Components
 
@@ -23,7 +25,25 @@ local ModuleLoader = require(game:GetService("ReplicatedStorage").shared.ModuleL
 local UIStyle = ModuleLoader:LoadModule("UIStyle")
 ```
 
-### 2. SafeRequire
+### 2. ModuleLoaderHelper
+
+A simplified helper that provides easy access to the unified ModuleLoader with backward compatibility support.
+
+```lua
+-- Get access to the ModuleLoaderHelper
+local ModuleLoaderHelper = require(game:GetService("ReplicatedStorage").shared.ModuleLoaderHelper)
+
+-- Safely require a module
+local module = ModuleLoaderHelper.safeRequire(moduleScript, fallbackValue)
+
+-- Find a module by name
+local moduleScript = ModuleLoaderHelper.findModule("UIComponents")
+
+-- Load a module by name or path
+local module = ModuleLoaderHelper.loadModule("UI/Button")
+```
+
+### 3. SafeRequire
 
 A utility function for safely requiring modules with error handling to prevent script failures when modules can't be loaded.
 
@@ -202,8 +222,44 @@ local UIStyle2 = ModuleLoader:LoadModule("UIStyle")
 The Module Loading System includes diagnostic tools to help identify and fix module loading issues:
 
 1. **ModuleLoader:GetStats()**: Returns statistics about module loading attempts
-2. **SafeWaitForChild.getYieldStats()**: Returns statistics about WaitForChild calls
-3. **WaitForChildFinder**: A tool to find unsafe WaitForChild calls
+2. **ModuleLoader:GetDependencyGraph()**: Visualizes module dependencies
+3. **ModuleLoader:GetLoadTimes()**: Shows module load performance metrics
+
+## Migration to Unified Module Loading System
+
+We are in the process of migrating all scripts to use the new unified ModuleLoader system. This standardizes module loading across the entire codebase and provides consistent error handling, dependency injection, and performance monitoring.
+
+See the detailed migration progress in the [ModuleLoaderMigrationProgress.md](./Documentation/ModuleLoaderMigrationProgress.md) document.
+
+### How to Update Your Scripts
+
+If you're updating an existing script to use the new ModuleLoader system:
+
+```lua
+-- At the top of your script:
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ModuleLoaderHelper = nil
+
+-- Try to load ModuleLoaderHelper
+if ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoaderHelper") then
+    local success, result = pcall(function()
+        return require(ReplicatedStorage.shared.ModuleLoaderHelper)
+    end)
+    
+    if success and result then
+        ModuleLoaderHelper = result
+    end
+end
+
+-- Then replace your module loading code with:
+local myModule
+if ModuleLoaderHelper then
+    myModule = ModuleLoaderHelper.loadModule("MyModule")
+else
+    -- Fallback implementation
+    -- ...
+end
+```
 
 ## Conclusion
 

@@ -39,13 +39,18 @@
 ### ✅ Client Script Updates
 
 - **Files Updated:**
+  - ClientBootstrap.client.luau - Updated to use ModuleLoaderHelper for core module loading
+  - ClientUISystem.client.luau - Enhanced module loading with ModuleLoaderHelper
+  - ClientRegistryPreloader.client.luau - Updated to use ModuleLoaderHelper
   - MenuButtonsHandler.client.luau - Updated to use ModuleLoaderHelper
-  - MenuButtonCreator.client.luau - Fixed button callbacks to use new module loading
 
 - **Implementation Details:**
   - Replaced custom module loading with standardized ModuleLoaderHelper
   - Added graceful fallbacks for backward compatibility
   - Fixed module path resolution for UI components
+  - Enhanced findModule functions to use the unified ModuleLoader
+  - Improved error handling and reporting for module loading
+  - Implemented consistent module loading pattern across client scripts
 
 ### ✅ Documentation and Tools
 

@@ -5,10 +5,28 @@
     Creates necessary folder structures and loads UI components.
     
     Created as part of critical fixes on April 28, 2025.
+    Updated May 3, 2025 to use the unified ModuleLoader system.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Load ModuleLoaderHelper for consistent module loading
+local ModuleLoaderHelper = nil
+
+-- Try to load ModuleLoaderHelper
+if ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoaderHelper") then
+    local success, result = pcall(function()
+        return require(ReplicatedStorage.shared.ModuleLoaderHelper)
+    end)
+    
+    if success and result then
+        ModuleLoaderHelper = result
+        print("[ClientBootstrap] ModuleLoaderHelper loaded successfully")
+    else
+        warn("[ClientBootstrap] Failed to load ModuleLoaderHelper, falling back to legacy loading")
+    end
+end
 
 -- Client status tracking
 local STATUS = {
@@ -111,6 +129,12 @@ end
 
 -- Function to safely require a module
 local function safeRequire(module, fallback)
+    -- If ModuleLoaderHelper is available, use it
+    if ModuleLoaderHelper then
+        return ModuleLoaderHelper.safeRequire(module, fallback)
+    end
+    
+    -- Legacy fallback implementation
     if not module then
         return fallback
     end
@@ -134,6 +158,12 @@ end
 
 -- Function to find a module in different locations
 local function findModule(moduleName)
+    -- If ModuleLoaderHelper is available, use it
+    if ModuleLoaderHelper then
+        return ModuleLoaderHelper.findModule(moduleName)
+    end
+    
+    -- Legacy fallback implementation
     local player = Players.LocalPlayer
     local locations = {
         player.PlayerScripts:FindFirstChild("Core"),

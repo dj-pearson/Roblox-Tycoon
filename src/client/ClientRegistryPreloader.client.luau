@@ -8,6 +8,7 @@
     Similar to CoreRegistryPreloader but for client-side systems.
     
     Created as part of UI System critical fixes on May 1, 2025.
+    Updated May 3, 2025 to use the unified ModuleLoader system.
 ]]
 
 -- Services
@@ -21,6 +22,23 @@ if not RunService:IsClient() then
 end
 
 print("\n==== STARTING CLIENT REGISTRY PRELOADER ====")
+
+-- Load ModuleLoaderHelper for consistent module loading
+local ModuleLoaderHelper = nil
+
+-- Try to load ModuleLoaderHelper
+if ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoaderHelper") then
+    local success, result = pcall(function()
+        return require(ReplicatedStorage.shared.ModuleLoaderHelper)
+    end)
+    
+    if success and result then
+        ModuleLoaderHelper = result
+        print("[ClientRegistryPreloader] ModuleLoaderHelper loaded successfully")
+    else
+        warn("[ClientRegistryPreloader] Failed to load ModuleLoaderHelper, falling back to legacy loading")
+    end
+end
 
 -- Configuration
 local CONFIG = {
@@ -100,7 +118,15 @@ local function ensureFolderPath(parent, pathArray)
 end
 
 -- Find a module in different locations
+-- Function to find a module in different locations
 local function findModule(moduleName)
+    -- If ModuleLoaderHelper is available, use it
+    if ModuleLoaderHelper then
+        return ModuleLoaderHelper.findModule(moduleName)
+    end
+    
+    -- Legacy fallback implementation
+    local player = Players.LocalPlayer
     local playerScripts = player:FindFirstChild("PlayerScripts")
     local searchPaths = {
         -- Client paths
@@ -159,6 +185,12 @@ end
 
 -- Safe require for modules
 local function safeRequire(module, fallback)
+    -- If ModuleLoaderHelper is available, use it
+    if ModuleLoaderHelper then
+        return ModuleLoaderHelper.safeRequire(module, fallback)
+    end
+    
+    -- Legacy fallback implementation
     if not module then
         return fallback
     end

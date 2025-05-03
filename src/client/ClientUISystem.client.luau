@@ -7,12 +7,30 @@
     and initialized in the correct order.
     
     Created: April 26, 2025
+    Updated: May 3, 2025 to use unified ModuleLoader system
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local StarterGui = game:GetService("StarterGui")
+
+-- Load ModuleLoaderHelper for consistent module loading
+local ModuleLoaderHelper = nil
+
+-- Try to load ModuleLoaderHelper
+if ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoaderHelper") then
+    local success, result = pcall(function()
+        return require(ReplicatedStorage.shared.ModuleLoaderHelper)
+    end)
+    
+    if success and result then
+        ModuleLoaderHelper = result
+        print("[ClientUISystem] ModuleLoaderHelper loaded successfully")
+    else
+        warn("[ClientUISystem] Failed to load ModuleLoaderHelper, falling back to legacy loading")
+    end
+end
 
 -- Debug settings
 local DEBUG_ENABLED = true
@@ -78,6 +96,12 @@ local dependencies = {
 
 -- Safe require utility
 local function requireSafely(module)
+    -- If ModuleLoaderHelper is available, use it
+    if ModuleLoaderHelper then
+        return ModuleLoaderHelper.safeRequire(module)
+    end
+    
+    -- Legacy fallback implementation
     if not module then
         return nil
     end
@@ -96,6 +120,16 @@ end
 
 -- Try to load a module from multiple paths
 local function loadModule(name, pathsTable)
+    -- If ModuleLoaderHelper is available, try to use it
+    if ModuleLoaderHelper then
+        -- Try direct module name loading first
+        local moduleByName = ModuleLoaderHelper.loadModule(name)
+        if moduleByName then
+            return moduleByName
+        end
+    end
+
+    -- Fallback to path-based loading
     if not pathsTable or #pathsTable == 0 then
         warn_log("No paths provided for " .. name)
         return nil
