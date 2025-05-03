@@ -4,7 +4,7 @@
     Helper utility for loading modules across both server and client.
     Provides consistent interface for requiring modules with error handling.
     
-    Created as part of the CoreRegistry fix documented in CoreRegistry_Fix_Solution.md
+    Enhanced May 3, 2025 to better integrate with the unified ModuleLoader.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,7 +17,47 @@ local ServerScriptService = isServer and game:GetService("ServerScriptService") 
 local ModuleLoaderHelper = {}
 
 -- Version information
-ModuleLoaderHelper.VERSION = "1.0.0"
+ModuleLoaderHelper.VERSION = "1.1.0"
+
+-- Cache for ModuleLoader
+local cachedModuleLoader = nil
+
+-- Find the ModuleLoader in various locations
+local function findModuleLoader()
+    -- Check common locations for ModuleLoader
+    local potentialLocations = {
+        -- Shared locations
+        ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoader"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared") and ReplicatedStorage.src.shared:FindFirstChild("ModuleLoader"),
+        
+        -- Server locations (only if we're on the server)
+        isServer and ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("ModuleLoader"),
+        isServer and ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("ModuleLoader")
+    }
+    
+    for _, location in ipairs(potentialLocations) do
+        if location and location:IsA("ModuleScript") then
+            local success, result = pcall(function()
+                return require(location)
+            end)
+            
+            if success and result and typeof(result.loadModule) == "function" then
+                return result
+            end
+        end
+    end
+    
+    return nil
+end
+-- Get the ModuleLoader instance
+function ModuleLoaderHelper.getModuleLoader()
+    if cachedModuleLoader then
+        return cachedModuleLoader
+    end
+    
+    cachedModuleLoader = findModuleLoader()
+    return cachedModuleLoader
+end
 
 -- Default search paths
 local defaultSearchPaths = {

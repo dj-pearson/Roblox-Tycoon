@@ -1,5 +1,62 @@
 # Module Loading System Changelog
 
+## Version 1.1.0 (May 3, 2025)
+
+### ✅ Enhanced ModuleLoader.luau (src/shared/ModuleLoader.luau)
+
+- **Added Features:**
+  - Improved caching with selective invalidation
+  - Circular dependency detection and resolution
+  - Performance monitoring with load time tracking
+  - Standardized path resolution across client and server
+  - Dependency injection support
+  - Improved error handling with better reporting
+  - Enhanced module discovery with support for nested paths
+
+- **Implementation Details:**
+  - Updated `safeRequire` to handle string module names
+  - Added dependency tracking to detect circular dependencies
+  - Created a dependency injection container
+  - Standardized search paths between client and server
+  - Added load time monitoring to identify slow loading modules
+  - Implemented support for path-based module loading (e.g., "UI/Button")
+  - Enhanced automatic registration with CoreRegistry
+  - Implemented self-replication to ensure availability
+
+### ✅ Enhanced ModuleLoaderHelper.luau (src/shared/ModuleLoaderHelper.luau)
+
+- **Added Features:**
+  - Enhanced to use the unified ModuleLoader when available
+  - Added graceful fallbacks for backward compatibility
+  - Added support for path-based module names
+  - Added dependency registration capabilities
+
+- **Implementation Details:**
+  - Updated to detect and use ModuleLoader from various locations
+  - Maintained backward compatibility with existing code
+  - Improved error reporting with source location tracking
+
+### ✅ Client Script Updates
+
+- **Files Updated:**
+  - MenuButtonsHandler.client.luau - Updated to use ModuleLoaderHelper
+  - MenuButtonCreator.client.luau - Fixed button callbacks to use new module loading
+
+- **Implementation Details:**
+  - Replaced custom module loading with standardized ModuleLoaderHelper
+  - Added graceful fallbacks for backward compatibility
+  - Fixed module path resolution for UI components
+
+### ✅ Documentation and Tools
+
+- **Documentation:**
+  - Created comprehensive ModuleLoaderDocumentation.md
+  - Added usage examples and best practices
+
+- **Tools:**
+  - Created ClientScriptModuleLoaderUpdater.luau for automated migration
+  - Tool can update scripts to use ModuleLoaderHelper while maintaining backward compatibility
+
 ## Version 1.0.0 (April 26, 2025)
 
 ### New Features

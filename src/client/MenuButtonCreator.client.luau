@@ -1,8 +1,10 @@
 -- MenuButtonCreator.client.luau
 -- Script to create menu buttons with icons that provide access to various game systems
 -- Created April 2025
+-- Updated May 3, 2025 to use ModuleLoader
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 -- Log function
@@ -10,17 +12,89 @@ local function log(message: string)
     print("[MenuButtonCreator] " .. message)
 end
 
--- Load UIElementsData module
-local UIElementsData = require(script.Parent:WaitForChild("UI"):WaitForChild("UIElementsData"))
+-- Load ModuleLoaderHelper
+local ModuleLoaderHelper = nil
+local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+
+if sharedFolder and sharedFolder:FindFirstChild("ModuleLoaderHelper") then
+    local success, result = pcall(function()
+        return require(sharedFolder.ModuleLoaderHelper)
+    end)
+    
+    if success and result then
+        ModuleLoaderHelper = result
+        log("ModuleLoaderHelper loaded successfully")
+    else
+        warn("[MenuButtonCreator] Failed to load ModuleLoaderHelper, falling back to legacy loading")
+    end
+end
+
+-- Load UIElementsData using ModuleLoaderHelper if available
+local UIElementsData = nil
+if ModuleLoaderHelper then
+    UIElementsData = ModuleLoaderHelper.loadModule("UI/UIElementsData")
+    if not UIElementsData then
+        log("Trying alternate paths for UIElementsData")
+        UIElementsData = ModuleLoaderHelper.loadModule("UIElementsData")
+    end
+end
+
+-- Fallback loading if ModuleLoaderHelper is not available or loading failed
+if not UIElementsData then
+    log("Using fallback loading for UIElementsData")
+    if script.Parent:FindFirstChild("UI") and script.Parent.UI:FindFirstChild("UIElementsData") then
+        local success, result = pcall(function()
+            return require(script.Parent.UI.UIElementsData)
+        end)
+        if success then
+            UIElementsData = result
+            log("UIElementsData loaded from script.Parent.UI")
+        end
+    end
+end
+
+if not UIElementsData then
+    error("[MenuButtonCreator] Could not load UIElementsData module")
+end
+
 local ICONS = UIElementsData.Icons
-
-
--- Safely require a module with fallback paths
-local function safeRequire(moduleName)
+  -- More robust module loading function using ModuleLoaderHelper
+local function loadUIModule(moduleName)
+    if ModuleLoaderHelper then
+        -- Try different path formats
+        local possiblePaths = {
+            moduleName,
+            "UI/" .. moduleName,
+            "client/UI/" .. moduleName,
+            "UI/Menu/" .. moduleName
+        }
+        
+        for _, path in ipairs(possiblePaths) do
+            local module = ModuleLoaderHelper.loadModule(path)
+            if module then
+                log("Loaded module " .. moduleName .. " via ModuleLoaderHelper from path: " .. path)
+                return module
+            end
+        end
+    end
+    
+    -- Fallback to direct lookup in common locations
+    log("Falling back to direct lookup for module: " .. moduleName)
+    
     -- First try direct parent
     if script.Parent:FindFirstChild(moduleName) then
         local success, module = pcall(function()
             return require(script.Parent:FindFirstChild(moduleName))
+        end)
+        if success and module then
+            return module
+        end
+    end
+    
+    -- Then try UI folder
+    if script.Parent:FindFirstChild("UI") and script.Parent.UI:FindFirstChild(moduleName) then
+        local success, module = pcall(function()
+            return require(script.Parent.UI:FindFirstChild(moduleName))
         end)
         if success and module then
             return module
@@ -50,7 +124,7 @@ local function safeRequire(moduleName)
         end
     end
     
-    -- Last resort - search recursively for the module
+    -- Last resort - recursive search
     local function findModuleInChildren(parent, name)
         for _, child in pairs(parent:GetChildren()) do
             if child.Name == name and child:IsA("ModuleScript") then
@@ -82,8 +156,7 @@ end
 
 -- Menu button configurations
 
-local MENU_BUTTONS = {
-    {
+local MENU_BUTTONS = {    {
         name = "Shop",
         icon = ICONS.Shop,
         position = UDim2.new(0, 10, 0, 10),
@@ -91,16 +164,16 @@ local MENU_BUTTONS = {
         callback = function()
             -- Handle shop button click
             log("Shop button clicked")
-            local shopModule = safeRequire("ShopMenuUI")
+            local shopModule = loadUIModule("ShopMenuUI")
             if shopModule then
                 if typeof(shopModule.ToggleVisibility) == "function" then
                     shopModule.ToggleVisibility()
                 else
                     log("ShopMenuUI found but ToggleVisibility function not available")
-                end)
+                end
             end
         end
-    },    {
+    },{
         name = "Alliance",
         icon = ICONS.Alliance,
         position = UDim2.new(0, 10, 0, 310), -- Position it after Data

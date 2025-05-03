@@ -17,63 +17,108 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Load required modules
 local sharedFolder = ReplicatedStorage:FindFirstChild("shared") or ReplicatedStorage:FindFirstChild("Shared")
 
--- Safe require helper
-local function requireSafely(moduleScript)
-    if moduleScript and moduleScript:IsA("ModuleScript") then
-        local success, result = pcall(function()
-            return require(moduleScript)
-        end)
-        
-        if success then
-            return result
-        else
-            warn("Failed to load module: " .. moduleScript.Name)
-            return nil
-        end
+-- Load ModuleLoaderHelper
+local ModuleLoaderHelper = nil
+if sharedFolder and sharedFolder:FindFirstChild("ModuleLoaderHelper") then
+    local success, result = pcall(function()
+        return require(sharedFolder.ModuleLoaderHelper)
+    end)
+    
+    if success and result then
+        ModuleLoaderHelper = result
+        print("[MenuButtonsHandler] ModuleLoaderHelper loaded successfully")
+    else
+        warn("[MenuButtonsHandler] Failed to load ModuleLoaderHelper, falling back to legacy loading")
     end
-    return nil
 end
 
--- Try to find UIRegistry
-local UIRegistry = nil
-
--- Attempt to load UIRegistry
-local function loadUIRegistry()
-    print("[MenuButtonsHandler] Attempting to load UIRegistry...")
-    
-    -- Search locations for UIRegistry
-    local searchLocations = {
-        -- Client UI folder
-        script.Parent and script.Parent:FindFirstChild("UIRegistry"),
-        script.Parent and script.Parent:FindFirstChild("UIRegistry.client"),
-        
-        -- Client Core folder
-        player.PlayerScripts:FindFirstChild("client") and 
-        player.PlayerScripts:FindFirstChild("client"):FindFirstChild("Core") and 
-        player.PlayerScripts:FindFirstChild("client"):FindFirstChild("Core"):FindFirstChild("UIRegistry"),
-        
-        -- Shared folder
-        ReplicatedStorage:FindFirstChild("shared") and 
-        ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("UIRegistry")
-    }
-    
-    for _, location in ipairs(searchLocations) do
-        if location and location:IsA("ModuleScript") then
+-- If ModuleLoaderHelper is not available, create a simple fallback
+if not ModuleLoaderHelper then
+    -- Safe require helper (fallback implementation)
+    local function requireSafely(moduleScript)
+        if moduleScript and moduleScript:IsA("ModuleScript") then
             local success, result = pcall(function()
-                return require(location)
+                return require(moduleScript)
             end)
             
-            if success and result then
-                print("[MenuButtonsHandler] Found UIRegistry at: " .. location:GetFullName())
+            if success then
                 return result
+            else
+                warn("Failed to load module: " .. moduleScript.Name)
+                return nil
             end
         end
+        return nil
     end
     
-    return nil
+    ModuleLoaderHelper = {
+        safeRequire = requireSafely,
+        loadModule = function(name)
+            warn("[MenuButtonsHandler] Using legacy module loading for: " .. name)
+            -- Simple implementation to search in common locations
+            local locations = {
+                script.Parent,
+                player.PlayerScripts:FindFirstChild("client"),
+                player.PlayerScripts:FindFirstChild("client") and player.PlayerScripts.client:FindFirstChild("UI"),
+                ReplicatedStorage:FindFirstChild("shared")
+            }
+            
+            for _, location in ipairs(locations) do
+                if location and location:FindFirstChild(name) then
+                    return requireSafely(location:FindFirstChild(name))
+                end
+            end
+            
+            return nil
+        end
+    }
 end
 
-UIRegistry = loadUIRegistry()
+-- Try to find UIRegistry using the ModuleLoaderHelper
+local UIRegistry = ModuleLoaderHelper.loadModule("UIRegistry")
+
+if not UIRegistry then
+    print("[MenuButtonsHandler] UIRegistry not found with ModuleLoaderHelper, trying fallback method...")
+    
+    -- Fallback: attempt to load UIRegistry directly
+    local function loadUIRegistry()
+        print("[MenuButtonsHandler] Attempting to load UIRegistry...")
+        
+        -- Search locations for UIRegistry
+        local searchLocations = {
+            -- Client UI folder
+            script.Parent and script.Parent:FindFirstChild("UIRegistry"),
+            script.Parent and script.Parent:FindFirstChild("UIRegistry.client"),
+            
+            -- Client Core folder
+            player.PlayerScripts:FindFirstChild("client") and 
+            player.PlayerScripts:FindFirstChild("client"):FindFirstChild("Core") and 
+            player.PlayerScripts:FindFirstChild("client"):FindFirstChild("Core"):FindFirstChild("UIRegistry"),
+            
+            -- Shared folder
+            ReplicatedStorage:FindFirstChild("shared") and 
+            ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("UIRegistry")
+        }
+        
+        for _, location in ipairs(searchLocations) do
+            if location and location:IsA("ModuleScript") then
+                local success, result = pcall(function()
+                    return require(location)
+                end)
+                
+                if success and result then
+                    print("[MenuButtonsHandler] Found UIRegistry at: " .. location:GetFullName())
+                    return result
+                end
+            end
+        end
+        
+        return nil
+    end
+    
+    UIRegistry = loadUIRegistry()
+end
+
 if UIRegistry then
     print("[MenuButtonsHandler] UIRegistry loaded successfully")
 else
@@ -82,23 +127,62 @@ end
 
 -- UI module paths - will try to require these when needed
 local uiModulePaths = {
-    -- Standard path formats
-    SettingsMenuUI = {"Client", "UI", "SettingsMenuUI"},
-    MainMenuUI = {"Client", "UI", "MainMenuUI"},
-    AllianceUI = {"Client", "UI", "AllianceUI"},
-    CommunityGoalsUI = {"Client", "UI", "CommunityGoalsUI"},
-    ChallengesUI = {"Client", "UI", "ChallengesUI"},
-    GuestPassUI = {"Client", "UI", "GuestPassUI"},
-    TutorialUI = {"Client", "UI", "TutorialUI"},
-    RebirthUI = {"Client", "UI", "RebirthUI"},
-    StaffManagementUI = {"Client", "UI", "StaffManagementUI"},
-    UpgradesUI = {"Client", "UI", "UpgradesUI"},
-    AchievementsUI = {"Client", "UI", "AchievementsUI"},
+    -- Standard format - these module names will be resolved by ModuleLoader
+    SettingsMenuUI = "UI/SettingsMenuUI",
+    MainMenuUI = "UI/MainMenuUI",
+    AllianceUI = "UI/AllianceUI",
+    CommunityGoalsUI = "UI/CommunityGoalsUI",
+    ChallengesUI = "UI/ChallengesUI",
+    GuestPassUI = "UI/GuestPassUI",
+    TutorialUI = "UI/TutorialUI",
+    RebirthUI = "UI/RebirthUI",
+    StaffManagementUI = "UI/StaffManagementUI",
+    UpgradesUI = "UI/UpgradesUI",
+    AchievementsUI = "UI/AchievementsUI",
+}
 
-    -- Direct client/UI path
-    SettingsMenuUI_client = {"client", "UI", "SettingsMenuUI"},
-    MainMenuUI_client = {"client", "UI", "MainMenuUI"},
-    AllianceUI_client = {"client", "UI", "AllianceUI"},
+-- Cached UI modules
+local loadedUIModules = {}
+
+-- Load a UI module when needed
+local function loadUIModule(moduleName)
+    -- Check if already loaded
+    if loadedUIModules[moduleName] then
+        return loadedUIModules[moduleName]
+    end
+    
+    -- Try to load the module using ModuleLoaderHelper
+    local path = uiModulePaths[moduleName]
+    if path then
+        local module = ModuleLoaderHelper.loadModule(path)
+        if module then
+            loadedUIModules[moduleName] = module
+            print("[MenuButtonsHandler] Loaded UI module: " .. moduleName)
+            return module
+        end
+    end
+    
+    -- Fallback: try direct path in common locations
+    local commonLocations = {
+        script.Parent,
+        player.PlayerScripts:FindFirstChild("client") and player.PlayerScripts.client:FindFirstChild("UI"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("client") and ReplicatedStorage.src.client:FindFirstChild("UI")
+    }
+    
+    for _, location in ipairs(commonLocations) do
+        if location and location:FindFirstChild(moduleName) then
+            local module = ModuleLoaderHelper.safeRequire(location:FindFirstChild(moduleName))
+            if module then
+                loadedUIModules[moduleName] = module
+                print("[MenuButtonsHandler] Loaded UI module (fallback): " .. moduleName)
+                return module
+            end
+        end
+    end
+    
+    warn("[MenuButtonsHandler] Could not load UI module: " .. moduleName)
+    return nil
+end
     CommunityGoalsUI_client = {"client", "UI", "CommunityGoalsUI"},
     ChallengesUI_client = {"client", "UI", "ChallengesUI"},
     GuestPassUI_client = {"client", "UI", "GuestPassUI"},
