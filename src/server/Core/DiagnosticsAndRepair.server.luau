@@ -272,8 +272,7 @@ local diagnostics = {
             table.insert(results.issues, "Data manager missing backup functionality")
             results.status = results.status == "ERROR" and "ERROR" or "WARNING"
         end
-        
-        -- Check save stats if available
+          -- Check save stats if available
         if activeManager.getStats and type(activeManager.getStats) == "function" then
             local stats = activeManager.getStats()
             if stats then
@@ -288,18 +287,9 @@ local diagnostics = {
                 end
             end
         end
-        
-        return results
+          return results
     end,
-                table.insert(results.issues, "Data manager has " .. stats.failedLoads .. " failed loads")
-                results.status = "WARNING"
-            end
-        end
-        
-        return results
-    end,
-    
-    BuyTileSystem = function()
+      BuyTileSystem = function()
         local results = {
             status = "OK",
             issues = {}
@@ -358,8 +348,7 @@ local diagnostics = {
         
         return results
     end,
-    
-    FolderStructure = function()
+      FolderStructure = function()
         local results = {
             status = "OK",
             issues = {}
@@ -452,27 +441,25 @@ local repairs = {
         -- If CoreRegistry exists but has issues, try to reload it
         if coreRegistryPath and coreRegistryPath:IsA("ModuleScript") then
             log("Reloading CoreRegistry module")            
-            -- Clear from cache to force reload
-            local reloadSuccess = pcall(function()
+            -- Clear from cache to force reload            local reloadSuccess = pcall(function()
                 -- Using _G as a cache instead of package.loaded
                 _G.moduleCache = _G.moduleCache or {}
                 _G.moduleCache[coreRegistryPath:GetFullName()] = nil
             end)
             
-            if success then
+            if reloadSuccess then
                 log("Successfully cleared CoreRegistry from module cache")
             end
         end
         
         -- Check if CoreRegistryMonitor exists and use it
         local monitorPath = ServerScriptService.Core and ServerScriptService.Core:FindFirstChild("CoreRegistryMonitor")
-        
-        if monitorPath and monitorPath:IsA("ModuleScript") then
-            local success, monitor = pcall(function()
+          if monitorPath and monitorPath:IsA("ModuleScript") then
+            local requireSuccess, monitor = pcall(function()
                 return require(monitorPath)
             end)
             
-            if success and monitor and monitor.checkNow then
+            if requireSuccess and monitor and monitor.checkNow then
                 log("Using CoreRegistryMonitor to check registry")
                 local status = monitor.checkNow()
                 log("CoreRegistry status:", status)
@@ -494,10 +481,10 @@ local repairs = {
             -- If it's already initialized, reinitialize it
             if dataSystemIntegration.initialized then
                 log("Reinitializing DataSystemIntegration")
-                
-                -- Force reload the module
+                      -- Force reload the module
                 pcall(function()
-                    package.loaded[ServerScriptService.Data.DataSystemIntegration:GetFullName()] = nil
+                    _G.moduleCache = _G.moduleCache or {}
+                    _G.moduleCache[ServerScriptService.Data.DataSystemIntegration:GetFullName()] = nil
                     dataSystemIntegration = require(ServerScriptService.Data.DataSystemIntegration)
                     dataSystemIntegration:init()
                 end)
@@ -535,10 +522,10 @@ local repairs = {
         
         if dataManagerPath then
             log("Reloading Data Manager module: " .. dataManagerPath.Name)
-            
-            -- Clear from cache to force reload
+              -- Clear from cache to force reload
             local reloadSuccess = pcall(function()
-                package.loaded[dataManagerPath:GetFullName()] = nil
+                _G.moduleCache = _G.moduleCache or {}
+                _G.moduleCache[dataManagerPath:GetFullName()] = nil
             end)
             
             if reloadSuccess then

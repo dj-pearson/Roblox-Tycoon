@@ -5,6 +5,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Log function
@@ -58,6 +59,19 @@ if not UIElementsData then
 end
 
 local ICONS = UIElementsData.Icons
+
+-- Add any missing icons that might not be in UIElementsData
+if not ICONS.Shop then
+    ICONS.Shop = "rbxassetid://129405028499612"
+end
+
+if not ICONS.Gym then
+    ICONS.Gym = "rbxassetid://127304921358904"
+end
+
+if not ICONS.Stats then
+    ICONS.Stats = "rbxassetid://131635246102336"
+end
   -- More robust module loading function using ModuleLoaderHelper
 local function loadUIModule(moduleName)
     if ModuleLoaderHelper then
@@ -176,7 +190,7 @@ local MENU_BUTTONS = {    {
     },{
         name = "Alliance",
         icon = ICONS.Alliance,
-        position = UDim2.new(0, 10, 0, 310), -- Position it after Data
+        position = UDim2.new(0, 10, 0, 60), -- Positioned at top for consistency
         color = Color3.fromRGB(121, 85, 72),
         callback = function()
             -- Handle alliance button click
@@ -191,12 +205,10 @@ local MENU_BUTTONS = {    {
                 log("AllianceUI found but toggleMenu function not available or module not found")
             end
         end
-    },
-    
-    {
+    },    {
         name = "Gym",
         icon = ICONS.Settings,
-        position = UDim2.new(0, 10, 0, 260),
+        position = UDim2.new(0, 10, 0, 110), -- Consistent vertical spacing
         color = Color3.fromRGB(46, 125, 50),
         callback = function()
             -- Handle settings button click
@@ -206,16 +218,14 @@ local MENU_BUTTONS = {    {
                 settingsModule.ToggleSettingsMenu()
             end
         end
-    },
-    {
+    },    {
         name = "Gymm",
         icon = ICONS.Gym,
-        position = UDim2.new(0, 10, 0, 260),
-        color = Color3.fromRGB(46, 125, 50),
-        callback = function()
+        position = UDim2.new(0, 10, 0, 160), -- Consistent vertical spacing
+        color = Color3.fromRGB(46, 125, 50),        callback = function()
             -- Handle gym management button click
             log("Gym management button clicked")
-            local gymModule = safeRequire("GymMenuUI")
+            local gymModule = loadUIModule("GymMenuUI")
             if gymModule then
                 if typeof(gymModule.ToggleVisibility) == "function" then 
                     gymModule.ToggleVisibility()
@@ -224,15 +234,14 @@ local MENU_BUTTONS = {    {
                 end
             end
         end
-    },{
+    },    {
         name = "Stats",
         icon = ICONS.Stats,
-        position = UDim2.new(0, 10, 0, 60),
-        color = Color3.fromRGB(33, 150, 243),
-        callback = function()
+        position = UDim2.new(0, 10, 0, 210), -- Consistent vertical spacing
+        color = Color3.fromRGB(33, 150, 243),        callback = function()
             -- Handle stats button click
             log("Stats button clicked")
-            local statsModule = safeRequire("StatsMenuUI")
+            local statsModule = loadUIModule("StatsMenuUI")
             if statsModule then
                 if typeof(statsModule.ToggleVisibility) == "function" then
                     statsModule.ToggleVisibility()
@@ -246,11 +255,10 @@ local MENU_BUTTONS = {    {
         name = "Leaderboard",
         icon = ICONS.Leaderboard,
         position = UDim2.new(0, 10, 0, 110),
-        color = Color3.fromRGB(255, 193, 7),
-        callback = function()
+        color = Color3.fromRGB(255, 193, 7),        callback = function()
             -- Handle leaderboard button click
             log("Leaderboard button clicked")
-            local leaderboardModule = safeRequire("LeaderboardMenuUI")
+            local leaderboardModule = loadUIModule("LeaderboardMenuUI")
             if leaderboardModule then
                 if typeof(leaderboardModule.ToggleVisibility) == "function" then
                     leaderboardModule.ToggleVisibility()
@@ -266,26 +274,25 @@ local MENU_BUTTONS = {    {
         position = UDim2.new(0, 10, 0, 160),
         color = Color3.fromRGB(156, 39, 176),
         callback = function()
-            -- Handle competition button click
+                        -- Handle competition button click
             log("Competition button clicked")
-            local competitionModule = safeRequire("CompetitionMenuUI")
+            local competitionModule = loadUIModule("CompetitionMenuUI")
             if competitionModule then
                 if typeof(competitionModule.ToggleVisibility) == "function" then
                     competitionModule.ToggleVisibility()
                 else
                     log("CompetitionMenuUI found but ToggleVisibility function not available")
-                end)
+                end
             end
         end
     },    {
         name = "Data",
         icon = ICONS.Data,
         position = UDim2.new(0, 10, 0, 210),
-        color = Color3.fromRGB(63, 81, 181),
-        callback = function()
+        color = Color3.fromRGB(63, 81, 181),        callback = function()
             -- Handle data button click
             log("Data button clicked")
-            local dataModule = safeRequire("DataMenuUI")
+            local dataModule = loadUIModule("DataMenuUI")
             if dataModule then
                 if typeof(dataModule.ToggleVisibility) == "function" then
                     dataModule.ToggleVisibility()
@@ -302,9 +309,10 @@ local function createMenuButton(config)
     -- Create button element
     local button = Instance.new("ImageButton")
     button.Name = config.name .. "Button"
-    button.Size = UDim2.new(0, 40, 0, 40)
+    button.Size = UDim2.new(0, 48, 0, 48)
     button.Position = config.position or UDim2.new(0, 10, 0, 10)
     button.BackgroundColor3 = config.color or Color3.fromRGB(65, 105, 225)
+    button.BackgroundTransparency = 0.2 -- More visible background
     button.BorderSizePixel = 0
     button.ZIndex = 10
     
@@ -313,18 +321,34 @@ local function createMenuButton(config)
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = button
     
-    -- Add icon
-    local icon = Instance.new("ImageLabel")
-    icon.Name = "Icon"
-    icon.Size = UDim2.new(0.7, 0, 0.7, 0)
-    icon.Position = UDim2.new(0.15, 0, 0.15, 0)
-    icon.BackgroundTransparency = 1
-    icon.Image = config.icon or ""
-    icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    icon.ZIndex = 11
-    icon.Parent = button
+    -- Direct image button approach
+    button.Image = config.icon or ""
+    button.ImageColor3 = Color3.fromRGB(255, 255, 255)
+    button.ScaleType = Enum.ScaleType.Fit
+    button.ImageTransparency = 0
     
-    -- Add hover effect
+    -- Add shadow for depth
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    shadow.BackgroundTransparency = 1
+    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.ZIndex = 9
+    shadow.Image = "rbxassetid://6014261993" -- Drop shadow asset
+    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageTransparency = 0.5
+    shadow.Parent = button
+    
+    -- Add hover effect with highlight
+    local highlight = Instance.new("UIStroke")
+    highlight.Name = "HoverHighlight"
+    highlight.Color = Color3.fromRGB(255, 255, 255)
+    highlight.Thickness = 0
+    highlight.Transparency = 0.3
+    highlight.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    highlight.Parent = button
+    
     local hoverColor = Color3.new(
         math.min(config.color.R + 0.1, 1),
         math.min(config.color.G + 0.1, 1),
@@ -332,13 +356,42 @@ local function createMenuButton(config)
     )
     
     local originalColor = config.color
+    local originalSize = button.Size
     
     button.MouseEnter:Connect(function()
         button.BackgroundColor3 = hoverColor
+        
+        -- Scale animation
+        TweenService:Create(
+            button,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0, 52, 0, 52)}
+        ):Play()
+        
+        -- Highlight animation
+        TweenService:Create(
+            highlight,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Thickness = 2}
+        ):Play()
     end)
     
     button.MouseLeave:Connect(function()
         button.BackgroundColor3 = originalColor
+        
+        -- Scale animation
+        TweenService:Create(
+            button,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Size = originalSize}
+        ):Play()
+        
+        -- Highlight animation
+        TweenService:Create(
+            highlight,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Thickness = 0}
+        ):Play()
     end)
     
     -- Add tooltip
