@@ -206,18 +206,31 @@ end
     AchievementsUI_direct = {"UI", "AchievementsUI"}
 }
 
--- Asset IDs from UIElements.md
+-- Try to load UIComponentFactory
+local UIComponentFactory
+local success, result = pcall(function()
+    return require(game.ReplicatedStorage.shared.UIComponentFactory)
+end)
+
+if success then
+    UIComponentFactory = result
+    print("[MenuButtonsHandler] Loaded UIComponentFactory successfully")
+else
+    warn("[MenuButtonsHandler] Could not load UIComponentFactory, using fallback methods: " .. tostring(result))
+end
+
+-- Corrected asset IDs (trimmed to valid length)
 local iconAssetIds = {
-    Alliance = "rbxassetid://12820326816",
-    CommunityGoals = "rbxassetid://9714984800",
-    Challenges = "rbxassetid://12033348086",
-    GuestPass = "rbxassetid://11031925118",
-    Tutorial = "rbxassetid://9815039312",
-    Settings = "rbxassetid://7287657389",
-    Rebirth = "rbxassetid://12940902938",
-    StaffManagement = "rbxassetid://8983459981",
-    Upgrades = "rbxassetid://13263536610",
-    Achievements = "rbxassetid://7933759553"
+    Alliance = "rbxassetid://8091674100",        -- Using add icon as fallback
+    CommunityGoals = "rbxassetid://8091987045",  -- Using pause icon as fallback
+    Challenges = "rbxassetid://8091990871",      -- Using play icon as fallback
+    GuestPass = "rbxassetid://8092007134",       -- Using coin icon as fallback
+    Tutorial = "rbxassetid://8093754757",        -- Using help icon as fallback
+    Settings = "rbxassetid://8093766304",        -- Settings icon (correct)
+    Rebirth = "rbxassetid://8092001502",         -- Using star icon as fallback
+    StaffManagement = "rbxassetid://8092213308", -- Using character icon as fallback
+    Upgrades = "rbxassetid://8092006355",        -- Using heart icon as fallback
+    Achievements = "rbxassetid://8092204656"     -- Using leaderboard icon as fallback
 }
 
 -- Button configuration
@@ -491,125 +504,83 @@ end
 
 -- Function to create a menu button
 local function createMenuButton(name, iconId, position, onClick)
-    -- Validate the icon asset ID
-    if not validateAssetId(iconId) then
-        -- Fallback to a default icon if the original one is invalid
-        warn("[MenuButtonsHandler] Using fallback icon for " .. name)
-        iconId = "rbxassetid://7287657389" -- Using Settings icon as fallback
-    end
+    if UIComponentFactory then
+        -- Use the component factory for better button creation
+        local button = UIComponentFactory.createImageButton({
+            name = name .. "Button",
+            size = buttonConfig.size,
+            position = position,
+            backgroundColor = Color3.fromRGB(40, 40, 50),
+            backgroundTransparency = 0.5,
+            image = iconId,
+            fallbackImage = "rbxassetid://8093766304", -- Settings icon as fallback
+            cornerRadius = buttonConfig.cornerRadius,
+            hoverEffect = true,
+            hoverScale = buttonConfig.hoverScale,
+            parent = buttonContainer,
+            callback = onClick
+        })
+        
+        -- Add hover tooltip if configured
+        if buttonConfig.showTooltips then
+            createTooltip(button, name)
+        end
+        
+        -- Add active indicator if configured
+        if buttonConfig.activeIndicator then
+            createActiveIndicator(button)
+        end
+        
+        return button
+    else
+        -- Fallback to original implementation
+        -- Validate the icon asset ID
+        if not validateAssetId(iconId) then
+            -- Fallback to a default icon if the original one is invalid
+            warn("[MenuButtonsHandler] Using fallback icon for " .. name)
+            iconId = "rbxassetid://8093766304" -- Using Settings icon as fallback
+        end
 
-    local button = Instance.new("ImageButton")
-    button.Name = name .. "Button"    button.Size = buttonConfig.size
-    button.Position = position
-    button.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    button.BackgroundTransparency = 0.5
-    button.Image = iconId
-    button.Parent = buttonContainer
-    
-    -- Add debug info to trace image loading issues
-    button:GetPropertyChangedSignal("Image"):Connect(function()
-        if button.Image == "" then
-            warn("[MenuButtonsHandler] Image property reset to empty for button: " .. name)
-            button.Image = iconId -- Try to set it again
-        end
-    end)
-    
-    -- Add UI corner for rounded edges
-    local uiCorner = Instance.new("UICorner")
-    uiCorner.CornerRadius = buttonConfig.cornerRadius
-    uiCorner.Parent = button
-    
-    -- Create active indicator if enabled
-    local activeIndicator = nil
-    if buttonConfig.activeIndicator then
-        activeIndicator = Instance.new("Frame")
-        activeIndicator.Name = "ActiveIndicator"
-        activeIndicator.Size = UDim2.new(0, 4, 1, 0)
-        activeIndicator.Position = UDim2.new(0, -5, 0, 0)
-        activeIndicator.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-        activeIndicator.Visible = false
-        activeIndicator.Parent = button
+        local button = Instance.new("ImageButton")
+        button.Name = name .. "Button"
+        button.Size = buttonConfig.size
+        button.Position = position
+        button.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        button.BackgroundTransparency = 0.5
+        button.Image = iconId
+        button.Parent = buttonContainer
         
-        -- Round the indicator corners
-        local indicatorCorner = Instance.new("UICorner")
-        indicatorCorner.CornerRadius = UDim.new(0, 2)
-        indicatorCorner.Parent = activeIndicator
+        -- Add debug info to trace image loading issues
+        button:GetPropertyChangedSignal("Image"):Connect(function()
+            if button.Image == "" then
+                warn("[MenuButtonsHandler] Image property reset to empty for button: " .. name)
+                button.Image = iconId -- Try to set it again
+            end
+        end)
+        
+        -- Add UI corner for rounded edges
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = buttonConfig.cornerRadius
+        corner.Parent = button
+        
+        -- Add hover effect
+        addButtonHoverEffect(button)
+        
+        -- Connect click handler
+        button.MouseButton1Click:Connect(onClick)
+        
+        -- Add hover tooltip if configured
+        if buttonConfig.showTooltips then
+            createTooltip(button, name)
+        end
+        
+        -- Add active indicator if configured
+        if buttonConfig.activeIndicator then
+            createActiveIndicator(button)
+        end
+        
+        return button
     end
-    
-    -- Create tooltip if enabled
-    local tooltip = nil
-    if buttonConfig.showTooltips then
-        tooltip = Instance.new("TextLabel")
-        tooltip.Name = "Tooltip"
-        tooltip.Size = UDim2.new(0, 0, 0, 30) -- Will be resized based on text
-        tooltip.Position = UDim2.new(0, -10, 0.5, 0)
-        tooltip.AnchorPoint = Vector2.new(1, 0.5)
-        tooltip.Text = name
-        tooltip.TextColor3 = Color3.fromRGB(255, 255, 255)
-        tooltip.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        tooltip.BackgroundTransparency = 0.2
-        tooltip.TextSize = 14
-        tooltip.Font = Enum.Font.GothamSemibold
-        tooltip.TextXAlignment = Enum.TextXAlignment.Center
-        tooltip.Visible = false
-        tooltip.AutomaticSize = Enum.AutomaticSize.X
-        tooltip.Parent = button
-        
-        -- Add padding for text
-        local padding = Instance.new("UIPadding")
-        padding.PaddingLeft = UDim.new(0, 10)
-        padding.PaddingRight = UDim.new(0, 10)
-        padding.Parent = tooltip
-        
-        -- Round the tooltip corners
-        local tooltipCorner = Instance.new("UICorner")
-        tooltipCorner.CornerRadius = UDim.new(0, 4)
-        tooltipCorner.Parent = tooltip
-    end
-    
-    -- Add hover effects
-    local originalSize = button.Size
-    button.MouseEnter:Connect(function()
-        TweenService:Create(
-            button,
-            TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {
-                Size = UDim2.new(
-                    originalSize.X.Scale, 
-                    originalSize.X.Offset * buttonConfig.hoverScale, 
-                    originalSize.Y.Scale, 
-                    originalSize.Y.Offset * buttonConfig.hoverScale
-                ),
-                BackgroundTransparency = 0.3
-            }
-        ):Play()
-        
-        -- Show tooltip on hover if enabled
-        if tooltip then
-            tooltip.Visible = true
-        end
-    end)
-    
-    button.MouseLeave:Connect(function()
-        TweenService:Create(
-            button,
-            TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {
-                Size = originalSize,
-                BackgroundTransparency = 0.5
-            }
-        ):Play()
-        
-        -- Hide tooltip on mouse leave
-        if tooltip then
-            tooltip.Visible = false
-        end
-    end)
-    
-    -- Connect the click event
-    button.MouseButton1Click:Connect(onClick)
-    
-    return button, activeIndicator
 end
 
 -- Create all menu buttons and position them

@@ -31,20 +31,17 @@ local CONFIG = {
     }
 }
 
--- Get the ModelPositioningHelper module
+-- Import the ModelPositioningHelper if available
 local ModelPositioningHelper
-local function getModelPositioningHelper()
-    if ModelPositioningHelper then
-        return ModelPositioningHelper
-    end
-    
-    local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
-    if sharedFolder and sharedFolder:FindFirstChild("ModelPositioningHelper") then
-        ModelPositioningHelper = require(sharedFolder.ModelPositioningHelper)
-        return ModelPositioningHelper
-    end
-    
-    return nil
+local success, result = pcall(function()
+    return require(game.ReplicatedStorage.shared.ModelPositioningHelper)
+end)
+
+if success then
+    ModelPositioningHelper = result
+    print("[BuyTilePositionFixer] Loaded ModelPositioningHelper successfully")
+else
+    warn("[BuyTilePositionFixer] Could not load ModelPositioningHelper: " .. tostring(result))
 end
 
 -- Module definition
@@ -233,9 +230,20 @@ function BuyTilePositionFixer.findBuyTileSystem()
     return nil
 end
 
--- Apply fixes to a model's position at a tile
-function BuyTilePositionFixer.fixModelPosition(model, tileObj)
-    if not model or not tileObj then
+-- Fix the position of a single model relative to its tile
+function BuyTilePositionFixer.fixModelPosition(model, tile)
+    -- Use ModelPositioningHelper if available (preferred method)
+    if ModelPositioningHelper then
+        local success, message = ModelPositioningHelper.positionAtTile(model, tile)
+        if success then
+            return true
+        end
+        
+        -- If failed, log and fall back to original method
+        warn("[BuyTilePositionFixer] ModelPositioningHelper failed: " .. message)
+    end
+    
+    if not model or not tile then
         debugPrint("Invalid model or tile object provided")
         return
     end
@@ -311,10 +319,10 @@ function BuyTilePositionFixer.fixModelPosition(model, tileObj)
     end
     
     -- Get tile position
-    local tilePosition = tileObj:GetPivot().Position
+    local tilePosition = tile:GetPivot().Position
     
     -- Determine if there's a BuyTilePart we should reference
-    local buyTilePart = tileObj:FindFirstChild("BuyTilePart")
+    local buyTilePart = tile:FindFirstChild("BuyTilePart")
     if buyTilePart and buyTilePart:IsA("BasePart") then
         tilePosition = buyTilePart.Position
     end
