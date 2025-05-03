@@ -307,50 +307,62 @@ function BuyTilePositionFixer.fixModelPosition(model, tileObj)
     local rotation = CFrame.Angles(0, math.rad(rotationY), 0)
     local position = tilePosition + Vector3.new(offsetX, offsetY, offsetZ)
     local finalCFrame = CFrame.new(position) * rotation
-    
-    -- Store original position if not already stored
+      -- Store original position if not already stored
     if not model:GetAttribute("OriginalPosition") then
         model:SetAttribute("OriginalPosition", tostring(position))
     end
     
     -- Apply position based on model type
-    if model.PrimaryPart then
-        model:SetPrimaryPartCFrame(finalCFrame)
-    else
-        -- If no primary part, try to find one
-        local hasParts = false
-        
-        for _, part in pairs(model:GetDescendants()) do
-            if part:IsA("BasePart") then
-                hasParts = true
-                break
-            end
-        end
-        
-        if hasParts then
-            -- Find best part to use as primary
-            local bestPart = nil
-            local bestVolume = 0
+    if model:IsA("Model") then
+        if model.PrimaryPart then
+            -- Use SetPrimaryPartCFrame to properly position based on primary part
+            model:SetPrimaryPartCFrame(finalCFrame)
+            debugPrint("Set primary part CFrame for model:", model:GetFullName())
+        else
+            -- If no primary part, try to find one
+            local hasParts = false
             
             for _, part in pairs(model:GetDescendants()) do
                 if part:IsA("BasePart") then
-                    local volume = part.Size.X * part.Size.Y * part.Size.Z
-                    if volume > bestVolume then
-                        bestPart = part
-                        bestVolume = volume
-                    end
+                    hasParts = true
+                    break
                 end
             end
             
-            if bestPart then
-                model.PrimaryPart = bestPart
-                model:SetPrimaryPartCFrame(finalCFrame)
-                debugPrint("Set primary part for model:", model:GetFullName())
+            if hasParts then
+                -- Find best part to use as primary
+                local bestPart = nil
+                local bestVolume = 0
+                
+                for _, part in pairs(model:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        local volume = part.Size.X * part.Size.Y * part.Size.Z
+                        if volume > bestVolume then
+                            bestPart = part
+                            bestVolume = volume
+                        end
+                    end
+                end
+                
+                if bestPart then
+                    -- Set the primary part and position using it
+                    model.PrimaryPart = bestPart
+                    model:SetPrimaryPartCFrame(finalCFrame)
+                    debugPrint("Set primary part for model:", model:GetFullName())
+                else
+                    debugPrint("Cannot find a suitable primary part for:", model:GetFullName())
+                end
             else
-                debugPrint("Cannot find a suitable primary part for:", model:GetFullName())
+                debugPrint("Model has no parts:", model:GetFullName())
             end
+        end
+    else
+        -- For non-model instances (like individual parts)
+        if model:IsA("BasePart") then
+            model.CFrame = finalCFrame
+            debugPrint("Set CFrame for part:", model:GetFullName())
         else
-            debugPrint("Model has no parts:", model:GetFullName())
+            debugPrint("Unsupported object type for positioning:", model:GetFullName())
         end
     end
     

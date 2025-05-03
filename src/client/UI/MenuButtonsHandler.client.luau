@@ -208,16 +208,16 @@ end
 
 -- Asset IDs from UIElements.md
 local iconAssetIds = {
-    Alliance = "rbxassetid://128203268160479",
-    CommunityGoals = "rbxassetid://97149848004338",
-    Challenges = "rbxassetid://120333480860384",
-    GuestPass = "rbxassetid://110319251186892",
-    Tutorial = "rbxassetid://98150393120956",
-    Settings = "rbxassetid://72876573893033",
-    Rebirth = "rbxassetid://129409029383961",
-    StaffManagement = "rbxassetid://89834599810886",
-    Upgrades = "rbxassetid://132635366103906",
-    Achievements = "rbxassetid://79337595530955"
+    Alliance = "rbxassetid://12820326816",
+    CommunityGoals = "rbxassetid://9714984800",
+    Challenges = "rbxassetid://12033348086",
+    GuestPass = "rbxassetid://11031925118",
+    Tutorial = "rbxassetid://9815039312",
+    Settings = "rbxassetid://7287657389",
+    Rebirth = "rbxassetid://12940902938",
+    StaffManagement = "rbxassetid://8983459981",
+    Upgrades = "rbxassetid://13263536610",
+    Achievements = "rbxassetid://7933759553"
 }
 
 -- Button configuration
@@ -472,16 +472,47 @@ local function getUIModule(moduleName)
     }
 end
 
+-- Function to validate asset IDs
+local function validateAssetId(assetId)
+    if not assetId:match("^rbxassetid://[0-9]+$") then
+        warn("[MenuButtonsHandler] Asset ID format invalid: " .. assetId)
+        return false
+    end
+    
+    -- Basic length validation for asset IDs (they shouldn't be too long)
+    local id = assetId:match("^rbxassetid://([0-9]+)$")
+    if id and #id > 15 then
+        warn("[MenuButtonsHandler] Asset ID too long, likely invalid: " .. assetId)
+        return false
+    end
+    
+    return true
+end
+
 -- Function to create a menu button
 local function createMenuButton(name, iconId, position, onClick)
+    -- Validate the icon asset ID
+    if not validateAssetId(iconId) then
+        -- Fallback to a default icon if the original one is invalid
+        warn("[MenuButtonsHandler] Using fallback icon for " .. name)
+        iconId = "rbxassetid://7287657389" -- Using Settings icon as fallback
+    end
+
     local button = Instance.new("ImageButton")
-    button.Name = name .. "Button"
-    button.Size = buttonConfig.size
+    button.Name = name .. "Button"    button.Size = buttonConfig.size
     button.Position = position
     button.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     button.BackgroundTransparency = 0.5
     button.Image = iconId
     button.Parent = buttonContainer
+    
+    -- Add debug info to trace image loading issues
+    button:GetPropertyChangedSignal("Image"):Connect(function()
+        if button.Image == "" then
+            warn("[MenuButtonsHandler] Image property reset to empty for button: " .. name)
+            button.Image = iconId -- Try to set it again
+        end
+    end)
     
     -- Add UI corner for rounded edges
     local uiCorner = Instance.new("UICorner")
@@ -838,6 +869,50 @@ end
 
 -- Create the menu toggle button
 local menuToggle = createMenuToggle(menuButtons, closeAllMenus)
+
+-- Create diagnostics function for UI elements
+local function runUIDiagnostics()
+    print("[MenuButtonsHandler] Running UI diagnostics...")
+    
+    -- Check if button container exists and is properly parented
+    if not buttonContainer then
+        warn("[MenuButtonsHandler] Button container not initialized")
+        return
+    end
+    
+    if not buttonContainer.Parent then
+        warn("[MenuButtonsHandler] Button container has no parent")
+        return
+    end
+    
+    -- Check all buttons
+    local buttonCount = 0
+    for _, child in pairs(buttonContainer:GetChildren()) do
+        if child:IsA("ImageButton") then
+            buttonCount = buttonCount + 1
+            
+            -- Check button properties
+            print(string.format("[MenuButtonsHandler] Button %s: Image=%s, Visible=%s", 
+                child.Name, 
+                child.Image ~= "" and "Set" or "Empty", 
+                tostring(child.Visible)))
+            
+            -- If image is empty, try to diagnose why
+            if child.Image == "" then
+                warn(string.format("[MenuButtonsHandler] Button %s has empty Image property", child.Name))
+            end
+        end
+    end
+    
+    print(string.format("[MenuButtonsHandler] Found %d buttons in container", buttonCount))
+    
+    -- Return diagnostic info
+    return {
+        buttonCount = buttonCount,
+        containerVisible = buttonContainer.Visible,
+        guiParent = menuButtonsGui and menuButtonsGui.Parent and menuButtonsGui.Parent:GetFullName() or "None"
+    }
+end
 
 -- Log successful initialization
 print("Menu buttons initialized successfully!")
