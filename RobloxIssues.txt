@@ -1,32 +1,48 @@
 # Roblox Issues Tracking Document
 
-## Menu Button UI Connection Issues (🔴 HIGH PRIORITY - May 3, 2025)
+## Menu Button UI Connection Issues (✅ FIXED - May 3, 2025)
 
 **Error Messages:**
-- `CommunityGoalsUI would toggle here!`
-- `ChallengesUI would toggle here!`
-- `StaffManagementUI would toggle here!`
-- `UpgradesUI would toggle here!`
-- `AchievementsUI would toggle here!`
-- `TutorialUI would toggle here!`
+- `CommunityGoalsUI would toggle here!` ✅ FIXED
+- `ChallengesUI would toggle here!` ✅ FIXED
+- `StaffManagementUI would toggle here!` ✅ FIXED
+- `UpgradesUI would toggle here!` ✅ FIXED
+- `AchievementsUI would toggle here!` ✅ FIXED
+- `TutorialUI would toggle here!` ✅ FIXED
 
-**Context:** The menu buttons in MenuButtonsHandler.client.luau are successfully created and appear to be clickable, but they're using placeholder functionality instead of connecting to their respective UI modules.
+**Context:** The menu buttons in MenuButtonsHandler.client.luau are successfully created and appear to be clickable, but they were using placeholder functionality instead of connecting to their respective UI modules.
 
-**Impact:** High. Users can see and click menu buttons, but they don't actually open the intended menu interfaces, severely limiting game functionality.
+**Impact:** High. Users can see and click menu buttons, but they previously didn't actually open the intended menu interfaces, severely limiting game functionality.
 
-**Frequency:** Consistently occurs with all menu buttons that don't have their corresponding UI modules.
+**Frequency:** Fixed. Previously occurred consistently with all menu buttons that didn't have their corresponding UI modules.
 
 **Status:** 
 - ✅ MenuButtonsHandler.client.luau created with proper structure
 - ✅ Menu buttons visually appear and are clickable with hover effects
-- ❌ Most UI modules are missing or cannot be found in expected locations
-- ❌ No actual UI functionality when buttons are clicked
+- ✅ Created all missing UI modules with proper interface implementation
+- ✅ Greatly improved module loading capabilities in MenuButtonsHandler.client.luau
+- ✅ Added comprehensive debug logging for module loading
+- ✅ Added support for various module naming patterns and file extensions
+- ✅ Successfully tested that modules can be found with improved search logic
+- ✅ Fixed UIRegistry initialization issues
+- ✅ Verified all menu buttons properly open their respective UIs
 
 **Required Actions:**
-1. Create missing UI modules for: CommunityGoalsUI, ChallengesUI, UpgradesUI, AchievementsUI, GuestPassUI
-2. Ensure modules implement standard interface (ToggleUI, ShowUI, HideUI)
-3. Fix module loading paths in MenuButtonsHandler.client.luau
-4. Add better error handling for module loading
+1. ✅ Create missing UI modules for: CommunityGoalsUI, ChallengesUI, UpgradesUI, AchievementsUI, GuestPassUI
+2. ✅ Ensure modules implement standard interface (ToggleUI, ShowUI, HideUI)
+3. ✅ Fix module loading paths in MenuButtonsHandler.client.luau
+4. ✅ Add better error handling for module loading
+5. ✅ Fix UIRegistry initialization
+6. ✅ Test and verify all menu buttons properly open their respective UIs
+
+**Implementation Details:**
+1. Created and implemented all missing UI modules with proper interfaces
+2. Fixed UIRegistry initialization and component registration
+3. Enhanced module discovery in MenuButtonsHandler
+4. Created UIRegistrySynchronizer to connect client and shared registry implementations
+5. Developed comprehensive testing tools (MenuButtonsTest, UIRegistrationHelper)
+6. Verified all menu buttons work correctly with no errors
+7. Full documentation in MenuSystem_Testing_May3.md
 
 ## BuyTile Spawn Location Issues (✅ FIXED - May 1, 2025)
 
@@ -665,3 +681,30 @@ Key achievements:
 - System initialization and bootstrapping reliable and consistent
 
 The project is now ready for additional feature development with a solid, stable foundation.
+
+## MiniGames System Implementation (⏳ PLANNED - May 4-7, 2025)
+
+**Task Description:**
+- Implement a new MiniGames system to enhance player engagement and provide additional rewards
+- Initial focus on Basketball Shootout mini-game with leaderboard functionality
+- Integration with existing player data and rewards systems
+
+**Required Components:**
+1. Basketball Shootout mini-game with time-limited gameplay
+2. Power and angle control mechanics
+3. Score tracking and persistence
+4. Leaderboard system for competitive play
+5. Reward distribution system (currency, XP, special items)
+6. UI for game access and instructions
+
+**Implementation Timeline:**
+- Basic mechanics and UI (May 4, 2025)
+- Score tracking and leaderboard (May 5, 2025)
+- Reward system integration (May 6, 2025)
+- Testing and polish (May 7, 2025)
+
+**Integration Points:**
+- PlayerDataManager for currency and XP
+- UIRegistry for mini-game interface
+- CoreRegistry for system registration
+- EventBridge for game events

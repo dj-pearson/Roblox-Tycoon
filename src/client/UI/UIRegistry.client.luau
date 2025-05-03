@@ -40,7 +40,7 @@ local function log(message)
     print("[UIRegistry]", message)
 end
 
--- Register a component
+-- Register a component with enhanced validation and compatibility
 function UIRegistry.registerComponent(id, component)
     if not id or type(id) ~= "string" then
         warn("[UIRegistry] Invalid component ID")
@@ -52,19 +52,65 @@ function UIRegistry.registerComponent(id, component)
         return false
     end
     
-    -- Store component
-    UIRegistry.components[id] = component
-    log("Registered UI component: " .. id)
+    -- Check if this is a UI module with standard interface
+    local isUIModule = false
+    if typeof(component) == "table" then
+        local hasToggleUI = typeof(component.ToggleUI) == "function"
+        local hasShowUI = typeof(component.ShowUI) == "function" 
+        local hasHideUI = typeof(component.HideUI) == "function"
+        
+        if hasToggleUI or (hasShowUI and hasHideUI) then
+            isUIModule = true
+            log("Detected UI module interface for component: " .. id, "Success")
+        end
+    end
+    
+    -- Store component with metadata
+    UIRegistry.components[id] = {
+        instance = component,
+        isUIModule = isUIModule,
+        registeredAt = os.time()
+    }
+    
+    -- For compatibility with shared UIRegistry
+    -- Also register using alternative naming convention
+    local altId = id:gsub("UI$", "")  -- Remove UI suffix if present
+    if altId ~= id then
+        UIRegistry.components[altId] = UIRegistry.components[id]
+        log("Also registered under alternative ID: " .. altId)
+    end
+    
+    log("Registered UI component: " .. id, "Success")
     return true
 end
 
--- Get a registered component
+-- Get a registered component with enhanced lookup
 function UIRegistry.getComponent(id)
-    if not id or not UIRegistry.components[id] then
-        return nil
+    -- Direct lookup
+    if UIRegistry.components[id] then
+        return UIRegistry.components[id].instance or UIRegistry.components[id]
     end
     
-    return UIRegistry.components[id]
+    -- Try alternatives if not found
+    local alternatives = {
+        id .. "UI",              -- Add UI suffix
+        id:gsub("UI$", ""),      -- Remove UI suffix
+        id:gsub("Menu$", ""),    -- Remove Menu suffix
+        id:gsub("Menu$", "UI"),  -- Replace Menu with UI
+        id:gsub("^UI", ""),      -- Remove UI prefix
+        "UI" .. id               -- Add UI prefix
+    }
+    
+    for _, altId in ipairs(alternatives) do
+        if UIRegistry.components[altId] then
+            log("Found component " .. id .. " under alternative ID: " .. altId)
+            return UIRegistry.components[altId].instance or UIRegistry.components[altId]
+        end
+    end
+    
+    -- Not found after all attempts
+    log("Component not found: " .. id, "Warning")
+    return nil
 end
 
 -- Initialize the registry

@@ -22,13 +22,23 @@ Each module includes:
 - Debug logging for UI state changes
 - Proper initialization and parent-child relationships
 
-### 3. UI Module Consistency
-All modules follow a consistent pattern:
-- Safe module loading with error handling
-- UI creation using the getOrCreateGui() pattern
-- Proper initialization on first load
-- Consistent naming conventions
-- Clear visual hierarchy and styling
+### 3. Enhanced MenuButtonsHandler Module
+Significantly improved the MenuButtonsHandler.client.luau file:
+- ✅ Expanded module search capabilities to find UI modules in various locations
+- ✅ Added support for different file naming conventions (with/without .client suffix)
+- ✅ Enhanced error handling with detailed debug logging
+- ✅ Fixed duplicate closeAllMenus function that was causing errors
+- ✅ Added verification of UI module interfaces before use
+- ✅ Improved search paths with multiple fallback options
+- ✅ Added ability to check UI folder, client/UI folder, and shared folder
+
+### 4. UI Module Discovery
+Added support for multiple module naming patterns:
+- ✅ Standard naming: ButtonNameUI (e.g., SettingsMenuUI)
+- ✅ Without UI suffix: ButtonName (e.g., Settings)
+- ✅ Menu suffix: ButtonNameMenu (e.g., SettingsMenu)
+- ✅ UI prefix: UIButtonName (e.g., UISettings)
+- ✅ File extensions: both .lua and .luau
 
 ## Testing Instructions
 
@@ -43,18 +53,18 @@ All modules follow a consistent pattern:
 
 ## Next Steps
 
-1. Add actual functionality to the UI modules as needed
-2. Fix the CoreRegistry system to ensure all core systems are properly registered
-3. Address the UIRegistry initialization issues
+1. Test all menu buttons to verify they find and load their UI modules properly
+2. Address UIRegistry initialization issues
+3. Fix the CoreRegistry system to ensure all core systems are properly registered
 4. Improve client-side initialization sequence
-5. Create additional UI modules for any remaining menu buttons
+5. Add actual functionality to the UI modules as needed
 
 ## Known Issues
 
 1. CoreRegistry is still in a degraded state
 2. Tycoon structure has missing folders and values
-3. UIRegistry initialization issues still need to be addressed
+3. UIRegistry initialization issues need to be addressed
 4. Sound system initialization is failing
 5. Actual functionality behind the UIs needs to be implemented
 
-This implementation addresses the immediate issue of menu buttons not functioning properly, but the underlying system issues still need to be resolved according to the action plan.
+This implementation addresses the menu button connection issues and significantly improves the MenuButtonsHandler's ability to find and load UI modules, but some underlying system issues still need to be resolved.

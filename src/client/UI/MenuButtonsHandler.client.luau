@@ -34,13 +34,55 @@ local function requireSafely(moduleScript)
     return nil
 end
 
--- Try to load UI modules
-local UIStyle = requireSafely(sharedFolder and sharedFolder:FindFirstChild("UIStyle"))
-local IconSet = requireSafely(sharedFolder and sharedFolder:FindFirstChild("IconSet"))
-local ButtonFactory = requireSafely(sharedFolder and sharedFolder:FindFirstChild("ButtonFactory"))
+-- Try to find UIRegistry
+local UIRegistry = nil
+
+-- Attempt to load UIRegistry
+local function loadUIRegistry()
+    print("[MenuButtonsHandler] Attempting to load UIRegistry...")
+    
+    -- Search locations for UIRegistry
+    local searchLocations = {
+        -- Client UI folder
+        script.Parent and script.Parent:FindFirstChild("UIRegistry"),
+        script.Parent and script.Parent:FindFirstChild("UIRegistry.client"),
+        
+        -- Client Core folder
+        player.PlayerScripts:FindFirstChild("client") and 
+        player.PlayerScripts:FindFirstChild("client"):FindFirstChild("Core") and 
+        player.PlayerScripts:FindFirstChild("client"):FindFirstChild("Core"):FindFirstChild("UIRegistry"),
+        
+        -- Shared folder
+        ReplicatedStorage:FindFirstChild("shared") and 
+        ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("UIRegistry")
+    }
+    
+    for _, location in ipairs(searchLocations) do
+        if location and location:IsA("ModuleScript") then
+            local success, result = pcall(function()
+                return require(location)
+            end)
+            
+            if success and result then
+                print("[MenuButtonsHandler] Found UIRegistry at: " .. location:GetFullName())
+                return result
+            end
+        end
+    end
+    
+    return nil
+end
+
+UIRegistry = loadUIRegistry()
+if UIRegistry then
+    print("[MenuButtonsHandler] UIRegistry loaded successfully")
+else
+    warn("[MenuButtonsHandler] UIRegistry not found, some menu features may not work correctly")
+end
 
 -- UI module paths - will try to require these when needed
 local uiModulePaths = {
+    -- Standard path formats
     SettingsMenuUI = {"Client", "UI", "SettingsMenuUI"},
     MainMenuUI = {"Client", "UI", "MainMenuUI"},
     AllianceUI = {"Client", "UI", "AllianceUI"},
@@ -51,7 +93,33 @@ local uiModulePaths = {
     RebirthUI = {"Client", "UI", "RebirthUI"},
     StaffManagementUI = {"Client", "UI", "StaffManagementUI"},
     UpgradesUI = {"Client", "UI", "UpgradesUI"},
-    AchievementsUI = {"Client", "UI", "AchievementsUI"}
+    AchievementsUI = {"Client", "UI", "AchievementsUI"},
+
+    -- Direct client/UI path
+    SettingsMenuUI_client = {"client", "UI", "SettingsMenuUI"},
+    MainMenuUI_client = {"client", "UI", "MainMenuUI"},
+    AllianceUI_client = {"client", "UI", "AllianceUI"},
+    CommunityGoalsUI_client = {"client", "UI", "CommunityGoalsUI"},
+    ChallengesUI_client = {"client", "UI", "ChallengesUI"},
+    GuestPassUI_client = {"client", "UI", "GuestPassUI"},
+    TutorialUI_client = {"client", "UI", "TutorialUI"},
+    RebirthUI_client = {"client", "UI", "RebirthUI"},
+    StaffManagementUI_client = {"client", "UI", "StaffManagementUI"},
+    UpgradesUI_client = {"client", "UI", "UpgradesUI"},
+    AchievementsUI_client = {"client", "UI", "AchievementsUI"},
+    
+    -- Direct UI path (no client folder)
+    SettingsMenuUI_direct = {"UI", "SettingsMenuUI"},
+    MainMenuUI_direct = {"UI", "MainMenuUI"},
+    AllianceUI_direct = {"UI", "AllianceUI"},
+    CommunityGoalsUI_direct = {"UI", "CommunityGoalsUI"},
+    ChallengesUI_direct = {"UI", "ChallengesUI"},
+    GuestPassUI_direct = {"UI", "GuestPassUI"},
+    TutorialUI_direct = {"UI", "TutorialUI"},
+    RebirthUI_direct = {"UI", "RebirthUI"},
+    StaffManagementUI_direct = {"UI", "StaffManagementUI"},
+    UpgradesUI_direct = {"UI", "UpgradesUI"},
+    AchievementsUI_direct = {"UI", "AchievementsUI"}
 }
 
 -- Asset IDs from UIElements.md
@@ -101,43 +169,212 @@ buttonContainer.Parent = menuButtonsGui
 
 -- Function to try to get a UI module
 local function getUIModule(moduleName)
-    -- First try player scripts
-    local pathComponents = uiModulePaths[moduleName]
-    if not pathComponents then
-        warn("No path defined for module: " .. moduleName)
-        return nil
-    end
+    print("[MenuButtonsHandler] Looking for UI module: " .. moduleName)
     
-    -- Try various locations
-    local locations = {
-        player.PlayerScripts,
-        ReplicatedStorage
-    }
-    
-    for _, baseLocation in ipairs(locations) do
-        local currentLocation = baseLocation
-        for _, component in ipairs(pathComponents) do
-            if currentLocation then
-                currentLocation = currentLocation:FindFirstChild(component)
-            else
-                break
-            end
+    -- First check UIRegistry if available
+    if UIRegistry then
+        local registryModule = UIRegistry.getComponent and UIRegistry.getComponent(moduleName)
+        if registryModule then
+            print("[MenuButtonsHandler] Found " .. moduleName .. " in UIRegistry")
+            return registryModule
         end
         
-        if currentLocation and currentLocation:IsA("ModuleScript") then
+        -- Try alternative name formats through UIRegistry
+        local altNames = {
+            moduleName:gsub("UI$", ""),       -- Without UI suffix
+            moduleName .. "UI",               -- With UI suffix
+            moduleName:gsub("Menu$", ""),     -- Without Menu suffix
+            moduleName:gsub("Menu$", "UI"),   -- Replace Menu with UI
+            "UI" .. moduleName                -- With UI prefix
+        }
+        
+        for _, altName in ipairs(altNames) do
+            if altName ~= moduleName then
+                local altModule = UIRegistry.getComponent and UIRegistry.getComponent(altName)
+                if altModule then
+                    print("[MenuButtonsHandler] Found " .. moduleName .. " in UIRegistry as " .. altName)
+                    return altModule
+                end
+            end
+        end
+    end
+    
+    -- First try to find the module directly in the UI folder
+    local directModule = script.Parent:FindFirstChild(moduleName)
+    if directModule and directModule:IsA("ModuleScript") then
+        local success, module = pcall(function()
+            return require(directModule)
+        end)
+        
+        if success then
+            print("[MenuButtonsHandler] Found " .. moduleName .. " directly in UI folder")
+            -- Register with UIRegistry if possible
+            if UIRegistry and UIRegistry.registerComponent then
+                UIRegistry.registerComponent(moduleName, module)
+                print("[MenuButtonsHandler] Registered " .. moduleName .. " with UIRegistry")
+            end
+            return module
+        else
+            warn("[MenuButtonsHandler] Failed to require " .. moduleName .. " from UI folder: " .. tostring(module))
+        end
+    end
+    
+    -- Try to find the module with .client suffix added (.client.luau or .client.lua)
+    local suffixNames = {
+        moduleName .. ".client",    -- For .client.luau
+        moduleName:gsub("UI$", "")  -- Try without the UI suffix
+    }
+    
+    for _, suffixName in ipairs(suffixNames) do
+        local suffixModule = script.Parent:FindFirstChild(suffixName)
+        if suffixModule and suffixModule:IsA("ModuleScript") then
             local success, module = pcall(function()
-                return require(currentLocation)
+                return require(suffixModule)
             end)
             
             if success then
+                print("[MenuButtonsHandler] Found " .. moduleName .. " as " .. suffixName .. " in UI folder")
                 return module
             else
-                warn("Failed to require " .. moduleName .. ": " .. tostring(module))
+                warn("[MenuButtonsHandler] Failed to require " .. suffixName .. ": " .. tostring(module))
             end
         end
     end
     
-    -- Create a placeholder module
+    -- Try path components if specified
+    local pathComponents = uiModulePaths[moduleName]
+    if not pathComponents then
+        warn("[MenuButtonsHandler] No path defined for module: " .. moduleName)
+        return nil
+    end
+    
+    -- Try various locations with path components
+    local locations = {
+        player.PlayerScripts,
+        player.PlayerScripts:FindFirstChild("client"),
+        player.PlayerScripts:FindFirstChild("Client"),
+        ReplicatedStorage,
+        ReplicatedStorage:FindFirstChild("client"),
+        ReplicatedStorage:FindFirstChild("Client")
+    }
+    
+    for _, baseLocation in ipairs(locations) do
+        if baseLocation then
+            local currentLocation = baseLocation
+            local locationPath = baseLocation:GetFullName()
+            
+            for _, component in ipairs(pathComponents) do
+                if currentLocation then
+                    currentLocation = currentLocation:FindFirstChild(component)
+                    if currentLocation then
+                        locationPath = locationPath .. "/" .. component
+                    else
+                        break
+                    end
+                else
+                    break
+                end
+            end
+            
+            if currentLocation and currentLocation:IsA("ModuleScript") then
+                local success, module = pcall(function()
+                    return require(currentLocation)
+                end)
+                
+                if success then
+                    print("[MenuButtonsHandler] Found " .. moduleName .. " in " .. locationPath)
+                    return module
+                else
+                    warn("[MenuButtonsHandler] Failed to require " .. moduleName .. " from " .. locationPath .. ": " .. tostring(module))
+                end
+            end
+        end
+    end    -- Also check alternative module name formats
+    local altModuleNames = {
+        moduleName .. "_client",
+        moduleName .. "_direct"
+    }
+    
+    for _, altName in ipairs(altModuleNames) do
+        local altPathComponents = uiModulePaths[altName]
+        if altPathComponents then
+            for _, baseLocation in ipairs(locations) do
+                if baseLocation then
+                    local currentLocation = baseLocation
+                    local locationPath = baseLocation:GetFullName()
+                    
+                    for _, component in ipairs(altPathComponents) do
+                        if currentLocation then
+                            currentLocation = currentLocation:FindFirstChild(component)
+                            if currentLocation then
+                                locationPath = locationPath .. "/" .. component
+                            else
+                                break
+                            end
+                        else
+                            break
+                        end
+                    end
+                    
+                    if currentLocation and currentLocation:IsA("ModuleScript") then
+                        local success, module = pcall(function()
+                            return require(currentLocation)
+                        end)
+                        
+                        if success then
+                            print("[MenuButtonsHandler] Found " .. moduleName .. " using alternative path " .. altName .. " at " .. locationPath)
+                            return module
+                        else
+                            warn("[MenuButtonsHandler] Failed to require " .. moduleName .. " from " .. locationPath .. ": " .. tostring(module))
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Extract button name from module name (remove "UI" suffix)
+    local baseName = moduleName:gsub("UI$", "")
+    
+    -- Try to find the module with just its name (without UI suffix)
+    local bareNameComponents = {
+        baseName, -- Just the button name
+        baseName .. "Menu", -- e.g., "SettingsMenu" instead of "SettingsMenuUI"
+        "UI" .. baseName -- e.g., "UISettings" instead of "SettingsMenuUI"
+    }
+    
+    for _, bareName in ipairs(bareNameComponents) do
+        -- Try in script.Parent folder
+        local bareModule = script.Parent:FindFirstChild(bareName)
+        if bareModule and bareModule:IsA("ModuleScript") then
+            local success, module = pcall(function()
+                return require(bareModule)
+            end)
+            
+            if success then
+                print("[MenuButtonsHandler] Found " .. moduleName .. " as " .. bareName .. " in UI folder")
+                return module
+            end
+        end
+        
+        -- Also try in shared folder
+        if sharedFolder then
+            local sharedModule = sharedFolder:FindFirstChild(bareName)
+            if sharedModule and sharedModule:IsA("ModuleScript") then
+                local success, module = pcall(function()
+                    return require(sharedModule)
+                end)
+                
+                if success then
+                    print("[MenuButtonsHandler] Found " .. moduleName .. " as " .. bareName .. " in shared folder")
+                    return module
+                end
+            end
+        end
+    end
+    
+    -- Create a placeholder module with a clear warning
+    warn("[MenuButtonsHandler] Could not find " .. moduleName .. " in any location, using placeholder. UI will not function properly.")
     return {
         ToggleUI = function()
             print(moduleName .. " would toggle here!")
@@ -308,11 +545,26 @@ local function createAllMenuButtons(closeAllMenus)
                 0, col * buttonSpacing,
                 0, row * buttonSpacing
             )
-        end
-        
-        -- Try to get the UI module for this button
+        end        -- Try to get the UI module for this button
         local uiModuleName = buttonName .. "UI"
         local uiModule = getUIModule(uiModuleName)
+        
+        -- Print debug info about found UI module
+        if uiModule then
+            local hasToggleUI = typeof(uiModule.ToggleUI) == "function"
+            local hasShowUI = typeof(uiModule.ShowUI) == "function"
+            local hasHideUI = typeof(uiModule.HideUI) == "function"
+            print("[MenuButtonsHandler] Module " .. uiModuleName .. " loaded. Has ToggleUI: " .. tostring(hasToggleUI) .. 
+                  ", Has ShowUI: " .. tostring(hasShowUI) .. ", Has HideUI: " .. tostring(hasHideUI))
+            
+            -- Register with UIRegistry if not already registered
+            if UIRegistry and UIRegistry.registerComponent and not UIRegistry.getComponent(uiModuleName) then
+                UIRegistry.registerComponent(uiModuleName, uiModule)
+                print("[MenuButtonsHandler] Registered " .. uiModuleName .. " with UIRegistry during button creation")
+            end
+        else
+            warn("[MenuButtonsHandler] Failed to load UI module: " .. uiModuleName)
+        end
         
         -- Create the button
         local button, activeIndicator = createMenuButton(
@@ -398,29 +650,8 @@ end
 -- Initialize all menu buttons
 
 -- Function to close all menus except the one specified
-local function closeAllMenus(exceptButtonName)
-    for name, buttonData in pairs(menuButtons) do
-        if buttonData.isOpen and name ~= exceptButtonName then
-            -- Try to hide the UI if possible
-            local uiModule = buttonData.uiModule
-            if uiModule then
-                if typeof(uiModule.HideUI) == "function" then
-                    uiModule:HideUI()
-                elseif typeof(uiModule.Hide) == "function" then
-                    uiModule:Hide()
-                end
-            end
-            buttonData.isOpen = false
-            if buttonData.activeIndicator then
-                buttonData.activeIndicator.Visible = false
-            end
-        end
-    end
-end
-
 local menuButtons -- forward declaration
 
--- Function to close all menus except the one specified
 local function closeAllMenus(exceptButtonName)
     for name, buttonData in pairs(menuButtons) do
         if buttonData.isOpen and name ~= exceptButtonName then

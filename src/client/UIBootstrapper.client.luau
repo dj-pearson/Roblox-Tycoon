@@ -184,24 +184,85 @@ end
 -- STEP 6: Make sure UIRegistry is registered
 print("[UIBootstrapper] Step 6: Setting up UIRegistry...")
 
--- Try to find UIRegistry in client/Core
-local uiRegistry = clientCore and clientCore:FindFirstChild("UIRegistry")
-if not uiRegistry then
-    -- Try to find it in ReplicatedStorage
-    uiRegistry = ReplicatedStorage:FindFirstChild("UIRegistry")
-    if uiRegistry then
-        local clone = uiRegistry:Clone()
-        clone.Parent = clientCore
-        print("[UIBootstrapper] Copied UIRegistry to client/Core folder")
-    else
-        warn("[UIBootstrapper] UIRegistry not found!")
+-- Try to find UIRegistry in multiple locations with improved search logic
+local uiRegistry = nil
+local searchLocations = {
+    -- Search in client/Core
+    clientCore and clientCore:FindFirstChild("UIRegistry"),
+    clientCore and clientCore:FindFirstChild("UIRegistry.client"),
+    
+    -- Search in client/UI
+    srcClient and srcClient:FindFirstChild("UI") and srcClient:FindFirstChild("UI"):FindFirstChild("UIRegistry"),
+    srcClient and srcClient:FindFirstChild("UI") and srcClient:FindFirstChild("UI"):FindFirstChild("UIRegistry.client"),
+    
+    -- Search in ReplicatedStorage
+    ReplicatedStorage:FindFirstChild("UIRegistry"),
+    
+    -- Search in ReplicatedStorage/shared
+    ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage:FindFirstChild("shared"):FindFirstChild("UIRegistry")
+}
+
+-- Find the first valid UIRegistry module
+for _, location in pairs(searchLocations) do
+    if location and location:IsA("ModuleScript") then
+        uiRegistry = location
+        print("[UIBootstrapper] Found UIRegistry at: " .. uiRegistry:GetFullName())
+        break
     end
+end
+
+-- If not found in any predefined location, try a more exhaustive search
+if not uiRegistry then
+    print("[UIBootstrapper] UIRegistry not found in expected locations, searching more thoroughly...")
+    
+    -- Look for it in client/UI folder
+    local uiFolder = srcClient and srcClient:FindFirstChild("UI")
+    if uiFolder then
+        uiRegistry = uiFolder:FindFirstChild("UIRegistry") or uiFolder:FindFirstChild("UIRegistry.client")
+        if uiRegistry then
+            print("[UIBootstrapper] Found UIRegistry in client/UI folder")
+        end
+    end
+end
+
+-- Final fallback: if still not found, use the one in shared
+if not uiRegistry and shared:FindFirstChild("UIRegistry") then
+    uiRegistry = shared:FindFirstChild("UIRegistry")
+    print("[UIBootstrapper] Using UIRegistry from shared folder")
+end
+
+-- If still not found but exists in client/UI, use that as a last resort
+if not uiRegistry then
+    local clientUIRegistry = srcClient and srcClient:FindFirstChild("UI") and 
+                            srcClient:FindFirstChild("UI"):FindFirstChild("UIRegistry.client.luau")
+    if clientUIRegistry then
+        uiRegistry = clientUIRegistry
+        print("[UIBootstrapper] Using UIRegistry.client.luau from client/UI folder")
+    end
+end
+
+-- Copy to clientCore if found elsewhere
+if uiRegistry and clientCore and not clientCore:FindFirstChild("UIRegistry") then
+    local clone = uiRegistry:Clone()
+    clone.Parent = clientCore
+    print("[UIBootstrapper] Copied UIRegistry to client/Core folder")
+    uiRegistry = clone -- Use the clone from now on
 end
 
 -- Load UIRegistry
 local UIRegistry = uiRegistry and safeRequire(uiRegistry)
 if not UIRegistry then
-    warn("[UIBootstrapper] Failed to load UIRegistry, UI systems may not function correctly")
+    -- If we can't load it, try to find it one last time in the client UI folder
+    local clientUIRegistry = player.PlayerScripts:FindFirstChild("client") and 
+                           player.PlayerScripts:FindFirstChild("client"):FindFirstChild("UI") and
+                           player.PlayerScripts:FindFirstChild("client"):FindFirstChild("UI"):FindFirstChild("UIRegistry.client")
+    
+    if clientUIRegistry then
+        UIRegistry = safeRequire(clientUIRegistry)
+        print("[UIBootstrapper] Loaded UIRegistry from PlayerScripts/client/UI")
+    else
+        warn("[UIBootstrapper] Failed to load UIRegistry, UI systems may not function correctly")
+    end
 end
 
 -- STEP 7: Register systems with CoreRegistry if possible
