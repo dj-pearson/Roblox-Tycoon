@@ -1,5 +1,33 @@
 # Roblox Issues Tracking Document
 
+## Menu Button UI Connection Issues (🔴 HIGH PRIORITY - May 3, 2025)
+
+**Error Messages:**
+- `CommunityGoalsUI would toggle here!`
+- `ChallengesUI would toggle here!`
+- `StaffManagementUI would toggle here!`
+- `UpgradesUI would toggle here!`
+- `AchievementsUI would toggle here!`
+- `TutorialUI would toggle here!`
+
+**Context:** The menu buttons in MenuButtonsHandler.client.luau are successfully created and appear to be clickable, but they're using placeholder functionality instead of connecting to their respective UI modules.
+
+**Impact:** High. Users can see and click menu buttons, but they don't actually open the intended menu interfaces, severely limiting game functionality.
+
+**Frequency:** Consistently occurs with all menu buttons that don't have their corresponding UI modules.
+
+**Status:** 
+- ✅ MenuButtonsHandler.client.luau created with proper structure
+- ✅ Menu buttons visually appear and are clickable with hover effects
+- ❌ Most UI modules are missing or cannot be found in expected locations
+- ❌ No actual UI functionality when buttons are clicked
+
+**Required Actions:**
+1. Create missing UI modules for: CommunityGoalsUI, ChallengesUI, UpgradesUI, AchievementsUI, GuestPassUI
+2. Ensure modules implement standard interface (ToggleUI, ShowUI, HideUI)
+3. Fix module loading paths in MenuButtonsHandler.client.luau
+4. Add better error handling for module loading
+
 ## BuyTile Spawn Location Issues (✅ FIXED - May 1, 2025)
 
 **Error Message:**
