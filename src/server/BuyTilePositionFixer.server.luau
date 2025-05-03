@@ -31,6 +31,22 @@ local CONFIG = {
     }
 }
 
+-- Get the ModelPositioningHelper module
+local ModelPositioningHelper
+local function getModelPositioningHelper()
+    if ModelPositioningHelper then
+        return ModelPositioningHelper
+    end
+    
+    local sharedFolder = ReplicatedStorage:FindFirstChild("shared")
+    if sharedFolder and sharedFolder:FindFirstChild("ModelPositioningHelper") then
+        ModelPositioningHelper = require(sharedFolder.ModelPositioningHelper)
+        return ModelPositioningHelper
+    end
+    
+    return nil
+end
+
 -- Module definition
 local BuyTilePositionFixer = {
     initialized = false,

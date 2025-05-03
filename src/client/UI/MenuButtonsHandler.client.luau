@@ -870,6 +870,21 @@ end
 -- Create the menu toggle button
 local menuToggle = createMenuToggle(menuButtons, closeAllMenus)
 
+-- Load UIComponentFactory
+local UIComponentFactory
+if sharedFolder and sharedFolder:FindFirstChild("UIComponentFactory") then
+    local success, result = pcall(function()
+        return require(sharedFolder.UIComponentFactory)
+    end)
+    
+    if success and result then
+        UIComponentFactory = result
+        print("[MenuButtonsHandler] UIComponentFactory loaded successfully")
+    else
+        warn("[MenuButtonsHandler] Failed to load UIComponentFactory, falling back to manual button creation")
+    end
+end
+
 -- Create diagnostics function for UI elements
 local function runUIDiagnostics()
     print("[MenuButtonsHandler] Running UI diagnostics...")
@@ -885,7 +900,26 @@ local function runUIDiagnostics()
         return
     end
     
-    -- Check all buttons
+    -- If we have UIComponentFactory, use its diagnostics
+    if UIComponentFactory then
+        local results = UIComponentFactory.runImageDiagnostics(buttonContainer)
+        print(string.format("[MenuButtonsHandler] Diagnostics: %d total, %d successful, %d failed", 
+            results.total, results.successful, results.failed))
+        
+        -- Print details of failed images
+        if results.failed > 0 then
+            warn("[MenuButtonsHandler] Failed images:")
+            for _, detail in ipairs(results.details) do
+                if detail.status ~= "Success" then
+                    warn(string.format("  - %s: %s - %s", detail.instance, detail.status, detail.issue or ""))
+                end
+            end
+        end
+        
+        return results
+    end
+    
+    -- Manual diagnostics if UIComponentFactory isn't available
     local buttonCount = 0
     for _, child in pairs(buttonContainer:GetChildren()) do
         if child:IsA("ImageButton") then

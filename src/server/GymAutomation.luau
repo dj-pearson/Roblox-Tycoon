@@ -209,5 +209,3 @@ task.spawn(function()
 end)
 
 return GymAutomation
-
-return GymAutomation

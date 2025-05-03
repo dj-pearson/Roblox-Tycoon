@@ -443,18 +443,17 @@ local Repairs = {
         if not DataManager then
             DataManager = getSystem("DataPersistenceManager", getSafeRequire())
         }
-        
-        if not DataManager then
-            -- Try to find it directly and register with CoreRegistry
-            local safeRequire = getSafeRequire()
-            local success, module = pcall(function()
-                return safeRequire(ServerScriptService.Core.DataPersistenceManager)
-            end)
-            
-            if success and module then
-                DataManager = module
-                log("Found DataPersistenceManager module, registering with CoreRegistry")
-                local CoreRegistry = getSystem("CoreRegistry")
+       if not DataManager then
+           -- Try to find it directly and register with CoreRegistry
+           local safeRequire = getSafeRequire()
+           local success, module = pcall(function()
+               return safeRequire(ServerScriptService.Core.DataPersistenceManager)
+           end)
+
+           if success and module then
+               DataManager = module
+               log("Found DataPersistenceManager module, registering with CoreRegistry")
+               local CoreRegistry = getSystem("CoreRegistry")
                 if CoreRegistry then
                     CoreRegistry:registerSystem("DataPersistenceManager", DataManager)
                     CoreRegistry:registerSystem("DataManager", DataManager) -- For backward compatibility
@@ -500,7 +499,7 @@ local Repairs = {
         
         log("DataPersistence repair: partial success")
         return true
-    end,
+    end
     
     -- Fix BuyTileSystem
     BuyTileSystem = function()
@@ -616,7 +615,7 @@ local Repairs = {
         log("UISystem repair: partial success")
         return true
     end
-}
+end
 
 -- Run diagnostics on all systems
 local function runDiagnostics()
