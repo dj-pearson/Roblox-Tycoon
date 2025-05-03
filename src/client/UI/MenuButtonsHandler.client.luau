@@ -221,29 +221,29 @@ else
     warn("[MenuButtonsHandler] Could not load UIComponentFactory, using fallback methods: " .. tostring(result))
 end
 
--- Corrected asset IDs (trimmed to valid length)
+-- Updated asset IDs from UIElements.md
 local iconAssetIds = {
-    Alliance = "rbxassetid://8091674100",        -- Using add icon as fallback
-    CommunityGoals = "rbxassetid://8091987045",  -- Using pause icon as fallback
-    Challenges = "rbxassetid://8091990871",      -- Using play icon as fallback
-    GuestPass = "rbxassetid://8092007134",       -- Using coin icon as fallback
-    Tutorial = "rbxassetid://8093754757",        -- Using help icon as fallback
-    Settings = "rbxassetid://8093766304",        -- Settings icon (correct)
-    Rebirth = "rbxassetid://8092001502",         -- Using star icon as fallback
-    StaffManagement = "rbxassetid://8092213308", -- Using character icon as fallback
-    Upgrades = "rbxassetid://8092006355",        -- Using heart icon as fallback
-    Achievements = "rbxassetid://8092204656"     -- Using leaderboard icon as fallback
+    Alliance = "rbxassetid://128203268160479",
+    CommunityGoals = "rbxassetid://97149848004338",
+    Challenges = "rbxassetid://120333480860384",
+    GuestPass = "rbxassetid://110319251186892",
+    Tutorial = "rbxassetid://98150393120956",
+    Settings = "rbxassetid://72876573893033",
+    Rebirth = "rbxassetid://129409029383961",
+    StaffManagement = "rbxassetid://89834599810886",
+    Upgrades = "rbxassetid://132635366103906",
+    Achievements = "rbxassetid://79337595530955"
 }
 
 -- Button configuration
 local buttonConfig = {
     size = UDim2.new(0, 50, 0, 50),
     cornerRadius = UDim.new(0, 8),
-    margin = 10,
+    margin = 12, -- Slightly increased spacing between buttons
     hoverScale = 1.1,
     hoverDuration = 0.1,
     arrangementStyle = "vertical", -- or "horizontal", "grid"
-    startPosition = UDim2.new(0.95, -60, 0.2, 0),
+    startPosition = UDim2.new(0.05, 10, 0.2, 0), -- Left side positioning
     showTooltips = true, -- Show button names on hover
     activeIndicator = true -- Show visual indicator for active menu
 }
@@ -258,11 +258,39 @@ if not menuButtonsGui then
     menuButtonsGui.Parent = playerGui
 end
 
+-- Create a background panel for better button visibility
+local buttonBackground = Instance.new("Frame")
+buttonBackground.Name = "MenuButtonBackground"
+buttonBackground.Size = UDim2.new(0, 70, 0.6, 0)
+buttonBackground.Position = UDim2.new(0.05, 0, 0.2, 0) -- Left side positioning
+buttonBackground.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+buttonBackground.BackgroundTransparency = 0.3 -- More opaque for better visibility
+buttonBackground.BorderSizePixel = 0
+buttonBackground.Parent = menuButtonsGui
+
+-- Add drop shadow for better visibility
+local dropShadow = Instance.new("ImageLabel")
+dropShadow.Name = "DropShadow"
+dropShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+dropShadow.BackgroundTransparency = 1
+dropShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+dropShadow.Size = UDim2.new(1, 20, 1, 20)
+dropShadow.ZIndex = 1
+dropShadow.Image = "rbxassetid://6014261993" -- Drop shadow asset
+dropShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+dropShadow.ImageTransparency = 0.5
+dropShadow.Parent = buttonBackground
+
+-- Add rounded corners to the background
+local backgroundCorner = Instance.new("UICorner")
+backgroundCorner.CornerRadius = UDim.new(0, 12)
+backgroundCorner.Parent = buttonBackground
+
 -- Create a container frame for our buttons
 local buttonContainer = Instance.new("Frame")
 buttonContainer.Name = "MenuButtonContainer"
 buttonContainer.Size = UDim2.new(0, 60, 0.6, 0)
-buttonContainer.Position = UDim2.new(0.97, -60, 0.2, 0)
+buttonContainer.Position = UDim2.new(0.05, 10, 0.2, 0) -- Left side positioning
 buttonContainer.BackgroundTransparency = 1
 buttonContainer.Parent = menuButtonsGui
 
@@ -506,20 +534,59 @@ end
 
 -- Helper functions for button UI
 local function addButtonHoverEffect(button)
-    -- Add hover effect (scaling)
+    -- Create a highlight effect
+    local highlight = Instance.new("UIStroke")
+    highlight.Name = "HoverHighlight"
+    highlight.Color = Color3.fromRGB(100, 200, 255)
+    highlight.Thickness = 0
+    highlight.Transparency = 0.2
+    highlight.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    highlight.Parent = button
+    
+    -- Add hover effect (scaling and highlight)
     button.MouseEnter:Connect(function()
-        game:GetService("TweenService"):Create(
+        -- Scale animation
+        TweenService:Create(
             button,
             TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
             {Size = button.Size * buttonConfig.hoverScale}
         ):Play()
+        
+        -- Highlight animation
+        TweenService:Create(
+            highlight,
+            TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Thickness = 2}
+        ):Play()
+        
+        -- Slightly brighter background
+        TweenService:Create(
+            button,
+            TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {BackgroundColor3 = Color3.fromRGB(60, 60, 75)}
+        ):Play()
     end)
     
     button.MouseLeave:Connect(function()
-        game:GetService("TweenService"):Create(
+        -- Scale animation
+        TweenService:Create(
             button,
             TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
             {Size = buttonConfig.size}
+        ):Play()
+        
+        -- Highlight animation
+        TweenService:Create(
+            highlight,
+            TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Thickness = 0}
+        ):Play()
+        
+        -- Reset background color
+        TweenService:Create(
+            button,
+            TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {BackgroundColor3 = Color3.fromRGB(40, 40, 50)}
         ):Play()
     end)
 end
@@ -537,15 +604,15 @@ local function createTooltip(button, name)
     tooltipText.Font = Enum.Font.GothamMedium
     tooltipText.Visible = false
     tooltipText.Parent = button
-    
-    -- Add corner
+      -- Add corner
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 4)
     corner.Parent = tooltipText
     
-    -- Position tooltip based on button arrangement
+    -- Position tooltip based on button arrangement - adjusted for left side positioning
     if buttonConfig.arrangementStyle == "vertical" then
-        tooltipText.Position = UDim2.new(1.1, 0, 0, 0)
+        tooltipText.Position = UDim2.new(1.1, 5, 0, 0) -- Tooltip appears to the right of button
+        tooltipText.AnchorPoint = Vector2.new(0, 0.5) -- Anchor at left middle
     else
         tooltipText.Position = UDim2.new(0, 0, -1.1, 0)
         tooltipText.AnchorPoint = Vector2.new(0.5, 1)
@@ -567,7 +634,7 @@ local function createActiveIndicator(button)
     local indicator = Instance.new("Frame")
     indicator.Name = "ActiveIndicator"
     indicator.Size = UDim2.new(0, 6, 0.7, 0)
-    indicator.Position = UDim2.new(0, -8, 0.5, 0)
+    indicator.Position = UDim2.new(1, 2, 0.5, 0) -- Right side of button
     indicator.AnchorPoint = Vector2.new(0, 0.5)
     indicator.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
     indicator.Visible = false
@@ -577,6 +644,24 @@ local function createActiveIndicator(button)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 3)
     corner.Parent = indicator
+    
+    -- Add glow effect
+    local glow = Instance.new("UIGradient")
+    glow.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 200, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 162, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 200, 255))
+    })
+    glow.Parent = indicator
+    
+    -- Animate the gradient
+    spawn(function()
+        local offset = 0
+        while wait(0.03) do
+            offset = (offset + 0.01) % 1
+            glow.Offset = Vector2.new(offset, 0)
+        end
+    end)
     
     -- Return the indicator so it can be shown/hidden later
     return indicator
@@ -852,10 +937,10 @@ local function createMenuToggle(menuButtons, closeAllMenus)
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Name = "MenuToggleButton"
     toggleButton.Size = UDim2.new(0, 40, 0, 40)
-    toggleButton.Position = UDim2.new(0.97, -40, 0.1, 0)
+    toggleButton.Position = UDim2.new(0.05, 10, 0.1, 0) -- Positioned on the left
     toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     toggleButton.BackgroundTransparency = 0.3
-    toggleButton.Image = "rbxassetid://8093763464" -- Using menu icon
+    toggleButton.Image = "rbxassetid://72876573893033" -- Using Settings icon
     toggleButton.Parent = menuButtonsGui
     
     -- Add UI corner
@@ -893,12 +978,11 @@ local function createMenuToggle(menuButtons, closeAllMenus)
     toggleButton.MouseButton1Click:Connect(function()
         menuExpanded = not menuExpanded
         toggleMenuButtonsVisibility(menuExpanded, menuButtons)
-        
-        -- Rotate icon for visual feedback and add sliding animation
+          -- Rotate icon for visual feedback and add sliding animation
         local targetRotation = menuExpanded and 0 or 180
         local targetPosition = menuExpanded 
-            and UDim2.new(0.97, -40, 0.1, 0) 
-            or UDim2.new(0.99, -20, 0.1, 0)
+            and UDim2.new(0.05, 10, 0.1, 0) 
+            or UDim2.new(0.01, 10, 0.1, 0)
             
         TweenService:Create(
             toggleButton, 
