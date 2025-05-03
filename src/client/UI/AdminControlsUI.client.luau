@@ -760,11 +760,11 @@ function AdminControlsUI:CreateAdminToolsTab(parent)
     autoCategory.Parent = uiState.menuElements.scrollFrame
     autoCategory.Position = UDim2.new(0, 0, 0, infoCategory.AbsoluteSize.Y + infoCategory.AbsolutePosition.Y + 20)
     
-    createCommandButton(autoButtons, "Automate Gym", "Fully automate gym setup and configuration", "automateGym", 10, "success")
-    createCommandButton(autoButtons, "Auto-Setup Buy Tiles", "Automatically set up all buy tiles", "autoSetupBuyTiles", 20, "success")
+    createCommandButton(autoButtons, "Automate Gym", "Fully automate gym setup and configuration", "automateGym", 10, "success")    createCommandButton(autoButtons, "Auto-Setup Buy Tiles", "Automatically set up all buy tiles", "autoSetupBuyTiles", 20, "success")
     createCommandButton(autoButtons, "Generate Build Order", "Create logical build order for tiles", "generateBuildOrder", 30)
     createCommandButton(autoButtons, "Process Equipment", "Process all equipment and set up attributes", "processEquipment", 40)
     createCommandButton(autoButtons, "Generate Hitboxes", "Create hitboxes for BuyTile interaction", "generateHitboxes", 50)
+    createCommandButton(autoButtons, "Reset Game", "Reset player data to default state (resets cash, buy tiles, and progress)", "resetPlayerProgress", 60, "danger")
     
     -- Adjust the category size based on content
     autoCategory.Size = UDim2.new(1, 0, 0, autoButtons.Position.Y.Offset + autoButtons.AbsoluteSize.Y + 20)
