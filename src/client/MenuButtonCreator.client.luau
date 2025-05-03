@@ -211,11 +211,10 @@ local MENU_BUTTONS = {    {
         name = "Gymm",
         icon = ICONS.Gym,
         position = UDim2.new(0, 10, 0, 260),
-        color = Color3.fromRGB(46, 125, 50),
-        callback = function()
+        color = Color3.fromRGB(46, 125, 50),        callback = function()
             -- Handle gym management button click
             log("Gym management button clicked")
-            local gymModule = safeRequire("GymMenuUI")
+            local gymModule = loadUIModule("GymMenuUI")
             if gymModule then
                 if typeof(gymModule.ToggleVisibility) == "function" then 
                     gymModule.ToggleVisibility()
@@ -228,11 +227,10 @@ local MENU_BUTTONS = {    {
         name = "Stats",
         icon = ICONS.Stats,
         position = UDim2.new(0, 10, 0, 60),
-        color = Color3.fromRGB(33, 150, 243),
-        callback = function()
+        color = Color3.fromRGB(33, 150, 243),        callback = function()
             -- Handle stats button click
             log("Stats button clicked")
-            local statsModule = safeRequire("StatsMenuUI")
+            local statsModule = loadUIModule("StatsMenuUI")
             if statsModule then
                 if typeof(statsModule.ToggleVisibility) == "function" then
                     statsModule.ToggleVisibility()
@@ -246,11 +244,10 @@ local MENU_BUTTONS = {    {
         name = "Leaderboard",
         icon = ICONS.Leaderboard,
         position = UDim2.new(0, 10, 0, 110),
-        color = Color3.fromRGB(255, 193, 7),
-        callback = function()
+        color = Color3.fromRGB(255, 193, 7),        callback = function()
             -- Handle leaderboard button click
             log("Leaderboard button clicked")
-            local leaderboardModule = safeRequire("LeaderboardMenuUI")
+            local leaderboardModule = loadUIModule("LeaderboardMenuUI")
             if leaderboardModule then
                 if typeof(leaderboardModule.ToggleVisibility) == "function" then
                     leaderboardModule.ToggleVisibility()
@@ -266,26 +263,25 @@ local MENU_BUTTONS = {    {
         position = UDim2.new(0, 10, 0, 160),
         color = Color3.fromRGB(156, 39, 176),
         callback = function()
-            -- Handle competition button click
+                        -- Handle competition button click
             log("Competition button clicked")
-            local competitionModule = safeRequire("CompetitionMenuUI")
+            local competitionModule = loadUIModule("CompetitionMenuUI")
             if competitionModule then
                 if typeof(competitionModule.ToggleVisibility) == "function" then
                     competitionModule.ToggleVisibility()
                 else
                     log("CompetitionMenuUI found but ToggleVisibility function not available")
-                end)
+                end
             end
         end
     },    {
         name = "Data",
         icon = ICONS.Data,
         position = UDim2.new(0, 10, 0, 210),
-        color = Color3.fromRGB(63, 81, 181),
-        callback = function()
+        color = Color3.fromRGB(63, 81, 181),        callback = function()
             -- Handle data button click
             log("Data button clicked")
-            local dataModule = safeRequire("DataMenuUI")
+            local dataModule = loadUIModule("DataMenuUI")
             if dataModule then
                 if typeof(dataModule.ToggleVisibility) == "function" then
                     dataModule.ToggleVisibility()

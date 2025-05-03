@@ -179,10 +179,12 @@ local function loadUIModule(moduleName)
             end
         end
     end
-    
-    warn("[MenuButtonsHandler] Could not load UI module: " .. moduleName)
+      warn("[MenuButtonsHandler] Could not load UI module: " .. moduleName)
     return nil
 end
+
+-- Define UI module paths
+local uiModulePaths = {
     CommunityGoalsUI_client = {"client", "UI", "CommunityGoalsUI"},
     ChallengesUI_client = {"client", "UI", "ChallengesUI"},
     GuestPassUI_client = {"client", "UI", "GuestPassUI"},
@@ -500,6 +502,84 @@ local function validateAssetId(assetId)
     end
     
     return true
+end
+
+-- Helper functions for button UI
+local function addButtonHoverEffect(button)
+    -- Add hover effect (scaling)
+    button.MouseEnter:Connect(function()
+        game:GetService("TweenService"):Create(
+            button,
+            TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Size = button.Size * buttonConfig.hoverScale}
+        ):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        game:GetService("TweenService"):Create(
+            button,
+            TweenInfo.new(buttonConfig.hoverDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Size = buttonConfig.size}
+        ):Play()
+    end)
+end
+
+local function createTooltip(button, name)
+    if not buttonConfig.showTooltips then return end
+    
+    local tooltipText = Instance.new("TextLabel")
+    tooltipText.Name = "Tooltip"
+    tooltipText.Size = UDim2.new(0, 100, 0, 24)
+    tooltipText.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    tooltipText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tooltipText.Text = name
+    tooltipText.TextSize = 14
+    tooltipText.Font = Enum.Font.GothamMedium
+    tooltipText.Visible = false
+    tooltipText.Parent = button
+    
+    -- Add corner
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 4)
+    corner.Parent = tooltipText
+    
+    -- Position tooltip based on button arrangement
+    if buttonConfig.arrangementStyle == "vertical" then
+        tooltipText.Position = UDim2.new(1.1, 0, 0, 0)
+    else
+        tooltipText.Position = UDim2.new(0, 0, -1.1, 0)
+        tooltipText.AnchorPoint = Vector2.new(0.5, 1)
+    end
+    
+    -- Show/hide on hover
+    button.MouseEnter:Connect(function()
+        tooltipText.Visible = true
+    end)
+    
+    button.MouseLeave:Connect(function()
+        tooltipText.Visible = false
+    end)
+end
+
+local function createActiveIndicator(button)
+    if not buttonConfig.activeIndicator then return end
+    
+    local indicator = Instance.new("Frame")
+    indicator.Name = "ActiveIndicator"
+    indicator.Size = UDim2.new(0, 6, 0.7, 0)
+    indicator.Position = UDim2.new(0, -8, 0.5, 0)
+    indicator.AnchorPoint = Vector2.new(0, 0.5)
+    indicator.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+    indicator.Visible = false
+    indicator.Parent = button
+    
+    -- Add corner
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 3)
+    corner.Parent = indicator
+    
+    -- Return the indicator so it can be shown/hidden later
+    return indicator
 end
 
 -- Function to create a menu button

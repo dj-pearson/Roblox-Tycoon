@@ -181,5 +181,18 @@ return {
     
     -- For type checking
     EventPriorities = EventPriorities,
-    EventCategories = EventCategories
+    EventCategories = EventCategories,
+    
+    -- Type exports
+    Event = nil :: Event,
+    EventData = nil :: EventData,
+    EventHandler = nil :: EventHandler,
+    EventHandlerInfo = nil :: EventHandlerInfo,
+    EventPriority = nil :: EventPriority,
+    EventCategory = nil :: EventCategory,
+    EventFilter = nil :: EventFilter,
+    EventTransform = nil :: EventTransform,
+    EventResult = nil :: EventResult,
+    EventBusConfig = nil :: EventBusConfig,
+    EventSubscription = nil :: EventSubscription
 }

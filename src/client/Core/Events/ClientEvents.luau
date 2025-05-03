@@ -23,24 +23,72 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 -- Import dependencies
-local SharedModules = ReplicatedStorage:WaitForChild("src"):WaitForChild("shared")
+-- Use direct path to shared modules in the game structure
+local SharedModules = script.Parent.Parent.Parent.Parent:WaitForChild("shared")
 local EventsModules = SharedModules:WaitForChild("Events")
 
 local EventBase = require(EventsModules:WaitForChild("EventBase"))
 local EventTypes = require(EventsModules:WaitForChild("EventTypes"))
 
--- Type imports
-type Event = EventTypes.Event
-type EventData = EventTypes.EventData
-type EventHandler = EventTypes.EventHandler
-type EventHandlerInfo = EventTypes.EventHandlerInfo
-type EventPriority = EventTypes.EventPriority
-type EventCategory = EventTypes.EventCategory
-type EventFilter = EventTypes.EventFilter
-type EventTransform = EventTypes.EventTransform
-type EventResult = EventTypes.EventResult
-type EventBusConfig = EventTypes.EventBusConfig
-type EventSubscription = EventTypes.EventSubscription
+-- Type imports from EventTypes
+-- Import the types directly using the export syntax
+local EventTypes = require(EventsModules:WaitForChild("EventTypes"))
+
+-- Using the imported event types with explicit type annotations
+export type Event = {
+    id: string,
+    priority: number,
+    category: string,
+    data: {[string]: any},
+    source: string?,
+    cancelable: boolean,
+    canceled: boolean,
+    timestamp: number,
+    propagating: boolean,
+}
+
+export type EventData = {[string]: any}
+export type EventHandler = (event: Event) -> boolean?
+export type EventHandlerInfo = {
+    id: string,
+    handler: EventHandler,
+    priority: number,
+    categories: {[string]: boolean}?,
+    eventTypes: {[string]: boolean}?,
+    once: boolean,
+    fired: boolean,
+    source: string?,
+}
+export type EventPriority = number
+export type EventCategory = string
+export type EventFilter = (event: Event) -> boolean
+export type EventTransform = (event: Event) -> Event
+export type EventResult = {
+    completed: boolean,
+    canceled: boolean,
+    handlerCount: number,
+    stoppedBy: string?,
+    canceledBy: string?,
+    error: string?
+}
+export type EventBusConfig = {
+    name: string?,
+    debug: boolean?,
+    strict: boolean?,
+    maxQueueSize: number?,
+    allowCancelation: boolean?,
+    errorHandler: (error: string, event: Event?) -> ()?,
+    defaultPriority: number?,
+    filters: {EventFilter}?,
+    transforms: {EventTransform}?
+}
+export type EventSubscription = {
+    id: string,
+    unsubscribe: () -> (),
+    isPaused: () -> boolean,
+    pause: () -> (),
+    resume: () -> (),
+}
 
 -- Client-specific event categories
 local ClientEventCategories = {
