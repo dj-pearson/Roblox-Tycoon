@@ -3,7 +3,7 @@
 -- Extension module that adds admin commands to the UI
 --
 -- Created April 2025
--- Updated May 4, 2025 - Added direct implementation of commands
+-- Updated May 4, 2025 - Fixed syntax errors and improved command handling
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -140,7 +140,8 @@ function AdminCommandsExtension:InitializeAdminButton()
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0, 10)
     layout.Parent = buttonContainer
-      -- Set up admin commands
+    
+    -- Set up admin commands
     local commandButtons = {
         { name = "Process Tycoon", globalFunc = "ProcessTycoon", desc = "Process tycoon structure" },
         { name = "Automate Gym", globalFunc = "AutomateGym", desc = "Set up gym automatically" },
@@ -246,7 +247,7 @@ function AdminCommandsExtension:InitializeAdminButton()
                         -- Set in global for convenience
                         _G.ShowHitboxes = function() 
                             log("Using cached ShowHitboxes implementation")
-                            return "Showed hitboxes" 
+                            return "Showed hitboxes (cached)" 
                         end
                         
                         return "Showed " .. hitboxesShown .. " hitboxes"
@@ -279,7 +280,7 @@ function AdminCommandsExtension:InitializeAdminButton()
                         end
                         
                         return "Hidden " .. hitboxesHidden .. " hitboxes"
-                    end))
+                    end)
                 elseif cmd.globalFunc == "AssignPrimaryParts" then
                     -- Try with specific remote function for AssignPrimaryParts
                     log("Using specialized call for AssignPrimaryParts")
@@ -341,14 +342,16 @@ function AdminCommandsExtension:InitializeAdminButton()
                         end)
                     end
                 else
-                    log("No implementation found for: " .. cmd.globalFunc)
                     success = false
+                    result = "Command implementation not found: " .. cmd.globalFunc
+                    log(result)
                 end
             end
             
-            -- Process result and provide feedback
+            -- Remove status and show feedback
             status:Destroy()
             
+            -- Create feedback
             local feedback = Instance.new("TextLabel")
             feedback.Name = "Feedback"
             feedback.Size = UDim2.new(1, 0, 0, 30)
@@ -360,11 +363,28 @@ function AdminCommandsExtension:InitializeAdminButton()
             feedback.Parent = commandsFrame
             
             if success then
-                feedback.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
-                feedback.Text = "Success: " .. tostring(result or cmd.name)
+                feedback.BackgroundColor3 = Color3.fromRGB(40, 120, 40) -- Green for success
+                
+                -- Format the result
+                if result ~= nil then
+                    if type(result) == "string" or type(result) == "number" or type(result) == "boolean" then
+                        feedback.Text = "Success: " .. tostring(result)
+                    else
+                        feedback.Text = "Success: Command executed"
+                    end
+                else
+                    feedback.Text = "Success: " .. cmd.name .. " executed"
+                end
             else
-                feedback.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
-                feedback.Text = "Error: " .. tostring(result or "Command failed")
+                feedback.BackgroundColor3 = Color3.fromRGB(120, 40, 40) -- Red for error
+                
+                -- Format the error message
+                if result and type(result) == "string" then
+                    -- Try to clean up the error message by removing the script path
+                    feedback.Text = "Error: " .. result:gsub("^.+:%d+: ", "")
+                else
+                    feedback.Text = "Error: Command failed"
+                end
             end
             
             -- Auto-remove feedback after 3 seconds
@@ -376,18 +396,15 @@ function AdminCommandsExtension:InitializeAdminButton()
         end)
     end
     
-    return true
-end
-    
-    -- Update canvas size
+    -- Update canvas size to fit all buttons
     buttonContainer.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
     
-    -- Toggle functionality
+    -- Toggle menu visibility when button is clicked
     adminButton.MouseButton1Click:Connect(function()
         commandsFrame.Visible = not commandsFrame.Visible
     end)
     
-    log("Admin button initialized successfully")
+    log("Admin commands extension initialized successfully")
     return true
 end
 
@@ -414,5 +431,3 @@ task.spawn(function()
         log("DataManagementUI not found after waiting")
     end
 end)
-
-return AdminCommandsExtension
