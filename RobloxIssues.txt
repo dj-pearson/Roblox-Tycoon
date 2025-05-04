@@ -1,5 +1,153 @@
 # Roblox Issues Tracking Document
 
+## CoreRegistry Degraded State (⚠️ ACTIVE - May 4, 2025)
+
+**Error Messages:**
+- `[CoreRegistry] Registry status set to: Degraded`
+- `[CoreRegistry] Critical system missing: DataManager`
+- `[CoreRegistry] Critical system missing: UIComponents`
+- `[CoreRegistry] Critical system missing: AssetValidator`
+- `[CoreRegistry] Critical system missing: BuyTileSystem`
+- `[CoreRegistry] Critical system missing: TycoonSystem`
+- `[CoreRegistry] Critical system missing: EventBridge`
+
+**Context:** CoreRegistry is the central system responsible for registering and managing all core systems in the game. It's currently in a degraded state due to missing critical systems.
+
+**Impact:** Critical. The CoreRegistry's degraded state affects most game systems, causing failures in UI loading, data persistence, tycoon functionality, and event handling.
+
+**Frequency:** Occurs consistently on every game startup.
+
+**Status:** 
+- ⚠️ CoreRegistry initializes but enters a degraded state
+- ⚠️ Multiple critical systems are missing or fail to register properly
+- ✅ Emergency admin systems implemented to provide temporary workarounds
+- ✅ EmergencyAdminButton.client.luau successfully providing critical admin functions
+
+**Required Actions:**
+1. Investigate folder structure issues preventing correct module loading
+2. Fix or recreate missing critical systems: DataManager, TycoonSystem, EventBridge
+3. Implement proper system registration sequence in CoreRegistry
+4. Fix initialization order to ensure dependencies are loaded before dependent systems
+5. Create a comprehensive system restoration process
+
+## Client UI System Failures (⚠️ ACTIVE - May 4, 2025)
+
+**Error Messages:**
+- `ClientRegistry.getSystem: System not found - UISystem`
+- `UISystemPatcher: UISystem not found, cannot patch`
+- `[UILoader] Failed to load: MenuButtonCreator - Attempted to call require with invalid argument(s).`
+- `[UILoader] Failed to load: GymTycoonMenuUI - Attempted to call require with invalid argument(s).`
+- `[UILoader] Failed to load: AdminButtonCreator - Attempted to call require with invalid argument(s).`
+- `[UISystemEnhancer] UI folder not found`
+- `[UISystemEnhancer] All attempts to show UI failed: MainMenuUI`
+
+**Context:** The client UI systems are failing to load and register properly, causing UI components to be unavailable or non-functional.
+
+**Impact:** High. Players cannot access game menus and interfaces properly, severely limiting gameplay functionality.
+
+**Frequency:** Consistently occurs for all players on game startup.
+
+**Status:** 
+- ⚠️ Multiple UI systems failing to load or initialize
+- ⚠️ ClientRegistry unable to find or register UI systems
+- ⚠️ UI component creation failing due to missing dependencies
+- ✅ EmergencyAdminButton successfully provides critical admin UI functionality
+- ✅ Basic UI components for emergency functions are working
+
+**Required Actions:**
+1. Fix ClientRegistry initialization to properly register UI systems
+2. Correct module loading paths for UI components
+3. Implement proper error handling for UI system initialization
+4. Fix dependency resolution between UI systems
+5. Create a dedicated UI system recovery process
+
+## Module Loading and Path Resolution Issues (⚠️ ACTIVE - May 4, 2025)
+
+**Error Messages:**
+- `Attempted to call require with invalid argument(s).`
+- `Modules is not a valid member of ServerStorage "ServerStorage"`
+- `Systems is not a valid member of ServerScriptService "ServerScriptService"`
+- `Core is not a valid member of ServerScriptService "ServerScriptService"`
+- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'`
+- `Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("shared")'`
+
+**Context:** The game is experiencing widespread module loading failures due to incorrect paths, missing folders, and module resolution issues.
+
+**Impact:** Critical. These failures affect most systems in the game, preventing proper initialization and functionality.
+
+**Frequency:** Consistently occurs throughout the game, affecting both server and client scripts.
+
+**Status:** 
+- ⚠️ Core module paths are incorrect or missing
+- ⚠️ System folder structure has inconsistencies
+- ⚠️ Infinite yield errors occurring due to missing expected paths
+- ✅ Some fallback implementations have been created for critical functions
+- ✅ Emergency admin functionality working despite module loading issues
+
+**Required Actions:**
+1. Create and organize proper folder structure for modules
+2. Implement consistent path resolution for module loading
+3. Fix or recreate missing core folders and modules
+4. Implement robust error handling for module loading failures
+5. Set up proper dependency injection to reduce hard-coded paths
+
+## Tycoon Structure and Data Restoration Issues (⚠️ ACTIVE - May 4, 2025)
+
+**Error Messages:**
+- `GymPartsScanner: Found 0 items in GymParts structure`
+- `GymPartsScanner: No items found in GymParts folder`
+- `[DataManager] Using fallback spawnGymPart for ID: Xdjpearsonx`
+- `Could not find gym part with ID: Xdjpearsonx`
+- `Failed to restore tile 2 for Xdjpearsonx`
+- `[DataManager] Restored 1 of 40 tiles for Xdjpearsonx`
+
+**Context:** The tycoon system is failing to properly scan, structure, and restore player gym components. This affects both new tycoons and restored player data.
+
+**Impact:** Critical. Players' tycoons cannot be properly created or restored, severely limiting gameplay progression.
+
+**Frequency:** Occurs consistently for all players during data restoration.
+
+**Status:** 
+- ⚠️ GymParts structure scanning failing to find items
+- ⚠️ Data restoration only partially succeeding (1 of 40 tiles)
+- ⚠️ BuyTile system integration issues with DataManager
+- ✅ Front desk setup working for new players
+- ✅ EmergencyAdminButton providing "Add Primary Parts" functionality that partially addresses issues
+
+**Required Actions:**
+1. Fix GymParts folder structure and scanning system
+2. Implement proper data restoration process with redundancy
+3. Fix ID handling between player IDs and model IDs
+4. Correct integration between BuyTile system and DataManager
+5. Implement comprehensive verification and repair of tycoon structures
+
+## GymAutomationLoader Failures (⚠️ ACTIVE - May 4, 2025)
+
+**Error Messages:**
+- `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
+- `[GymAutomationLoader] Could not find GymAutomation in any search path`
+- `[GymAutomationLoader] Failed to find any GymAutomation module`
+- `[GymAutomationLoader] Failed to load GymAutomation, scheduling retry... (Attempt 3/5)`
+
+**Context:** The GymAutomation system, which is critical for automating gym setup and functionality in the tycoon, is failing to load.
+
+**Impact:** High. Prevents proper automation of gym components and features, requiring manual setup.
+
+**Frequency:** Occurs consistently on game start and repeatedly during gameplay.
+
+**Status:** 
+- ⚠️ GymAutomationLoader unable to find required modules
+- ⚠️ Retry attempts consistently failing
+- ✅ Basic automation commands available through global functions
+- ✅ EmergencyAdminButton providing some automation functionality
+
+**Required Actions:**
+1. Correct module paths for GymAutomation and GymAutomationManager
+2. Implement proper fallback for automation functionality
+3. Fix folder structure to ensure automation modules can be found
+4. Create robust error handling for automation loading
+5. Implement comprehensive logging for debugging automation issues
+
 ## Menu Button UI Connection Issues (✅ FIXED - May 3, 2025)
 
 **Error Messages:**
@@ -81,24 +229,6 @@
 4. Implemented multiple fallback mechanisms to ensure models spawn correctly
 5. Added automatic fixes when players join to ensure consistent experience
 6. Set up periodic position checks to continuously fix model positions
-
-## GymAutomationLoader Failures (✅ FIXED - May 1, 2025)
-
-**Error Message:** 
-- `[GymAutomationLoader] Could not find GymAutomationManager in any search path` ✅ FIXED
-- `[GymAutomationLoader] Could not find GymAutomation in any search path` ✅ FIXED
-- `[GymAutomationLoader] Failed to find any GymAutomation module` ✅ FIXED
-- `[GymAutomationLoader] Failed to load GymAutomation, scheduling retry...` ✅ FIXED
-
-**Context:** GymAutomation system is critical for automating gym setup and functionality in the tycoon.
-
-**Impact:** High. Prevents proper automation of gym components and features.
-
-**Frequency:** Fixed. Previously occurred consistently on game start and repeatedly during gameplay.
-
-**Status:** 
-- ✅ Search paths now properly find the required modules
-- ✅ Created standalone GymAutomationManager.server.luau for direct access
 - ✅ Fixed module loading paths to prioritize direct locations
 - ✅ Improved shared module references without using _G
 - ✅ Implemented alternative storage mechanism that complies with Luau strict mode

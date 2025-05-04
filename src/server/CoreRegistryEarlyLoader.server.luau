@@ -5,6 +5,7 @@
     Place it directly in ServerScriptService for immediate execution.
     
     Created: May 1, 2025
+    Updated: May 4, 2025 - Enhanced to fix degraded state issues
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -117,6 +118,62 @@ if not initialized then
         end
     end
 end
+
+-- =============== MAY 4, 2025 ENHANCEMENT - FIX DEGRADED STATE ===============
+-- Check CoreRegistry health and fix if needed
+local function runCoreRegistryFix()
+    print("[CoreRegistryEarlyLoader] Checking CoreRegistry health and fixing any issues...")
+    
+    -- Find CoreRegistryFix script
+    local fixScript = nil
+    local searchPaths = {
+        ServerScriptService:FindFirstChild("Core"),
+        ServerScriptService
+    }
+    
+    for _, path in ipairs(searchPaths) do
+        if path then
+            if path:FindFirstChild("CoreRegistryFix.server") then
+                fixScript = path["CoreRegistryFix.server"]
+                break
+            elseif path:FindFirstChild("CoreRegistryFix") then
+                fixScript = path.CoreRegistryFix
+                break
+            end
+        end
+    end
+    
+    if not fixScript then
+        warn("[CoreRegistryEarlyLoader] CoreRegistryFix script not found")
+        return false
+    end
+    
+    -- Run the fix script
+    local success, result = pcall(function()
+        return require(fixScript)
+    end)
+    
+    if success then
+        print("✅ [CoreRegistryEarlyLoader] Successfully ran CoreRegistry fix")
+        return true
+    else
+        warn("❌ [CoreRegistryEarlyLoader] Failed to run CoreRegistry fix:", result)
+        return false
+    end
+end
+
+-- Run fix process after initialization
+if initialized then
+    -- Wait a brief moment to allow the registry to fully initialize
+    task.wait(0.5)
+    runCoreRegistryFix()
+else
+    warn("[CoreRegistryEarlyLoader] Skipping fix process since initialization failed")
+end
+
+-- Set global flag
+_G.CoreRegistryEarlyLoaderRun = true
+_G.CoreRegistryEarlyLoaderTime = os.time()
 
 if not initialized then
     warn("❌ [CoreRegistryEarlyLoader] Failed to initialize CoreRegistry")

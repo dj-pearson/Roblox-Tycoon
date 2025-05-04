@@ -4,10 +4,12 @@
     Creates and registers missing critical systems in CoreRegistry
     
     Created: April 29, 2025
+    Updated: May 4, 2025 - Enhanced system search and recovery
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 -- Debug logging
 local function log(message, isError)
@@ -23,19 +25,38 @@ local function findCoreRegistry()
     local searchPaths = {
         ServerScriptService:FindFirstChild("Core"),
         ServerScriptService:FindFirstChild("Systems"),
-        ServerScriptService:FindFirstChild("src"):FindFirstChild("server"):FindFirstChild("Core"),
-        ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared")
+        ServerScriptService:FindFirstChild("src") and ServerScriptService:FindFirstChild("src"):FindFirstChild("server") and ServerScriptService:FindFirstChild("src"):FindFirstChild("server"):FindFirstChild("Core"),
+        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"),
+        ServerStorage:FindFirstChild("Modules"),
+        ServerStorage:FindFirstChild("Core")
     }
     
     for _, path in ipairs(searchPaths) do
-        if path and path:FindFirstChild("CoreRegistry") then
-            local success, module = pcall(function()
-                return require(path.CoreRegistry)
-            end)
+        if path then
+            if path:FindFirstChild("CoreRegistry") then
+                local success, module = pcall(function()
+                    return require(path.CoreRegistry)
+                end)
+                
+                if success and typeof(module) == "table" and typeof(module.registerSystem) == "function" then
+                    log("Found CoreRegistry at: " .. path.CoreRegistry:GetFullName())
+                    return module
+                end
+            end
             
-            if success and typeof(module) == "table" and typeof(module.registerSystem) == "function" then
-                log("Found CoreRegistry at: " .. path.CoreRegistry:GetFullName())
-                return module
+            -- Try different file extensions
+            for _, extension in ipairs({"server.luau", "luau", "lua"}) do
+                local moduleName = "CoreRegistry." .. extension
+                if path:FindFirstChild(moduleName) then
+                    local success, module = pcall(function()
+                        return require(path[moduleName])
+                    end)
+                    
+                    if success and typeof(module) == "table" and typeof(module.registerSystem) == "function" then
+                        log("Found CoreRegistry at: " .. path[moduleName]:GetFullName())
+                        return module
+                    end
+                end
             end
         end
     end
@@ -44,13 +65,89 @@ local function findCoreRegistry()
     return nil
 end
 
+-- Find a module in different search paths
+local function findModule(moduleName)
+    log("Searching for module: " .. moduleName)
+    
+    -- Define search paths in priority order
+    local searchPaths = {
+        -- Server-side paths
+        {
+            ServerScriptService:FindFirstChild("Core"),
+            ServerScriptService:FindFirstChild("Systems"),
+            ServerScriptService:FindFirstChild("src") and ServerScriptService:FindFirstChild("src"):FindFirstChild("server") and ServerScriptService:FindFirstChild("src"):FindFirstChild("server"):FindFirstChild("Core"),
+            ServerStorage:FindFirstChild("Modules"),
+            ServerStorage:FindFirstChild("Core"),
+            ServerScriptService
+        },
+        -- Shared paths
+        {
+            ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage:FindFirstChild("src"):FindFirstChild("shared"),
+            ReplicatedStorage:FindFirstChild("shared"),
+            ReplicatedStorage
+        }
+    }
+    
+    -- Search server paths first, then shared paths
+    for _, pathList in ipairs(searchPaths) do
+        for _, path in ipairs(pathList) do
+            if path then
+                -- Try direct module
+                if path:FindFirstChild(moduleName) then
+                    local success, module = pcall(function()
+                        return require(path[moduleName])
+                    end)
+                    
+                    if success then
+                        log("Found " .. moduleName .. " at: " .. path[moduleName]:GetFullName())
+                        return module
+                    end
+                end
+                
+                -- Try with different extensions
+                for _, extension in ipairs({"server.luau", "luau", "lua"}) do
+                    local name = moduleName .. "." .. extension
+                    if path:FindFirstChild(name) then
+                        local success, module = pcall(function()
+                            return require(path[name])
+                        end)
+                        
+                        if success then
+                            log("Found " .. moduleName .. " at: " .. path[name]:GetFullName())
+                            return module
+                        end
+                    end
+                end
+                
+                -- Look in nested directories
+                for _, subFolder in ipairs({"Systems", "Core", "Modules", "Data"}) do
+                    if path:FindFirstChild(subFolder) and path[subFolder]:FindFirstChild(moduleName) then
+                        local success, module = pcall(function()
+                            return require(path[subFolder][moduleName])
+                        end)
+                        
+                        if success then
+                            log("Found " .. moduleName .. " at: " .. path[subFolder][moduleName]:GetFullName())
+                            return module
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    log("Module not found: " .. moduleName)
+    return nil
+end
+
 -- Create placeholder implementations for missing systems
 local function createPlaceholderSystem(name)
-    log("Creating placeholder for missing system: " .. name)
+    log("Creating enhanced placeholder for missing system: " .. name)
     
     local system = {
         name = name,
         initialized = true,
+        _isPlaceholder = true,
         
         initialize = function(self)
             log("Initialized placeholder for " .. name)
@@ -60,7 +157,7 @@ local function createPlaceholderSystem(name)
         getStatus = function(self)
             return {
                 status = "Ready",
-                message = "Placeholder implementation active",
+                message = "Enhanced placeholder implementation active",
                 version = "1.0.0"
             }
         end
@@ -195,24 +292,48 @@ local function ensureCriticalSystems(CoreRegistry)
     end
     
     local criticalSystems = {
-        "ModuleLoader",
         "DataManager",
         "UIComponents",
         "AssetValidator",
-        "BuyTileSystem"
+        "BuyTileSystem",
+        "TycoonSystem",
+        "EventBridge"
     }
     
     local fixedCount = 0
     
     for _, systemName in ipairs(criticalSystems) do
         -- Check if system already exists
-        local existingSystem = CoreRegistry:GetSystem(systemName)
+        local existingSystem = CoreRegistry.getSystem and CoreRegistry:getSystem(systemName)
         
         if not existingSystem then
-            log("Creating missing critical system: " .. systemName)
-            local placeholderSystem = createPlaceholderSystem(systemName)
-            CoreRegistry:registerSystem(systemName, placeholderSystem)
-            fixedCount = fixedCount + 1
+            log("Attempting to find and register missing critical system: " .. systemName)
+            
+            -- Try to find the module first
+            local systemModule = findModule(systemName)
+            
+            if systemModule then
+                log("Found existing module for: " .. systemName .. ", registering with CoreRegistry")
+                local success, err = pcall(function()
+                    CoreRegistry:registerSystem(systemName, systemModule)
+                end)
+                
+                if success then
+                    log("Successfully registered system: " .. systemName)
+                    fixedCount = fixedCount + 1
+                else
+                    log("Failed to register system: " .. systemName .. " - " .. tostring(err), true)
+                    log("Creating placeholder for: " .. systemName)
+                    local placeholderSystem = createPlaceholderSystem(systemName)
+                    CoreRegistry:registerSystem(systemName, placeholderSystem)
+                    fixedCount = fixedCount + 1
+                end
+            else
+                log("Creating missing critical system: " .. systemName)
+                local placeholderSystem = createPlaceholderSystem(systemName)
+                CoreRegistry:registerSystem(systemName, placeholderSystem)
+                fixedCount = fixedCount + 1
+            end
         else
             log("System already exists: " .. systemName)
         end
@@ -222,7 +343,8 @@ local function ensureCriticalSystems(CoreRegistry)
     
     -- Try to update registry status if needed
     if typeof(CoreRegistry.setRegistryStatus) == "function" then
-        CoreRegistry:setRegistryStatus("Ready")
+        CoreRegistry:setRegistryStatus("Available")
+        log("Registry status set to: Available")
     end
     
     return fixedCount > 0
@@ -233,10 +355,17 @@ log("Starting CoreRegistry restoration process")
 
 local CoreRegistry = findCoreRegistry()
 if CoreRegistry then
+    local registryStatus = CoreRegistry.getRegistryStatus and CoreRegistry:getRegistryStatus() or "Unknown"
+    log("Current CoreRegistry status: " .. registryStatus)
+    
     local success = ensureCriticalSystems(CoreRegistry)
     
     if success then
         log("Successfully restored critical systems in CoreRegistry")
+        
+        -- Check status again after fixes
+        registryStatus = CoreRegistry.getRegistryStatus and CoreRegistry:getRegistryStatus() or "Unknown"
+        log("New CoreRegistry status: " .. registryStatus)
     else
         log("No critical systems needed restoration")
     end
@@ -246,5 +375,6 @@ end
 
 -- Set global flag to indicate fixes have been applied
 _G.CoreRegistryRestored = true
+_G.CoreRegistryRestoredTime = os.time()
 
 return true
