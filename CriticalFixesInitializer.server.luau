@@ -436,14 +436,13 @@ function ModuleLocatorService:init()
     
     for _, moduleName in ipairs(commonModules) do
         self:findModule(moduleName)
-    end
-    
-    log("ModuleLocatorService initialized")
+    end    log("ModuleLocatorService initialized")
     return self
 end
 
 return ModuleLocatorService:init()
 ]]
+
     moduleLocatorService.Parent = sharedFolder
     
     log("ModuleLocatorService created")
