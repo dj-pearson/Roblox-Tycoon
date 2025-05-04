@@ -1,0 +1,760 @@
+--!strict
+--[[
+    UIComponentDemo.client.luau
+    
+    A client script that demonstrates the UI Component System.
+    
+    Created: May 4, 2025
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+-- Get local player
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Import ModuleLoaderHelper
+local ModuleLoaderHelper = nil
+if ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("ModuleLoaderHelper") then
+    local success, result = pcall(function()
+        return require(ReplicatedStorage.shared.ModuleLoaderHelper)
+    end)
+    
+    if success and result then
+        ModuleLoaderHelper = result
+    else
+        warn("[UIComponentDemo] Failed to load ModuleLoaderHelper, using direct requires")
+    end
+end
+
+-- Load UI components
+local function loadModule(name)
+    if ModuleLoaderHelper then
+        return ModuleLoaderHelper.loadModule(name)
+    else
+        local path = ReplicatedStorage:FindFirstChild("shared")
+        for part in string.gmatch(name, "[^/]+") do
+            if path then
+                path = path:FindFirstChild(part)
+            end
+        end
+        
+        if path then
+            return require(path)
+        end
+    end
+    
+    return nil
+end
+
+-- Load required modules
+local UIComponentBase = loadModule("UI/UIComponentBase")
+local UIComponentRegistry = loadModule("UI/UIComponentRegistry")
+local UIStyleSystem = loadModule("UI/UIStyleSystem")
+local ButtonComponent = loadModule("UI/Components/ButtonComponent")
+local TextComponent = loadModule("UI/Components/TextComponent")
+local ContainerComponent = loadModule("UI/Components/ContainerComponent")
+local CardComponent = loadModule("UI/Components/CardComponent")
+local TabViewComponent = loadModule("UI/Components/TabViewComponent")
+local FormComponent = loadModule("UI/Components/FormComponent")
+local DialogSystem = loadModule("UI/DialogSystem")
+
+-- Forward declare functions needed by TabView
+local createButtonsDemo
+local createCardsDemo
+local createFormsDemo
+local createDialogsDemo
+
+-- Check if all modules are loaded
+if not (UIComponentBase and ButtonComponent and TextComponent and ContainerComponent 
+        and CardComponent and TabViewComponent and FormComponent and DialogSystem) then
+    error("[UIComponentDemo] Failed to load required modules")
+end
+
+-- Initialize the UI system
+local function init()
+    -- Create ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "UIComponentDemo"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = playerGui
+    
+    -- Set DialogSystem default parent
+    DialogSystem.config.defaultParent = screenGui
+    
+    -- Create main container
+    local mainContainer = ContainerComponent.new({
+        name = "MainContainer",
+        size = UDim2.new(0.8, 0, 0.8, 0),
+        position = UDim2.new(0.5, 0, 0.5, 0),
+        anchorPoint = Vector2.new(0.5, 0.5),
+        backgroundColor = Color3.fromRGB(40, 40, 60),
+        cornerRadius = 8,
+        padding = 16
+    })
+    
+    mainContainer:mount(screenGui)
+    
+    -- Create heading
+    local heading = TextComponent.new({
+        text = "UI Component System Demo",
+        textStyle = "heading1",
+        size = UDim2.new(1, 0, 0, 50),
+        position = UDim2.new(0, 0, 0, 0),
+        textColor = Color3.fromRGB(255, 255, 255)
+    })
+    
+    heading:mount(mainContainer:getInstance())
+    
+    -- Create TabView to demonstrate different components
+    local tabView = TabViewComponent.new({
+        size = UDim2.new(1, 0, 1, -60),
+        position = UDim2.new(0, 0, 0, 60),
+        tabPosition = "top",
+        tabSize = UDim2.new(0, 150, 0, 40),
+        tabs = {
+            {
+                id = "buttons",
+                title = "Buttons",
+                content = function() return createButtonsDemo() end
+            },
+            {
+                id = "cards",
+                title = "Cards",
+                content = function() return createCardsDemo() end
+            },
+            {
+                id = "forms",
+                title = "Forms",
+                content = function() return createFormsDemo() end
+            },
+            {
+                id = "dialogs",
+                title = "Dialogs",
+                content = function() return createDialogsDemo() end
+            }
+        }
+    })
+    
+    tabView:mount(mainContainer:getInstance())
+end
+
+-- Create buttons demo
+createButtonsDemo = function()
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 1, 0)
+    container.BackgroundTransparency = 1
+    
+    -- Create title
+    local title = TextComponent.new({
+        text = "Button Component Examples",
+        textStyle = "heading2",
+        size = UDim2.new(1, 0, 0, 40),
+        position = UDim2.new(0, 0, 0, 0)
+    })
+    
+    title:mount(container)
+    
+    -- Create button container
+    local buttonContainer = ContainerComponent.new({
+        size = UDim2.new(1, 0, 1, -50),
+        position = UDim2.new(0, 0, 0, 50),
+        padding = 16,
+        layoutType = "vertical",
+        layoutConfig = {
+            padding = 16,
+            alignment = "start"
+        }
+    })
+    
+    buttonContainer:mount(container)
+    
+    -- Create standard button
+    local standardButton = ButtonComponent.new({
+        text = "Standard Button",
+        size = UDim2.new(0, 200, 0, 50),
+        backgroundColor = Color3.fromRGB(0, 120, 215)
+    })
+    
+    standardButton:onClick(function()
+        print("Standard button clicked")
+        
+        -- Show success message
+        DialogSystem.alert("Button Clicked", "You clicked the standard button!", nil, {
+            confirmText = "Got it"
+        })
+    end)
+    
+    standardButton:mount(buttonContainer:getInstance())
+    
+    -- Create large button
+    local largeButton = ButtonComponent.new({
+        text = "Large Button with Icon",
+        size = UDim2.new(0, 250, 0, 60),
+        backgroundColor = Color3.fromRGB(0, 170, 85),
+        icon = "rbxassetid://6031068433", -- Example icon
+        cornerRadius = 8
+    })
+    
+    largeButton:onClick(function()
+        print("Large button clicked")
+    end)
+    
+    largeButton:mount(buttonContainer:getInstance())
+    
+    -- Create small button
+    local smallButton = ButtonComponent.new({
+        text = "Small",
+        size = UDim2.new(0, 100, 0, 30),
+        backgroundColor = Color3.fromRGB(200, 50, 50),
+        cornerRadius = 15 -- Fully rounded
+    })
+    
+    smallButton:mount(buttonContainer:getInstance())
+    
+    -- Create disabled button
+    local disabledButton = ButtonComponent.new({
+        text = "Disabled Button",
+        size = UDim2.new(0, 200, 0, 50),
+        backgroundColor = Color3.fromRGB(100, 100, 120),
+        enabled = false
+    })
+    
+    disabledButton:mount(buttonContainer:getInstance())
+    
+    -- Create row of buttons
+    local buttonRow = ContainerComponent.new({
+        size = UDim2.new(1, 0, 0, 50),
+        layoutType = "horizontal",
+        layoutConfig = {
+            padding = 16,
+            alignment = "center"
+        }
+    })
+    
+    buttonRow:mount(buttonContainer:getInstance())
+    
+    -- Add buttons to row
+    for i = 1, 3 do
+        local button = ButtonComponent.new({
+            text = "Button " .. i,
+            size = UDim2.new(0, 120, 0, 40),
+            backgroundColor = Color3.fromRGB(80, 80, 180)
+        })
+        
+        button:mount(buttonRow:getInstance())
+    end
+    
+    return container
+end
+
+-- Create cards demo
+createCardsDemo = function()
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 1, 0)
+    container.BackgroundTransparency = 1
+    
+    -- Create title
+    local title = TextComponent.new({
+        text = "Card Component Examples",
+        textStyle = "heading2",
+        size = UDim2.new(1, 0, 0, 40),
+        position = UDim2.new(0, 0, 0, 0)
+    })
+    
+    title:mount(container)
+    
+    -- Create card container
+    local cardContainer = ContainerComponent.new({
+        size = UDim2.new(1, 0, 1, -50),
+        position = UDim2.new(0, 0, 0, 50),
+        padding = 16,
+        layoutType = "vertical",
+        layoutConfig = {
+            padding = 24,
+            alignment = "start"
+        }
+    })
+    
+    cardContainer:mount(container)
+    
+    -- Create a basic card
+    local basicCard = CardComponent.new({
+        title = "Basic Card",
+        size = UDim2.new(1, 0, 0, 150),
+        backgroundColor = Color3.fromRGB(60, 60, 80),
+        borderColor = Color3.fromRGB(80, 80, 100),
+        shadow = true
+    })
+    
+    basicCard:mount(cardContainer:getInstance())
+    
+    -- Create a card with content
+    local contentCard = CardComponent.new({
+        title = "Card with Content",
+        description = "This card includes additional content and a description.",
+        size = UDim2.new(1, 0, 0, 200),
+        backgroundColor = Color3.fromRGB(60, 60, 80),
+        borderColor = Color3.fromRGB(80, 80, 100),
+        shadow = true
+    })
+    
+    -- Add content to the card
+    local contentText = TextComponent.new({
+        text = "Cards can contain any UI components, including text, buttons, and more.",
+        textColor = Color3.fromRGB(220, 220, 220),
+        size = UDim2.new(1, 0, 0, 60),
+        wordWrap = true
+    })
+    
+    contentText:mount(contentCard:getContentInstance())
+    
+    -- Add a button to the card
+    local cardButton = ButtonComponent.new({
+        text = "Card Action",
+        size = UDim2.new(0, 120, 0, 30),
+        backgroundColor = Color3.fromRGB(80, 100, 160)
+    })
+    
+    cardButton:mount(contentCard:getContentInstance())
+    
+    contentCard:mount(cardContainer:getInstance())
+    
+    -- Create a clickable card
+    local clickableCard = CardComponent.new({
+        title = "Clickable Card",
+        description = "Click this card to trigger an action",
+        size = UDim2.new(1, 0, 0, 150),
+        backgroundColor = Color3.fromRGB(60, 70, 90),
+        borderColor = Color3.fromRGB(80, 90, 120),
+        shadow = true,
+        isClickable = true,
+        hoverColor = Color3.fromRGB(70, 80, 100)
+    })
+    
+    -- Handle card click
+    clickableCard:onClick(function()
+        print("Clickable card clicked")
+        
+        -- Show dialog
+        DialogSystem.alert("Card Clicked", "You clicked on the clickable card!")
+    end)
+    
+    clickableCard:mount(cardContainer:getInstance())
+    
+    return container
+end
+
+-- Create forms demo
+createFormsDemo = function()
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 1, 0)
+    container.BackgroundTransparency = 1
+    
+    -- Create title
+    local title = TextComponent.new({
+        text = "Form Component Examples",
+        textStyle = "heading2",
+        size = UDim2.new(1, 0, 0, 40),
+        position = UDim2.new(0, 0, 0, 0)
+    })
+    
+    title:mount(container)
+    
+    -- Create form container
+    local formContainer = ContainerComponent.new({
+        size = UDim2.new(1, 0, 1, -50),
+        position = UDim2.new(0, 0, 0, 50),
+        padding = 16,
+        layoutType = "vertical",
+        layoutConfig = {
+            padding = 24,
+            alignment = "start"
+        }
+    })
+    
+    formContainer:mount(container)
+    
+    -- Create a login form
+    local loginForm = FormComponent.new({
+        title = "Login Form",
+        size = UDim2.new(1, 0, 0, 250),
+        backgroundColor = Color3.fromRGB(60, 60, 80),
+        fields = {
+            {
+                name = "username",
+                label = "Username",
+                type = "text",
+                placeholder = "Enter your username",
+                required = true
+            },
+            {
+                name = "password",
+                label = "Password",
+                type = "password",
+                placeholder = "Enter your password",
+                required = true
+            },
+            {
+                name = "remember",
+                label = "Remember me",
+                type = "checkbox",
+                defaultValue = false
+            }
+        },
+        submitText = "Login",
+        cancelText = "Cancel"
+    })
+    
+    loginForm:onSubmit(function(formData)
+        print("Login form submitted with username:", formData.username)
+        
+        -- Show success message
+        DialogSystem.alert("Form Submitted", "Login details submitted successfully!", nil, {
+            confirmText = "OK",
+            backgroundColor = Color3.fromRGB(50, 150, 50)
+        })
+    end)
+    
+    loginForm:mount(formContainer:getInstance())
+    
+    -- Create a registration form
+    local registrationForm = FormComponent.new({
+        title = "Registration Form",
+        size = UDim2.new(1, 0, 0, 400),
+        backgroundColor = Color3.fromRGB(60, 60, 80),
+        fields = {
+            {
+                name = "username",
+                label = "Username",
+                type = "text",
+                placeholder = "Choose a username",
+                required = true,
+                validation = function(value)
+                    if #value < 3 then
+                        return false, "Username must be at least 3 characters"
+                    end
+                    return true
+                end
+            },
+            {
+                name = "email",
+                label = "Email",
+                type = "text",
+                placeholder = "Enter your email",
+                required = true,
+                validation = function(value)
+                    if not string.find(value, "@") then
+                        return false, "Please enter a valid email address"
+                    end
+                    return true
+                end
+            },
+            {
+                name = "password",
+                label = "Password",
+                type = "password",
+                placeholder = "Choose a password",
+                required = true,
+                validation = function(value)
+                    if #value < 6 then
+                        return false, "Password must be at least 6 characters"
+                    end
+                    return true
+                end
+            },
+            {
+                name = "confirmPassword",
+                label = "Confirm Password",
+                type = "password",
+                placeholder = "Confirm your password",
+                required = true,
+                validation = function(value, formData)
+                    if value ~= formData.password then
+                        return false, "Passwords do not match"
+                    end
+                    return true
+                end
+            },
+            {
+                name = "age",
+                label = "Age",
+                type = "number",
+                min = 0,
+                max = 120,
+                defaultValue = 18
+            },
+            {
+                name = "terms",
+                label = "I agree to the terms and conditions",
+                type = "checkbox",
+                required = true
+            }
+        },
+        submitText = "Register",
+        cancelText = "Cancel"
+    })
+    
+    registrationForm:onSubmit(function(formData)
+        print("Registration form submitted for:", formData.username)
+        
+        -- Show success message
+        DialogSystem.alert("Registration Complete", "Account created successfully!", nil, {
+            confirmText = "OK",
+            backgroundColor = Color3.fromRGB(50, 150, 50)
+        })
+    end)
+    
+    registrationForm:onValidationFailed(function(errors)
+        local errorMessages = "Please correct the following errors:\n\n"
+        
+        for i, error in ipairs(errors) do
+            if i <= 3 then
+                errorMessages ..= "• " .. error.message .. "\n"
+            else
+                errorMessages ..= "• ...and other fields have errors"
+                break
+            end
+        end
+        
+        DialogSystem.alert("Validation Error", errorMessages, nil, {
+            confirmText = "OK",
+            backgroundColor = Color3.fromRGB(180, 50, 50),
+            width = 450
+        })
+    end)
+    
+    registrationForm:mount(formContainer:getInstance())
+    
+    return container
+end
+
+-- Create dialogs demo
+createDialogsDemo = function()
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 1, 0)
+    container.BackgroundTransparency = 1
+    
+    -- Create title
+    local title = TextComponent.new({
+        text = "Dialog System Examples",
+        textStyle = "heading2",
+        size = UDim2.new(1, 0, 0, 40),
+        position = UDim2.new(0, 0, 0, 0)
+    })
+    
+    title:mount(container)
+    
+    -- Create button container
+    local buttonContainer = ContainerComponent.new({
+        size = UDim2.new(1, 0, 1, -50),
+        position = UDim2.new(0, 0, 0, 50),
+        padding = 16,
+        layoutType = "vertical",
+        layoutConfig = {
+            padding = 16,
+            alignment = "start"
+        }
+    })
+    
+    buttonContainer:mount(container)
+    
+    -- Create alert dialog button
+    local alertButton = ButtonComponent.new({
+        text = "Show Alert Dialog",
+        size = UDim2.new(0, 200, 0, 50),
+        backgroundColor = Color3.fromRGB(0, 120, 215)
+    })
+    
+    alertButton:onClick(function()
+        DialogSystem.alert("Alert", "This is a simple alert dialog with a message.", nil, {
+            confirmText = "OK"
+        })
+    end)
+    
+    alertButton:mount(buttonContainer:getInstance())
+    
+    -- Create confirm dialog button
+    local confirmButton = ButtonComponent.new({
+        text = "Show Confirm Dialog",
+        size = UDim2.new(0, 200, 0, 50),
+        backgroundColor = Color3.fromRGB(0, 170, 85)
+    })
+    
+    confirmButton:onClick(function()
+        DialogSystem.confirm(
+            "Confirm", 
+            "Would you like to proceed with this action?",
+            function(confirmed)
+                if confirmed then
+                    print("User confirmed action")
+                    DialogSystem.alert("Action Confirmed", "You confirmed the action!")
+                else
+                    print("User cancelled action")
+                end
+            end,
+            {
+                confirmText = "Yes, proceed",
+                cancelText = "No, cancel",
+                confirmColor = Color3.fromRGB(0, 170, 85)
+            }
+        )
+    end)
+    
+    confirmButton:mount(buttonContainer:getInstance())
+    
+    -- Create input dialog button
+    local inputButton = ButtonComponent.new({
+        text = "Show Input Dialog",
+        size = UDim2.new(0, 200, 0, 50),
+        backgroundColor = Color3.fromRGB(170, 85, 0)
+    })
+    
+    inputButton:onClick(function()
+        DialogSystem.prompt(
+            "Input Required", 
+            "Please enter your nickname:",
+            function(result, value)
+                if result then
+                    DialogSystem.alert("Thanks!", "You entered: " .. value)
+                    print("User entered:", value)
+                else
+                    print("User cancelled input dialog")
+                end
+            end,
+            {
+                placeholder = "Enter nickname here",
+                confirmText = "Submit",
+                cancelText = "Cancel"
+            }
+        )
+    end)
+    
+    inputButton:mount(buttonContainer:getInstance())
+    
+    -- Create custom dialog section
+    local customSection = CardComponent.new({
+        title = "Custom Dialog Example",
+        description = "Create a more complex dialog with custom content",
+        size = UDim2.new(1, 0, 0, 150),
+        backgroundColor = Color3.fromRGB(60, 60, 80),
+        padding = 16
+    })
+    
+    -- Add custom dialog button
+    local customButton = ButtonComponent.new({
+        text = "Show Custom Dialog",
+        size = UDim2.new(0, 200, 0, 50),
+        backgroundColor = Color3.fromRGB(120, 80, 160)
+    })
+    
+    customButton:onClick(function()
+        -- Create a custom dialog with multiple elements
+        local dialog = DialogSystem.custom({
+            title = "Custom Dialog",
+            width = 500,
+            height = 400,
+            backgroundColor = Color3.fromRGB(50, 50, 70),
+            closeButton = true
+        })
+        
+        -- Add content to the dialog
+        local content = dialog:getContentInstance()
+        
+        -- Add heading
+        local heading = TextComponent.new({
+            text = "Dialog with Custom Content",
+            textStyle = "heading2",
+            size = UDim2.new(1, 0, 0, 40),
+            position = UDim2.new(0, 0, 0, 0)
+        })
+        
+        heading:mount(content)
+        
+        -- Add description
+        local description = TextComponent.new({
+            text = "This is a custom dialog with multiple components. You can add any UI components you need.",
+            size = UDim2.new(1, 0, 0, 60),
+            position = UDim2.new(0, 0, 0, 50),
+            wordWrap = true
+        })
+        
+        description:mount(content)
+        
+        -- Add image (placeholder)
+        local imagePlaceholder = Instance.new("Frame")
+        imagePlaceholder.Size = UDim2.new(0.5, 0, 0, 120)
+        imagePlaceholder.Position = UDim2.new(0.25, 0, 0, 120)
+        imagePlaceholder.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+        
+        local corner = Instance.new("UICorner", imagePlaceholder)
+        corner.CornerRadius = UDim.new(0, 8)
+        
+        local label = Instance.new("TextLabel", imagePlaceholder)
+        label.Text = "Image Placeholder"
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(200, 200, 200)
+        label.Font = Enum.Font.GothamMedium
+        label.TextSize = 14
+        
+        imagePlaceholder.Parent = content
+        
+        -- Add buttons at the bottom
+        local buttonContainer = ContainerComponent.new({
+            size = UDim2.new(1, 0, 0, 50),
+            position = UDim2.new(0, 0, 0, 260),
+            layoutType = "horizontal",
+            layoutConfig = {
+                padding = 16,
+                alignment = "center"
+            }
+        })
+        
+        buttonContainer:mount(content)
+        
+        -- Add action button
+        local actionButton = ButtonComponent.new({
+            text = "Perform Action",
+            size = UDim2.new(0, 150, 0, 40),
+            backgroundColor = Color3.fromRGB(80, 100, 160)
+        })
+        
+        actionButton:onClick(function()
+            print("Custom dialog action button clicked")
+            dialog:close()
+            
+            -- Show follow-up dialog
+            DialogSystem.alert("Action Performed", "Your action was performed successfully!")
+        end)
+        
+        actionButton:mount(buttonContainer:getInstance())
+        
+        -- Add cancel button
+        local cancelButton = ButtonComponent.new({
+            text = "Cancel",
+            size = UDim2.new(0, 100, 0, 40),
+            backgroundColor = Color3.fromRGB(120, 120, 140)
+        })
+        
+        cancelButton:onClick(function()
+            print("Custom dialog cancelled")
+            dialog:close()
+        end)
+        
+        cancelButton:mount(buttonContainer:getInstance())
+    end)
+    
+    customButton:mount(customSection:getInstance():WaitForChild("Content"))
+    customSection:mount(buttonContainer:getInstance())
+    
+    return container
+end
+
+-- Initialize when player is ready
+if player.Character or player.CharacterAdded:Wait() then
+    init()
+    print("UI Component Demo initialized")
+end

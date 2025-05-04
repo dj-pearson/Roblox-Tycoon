@@ -437,11 +437,11 @@ local repairs = {
         
         -- Check if CoreRegistry exists
         local coreRegistryPath = ServerScriptService.Core and ServerScriptService.Core:FindFirstChild("CoreRegistry")
-        
-        -- If CoreRegistry exists but has issues, try to reload it
+          -- If CoreRegistry exists but has issues, try to reload it
         if coreRegistryPath and coreRegistryPath:IsA("ModuleScript") then
             log("Reloading CoreRegistry module")            
-            -- Clear from cache to force reload            local reloadSuccess = pcall(function()
+            -- Clear from cache to force reload            
+            local reloadSuccess = pcall(function()
                 -- Using _G as a cache instead of package.loaded
                 _G.moduleCache = _G.moduleCache or {}
                 _G.moduleCache[coreRegistryPath:GetFullName()] = nil
@@ -462,11 +462,11 @@ local repairs = {
             if requireSuccess and monitor and monitor.checkNow then
                 log("Using CoreRegistryMonitor to check registry")
                 local status = monitor.checkNow()
-                log("CoreRegistry status:", status)
-            end
+                log("CoreRegistry status:", status)            end
         end
     end,
-      DataPersistence = function(results)
+    
+    DataPersistence = function(results)
         log("Attempting to fix DataPersistence issues")
         
         -- First try to use DataSystemIntegration if available
@@ -568,8 +568,7 @@ local repairs = {
                 end
             end
         else
-            log("No data manager module found to repair")
-        end
+            log("No data manager module found to repair")        end
     end,
     
     BuyTileSystem = function(results)
@@ -639,8 +638,7 @@ local repairs = {
                     model:SetAttribute("ID", id)
                     model.Parent = gymPartsFolder
                 end
-            end
-        end
+            end        end
     end,
     
     FolderStructure = function(results)
