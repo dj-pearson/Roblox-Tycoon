@@ -322,56 +322,24 @@ local function createAdminButton()
                         -- Try with the specific remote function
                         local assignPrimaryPartsRemote = game:GetService("ReplicatedStorage"):FindFirstChild("AssignPrimaryPartsRemote")
                         if assignPrimaryPartsRemote and assignPrimaryPartsRemote:IsA("RemoteFunction") then
-                            success, result = pcall(function()
+                            success, commandResult = pcall(function()
                                 return assignPrimaryPartsRemote:InvokeServer()
                             end)
-                            log("AssignPrimaryParts remote call - success: " .. tostring(success) .. ", result: " .. tostring(result))
+                            log("AssignPrimaryParts remote call - success: " .. tostring(success) .. ", result: " .. tostring(commandResult))
                         else
-                            log("AssignPrimaryPartsRemote not found, trying direct implementation")
-                            
-                            -- Try to execute a direct implementation for primary part assignment
-                            success, result = pcall(function()
-                                local targetFolder = workspace:FindFirstChild("GymParts")
-                                if not targetFolder then
-                                    return "GymParts folder not found"
-                                end
-                                
-                                local modelsProcessed = 0
-                                local modelsUpdated = 0
-                                
-                                local function processPart(model)
-                                    if not model:IsA("Model") then return false end
-                                    modelsProcessed = modelsProcessed + 1
-                                    
-                                    if model.PrimaryPart then return false end
-                                    
-                                    local modelCFrame, modelSize = model:GetBoundingBox()
-                                    local refPart = Instance.new("Part")
-                                    refPart.Name = "PrimaryReference"
-                                    refPart.Size = Vector3.new(1, 1, 1)
-                                    refPart.Transparency = 1
-                                    refPart.CanCollide = false
-                                    refPart.Anchored = true
-                                    refPart.CFrame = modelCFrame
-                                    refPart.Parent = model
-                                    model.PrimaryPart = refPart
-                                    
-                                    modelsUpdated = modelsUpdated + 1
-                                    return true
-                                end
-                                
-                                for _, child in pairs(targetFolder:GetChildren()) do
-                                    if child:IsA("Model") then
-                                        processPart(child)
-                                    end
-                                end
-                                
-                                return "Processed " .. modelsProcessed .. " models, added primary parts to " .. modelsUpdated
-                            end)
+                            log("AssignPrimaryPartsRemote not found")
                         end
                     end
                 end
-                end
+                    -- Try with the specific remote function
+                    local assignPrimaryPartsRemote = game:GetService("ReplicatedStorage"):FindFirstChild("AssignPrimaryPartsRemote")
+                    if assignPrimaryPartsRemote and assignPrimaryPartsRemote:IsA("RemoteFunction") then
+                        success, commandResult = pcall(function()
+                            return assignPrimaryPartsRemote:InvokeServer()
+                        end)
+                        print("Method 4 (specific command) result - success:", success, "result:", commandResult)
+                    end
+                end,
                 
                 -- Process result and provide feedback
                 status:Destroy()

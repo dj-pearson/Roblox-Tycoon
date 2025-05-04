@@ -388,6 +388,20 @@ _G.SyncGymStructure(true)
 
 Commands for validating models in the gym tycoon and identifying potential issues.
 
+### `_G.AssignPrimaryParts(folderName)`
+
+Adds invisible primary parts to all models that don't have one. This ensures that models can be properly manipulated (moved, cloned, etc.) within Roblox.
+
+**Parameters:**
+- `folderName` (string, optional): Name of the folder containing models to process. Defaults to "GymParts" if not provided.
+
+**Example:**
+```lua
+_G.AssignPrimaryParts("GymParts")
+```
+
+**Returns:** A string indicating how many models were processed and how many had primary parts added.
+
 ### `_G.ValidateGymModels(tycoonName)`
 
 Validates all models in a tycoon for common issues including missing PrimaryPart, unanchored parts, excessive part counts, naming convention violations, and missing required attributes.
