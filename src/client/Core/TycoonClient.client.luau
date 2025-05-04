@@ -123,7 +123,7 @@ end
 function TycoonClient:createInteractionUI()
     -- Create the interaction prompt
     local prompt = Instance.new("BillboardGui")
-    prompt.Name = "InteractionPrompt"
+    prompt.Name = "TycoonInteractionPrompt" -- Changed from InteractionPrompt to be more specific
     prompt.Size = UDim2.new(0, 200, 0, 50)
     prompt.StudsOffset = Vector3.new(0, 2, 0)
     prompt.AlwaysOnTop = true
@@ -195,18 +195,18 @@ function TycoonClient:createMobileInteractionButton()
     corner.CornerRadius = UDim.new(1, 0) -- Make it circular
     corner.Parent = button
     
-    -- Add label
-    local label = Instance.new("TextLabel")
-    label.Name = "Label"
-    label.Size = UDim2.new(1, 0, 0, 20)
-    label.Position = UDim2.new(0, 0, 1, 5)
-    label.AnchorPoint = Vector2.new(0, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = CONFIG.textColor
-    label.TextSize = 14
-    label.Font = Enum.Font.GothamBold
-    label.Text = "Interact"
-    label.Parent = button
+    -- Add label with safe name
+    local buttonLabel = Instance.new("TextLabel")
+    buttonLabel.Name = "InteractButtonLabel" -- Safe name, NOT "Label"
+    buttonLabel.Size = UDim2.new(1, 0, 0, 20)
+    buttonLabel.Position = UDim2.new(0, 0, 1, 5)
+    buttonLabel.AnchorPoint = Vector2.new(0, 0)
+    buttonLabel.BackgroundTransparency = 1
+    buttonLabel.TextColor3 = CONFIG.textColor
+    buttonLabel.TextSize = 14
+    buttonLabel.Font = Enum.Font.GothamBold
+    buttonLabel.Text = "Interact"
+    buttonLabel.Parent = button
     
     -- Connect button
     button.MouseButton1Click:Connect(function()

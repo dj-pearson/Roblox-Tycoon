@@ -1,4 +1,4 @@
-luau
+--luau
 --!strict
 --[[
     DataMenuUI.client.luau

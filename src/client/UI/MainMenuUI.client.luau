@@ -130,24 +130,36 @@ function MainMenuUI:CreateMainMenu()
     
     -- Store for future reference
     uiState.menuElements.background = background
-    
-    -- Create logo/title at top
+      -- Create logo/title at top
     local logoContainer = Instance.new("Frame")
     logoContainer.Name = "LogoContainer"
-    logoContainer.Size = UDim2.new(1, 0, 0, 120)
-    logoContainer.Position = UDim2.new(0, 0, 0, 50)
+    logoContainer.Size = UDim2.new(0.4, 0, 0, 120)
+    logoContainer.Position = UDim2.new(0.3, 0, 0, 0) -- Moved to top, horizontally centered
     logoContainer.BackgroundTransparency = 1
     logoContainer.Parent = background
     
-    local gameTitle = Instance.new("TextLabel")
-    gameTitle.Name = "GameTitle"
-    gameTitle.Size = UDim2.new(1, 0, 1, 0)
-    gameTitle.BackgroundTransparency = 1
-    gameTitle.Font = UIStyle.Fonts.Title
-    gameTitle.TextSize = 60
-    gameTitle.TextColor3 = UIStyle.Colors.Text
-    gameTitle.Text = "GYM TYCOON"
-    gameTitle.Parent = logoContainer
+    -- Check if the game logo already exists elsewhere and skip creating the title text if it does
+    local existingLogo = false
+    for _, child in pairs(background:GetChildren()) do
+        if child:IsA("ImageLabel") and child.Name == "GameLogo" then
+            existingLogo = true
+            break
+        end
+    end
+    
+    -- Only create title if no logo exists
+    if not existingLogo then
+        local gameTitle = Instance.new("TextLabel")
+        gameTitle.Name = "GameTitle"
+        gameTitle.Size = UDim2.new(1, 0, 1, 0)
+        gameTitle.BackgroundTransparency = 1
+        gameTitle.Font = UIStyle.Fonts.Title
+        gameTitle.TextSize = 48 -- Slightly smaller
+        gameTitle.TextColor3 = UIStyle.Colors.Text
+        gameTitle.Text = "GYM TYCOON"
+        gameTitle.Visible = false -- Hide title text to fix issue
+        gameTitle.Parent = logoContainer
+    end
     
     -- Create player profile section (top-left corner)
     local profileContainer = Instance.new("Frame")

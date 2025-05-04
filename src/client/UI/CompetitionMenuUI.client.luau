@@ -1,4 +1,3 @@
-luau
 --!strict
 --[[
     CompetitionMenuUI.client.luau

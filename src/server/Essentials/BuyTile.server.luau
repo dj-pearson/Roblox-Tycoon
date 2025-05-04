@@ -155,15 +155,20 @@ end
 
 -- Function to create a BillboardGui for a BuyTile
 local function createBillboardGui(buyTilePart, name, price)
-	-- Remove any existing BillboardGui
-	local existingBillboard = buyTilePart:FindFirstChild("BillboardGui")
-	if existingBillboard then
-		existingBillboard:Destroy()
+	-- Remove any existing BillboardGui or Label GUIs
+	for _, child in pairs(buyTilePart:GetChildren()) do
+		if child:IsA("BillboardGui") or child:IsA("SurfaceGui") then
+			-- Keep track of found objects for debugging
+			if child.Name == "Label" then
+				print("Found and removed a Label GUI from BuyTile: " .. name)
+			end
+			child:Destroy()
+		end
 	end
 
-	-- Create new BillboardGui
+	-- Create new BillboardGui with a specific name (NOT "Label")
 	local billboardGui = Instance.new("BillboardGui")
-	billboardGui.Name = "BillboardGui"
+	billboardGui.Name = "BuyTileDisplay"  -- Changed name to avoid conflict
 	billboardGui.Size = UDim2.new(4, 0, 2, 0)
 	billboardGui.StudsOffset = Vector3.new(0, 2, 0)
 	billboardGui.AlwaysOnTop = true
@@ -506,7 +511,11 @@ local function setupFrontDeskGUI(frontDesk, player)
 	billboardGui.Adornee = mainPart
 	billboardGui.Active = true
 	billboardGui.ClipsDescendants = true
-	billboardGui.Parent = mainPart
+	
+	-- Safety check: Only parent if not destroyed (in case of Label prevention)
+	if billboardGui and billboardGui.Parent == nil then
+		billboardGui.Parent = mainPart
+	end
 
 	-- Create frame with black background and yellow border
 	local frame = Instance.new("Frame")

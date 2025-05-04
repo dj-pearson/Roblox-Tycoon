@@ -1,4 +1,4 @@
-luau
+--luau
 -- LeaderboardMenuUI.client.luau
 -- Script for the main Leaderboard menu
 

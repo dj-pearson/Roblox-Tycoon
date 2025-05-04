@@ -1,4 +1,5 @@
-{  "name": "Roblox Scripts",
+{
+  "name": "Roblox Scripts",
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
