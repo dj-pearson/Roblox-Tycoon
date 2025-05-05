@@ -285,6 +285,25 @@ This section groups scripts that serve similar functions across different direct
 
 # Consolidation Progress Summary
 
+# Consolidation Candidates
+This section lists the files identified for consolidation or migration, categorized by system.
+
+## UI System Consolidation Candidates
+-   `src/StarterGui/RebirthUI.client.luau`
+-   `src/StarterGui/RebirthUIFixes.luau`
+-   `src/StarterGui/RebirthUI_Enhanced.client.luau`
+-   `src/StarterGui/RebirthMenuUI.client.luau`
+-   `src/StarterGui/MainMenuUI.client.luau`
+-   `src/StarterGui/SettingsUI.client.luau`
+-   `src/shared/SettingsMenu.luau`
+-   `src/StarterGui/StatsGui.client.luau`
+## Core System Consolidation Candidates
+-   `src/client/Core/ClientRegistry.client.luau`
+-   `src/client/Core/ClientRegistryFixer.client.luau`
+-   `src/server/Core/CoreRegistry.server.luau`
+-   `src/server/Core/CoreRegistryInitializer.server.luau`
+-   `src/shared/ClientRegistry.lua`
+
 ## April 2025 Milestones
 
 ### April 27, 2025 - Registry System Implementation
@@ -728,6 +747,39 @@ Based on our review of the project structure, we've identified several areas wit
    - June 16, 2025: Full deployment and cleanup
 
 ## Overall Consolidation Process
+
+# UI System Consolidation Steps
+
+1.  **Design and Implement UIBootstrapper:**
+    *   Define the structure and responsibilities of the `UIBootstrapper`.
+    *   Implement the core logic for loading, displaying, and managing different UI screens/components.
+    *   Establish a mechanism for communication between the `UIBootstrapper` and individual UI components.
+2.  **Refactor Shared UI Components:**
+    *   Review and standardize the existing shared UI components (`UIStyle`, `ButtonFactory`, etc.).
+    *   Ensure components are flexible and reusable across different UI screens.
+    *   Identify and consolidate any duplicate or similar UI component logic.
+3.  **Consolidate Rebirth UI:**
+    *   Create a new, unified `RebirthUI` component or system.
+    *   Migrate the relevant UI elements and logic from `RebirthUI.client.luau`, `RebirthUIFixes.luau`, `RebirthUI_Enhanced.client.luau`, and `RebirthMenuUI.client.luau` into the new component.
+    *   Ensure the new `RebirthUI` interacts correctly with the server-side `RebirthSystem` via the `EventBridge`.
+4.  **Integrate Main Menu UI:**
+    *   Refactor `MainMenuUI.client.luau` to function as a component managed by the `UIBootstrapper`.
+    *   Update its logic to interact with other consolidated UI components (e.g., opening the Settings UI or the new Rebirth UI through the `UIBootstrapper`).
+5.  **Integrate Settings UI:**
+    *   Refactor `SettingsUI.client.luau` to function as a component managed by the `UIBootstrapper`.
+    *   Ensure its settings controls correctly update game settings (client-side or via server events as needed).
+6.  **Integrate Other UI Candidates:**
+    *   Gradually integrate the other UI consolidation candidates listed in `Structure.md` (e.g., `StatsGui.client.luau`) into the `UIBootstrapper` system.
+    *   Refactor them as needed to fit the component pattern.
+7.  **Update UI Workflows:**
+    *   Adjust the game's client-side scripts to use the `UIBootstrapper` for managing UI screens instead of directly creating and managing individual UIs.
+8.  **Testing and Refinement:**
+    *   Thoroughly test all consolidated UI elements and workflows to ensure they function correctly and without conflicts.
+    *   Address any bugs or inconsistencies found.
+    *   Optimize performance and responsiveness of the UI.
+9.  **Documentation and Cleanup:**
+    *   Update documentation (including `Structure.md`) to reflect the new UI architecture.
+    *   Remove all deprecated and unused UI scripts and code.
 
 Each system consolidation will follow this general process:
 
