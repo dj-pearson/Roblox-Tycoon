@@ -16,12 +16,14 @@ local SchemaEditor = require(script.Parent.SchemaEditor)
 local SchemaVersionViewer = require(script.Parent.SchemaVersionViewer)
 local generateSchemaFromData = require(script.Parent.generateSchemaFromData)
 local SchemaVisualIndicator = require(script.Parent.SchemaVisualIndicator)
+local SessionManagementUI = require(script.Parent.SessionManagementUI)
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
 DataExplorer.sessionId = HttpService:GenerateGUID()
 
 DataExplorer.lockStatusUI = {}
+DataExplorer.sessionManagementUI = nil -- Add a reference for the session management UI
 
 -- Local helper to avoid repetition
 DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel
@@ -371,8 +373,8 @@ function DataExplorer.initBulkOperationsUI()
                 schemaBuilderButton.Text = "Schema Builder"
                 schemaBuilderButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
             end
-        end
-    end)
+        end)
+    end
     
     -- Add Schema Builder button
     local schemaBuilderButton = Instance.new("TextButton")
@@ -429,7 +431,6 @@ function DataExplorer.initBulkOperationsUI()
             bulkOperationsButton.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
         end
     end)
-end
 
 
 
