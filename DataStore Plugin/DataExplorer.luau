@@ -318,121 +318,1070 @@ RunService.Heartbeat:Connect(DataExplorer.updateCacheViewerUI)
 
 
 function DataExplorer.displayKeyContent(dataStoreName: string, keyName: string)
-    local lockAcquired = SessionManager.acquireLock(dataStoreName, keyName, DataExplorer.sessionId)
-
-
-
-    if not contentPane then return end    
-
-    -- Retrieve schema if exists for current datastore/key
-    local currentSchema = SchemaManager.loadSchema(dataStoreName, keyName)
-
-
-    if currentSchema then
-        -- Create a validation message label
-        local validationMessageLabel = Instance.new("TextLabel")
-        validationMessageLabel.Name = "ValidationMessage"
-        validationMessageLabel.Size = UDim2.new(1, 0, 0, 30)
-        validationMessageLabel.Position = UDim2.new(0, 10, 0, 0)
-        validationMessageLabel.BackgroundColor3 = Color3.new(1, 1, 1)
-        validationMessageLabel.TextColor3 = Color3.new(1, 0, 0)
-        validationMessageLabel.Visible = false
-        validationMessageLabel.Parent = contentPane
-    end
-
-    local saveButton = Instance.new("TextButton")
-    saveButton.Size = UDim2.new(0, 100, 0, 30)
-    saveButton.Position = UDim2.new(1, -100, 0, 0)
-    saveButton.Text = "Save"   
-    saveButton.BackgroundColor3 = Color3.new(0.2, 0.6, 0.2)
-    saveButton.TextColor3 = Color3.new(1, 1, 1)
-    saveButton.Parent = contentPane
-
+    local contentPane = DataExplorer.contentPane
+    if not contentPane then return end
+    
     -- Clear the content pane
     for _, child in ipairs(contentPane:GetChildren()) do
         child:Destroy()
     end
+    
+    -- Attempt to acquire a lock for reading/editing
+    local lockAcquired = SessionManager.acquireLock(dataStoreName, keyName, DataExplorer.sessionId)
     if not lockAcquired then
-        local lockedLabel = createLabel("Locked by another user", contentPane)        
-        lockedLabel.Parent = contentPane
-    end
-    local dataStore = DataStoreService:GetDataStore(dataStoreName)
-
-    local success, data, operationDuration = PerformanceMonitor.timeOperation("GetAsync", function() return pcall(dataStore.GetAsync, dataStore, keyName) end)
-    -- Check cache before fetching from DataStore
-    data = CacheManager.get(dataStoreName, keyName) or data
-    if success and data then
-        -- Convert data to a JSON-encoded string for editing
-        local encodedData = HttpService:JSONEncode(data)
-
-        -- Create a TextBoxes for editing the data
+        -- Create a locked notification
+        local lockNotification = Instance.new("Frame")
+        lockNotification.Size = UDim2.new(1, 0, 0, 40)
+        lockNotification.Position = UDim2.new(0, 0, 0, 0)
+        lockNotification.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+        lockNotification.BackgroundTransparency = 0.2
+        lockNotification.BorderSizePixel = 0
+        lockNotification.Parent = contentPane
         
-        -- Add save Button
-        local function saveData()
-            local dataTextBox = contentPane:FindFirstChild("DataTextBox")   
-            if not dataTextBox then return end
-
-            local validationMessageLabel = contentPane:FindFirstChild("ValidationMessage")
-            local success, decodedData = pcall(HttpService.JSONDecode, HttpService, dataTextBox.Text)
-            
-            -- Validate data before saving            
-            if currentSchema then
-                local validationError = SchemaManager.validateData(decodedData, currentSchema)
-                if validationError then
-                    if validationMessageLabel then
-                        validationMessageLabel.Visible = true
-                        validationMessageLabel.Text = "Data validation failed: " .. validationError
-                    end
-                    return 
-                end
-            end
-            if success then
-                local success2, _, operationDuration2 = PerformanceMonitor.timeOperation("SetAsync", function() return pcall(dataStore.SetAsync, dataStore, keyName, decodedData) end)
-                print("Operation: SetAsync, Duration:", operationDuration2)
-                CacheManager.invalidate(dataStoreName, keyName)
-
-
-
-
-            else
-                warn("Invalid JSON: ", decodedData)
-                if validationMessageLabel then
-                    validationMessageLabel.Visible = true
-                    validationMessageLabel.Text = "Invalid JSON: " .. tostring(decodedData)
-                end
-            end
-        end
-        print("Operation: GetAsync, Duration:", operationDuration)
-
-        saveButton.MouseButton1Click:Connect(saveData)        
-
-        local dataTextBox = Instance.new("TextBox")
-        dataTextBox.Size = UDim2.new(1, 0, 1, 0)
-        dataTextBox.Text = encodedData -- Use the JSON-encoded string
-        dataTextBox.Font = Enum.Font.Code
-        dataTextBox.TextSize = 14
-        dataTextBox.TextWrapped = true
-        dataTextBox.MultiLine = true
-        dataTextBox.Name = "DataTextBox"
-        dataTextBox.Parent = contentPane
-        dataTextBox.Size = UDim2.new(1, -10, 1, 0)
-        dataTextBox.Position = UDim2.new(0, 10, 0, 30)
-    else
-        warn("Error fetching data for key: ", keyName)
-    end
-    if success then
+        local lockIcon = Instance.new("ImageLabel")
+        lockIcon.Size = UDim2.new(0, 24, 0, 24)
+        lockIcon.Position = UDim2.new(0, 10, 0.5, -12)
+        lockIcon.BackgroundTransparency = 1
+        lockIcon.Image = "rbxassetid://6031225819" -- Lock icon
+        lockIcon.Parent = lockNotification
+        
+        local lockText = Instance.new("TextLabel")
+        lockText.Size = UDim2.new(1, -50, 1, 0)
+        lockText.Position = UDim2.new(0, 40, 0, 0)
+        lockText.BackgroundTransparency = 1
+        lockText.Text = "This key is currently locked by another session. Read-only mode enabled."
+        lockText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        lockText.TextXAlignment = Enum.TextXAlignment.Left
+        lockText.Font = Enum.Font.SourceSansBold
+        lockText.TextSize = 14
+        lockText.Parent = lockNotification
+        
+        local forceUnlockBtn = Instance.new("TextButton")
+        forceUnlockBtn.Size = UDim2.new(0, 120, 0, 28)
+        forceUnlockBtn.Position = UDim2.new(1, -130, 0.5, -14)
+        forceUnlockBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+        forceUnlockBtn.Text = "Force Unlock"
+        forceUnlockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        forceUnlockBtn.Parent = lockNotification
+        
+        forceUnlockBtn.MouseButton1Click:Connect(function()
+            SessionManager.forceReleaseLock(dataStoreName, keyName)
+            DataExplorer.displayKeyContent(dataStoreName, keyName) -- Refresh
+        end)
     end
     
+    -- Retrieve schema if exists for current datastore/key
+    local currentSchema = SchemaManager.loadSchema(dataStoreName, keyName)
+    
+    -- Create header
+    local headerFrame = Instance.new("Frame")
+    headerFrame.Size = UDim2.new(1, 0, 0, 60)
+    headerFrame.Position = UDim2.new(0, 0, 0, lockAcquired and 0 or 50)
+    headerFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    headerFrame.BorderSizePixel = 0
+    headerFrame.Parent = contentPane
+    
+    -- Display the key name and datastore
+    local keyTitle = Instance.new("TextLabel")
+    keyTitle.Size = UDim2.new(1, -20, 0, 24)
+    keyTitle.Position = UDim2.new(0, 10, 0, 5)
+    keyTitle.BackgroundTransparency = 1
+    keyTitle.Text = keyName
+    keyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyTitle.TextXAlignment = Enum.TextXAlignment.Left
+    keyTitle.Font = Enum.Font.SourceSansBold
+    keyTitle.TextSize = 18
+    keyTitle.Parent = headerFrame
+    
+    local datastoreSubtitle = Instance.new("TextLabel")
+    datastoreSubtitle.Size = UDim2.new(1, -20, 0, 18)
+    datastoreSubtitle.Position = UDim2.new(0, 10, 0, 30)
+    datastoreSubtitle.BackgroundTransparency = 1
+    datastoreSubtitle.Text = "DataStore: " .. dataStoreName
+    datastoreSubtitle.TextColor3 = Color3.fromRGB(180, 180, 200)
+    datastoreSubtitle.TextXAlignment = Enum.TextXAlignment.Left
+    datastoreSubtitle.Font = Enum.Font.SourceSans
+    datastoreSubtitle.TextSize = 14
+    datastoreSubtitle.Parent = headerFrame
+    
+    -- Add button panel for actions
+    local actionPanel = Instance.new("Frame")
+    actionPanel.Size = UDim2.new(0, 300, 0, 50)
+    actionPanel.Position = UDim2.new(1, -310, 0, 5)
+    actionPanel.BackgroundTransparency = 1
+    actionPanel.Parent = headerFrame
+    
+    local panelLayout = Instance.new("UIListLayout")
+    panelLayout.FillDirection = Enum.FillDirection.Horizontal
+    panelLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    panelLayout.Padding = UDim.new(0, 10)
+    panelLayout.Parent = actionPanel
+    
+    -- Create validation message area
+    local validationMessageFrame = Instance.new("Frame")
+    validationMessageFrame.Size = UDim2.new(1, 0, 0, 0) -- Will auto-expand if needed
+    validationMessageFrame.Position = UDim2.new(0, 0, 0, headerFrame.Position.Y.Offset + headerFrame.Size.Y.Offset)
+    validationMessageFrame.BackgroundTransparency = 1
+    validationMessageFrame.Visible = false
+    validationMessageFrame.Name = "ValidationMessageFrame"
+    validationMessageFrame.Parent = contentPane
+    
+    local validationMessage = Instance.new("TextLabel")
+    validationMessage.Size = UDim2.new(1, -20, 1, 0)
+    validationMessage.Position = UDim2.new(0, 10, 0, 0)
+    validationMessage.BackgroundTransparency = 1
+    validationMessage.TextColor3 = Color3.fromRGB(255, 100, 100)
+    validationMessage.TextXAlignment = Enum.TextXAlignment.Left
+    validationMessage.TextWrapped = true
+    validationMessage.Font = Enum.Font.SourceSans
+    validationMessage.TextSize = 14
+    validationMessage.Name = "ValidationMessage"
+    validationMessage.Parent = validationMessageFrame
+    
+    -- Add a tab system for different views
+    local tabsFrame = Instance.new("Frame")
+    tabsFrame.Size = UDim2.new(1, 0, 0, 30)
+    tabsFrame.Position = UDim2.new(0, 0, 0, headerFrame.Position.Y.Offset + headerFrame.Size.Y.Offset)
+    tabsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    tabsFrame.BorderSizePixel = 0
+    tabsFrame.Parent = contentPane
+    
+    local tabsLayout = Instance.new("UIListLayout")
+    tabsLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabsLayout.Padding = UDim.new(0, 2)
+    tabsLayout.Parent = tabsFrame
+    
+    -- Create content area
+    local contentArea = Instance.new("Frame")
+    contentArea.Size = UDim2.new(1, 0, 1, -(tabsFrame.Position.Y.Offset + tabsFrame.Size.Y.Offset + 10))
+    contentArea.Position = UDim2.new(0, 0, 0, tabsFrame.Position.Y.Offset + tabsFrame.Size.Y.Offset + 5)
+    contentArea.BackgroundTransparency = 1
+    contentArea.Name = "ContentArea"
+    contentArea.Parent = contentPane
+    
+    -- Function to create a tab
+    local function createTab(name, selected)
+        local tab = Instance.new("TextButton")
+        tab.Size = UDim2.new(0, 100, 1, 0)
+        tab.BackgroundColor3 = selected and Color3.fromRGB(60, 60, 80) or Color3.fromRGB(40, 40, 50)
+        tab.BorderSizePixel = 0
+        tab.Text = name
+        tab.TextColor3 = selected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+        tab.Font = Enum.Font.SourceSansSemibold
+        tab.Name = "Tab_" .. name
+        tab.Parent = tabsFrame
+        
+        return tab
+    end
+    
+    -- Function to create a view container
+    local function createViewContainer(name)
+        local container = Instance.new("Frame")
+        container.Size = UDim2.new(1, 0, 1, 0)
+        container.BackgroundTransparency = 1
+        container.Visible = false
+        container.Name = "View_" .. name
+        container.Parent = contentArea
+        
+        return container
+    end
+    
+    -- Create tabs and view containers
+    local tabJsonEditor = createTab("JSON Editor", true)
+    local tabTreeView = createTab("Tree View", false)
+    local tabRawView = createTab("Raw View", false)
+    local tabVisualizer = createTab("Visualizer", false)
+    
+    local viewJsonEditor = createViewContainer("JSON Editor")
+    local viewTreeView = createViewContainer("Tree View")
+    local viewRawView = createViewContainer("Raw View")
+    local viewVisualizer = createViewContainer("Visualizer")
+    
+    -- Make JSON Editor visible by default
+    viewJsonEditor.Visible = true
+    
+    -- Function to switch tabs
+    local function switchTab(selectedTabName)
+        for _, tab in ipairs(tabsFrame:GetChildren()) do
+            if tab:IsA("TextButton") and tab.Name:match("^Tab_") then
+                local isSelected = tab.Name == "Tab_" .. selectedTabName
+                tab.BackgroundColor3 = isSelected and Color3.fromRGB(60, 60, 80) or Color3.fromRGB(40, 40, 50)
+                tab.TextColor3 = isSelected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+            end
+        end
+        
+        for _, view in ipairs(contentArea:GetChildren()) do
+            if view:IsA("Frame") and view.Name:match("^View_") then
+                view.Visible = view.Name == "View_" .. selectedTabName
+            end
+        end
+    end
+    
+    -- Connect tab click events
+    tabJsonEditor.MouseButton1Click:Connect(function() switchTab("JSON Editor") end)
+    tabTreeView.MouseButton1Click:Connect(function() switchTab("Tree View") end)
+    tabRawView.MouseButton1Click:Connect(function() switchTab("Raw View") end)
+    tabVisualizer.MouseButton1Click:Connect(function() switchTab("Visualizer") end)
+    
+    -- Fetch the data from DataStore
+    local dataStore = DataStoreService:GetDataStore(dataStoreName)
+    
+    -- Check cache first before fetching from DataStore
+    local cachedData = CacheManager.get(dataStoreName, keyName)
+    local success, data, operationDuration
+    
+    if cachedData then
+        success, data = true, cachedData
+        print("DataExplorer: Retrieved data from cache for", dataStoreName .. ":" .. keyName)
+    else
+        success, data, operationDuration = PerformanceMonitor.timeOperation(
+            "GetAsync",
+            function() return pcall(dataStore.GetAsync, dataStore, keyName) end,
+            dataStoreName,
+            keyName
+        )
+        print("Operation: GetAsync, Duration:", operationDuration)
+        
+        -- Cache the data if retrieved successfully
+        if success and data then
+            CacheManager.set(dataStoreName, keyName, data, 300) -- Cache for 5 minutes
+        end
+    end
+    
+    if not success or not data then
+        -- Show error
+        validationMessageFrame.Size = UDim2.new(1, 0, 0, 40)
+        validationMessageFrame.Visible = true
+        validationMessageFrame.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+        validationMessageFrame.BackgroundTransparency = 0.7
+        validationMessage.Text = "Error fetching data: " .. (not success and tostring(data) or "No data found")
+        return
+    end
+    
+    -- Convert data to a JSON-encoded string for editing
+    local encodedData = HttpService:JSONEncode(data)
+    
+    -- Save function
+    local function saveData(dataToSave)
+        if not lockAcquired then
+            validationMessageFrame.Size = UDim2.new(1, 0, 0, 40)
+            validationMessageFrame.Visible = true
+            validationMessageFrame.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+            validationMessageFrame.BackgroundTransparency = 0.7
+            validationMessage.Text = "Cannot save: Key is locked by another session"
+            return false
+        end
+        
+        -- Validate data before saving
+        if currentSchema then
+            local isValid, validationResult = SchemaManager.validateData(dataToSave, currentSchema)
+            if not isValid then
+                validationMessageFrame.Size = UDim2.new(1, 0, 0, 40)
+                validationMessageFrame.Visible = true
+                validationMessageFrame.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+                validationMessageFrame.BackgroundTransparency = 0.7
+                validationMessage.Text = "Data validation failed: " .. validationResult
+                return false
+            end
+        end
+        
+        -- Save the data
+        local success2, result, operationDuration2 = PerformanceMonitor.timeOperation(
+            "SetAsync",
+            function() return pcall(dataStore.SetAsync, dataStore, keyName, dataToSave) end,
+            dataStoreName,
+            keyName
+        )
+        print("Operation: SetAsync, Duration:", operationDuration2)
+        
+        if success2 then
+            -- Update cache
+            CacheManager.set(dataStoreName, keyName, dataToSave, 300)
+            
+            -- Show success message
+            validationMessageFrame.Size = UDim2.new(1, 0, 0, 40)
+            validationMessageFrame.Visible = true
+            validationMessageFrame.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+            validationMessageFrame.BackgroundTransparency = 0.7
+            validationMessage.Text = "Data saved successfully"
+            validationMessage.TextColor3 = Color3.fromRGB(255, 255, 255)
+            
+            -- Hide the message after 3 seconds
+            task.delay(3, function()
+                validationMessageFrame.Visible = false
+            end)
+            
+            return true
+        else
+            -- Show error message
+            validationMessageFrame.Size = UDim2.new(1, 0, 0, 40)
+            validationMessageFrame.Visible = true
+            validationMessageFrame.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+            validationMessageFrame.BackgroundTransparency = 0.7
+            validationMessage.Text = "Error saving data: " .. tostring(result)
+            validationMessage.TextColor3 = Color3.fromRGB(255, 100, 100)
+            return false
+        end
+    end
+    
+    -- Create save button
+    local saveButton = Instance.new("TextButton")
+    saveButton.Size = UDim2.new(0, 100, 0, 36)
+    saveButton.BackgroundColor3 = Color3.fromRGB(60, 140, 60)
+    saveButton.BorderSizePixel = 0
+    saveButton.Text = "Save"
+    saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    saveButton.Font = Enum.Font.SourceSansBold
+    saveButton.TextSize = 16
+    saveButton.AutoButtonColor = true
+    saveButton.Parent = actionPanel
+    
+    -- Create other action buttons
+    local refreshButton = Instance.new("TextButton")
+    refreshButton.Size = UDim2.new(0, 100, 0, 36)
+    refreshButton.BackgroundColor3 = Color3.fromRGB(60, 100, 180)
+    refreshButton.BorderSizePixel = 0
+    refreshButton.Text = "Refresh"
+    refreshButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    refreshButton.Font = Enum.Font.SourceSansBold
+    refreshButton.TextSize = 16
+    refreshButton.AutoButtonColor = true
+    refreshButton.Parent = actionPanel
+    
+    refreshButton.MouseButton1Click:Connect(function()
+        DataExplorer.displayKeyContent(dataStoreName, keyName)
+    end)
+    
+    -- Implement the JSON Editor View
+    local jsonEditor = Instance.new("TextBox")
+    jsonEditor.Size = UDim2.new(1, -20, 1, -10)
+    jsonEditor.Position = UDim2.new(0, 10, 0, 5)
+    jsonEditor.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    jsonEditor.BorderColor3 = Color3.fromRGB(60, 60, 80)
+    jsonEditor.ClearTextOnFocus = false
+    jsonEditor.Font = Enum.Font.Code
+    jsonEditor.TextColor3 = Color3.fromRGB(255, 255, 255)
+    jsonEditor.TextSize = 14
+    jsonEditor.TextXAlignment = Enum.TextXAlignment.Left
+    jsonEditor.TextYAlignment = Enum.TextYAlignment.Top
+    jsonEditor.Text = encodedData
+    jsonEditor.MultiLine = true
+    jsonEditor.TextWrapped = false
+    jsonEditor.Name = "JSONEditor"
+    jsonEditor.Parent = viewJsonEditor
+    
+    -- Implement Save functionality
+    saveButton.MouseButton1Click:Connect(function()
+        local success, decodedData = pcall(HttpService.JSONDecode, HttpService, jsonEditor.Text)
+        if success then
+            saveData(decodedData)
+        else
+            -- Show error message
+            validationMessageFrame.Size = UDim2.new(1, 0, 0, 40)
+            validationMessageFrame.Visible = true
+            validationMessageFrame.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+            validationMessageFrame.BackgroundTransparency = 0.7
+            validationMessage.Text = "Invalid JSON: " .. decodedData
+            validationMessage.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end)
+    
+    -- Function to create a formatted JSON view with syntax highlighting
+    local function createFormattedJsonView(container, jsonData)
+        local formattedView = Instance.new("ScrollingFrame")
+        formattedView.Size = UDim2.new(1, -20, 1, -10)
+        formattedView.Position = UDim2.new(0, 10, 0, 5)
+        formattedView.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+        formattedView.BorderColor3 = Color3.fromRGB(60, 60, 80)
+        formattedView.CanvasSize = UDim2.new(0, 0, 0, 0) -- Will be set later
+        formattedView.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
+        formattedView.ScrollBarThickness = 6
+        formattedView.ScrollingDirection = Enum.ScrollingDirection.Y
+        formattedView.Parent = container
+        
+        local textLayout = Instance.new("UIListLayout")
+        textLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        textLayout.Parent = formattedView
+        
+        -- Helper function to create a text line
+        local function createTextLine(text, color, indent)
+            local line = Instance.new("TextLabel")
+            line.Size = UDim2.new(1, -indent, 0, 18)
+            line.Position = UDim2.new(0, indent, 0, 0)
+            line.BackgroundTransparency = 1
+            line.Text = text
+            line.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+            line.TextXAlignment = Enum.TextXAlignment.Left
+            line.Font = Enum.Font.Code
+            line.TextSize = 14
+            line.LayoutOrder = textLayout.AbsoluteContentSize.Y
+            line.Parent = formattedView
+            return line
+        end
+        
+        -- Format the JSON nicely
+        local formattingSuccess, formattedJson = pcall(function()
+            local lines = {}
+            local indentLevel = 0
+            local inString = false
+            local currentLine = ""
+            
+            local function addLine()
+                if currentLine ~= "" then
+                    table.insert(lines, {text = currentLine, indent = indentLevel * 20})
+                    currentLine = ""
+                end
+            end
+            
+            -- Very basic JSON formatter (in practice, we'd use a proper parser)
+            for i = 1, #jsonData do
+                local char = string.sub(jsonData, i, i)
+                
+                if char == '"' and string.sub(jsonData, i-1, i-1) ~= "\\" then
+                    inString = not inString
+                end
+                
+                if not inString then
+                    if char == "{" or char == "[" then
+                        addLine()
+                        table.insert(lines, {text = char, indent = indentLevel * 20})
+                        indentLevel = indentLevel + 1
+                        addLine()
+                    elseif char == "}" or char == "]" then
+                        addLine()
+                        indentLevel = indentLevel - 1
+                        table.insert(lines, {text = char, indent = indentLevel * 20})
+                    elseif char == "," then
+                        currentLine = currentLine .. char
+                        addLine()
+                    elseif char == ":" then
+                        currentLine = currentLine .. char .. " "
+                    elseif char ~= " " and char ~= "\t" and char ~= "\n" and char ~= "\r" then
+                        currentLine = currentLine .. char
+                    end
+                else
+                    currentLine = currentLine .. char
+                end
+            end
+            
+            addLine()
+            return lines
+        end)
+        
+        if formattingSuccess then
+            for _, line in ipairs(formattedJson) do
+                createTextLine(line.text, nil, line.indent)
+            end
+        else
+            createTextLine("Error formatting JSON: " .. tostring(formattedJson), Color3.fromRGB(255, 100, 100), 0)
+        end
+    end
+    
+    -- Implement Raw View
+    createFormattedJsonView(viewRawView, encodedData)
+    
+    -- Implement the Tree View (recursive table explorer)
+    local function createTreeView(container, data)
+        local treeRoot = Instance.new("ScrollingFrame")
+        treeRoot.Size = UDim2.new(1, -20, 1, -10)
+        treeRoot.Position = UDim2.new(0, 10, 0, 5)
+        treeRoot.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+        treeRoot.BorderColor3 = Color3.fromRGB(60, 60, 80)
+        treeRoot.CanvasSize = UDim2.new(0, 0, 0, 0)
+        treeRoot.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
+        treeRoot.ScrollBarThickness = 6
+        treeRoot.Parent = container
+        
+        local treeLayout = Instance.new("UIListLayout")
+        treeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        treeLayout.Padding = UDim.new(0, 1)
+        treeLayout.Parent = treeRoot
+        
+        -- Recursively create tree nodes
+        local function createTreeNode(key, value, depth, parent)
+            local nodeFrame = Instance.new("Frame")
+            nodeFrame.Size = UDim2.new(1, 0, 0, 24)
+            nodeFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            nodeFrame.BackgroundTransparency = 0.2
+            nodeFrame.LayoutOrder = parent.AbsoluteSize.Y
+            nodeFrame.Parent = parent
+            
+            local indent = depth * 20
+            
+            -- Toggle button for tables
+            local isExpandable = type(value) == "table"
+            if isExpandable then
+                local toggleBtn = Instance.new("TextButton")
+                toggleBtn.Size = UDim2.new(0, 16, 0, 16)
+                toggleBtn.Position = UDim2.new(0, indent, 0.5, -8)
+                toggleBtn.Text = "+"
+                toggleBtn.BackgroundTransparency = 1
+                toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                toggleBtn.Name = "ToggleBtn"
+                toggleBtn.Parent = nodeFrame
+                
+                -- Content frame for children (initially hidden)
+                local contentFrame = Instance.new("Frame")
+                contentFrame.Size = UDim2.new(1, 0, 0, 0)
+                contentFrame.BackgroundTransparency = 1
+                contentFrame.Visible = false
+                contentFrame.Name = "Content_" .. tostring(key)
+                contentFrame.LayoutOrder = nodeFrame.LayoutOrder + 1
+                contentFrame.Parent = parent
+                
+                -- Content layout
+                local contentLayout = Instance.new("UIListLayout")
+                contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                contentLayout.Parent = contentFrame
+                
+                -- Store expanded state
+                toggleBtn:SetAttribute("Expanded", false)
+                toggleBtn:SetAttribute("ContentFrame", contentFrame.Name)
+                
+                -- Toggle content visibility
+                toggleBtn.MouseButton1Click:Connect(function()
+                    local expanded = toggleBtn:GetAttribute("Expanded")
+                    expanded = not expanded
+                    toggleBtn:SetAttribute("Expanded", expanded)
+                    toggleBtn.Text = expanded and "-" or "+"
+                    contentFrame.Visible = expanded
+                    
+                    -- Create children on first expansion
+                    if expanded and not toggleBtn:GetAttribute("ChildrenCreated") then
+                        toggleBtn:SetAttribute("ChildrenCreated", true)
+                        
+                        -- Add children
+                        if type(value) == "table" then
+                            -- Sort keys to ensure consistent display
+                            local keys = {}
+                            for k in pairs(value) do
+                                table.insert(keys, k)
+                            end
+                            table.sort(keys, function(a, b)
+                                if type(a) == type(b) then
+                                    if type(a) == "number" then
+                                        return a < b
+                                    else
+                                        return tostring(a) < tostring(b)
+                                    end
+                                else
+                                    return type(a) == "number"
+                                end
+                            end)
+                            
+                            for _, k in ipairs(keys) do
+                                createTreeNode(k, value[k], depth + 1, contentFrame)
+                            end
+                        end
+                    end
+                end)
+            end
+            
+            -- Key label
+            local keyLabel = Instance.new("TextLabel")
+            keyLabel.Size = UDim2.new(0.5, -indent - (isExpandable and 20 or 0), 1, 0)
+            keyLabel.Position = UDim2.new(0, indent + (isExpandable and 20 or 0), 0, 0)
+            keyLabel.BackgroundTransparency = 1
+            keyLabel.TextXAlignment = Enum.TextXAlignment.Left
+            keyLabel.Text = tostring(key) .. ":"
+            keyLabel.TextColor3 = Color3.fromRGB(80, 160, 255)
+            keyLabel.Font = Enum.Font.Code
+            keyLabel.TextSize = 14
+            keyLabel.Parent = nodeFrame
+            
+            -- Value display - different formatting based on type
+            local valueLabel = Instance.new("TextLabel")
+            valueLabel.Size = UDim2.new(0.5, 0, 1, 0)
+            valueLabel.Position = UDim2.new(0.5, 0, 0, 0)
+            valueLabel.BackgroundTransparency = 1
+            valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+            valueLabel.Parent = nodeFrame
+            
+            if type(value) == "string" then
+                valueLabel.Text = '"' .. value .. '"'
+                valueLabel.TextColor3 = Color3.fromRGB(180, 255, 180)
+            elseif type(value) == "number" then
+                valueLabel.Text = tostring(value)
+                valueLabel.TextColor3 = Color3.fromRGB(255, 200, 150)
+            elseif type(value) == "boolean" then
+                valueLabel.Text = tostring(value)
+                valueLabel.TextColor3 = Color3.fromRGB(255, 160, 160)
+            elseif type(value) == "table" then
+                local count = 0
+                for _ in pairs(value) do
+                    count = count + 1
+                end
+                valueLabel.Text = "{...} (" .. count .. " items)"
+                valueLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
+            else
+                valueLabel.Text = tostring(value)
+                valueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            end
+            
+            valueLabel.Font = Enum.Font.Code
+            valueLabel.TextSize = 14
+        end
+        
+        -- Start creating the tree with the root object
+        if type(data) == "table" then
+            -- Sort keys for consistent display
+            local keys = {}
+            for k in pairs(data) do
+                table.insert(keys, k)
+            end
+            table.sort(keys, function(a, b)
+                if type(a) == type(b) then
+                    if type(a) == "number" then
+                        return a < b
+                    else
+                        return tostring(a) < tostring(b)
+                    end
+                else
+                    return type(a) == "number"
+                end
+            end)
+            
+            for _, k in ipairs(keys) do
+                createTreeNode(k, data[k], 0, treeRoot)
+            end
+        else
+            -- If it's not a table, just display the value
+            local valueLabel = Instance.new("TextLabel")
+            valueLabel.Size = UDim2.new(1, -10, 0, 24)
+            valueLabel.Position = UDim2.new(0, 5, 0, 0)
+            valueLabel.BackgroundTransparency = 1
+            valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+            valueLabel.Text = tostring(data)
+            valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            valueLabel.Font = Enum.Font.Code
+            valueLabel.TextSize = 14
+            valueLabel.Parent = treeRoot
+        end
+    end
+    
+    -- Implement Tree View
+    createTreeView(viewTreeView, data)
+    
+    -- Implement Visualizer based on data type
+    local function createVisualizer(container, data)
+        local function createBasicStatsView()
+            local statsFrame = Instance.new("Frame")
+            statsFrame.Size = UDim2.new(1, -20, 0, 200)
+            statsFrame.Position = UDim2.new(0, 10, 0, 10)
+            statsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            statsFrame.BorderColor3 = Color3.fromRGB(60, 60, 80)
+            statsFrame.Parent = container
+            
+            local statsLayout = Instance.new("UIListLayout")
+            statsLayout.Padding = UDim.new(0, 5)
+            statsLayout.Parent = statsFrame
+            
+            -- Helper to create stat rows
+            local function addStat(name, value, color)
+                local statRow = Instance.new("Frame")
+                statRow.Size = UDim2.new(1, 0, 0, 24)
+                statRow.BackgroundTransparency = 1
+                statRow.Parent = statsFrame
+                
+                local nameLabel = Instance.new("TextLabel")
+                nameLabel.Size = UDim2.new(0.3, 0, 1, 0)
+                nameLabel.BackgroundTransparency = 1
+                nameLabel.Text = name
+                nameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+                nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+                nameLabel.Font = Enum.Font.SourceSansSemibold
+                nameLabel.TextSize = 14
+                nameLabel.Parent = statRow
+                
+                local valueLabel = Instance.new("TextLabel")
+                valueLabel.Size = UDim2.new(0.7, 0, 1, 0)
+                valueLabel.Position = UDim2.new(0.3, 0, 0, 0)
+                valueLabel.BackgroundTransparency = 1
+                valueLabel.Text = tostring(value)
+                valueLabel.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+                valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+                valueLabel.Font = Enum.Font.SourceSans
+                valueLabel.TextSize = 14
+                valueLabel.Parent = statRow
+            end
+            
+            -- Count total size
+            local function countSize(obj)
+                local jsonStr = HttpService:JSONEncode(obj)
+                return #jsonStr
+            end
+            
+            -- Analyze data structure
+            local dataSize = countSize(data)
+            local dataType = type(data)
+            local itemCount = 0
+            local nestedLevels = 0
+            
+            local function analyzeTable(tbl, level)
+                nestedLevels = math.max(nestedLevels, level)
+                for k, v in pairs(tbl) do
+                    itemCount = itemCount + 1
+                    if type(v) == "table" then
+                        analyzeTable(v, level + 1)
+                    end
+                end
+            end
+            
+            if dataType == "table" then
+                analyzeTable(data, 1)
+            end
+            
+            -- Add stats
+            addStat("Data Type", dataType:upper(), Color3.fromRGB(100, 180, 255))
+            addStat("Data Size", string.format("%.2f KB", dataSize / 1024), Color3.fromRGB(255, 200, 100))
+            
+            if dataType == "table" then
+                addStat("Item Count", itemCount, Color3.fromRGB(180, 255, 120))
+                addStat("Nested Levels", nestedLevels, Color3.fromRGB(255, 150, 150))
+            end
+            
+            -- Return the stats frame for further customization
+            return statsFrame
+        end
+        
+        local statsView = createBasicStatsView()
+        
+        -- Create chart area (if data is suitable for visualization)
+        if type(data) == "table" then
+            local chartFrame = Instance.new("Frame")
+            chartFrame.Size = UDim2.new(1, -20, 0, 300)
+            chartFrame.Position = UDim2.new(0, 10, 0, statsView.Size.Y.Offset + 20)
+            chartFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            chartFrame.BorderColor3 = Color3.fromRGB(60, 60, 80)
+            chartFrame.Parent = container
+            
+            -- Try to detect if the data is suitable for charts
+            local numericalData = {}
+            local hasNumericalData = false
+            
+            -- Look for arrays of numbers or objects with numerical properties
+            if type(data) == "table" then
+                -- Check if it's an array of numbers
+                local isArray = true
+                local allNumbers = true
+                local i = 1
+                
+                for k, v in pairs(data) do
+                    if k ~= i then
+                        isArray = false
+                    end
+                    if type(v) ~= "number" then
+                        allNumbers = false
+                    else
+                        table.insert(numericalData, v)
+                    end
+                    i = i + 1
+                end
+                
+                hasNumericalData = isArray and allNumbers and #numericalData > 0
+                
+                -- If not a simple array, look for objects with common numerical properties
+                if not hasNumericalData then
+                    local commonProps = {}
+                    local firstItem = true
+                    
+                    for _, item in pairs(data) do
+                        if type(item) == "table" then
+                            if firstItem then
+                                for prop, value in pairs(item) do
+                                    if type(value) == "number" then
+                                        commonProps[prop] = true
+                                    end
+                                end
+                                firstItem = false
+                            else
+                                for prop in pairs(commonProps) do
+                                    if type(item[prop]) ~= "number" then
+                                        commonProps[prop] = nil
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    -- If we found common numerical properties, extract them
+                    local propNames = {}
+                    for prop in pairs(commonProps) do
+                        table.insert(propNames, prop)
+                    end
+                    
+                    if #propNames > 0 then
+                        hasNumericalData = true
+                        numericalData = {}
+                        
+                        -- Extract property values
+                        for _, item in pairs(data) do
+                            if type(item) == "table" then
+                                local entry = {}
+                                for _, prop in ipairs(propNames) do
+                                    entry[prop] = item[prop]
+                                end
+                                table.insert(numericalData, entry)
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- If we found numerical data, create a chart
+            if hasNumericalData then
+                local chartTitle = Instance.new("TextLabel")
+                chartTitle.Size = UDim2.new(1, 0, 0, 30)
+                chartTitle.BackgroundTransparency = 1
+                chartTitle.Text = "Data Visualization"
+                chartTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+                chartTitle.Font = Enum.Font.SourceSansBold
+                chartTitle.TextSize = 16
+                chartTitle.Parent = chartFrame
+                
+                local chartArea = Instance.new("Frame")
+                chartArea.Size = UDim2.new(1, -20, 1, -40)
+                chartArea.Position = UDim2.new(0, 10, 0, 30)
+                chartArea.BackgroundTransparency = 1
+                chartArea.Parent = chartFrame
+                
+                -- Create a basic bar chart if simple array of numbers
+                if type(numericalData[1]) == "number" then
+                    local maxValue = 0
+                    for _, value in ipairs(numericalData) do
+                        maxValue = math.max(maxValue, value)
+                    end
+                    
+                    local barWidth = chartArea.Size.X.Scale / #numericalData
+                    local padding = 0.1 * barWidth
+                    
+                    for i, value in ipairs(numericalData) do
+                        local barHeight = (value / maxValue) * chartArea.Size.Y.Scale
+                        
+                        local bar = Instance.new("Frame")
+                        bar.Size = UDim2.new(barWidth - padding, 0, barHeight, 0)
+                        bar.Position = UDim2.new((i-1) * barWidth + padding/2, 0, 1 - barHeight, 0)
+                        bar.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+                        bar.BorderSizePixel = 0
+                        bar.Parent = chartArea
+                        
+                        local valueLabel = Instance.new("TextLabel")
+                        valueLabel.Size = UDim2.new(1, 0, 0, 20)
+                        valueLabel.Position = UDim2.new(0, 0, -20/chartArea.Size.Y.Offset, 0)
+                        valueLabel.BackgroundTransparency = 1
+                        valueLabel.Text = tostring(value)
+                        valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        valueLabel.Font = Enum.Font.SourceSans
+                        valueLabel.TextSize = 12
+                        valueLabel.Parent = bar
+                    end
+                else
+                    -- For more complex data, show a property selector
+                    local propNames = {}
+                    for prop in pairs(numericalData[1]) do
+                        table.insert(propNames, prop)
+                    end
+                    
+                    local selectorFrame = Instance.new("Frame")
+                    selectorFrame.Size = UDim2.new(1, 0, 0, 30)
+                    selectorFrame.BackgroundTransparency = 1
+                    selectorFrame.Parent = chartArea
+                    
+                    local selectorLabel = Instance.new("TextLabel")
+                    selectorLabel.Size = UDim2.new(0.3, 0, 1, 0)
+                    selectorLabel.BackgroundTransparency = 1
+                    selectorLabel.Text = "Select Property:"
+                    selectorLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+                    selectorLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    selectorLabel.Font = Enum.Font.SourceSansSemibold
+                    selectorLabel.TextSize = 14
+                    selectorLabel.Parent = selectorFrame
+                    
+                    local propDropdown = Instance.new("TextButton")
+                    propDropdown.Size = UDim2.new(0.5, 0, 1, 0)
+                    propDropdown.Position = UDim2.new(0.3, 0, 0, 0)
+                    propDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+                    propDropdown.BorderColor3 = Color3.fromRGB(70, 70, 90)
+                    propDropdown.Text = propNames[1]
+                    propDropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    propDropdown.Font = Enum.Font.SourceSans
+                    propDropdown.TextSize = 14
+                    propDropdown.Parent = selectorFrame
+                    
+                    -- For simplicity, we're just picking the first property without a dropdown implementation
+                    -- In a real implementation, you'd create a proper dropdown menu
+                    
+                    -- Create a simple bar chart for the first property
+                    local chartFrame = Instance.new("Frame")
+                    chartFrame.Size = UDim2.new(1, 0, 1, -40)
+                    chartFrame.Position = UDim2.new(0, 0, 0, 40)
+                    chartFrame.BackgroundTransparency = 1
+                    chartFrame.Parent = chartArea
+                    
+                    local selectedProp = propNames[1]
+                    local maxValue = 0
+                    for _, entry in ipairs(numericalData) do
+                        maxValue = math.max(maxValue, entry[selectedProp] or 0)
+                    end
+                    
+                    local barWidth = chartFrame.Size.X.Scale / #numericalData
+                    local padding = 0.1 * barWidth
+                    
+                    for i, entry in ipairs(numericalData) do
+                        local value = entry[selectedProp] or 0
+                        local barHeight = (value / maxValue) * chartFrame.Size.Y.Scale
+                        
+                        local bar = Instance.new("Frame")
+                        bar.Size = UDim2.new(barWidth - padding, 0, barHeight, 0)
+                        bar.Position = UDim2.new((i-1) * barWidth + padding/2, 0, 1 - barHeight, 0)
+                        bar.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+                        bar.BorderSizePixel = 0
+                        bar.Parent = chartFrame
+                        
+                        local valueLabel = Instance.new("TextLabel")
+                        valueLabel.Size = UDim2.new(1, 0, 0, 20)
+                        valueLabel.Position = UDim2.new(0, 0, -20/chartFrame.Size.Y.Offset, 0)
+                        valueLabel.BackgroundTransparency = 1
+                        valueLabel.Text = tostring(value)
+                        valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        valueLabel.Font = Enum.Font.SourceSans
+                        valueLabel.TextSize = 12
+                        valueLabel.Parent = bar
+                    end
+                end
+            else
+                -- If no suitable data for visualization, show message
+                local noChartMessage = Instance.new("TextLabel")
+                noChartMessage.Size = UDim2.new(1, 0, 1, 0)
+                noChartMessage.BackgroundTransparency = 1
+                noChartMessage.Text = "No suitable numerical data found for visualization"
+                noChartMessage.TextColor3 = Color3.fromRGB(200, 200, 200)
+                noChartMessage.Font = Enum.Font.SourceSans
+                noChartMessage.TextSize = 16
+                noChartMessage.Parent = chartFrame
+            end
+        end
+    end
+    
+    -- Implement Visualizer
+    createVisualizer(viewVisualizer, data)
+end
 
+-- Create a styled tree node with expand/collapse functionality
+local function createTreeNode(text, parent, level, isDataStore)
+    local nodeContainer = Instance.new("Frame")
+    nodeContainer.Size = UDim2.new(1, 0, 0, 24)
+    nodeContainer.BackgroundColor3 = isDataStore and Color3.fromRGB(40, 40, 50) or Color3.fromRGB(30, 30, 40)
+    nodeContainer.BackgroundTransparency = 0.2
+    nodeContainer.BorderSizePixel = 0
+    nodeContainer.Name = "TreeNode_" .. text
+    nodeContainer.Parent = parent
+    
+    -- Indentation based on level
+    local indentation = 16 * level
+    
+    -- Expand/collapse icon (for datastores only)
+    if isDataStore then
+        local expandIcon = Instance.new("TextButton")
+        expandIcon.Size = UDim2.new(0, 16, 0, 16)
+        expandIcon.Position = UDim2.new(0, indentation, 0.5, -8)
+        expandIcon.BackgroundTransparency = 1
+        expandIcon.Text = "+"
+        expandIcon.TextSize = 16
+        expandIcon.TextColor3 = Color3.fromRGB(200, 200, 200)
+        expandIcon.Name = "ExpandIcon"
+        expandIcon.Parent = nodeContainer
+        
+        -- Store expanded state
+        nodeContainer:SetAttribute("Expanded", false)
+    end
+    
+    -- Node label
+    local nodeLabel = Instance.new("TextButton")
+    nodeLabel.Size = UDim2.new(1, -indentation - 24, 1, 0)
+    nodeLabel.Position = UDim2.new(0, indentation + (isDataStore and 20 or 0), 0, 0)
+    nodeLabel.BackgroundTransparency = 1
+    nodeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nodeLabel.Text = text
+    nodeLabel.TextSize = 14
+    nodeLabel.Font = Enum.Font.Code
+    nodeLabel.TextColor3 = isDataStore and Color3.fromRGB(120, 160, 255) or Color3.fromRGB(255, 255, 255)
+    nodeLabel.Name = "NodeLabel"
+    nodeLabel.Parent = nodeContainer
+    
+    -- Icon based on type
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(0, 16, 0, 16)
+    icon.Position = UDim2.new(0, indentation + (isDataStore ? 20 : 4), 0.5, -8)
+    icon.BackgroundTransparency = 1
+    icon.Image = isDataStore and "rbxassetid://6031090990" or "rbxassetid://6026568207" -- Database icon or Key icon
+    icon.Parent = nodeContainer
+    
+    -- Hover effect
+    nodeContainer.MouseEnter:Connect(function()
+        nodeContainer.BackgroundColor3 = isDataStore and Color3.fromRGB(60, 60, 70) or Color3.fromRGB(50, 50, 60)
+    end)
+    
+    nodeContainer.MouseLeave:Connect(function()
+        nodeContainer.BackgroundColor3 = isDataStore and Color3.fromRGB(40, 40, 50) or Color3.fromRGB(30, 30, 40)
+    end)
+    
+    return nodeContainer
 end
 
 function DataExplorer.populateDataStores()
-	local navigationPane = DataExplorer.navigationPane
-	if not navigationPane then return end
+    local navigationPane = DataExplorer.navigationPane
+    if not navigationPane then return end
+    
+    -- Create search bar at the top
+    local searchBar = Instance.new("Frame")
+    searchBar.Size = UDim2.new(1, 0, 0, 30)
+    searchBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    searchBar.BorderSizePixel = 0
+    searchBar.Name = "SearchBar"
+    searchBar.Parent = navigationPane
+    
+    local searchIcon = Instance.new("ImageLabel")
+    searchIcon.Size = UDim2.new(0, 16, 0, 16)
+    searchIcon.Position = UDim2.new(0, 8, 0.5, -8)
+    searchIcon.BackgroundTransparency = 1
+    searchIcon.Image = "rbxassetid://3605022185" -- Search icon
+    searchIcon.Parent = searchBar
+    
+    local searchBox = Instance.new("TextBox")
+    searchBox.Size = UDim2.new(1, -40, 1, -6)
+    searchBox.Position = UDim2.new(0, 32, 0, 3)
+    searchBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    searchBox.BorderSizePixel = 0
+    searchBox.PlaceholderText = "Search datastores and keys..."
+    searchBox.Text = ""
+    searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    searchBox.TextXAlignment = Enum.TextXAlignment.Left
+    searchBox.Parent = searchBar
+    
+    -- Create a container for the tree view
+    local treeContainer = Instance.new("ScrollingFrame")
+    treeContainer.Size = UDim2.new(1, 0, 0.4, -30) -- Leave room for search bar
+    treeContainer.Position = UDim2.new(0, 0, 0, 30)
+    treeContainer.BackgroundTransparency = 0
+    treeContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    treeContainer.BorderSizePixel = 0
+    treeContainer.ScrollBarThickness = 6
+    treeContainer.ScrollingDirection = Enum.ScrollingDirection.Y
+    treeContainer.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
+    treeContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+    treeContainer.Name = "TreeContainer"
+    treeContainer.Parent = navigationPane
+    
+    local treeLayout = Instance.new("UIListLayout")
+    treeLayout.Padding = UDim.new(0, 1)
+    treeLayout.SortOrder = Enum.SortOrder.Name
+    treeLayout.Parent = treeContainer
+    
     DataExplorer.updateLockStatusUI()
-	local function releaseLock(dataStoreName: string, keyName: string)
-		SessionManager.releaseLock(dataStoreName, keyName, DataExplorer.sessionId)
-	end
+    local function releaseLock(dataStoreName: string, keyName: string)
+        SessionManager.releaseLock(dataStoreName, keyName, DataExplorer.sessionId)
+    end
     DataExplorer.updatePerformanceDataUI()
     DataExplorer.updateCacheViewerUI()
 
@@ -444,55 +1393,170 @@ function DataExplorer.populateDataStores()
         end
     end)
     
-	local dataStoreList = DataStoreService:ListDataStoresAsync()
+    local dataStoreList = DataStoreService:ListDataStoresAsync()
 
-	local success, errorMessage = pcall(function()
-		while dataStoreList.IsFinished == false do
-			for _, dataStoreInfo in dataStoreList:GetCurrentPage() do
+    local success, errorMessage = pcall(function()
+        while dataStoreList.IsFinished == false do
+            for _, dataStoreInfo in dataStoreList:GetCurrentPage() do
                 local dataStoreName = dataStoreInfo.Name
-                local dataStoreLabel = createLabel(dataStoreName, navigationPane)
-                dataStoreLabel.Parent = navigationPane
-
+                
+                -- Create datastore node
+                local dataStoreNode = createTreeNode(dataStoreName, treeContainer, 0, true)
+                
                 -- Create a folder to put the data store keys
                 local keysFolder = Instance.new("Frame")
-                keysFolder.Name = "KeysFolder"
-                keysFolder.Size = UDim2.new(1, 0, 0, 0)
-
+                keysFolder.Name = "KeysFolder_" .. dataStoreName
+                keysFolder.Size = UDim2.new(1, 0, 0, 0) -- Will be sized by the UIListLayout
                 keysFolder.Visible = false
                 keysFolder.BackgroundTransparency = 1
-                keysFolder.Parent = navigationPane
+                keysFolder.Parent = treeContainer
+                
                 local keyLayout = Instance.new("UIListLayout")
                 keyLayout.FillDirection = Enum.FillDirection.Vertical
-                keyLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                keyLayout.SortOrder = Enum.SortOrder.Name
                 keyLayout.Parent = keysFolder
-
-                dataStoreLabel.MouseButton1Click:Connect(function()
-                    keysFolder.Visible = not keysFolder.Visible
-                end)
-
-                local dataStore = DataStoreService:GetDataStore(dataStoreName)
-                local keyList = dataStore:ListKeysAsync()
-                while keyList.IsFinished == false do
-                    for _, keyInfo in keyList:GetCurrentPage() do
-                        local keyLabel = createLabel("    " .. keyInfo.KeyName, keysFolder)
-                        keyLabel.Parent = keysFolder
-                        keyLabel.MouseButton1Click:Connect(function()
-                            DataExplorer.displayKeyContent(dataStoreName, keyInfo.KeyName)
-
-							if DataExplorer.currentKey then
-								releaseLock(dataStoreName,DataExplorer.currentKey)
-							end
-                            DataExplorer.updateLockStatusUI()
+                
+                -- Store reference to folder in node for expansion
+                dataStoreNode:SetAttribute("FolderName", keysFolder.Name)
+                
+                -- Toggle expand/collapse on icon click
+                local expandIcon = dataStoreNode:FindFirstChild("ExpandIcon")
+                if expandIcon then
+                    expandIcon.MouseButton1Click:Connect(function()
+                        local expanded = dataStoreNode:GetAttribute("Expanded")
+                        expanded = not expanded
+                        dataStoreNode:SetAttribute("Expanded", expanded)
+                        expandIcon.Text = expanded and "-" or "+"
+                        keysFolder.Visible = expanded
+                    end)
+                end
+                
+                -- Also toggle when clicking on the node label
+                dataStoreNode.NodeLabel.MouseButton1Click:Connect(function()
+                    local expanded = dataStoreNode:GetAttribute("Expanded")
+                    expanded = not expanded
+                    dataStoreNode:SetAttribute("Expanded", expanded)
+                    expandIcon.Text = expanded and "-" or "+"
+                    keysFolder.Visible = expanded
+                    
+                    -- Load keys lazily when first expanded
+                    if expanded and not dataStoreNode:GetAttribute("KeysLoaded") then
+                        dataStoreNode:SetAttribute("KeysLoaded", true)
+                        
+                        -- Show loading indicator
+                        local loadingNode = createTreeNode("Loading keys...", keysFolder, 1, false)
+                        
+                        -- Load keys in a separate thread
+                        task.spawn(function()
+                            local dataStore = DataStoreService:GetDataStore(dataStoreName)
+                            local keyList = dataStore:ListKeysAsync()
+                            
+                            local keyNodes = {}
+                            
+                            while keyList.IsFinished == false do
+                                for _, keyInfo in keyList:GetCurrentPage() do
+                                    local keyNode = createTreeNode(keyInfo.KeyName, keysFolder, 1, false)
+                                    table.insert(keyNodes, keyNode)
+                                    
+                                    keyNode.NodeLabel.MouseButton1Click:Connect(function()
+                                        DataExplorer.displayKeyContent(dataStoreName, keyInfo.KeyName)
+                                        
+                                        -- Highlight the selected key
+                                        for _, node in ipairs(keyNodes) do
+                                            node.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                                        end
+                                        keyNode.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
+                                        
+                                        if DataExplorer.currentKey then
+                                            releaseLock(dataStoreName, DataExplorer.currentKey)
+                                        end
+                                        DataExplorer.currentKey = keyInfo.KeyName
+                                        DataExplorer.updateLockStatusUI()
+                                    end)
+                                end
+                                keyList:AdvanceToNextPageAsync()
+                            end
+                            
+                            -- Remove loading indicator
+                            if loadingNode and loadingNode.Parent then
+                                loadingNode:Destroy()
+                            end
                         end)
                     end
-                    keyList:AdvanceToNextPageAsync()
+                end)
+            end
+            dataStoreList:AdvanceToNextPageAsync()
+        end
+    end)
+    
+    -- Implement search functionality
+    searchBox.Changed:Connect(function(property)
+        if property ~= "Text" then return end
+        
+        local searchText = searchBox.Text:lower()
+        
+        -- Show all nodes if search is empty
+        if searchText == "" then
+            for _, node in pairs(treeContainer:GetChildren()) do
+                if node:IsA("Frame") and node.Name:match("^TreeNode_") then
+                    node.Visible = true
+                    
+                    -- Hide all key folders by default
+                    local folderName = node:GetAttribute("FolderName")
+                    if folderName then
+                        local folder = treeContainer:FindFirstChild(folderName)
+                        if folder then
+                            folder.Visible = node:GetAttribute("Expanded") or false
+                        end
+                    end
                 end
-			end
-			dataStoreList:AdvanceToNextPageAsync()
-		end
-
-	end)
-	if not success then warn("Error populating data stores: ", errorMessage) end
+            end
+            return
+        end
+        
+        -- Filter nodes based on search
+        for _, node in pairs(treeContainer:GetChildren()) do
+            if node:IsA("Frame") then
+                if node.Name:match("^TreeNode_") then
+                    -- This is a datastore node
+                    local dataStoreName = node.NodeLabel.Text:lower()
+                    local matches = dataStoreName:find(searchText, 1, true) ~= nil
+                    node.Visible = matches
+                    
+                    -- Always expand datastore nodes during search
+                    local folderName = node:GetAttribute("FolderName")
+                    if folderName then
+                        local folder = treeContainer:FindFirstChild(folderName)
+                        if folder then
+                            folder.Visible = matches
+                            
+                            -- For datastores that match, we'll further check their keys
+                            if matches then
+                                -- Load keys if not already loaded
+                                if not node:GetAttribute("KeysLoaded") then
+                                    node:SetAttribute("KeysLoaded", true)
+                                    node:SetAttribute("Expanded", true)
+                                    
+                                    -- Trigger key loading
+                                    node.NodeLabel.MouseButton1Click:Fire()
+                                end
+                            end
+                        end
+                    end
+                elseif node.Name:match("^KeysFolder_") then
+                    -- This is a key folder, show/hide individual keys
+                    for _, keyNode in pairs(node:GetChildren()) do
+                        if keyNode:IsA("Frame") and keyNode.Name:match("^TreeNode_") then
+                            local keyName = keyNode.NodeLabel.Text:lower()
+                            keyNode.Visible = keyName:find(searchText, 1, true) ~= nil
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
+    if not success then warn("Error populating data stores: ", errorMessage) end
 end
 
 

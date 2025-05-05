@@ -3,7 +3,7 @@
 
 local plugin = script.Parent
 local toolbar = plugin:CreateToolbar("DataStore Manager Pro")
-local button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://123456789")
+local button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://6031090990") -- Updated to database icon
 
 local DataStoreManager = require(script.DataStoreManager)
 local DataExplorer = require(script.DataExplorer)
@@ -13,6 +13,9 @@ local SessionManager = require(script.SessionManager)
 local CacheManager = require(script.CacheManager)
 local SchemaValidator = require(script.SchemaValidator)
 local SecurityManager = require(script.SecurityManager)
+local DataVisualization = require(script.DataVisualization)
+local StyleGuide = require(script.StyleGuide)
+local SchemaEditor = require(script.SchemaEditor)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -57,6 +60,9 @@ local DataStoreManagerPlugin = {
     DataStoreManager = DataStoreManager,
     SchemaManager = SchemaManager,
     SchemaValidator = SchemaValidator,
+    DataVisualization = DataVisualization,
+    SchemaEditor = SchemaEditor,
+    StyleGuide = StyleGuide,
     
     -- Convenience functions for external access
     getData = DataStoreManager.getData,
@@ -72,7 +78,13 @@ local DataStoreManagerPlugin = {
     
     -- Performance monitoring
     getPerformanceData = PerformanceMonitor.getPerformanceData,
-    getOperationSummary = PerformanceMonitor.getOperationSummary
+    getOperationSummary = PerformanceMonitor.getOperationSummary,
+    
+    -- Visualization functions
+    createBarChart = DataVisualization.createBarChart,
+    createLineChart = DataVisualization.createLineChart,
+    createPieChart = DataVisualization.createPieChart,
+    createTableView = DataVisualization.createTableView
 }
 
 return DataStoreManagerPlugin

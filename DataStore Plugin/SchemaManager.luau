@@ -46,7 +46,7 @@ function SchemaManager.loadSchema(dataStoreName, keyName)
 
 	local schema = pluginDataStore:GetAsync(schemaKey)
 	return schema
--- }
+end
 
 function SchemaManager.validateData(data, schema)
     if typeof(data) ~= "table" then
