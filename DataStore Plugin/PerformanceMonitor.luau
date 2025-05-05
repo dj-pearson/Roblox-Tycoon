@@ -3,6 +3,34 @@
 
 local PerformanceMonitor = {}
 local performanceData = {} -- Table to store performance data, format: {{operationName, duration, datastoreName, keyName, success}}
+local quotaInfo = {
+    reads = {
+        used = 0,
+        max = 100, -- Default, will be updated based on actual limits
+        resetTime = 0,
+    },
+    writes = {
+        used = 0,
+        max = 60, -- Default, will be updated based on actual limits
+        resetTime = 0,
+    },
+    dataSize = {
+        average = 0,
+        largest = 0,
+        total = 0,
+        sampleCount = 0,
+    },
+}
+
+-- Store operation timings by category
+local operationTiming = {
+    read = {},
+    write = {},
+    other = {},
+}
+
+-- Track key access frequency 
+local keyAccessFrequency = {}
 
 function PerformanceMonitor.timeOperation(operationName, func, dataStoreName, keyName)
     local startTime = os.clock() -- Use os.clock() for higher precision timing
@@ -16,11 +44,36 @@ function PerformanceMonitor.timeOperation(operationName, func, dataStoreName, ke
 		dataStoreName = dataStoreName,
 		keyName = keyName,
 		success = success,
+        timestamp = os.time(),
 	}
 	
 	table.insert(performanceData, data)
 
-	
+    -- Categorize the operation
+    local category = "other"
+    if string.find(operationName:lower(), "get") or string.find(operationName:lower(), "read") or string.find(operationName:lower(), "load") then
+        category = "read"
+        quotaInfo.reads.used += 1
+    elseif string.find(operationName:lower(), "set") or string.find(operationName:lower(), "write") or string.find(operationName:lower(), "save") or string.find(operationName:lower(), "update") then
+        category = "write"
+        quotaInfo.writes.used += 1
+    end
+    
+    -- Add to operation timing by category
+    table.insert(operationTiming[category], duration)
+    
+    -- Track key access frequency
+    local key = string.format("%s:%s", dataStoreName or "unknown", keyName or "unknown")
+    keyAccessFrequency[key] = (keyAccessFrequency[key] or 0) + 1
+
+    -- Track data size if result is available and successful
+    if success and result and type(result) == "table" then
+        local size = PerformanceMonitor.estimateDataSize(result)
+        quotaInfo.dataSize.total += size
+        quotaInfo.dataSize.sampleCount += 1
+        quotaInfo.dataSize.average = quotaInfo.dataSize.total / quotaInfo.dataSize.sampleCount
+        quotaInfo.dataSize.largest = math.max(quotaInfo.dataSize.largest, size)
+    end
 
     return success, result, duration
 end
@@ -38,22 +91,116 @@ function PerformanceMonitor.getOperationSummary()
 				count = 0,
 				totalDuration = 0,
 				averageDuration = 0,
+                failures = 0,
+                successRate = 100
 			}
 		end
 		summary[operationName].count += 1
 		summary[operationName].totalDuration += data.duration
+        if not data.success then
+            summary[operationName].failures += 1
+        end
 	end
 
-	-- Calculate average duration
+	-- Calculate average duration and success rate
 	for operationName, data in pairs(summary) do
 		data.averageDuration = data.totalDuration / data.count
+        data.successRate = ((data.count - data.failures) / data.count) * 100
 	end
 
 	return summary
 end
 
+-- Estimate data size in bytes for a given value
+function PerformanceMonitor.estimateDataSize(value)
+    local valueType = typeof(value)
 
+    if valueType == "string" then
+        return #value
+    elseif valueType == "number" then
+        return 8 -- Typical size for a double-precision floating-point
+    elseif valueType == "boolean" then
+        return 1
+    elseif valueType == "table" then
+        local size = 0
+        for k, v in pairs(value) do
+            -- Add size for the key
+            size += typeof(k) == "string" and #k or 8
+            -- Add size for the value (recursively)
+            size += PerformanceMonitor.estimateDataSize(v)
+        end
+        return size
+    else
+        return 0 -- Default for unsupported types
+    end
+end
 
--- You can add functions here later to retrieve and analyze performanceData
+-- Get quota information and limits
+function PerformanceMonitor.getQuotaInfo()
+    return quotaInfo
+end
+
+-- Reset quota usage (call this when quota resets, typically at the start of a new day)
+function PerformanceMonitor.resetQuota()
+    quotaInfo.reads.used = 0
+    quotaInfo.writes.used = 0
+    quotaInfo.reads.resetTime = os.time()
+    quotaInfo.writes.resetTime = os.time()
+end
+
+-- Update quota limits (call this if you know the actual limits)
+function PerformanceMonitor.updateQuotaLimits(readLimit, writeLimit)
+    if readLimit then quotaInfo.reads.max = readLimit end
+    if writeLimit then quotaInfo.writes.max = writeLimit end
+end
+
+-- Get operation timing statistics
+function PerformanceMonitor.getTimingStats(category)
+    local timings = category and operationTiming[category] or nil
+    if not timings then
+        return nil
+    end
+    
+    -- Calculate basic statistics
+    local count = #timings
+    if count == 0 then return { count = 0 } end
+    
+    local sum = 0
+    local min = math.huge
+    local max = 0
+    
+    for _, duration in ipairs(timings) do
+        sum += duration
+        min = math.min(min, duration)
+        max = math.max(max, duration)
+    end
+    
+    return {
+        count = count,
+        average = sum / count,
+        min = min,
+        max = max,
+        total = sum
+    }
+end
+
+-- Get most frequently accessed keys
+function PerformanceMonitor.getMostAccessedKeys(limit)
+    limit = limit or 10 -- Default to top 10
+    
+    local keyPairs = {}
+    for key, count in pairs(keyAccessFrequency) do
+        table.insert(keyPairs, {key = key, count = count})
+    end
+    
+    table.sort(keyPairs, function(a, b) return a.count > b.count end)
+    
+    local result = {}
+    for i = 1, math.min(limit, #keyPairs) do
+        table.insert(result, keyPairs[i])
+    end
+    
+    return result
+end
 
 return PerformanceMonitor

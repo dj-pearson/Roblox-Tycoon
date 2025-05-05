@@ -35,13 +35,12 @@ function SessionManager.acquireLock(dataStoreName, keyName, sessionId)
                     return oldLockData, "Locked by another session"
                 end
             end)
-        end)
-        if not success then
+        end)        if not success then
             retries = retries + 1
             warn("SessionManager: Failed to acquire lock for", keyName, ". Attempt", retries, "of", MAX_RETRIES, ":", result)
             if retries < MAX_RETRIES then
                 task.wait(RETRY_DELAY)
-            }
+            end
         end 
     until success or retries >= MAX_RETRIES
 
@@ -54,9 +53,8 @@ function SessionManager.acquireLock(dataStoreName, keyName, sessionId)
                 return true
             end
             return false
-        end
-    else 
-        warn("SessionManager: Failed to get lock for", keyName, ":", currentLock)
+        end    else 
+        warn("SessionManager: Failed to get lock for", keyName, ":", result)
         return false
     end
 end

@@ -1,4 +1,4 @@
-luau
+--luau
 -- DataStore Plugin/SecurityManager.luau
 
 local SecurityManager = {}

@@ -52,13 +52,13 @@ function CacheManager.set(dataStoreName, keyName, data, duration)
 	cache[cacheKey] = entry
 	lastAccessed[cacheKey] = os.time()
 
-	
-	if #cache > cacheSizeLimit then
+		-- Check if we need to remove oldest entries to maintain cache size limit
+	if table.getn(cache) > cacheSizeLimit then
 		local oldestKey
 		local oldestTime = math.huge
-		for key,entry in pairs(cache) do
+		for key, entry in pairs(cache) do
 			if entry.lastAccessed < oldestTime then
-				oldestTime = time
+				oldestTime = entry.lastAccessed
 				oldestKey = key
 			end
 		end
