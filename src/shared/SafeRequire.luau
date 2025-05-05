@@ -118,12 +118,87 @@ function SafeRequire.findModule(moduleName)
             end
         end
     end
-    
-    -- Search all paths
+      -- Search all paths
     for _, path in ipairs(paths) do
-        local module = path and path:FindFirstChild(moduleName)
-        if module and module:IsA("ModuleScript") then
-            return module
+        if path then
+            -- Direct module name
+            local module = path:FindFirstChild(moduleName)
+            if module and module:IsA("ModuleScript") then
+                return module
+            end
+            
+            -- Try with extensions
+            for _, ext in ipairs({".luau", ".server.luau", ".client.luau", ".lua"}) do
+                -- Skip server/client modules based on context
+                if (isServer and ext == ".client.luau") or (isClient and ext == ".server.luau") then
+                    continue
+                end
+                
+                module = path:FindFirstChild(moduleName .. ext)
+                if module and module:IsA("ModuleScript") then
+                    return module
+                end
+            end
+            
+            -- Check common subfolders
+            for _, subfolder in ipairs({"Core", "Systems", "UI", "Modules"}) do
+                local folder = path:FindFirstChild(subfolder)
+                if folder then
+                    -- Check in subfolder
+                    local subModule = folder:FindFirstChild(moduleName)
+                    if subModule and subModule:IsA("ModuleScript") then
+                        return subModule
+                    end
+                    
+                    -- Try with extensions
+                    for _, ext in ipairs({".luau", ".server.luau", ".client.luau", ".lua"}) do
+                        -- Skip server/client modules based on context
+                        if (isServer and ext == ".client.luau") or (isClient and ext == ".server.luau") then
+                            continue
+                        end
+                        
+                        subModule = folder:FindFirstChild(moduleName .. ext)
+                        if subModule and subModule:IsA("ModuleScript") then
+                            return subModule
+                        end
+                    end
+                end
+            end
+            
+            -- Check for path segments (e.g., "UI/Button" -> path/UI/Button)
+            if string.find(moduleName, "/") then
+                local segments = string.split(moduleName, "/")
+                local currentPath = path
+                
+                -- Traverse through the segments
+                local isValid = true
+                for i, segment in ipairs(segments) do
+                    if i == #segments then
+                        -- Last segment - could be the module name
+                        local lastModule = currentPath:FindFirstChild(segment)
+                        if lastModule and lastModule:IsA("ModuleScript") then
+                            return lastModule
+                        end
+                        
+                        -- Try with extensions for the last segment
+                        for _, ext in ipairs({".luau", ".server.luau", ".client.luau", ".lua"}) do
+                            lastModule = currentPath:FindFirstChild(segment .. ext)
+                            if lastModule and lastModule:IsA("ModuleScript") then
+                                return lastModule
+                            end
+                        end
+                    else
+                        -- Intermediate segment - must be a folder
+                        local nextFolder = currentPath:FindFirstChild(segment)
+                        if nextFolder then
+                            currentPath = nextFolder
+                        else
+                            isValid = false
+                            break
+                        end
+                    end
+                end
+            end
         end
     end
     

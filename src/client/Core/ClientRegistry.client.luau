@@ -2,6 +2,9 @@
 -- Manages client-side systems and dependencies
 -- Place in StarterPlayer/StarterPlayerScripts/Core
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
 -- Configuration
 local CONFIG = {
     debugEnabled = true,
@@ -20,8 +23,38 @@ local ClientRegistry = {
     systems = {},          -- Registered systems
     dependencies = {},     -- System dependencies
     initialized = {},      -- Initialized systems
-    loadingPromises = {}   -- Promises for systems that are loading
+    loadingPromises = {},  -- Promises for systems that are loading
+    STATUS = {
+        INITIALIZING = "Initializing",
+        READY = "Ready",
+        ERROR = "Error"
+    }
 }
+
+-- Current status
+local isInitialized = false
+local status = ClientRegistry.STATUS.INITIALIZING
+
+-- Ensure critical folders exist
+function ClientRegistry.ensureFolderExists(parent, folderPath)
+    if typeof(folderPath) == "string" then
+        folderPath = string.split(folderPath, ".")
+    end
+    
+    local current = parent
+    for _, folderName in ipairs(folderPath) do
+        local folder = current:FindFirstChild(folderName)
+        if not folder then
+            folder = Instance.new("Folder")
+            folder.Name = folderName
+            folder.Parent = current
+            log("Created missing folder:", folderName, "in", current:GetFullName())
+        end
+        current = folder
+    end
+    
+    return current
+end
 
 -- Register a system with the registry
 function ClientRegistry.registerSystem(systemName, systemModule)
@@ -38,6 +71,36 @@ end
 -- Get a system from the registry
 function ClientRegistry.getSystem(systemName)
     if not ClientRegistry.systems[systemName] then
+        -- Check for alternative names (common naming variations)
+        local alternativeNames = {
+            [systemName .. "System"] = true,
+            [systemName:gsub("System", "")] = true,
+            [systemName .. "Manager"] = true,
+            [systemName:gsub("Manager", "")] = true,
+            [systemName .. "Handler"] = true,
+            [systemName:gsub("Handler", "")] = true,
+            [systemName .. "Controller"] = true,
+            [systemName:gsub("Controller", "")] = true,
+            [systemName .. "UI"] = true,
+            [systemName:gsub("UI", "")] = true,
+        }
+        
+        -- Try alternative names
+        for altName, _ in pairs(alternativeNames) do
+            if ClientRegistry.systems[altName] then
+                log("System found with alternative name:", altName, "for request:", systemName)
+                return ClientRegistry.systems[altName]
+            end
+        end
+        
+        -- Try case-insensitive match as a last resort
+        for registeredName, system in pairs(ClientRegistry.systems) do
+            if string.lower(registeredName) == string.lower(systemName) then
+                log("System found with case-insensitive match:", registeredName, "for request:", systemName)
+                return system
+            end
+        end
+        
         log("System not found:", systemName)
         return nil
     end
@@ -93,7 +156,7 @@ function ClientRegistry.initializeSystem(systemName)
             log("Error initializing system:", systemName, result)
             return nil
         end
-        
+                
         if result == false then
             log("System initialization returned false:", systemName)
             return nil
@@ -103,8 +166,7 @@ function ClientRegistry.initializeSystem(systemName)
     -- Mark as initialized
     ClientRegistry.initialized[systemName] = true
     log("System initialized:", systemName)
-    
-    return system
+      return system
 end
 
 -- Initialize all registered systems

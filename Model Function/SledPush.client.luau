@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -33,7 +34,15 @@ local CONFIG = {
             7810277536,   -- Fallback animation ID 1
             3695333487    -- Fallback animation ID 2
         }
-    }
+    },
+    
+    -- GUI Settings
+    EnableGUI = true,
+    ShowInstructions = true,
+    InstructionDuration = 5, -- seconds
+    
+    -- Debug settings
+    Debug = false
 }
 
 -- Variables
@@ -42,10 +51,21 @@ local isUsingLeftHandle = false
 local animations = {}
 local actionName = "SledRelease"
 local currentPole = nil
+local sledControlGui = nil
+local instructionGui = nil
+
+-- Debug function
+local function debugPrint(...)
+    if CONFIG.Debug then
+        print("[SledPush]", ...)
+    end
+end
 
 -- Forward declarations for functions that reference each other
 local releaseControls
 local releaseSled
+local createSledGui
+local destroySledGui
 
 -- Remote events to communicate with server
 local remoteFolder = script.Parent:FindFirstChild("Remotes")
@@ -71,6 +91,138 @@ local steerRemote = remoteFolder:FindFirstChild("Steer") or Instance.new("Remote
 steerRemote.Name = "Steer"
 steerRemote.Parent = remoteFolder
 
+-- Helper function to create GUI for instructions
+local function createInstructionGui(message, duration)
+    -- Remove existing instruction GUI if it exists
+    if instructionGui then
+        instructionGui:Destroy()
+        instructionGui = nil
+    end
+    
+    -- Create instruction GUI
+    instructionGui = Instance.new("ScreenGui")
+    instructionGui.Name = "SledInstructionGui"
+    instructionGui.ResetOnSpawn = false
+    instructionGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.4, 0, 0.1, 0)
+    frame.Position = UDim2.new(0.3, 0, 0.1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.4
+    frame.BorderSizePixel = 0
+    frame.Parent = instructionGui
+    
+    local cornerRadius = Instance.new("UICorner")
+    cornerRadius.CornerRadius = UDim.new(0, 8)
+    cornerRadius.Parent = frame
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = message
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.TextSize = 18
+    textLabel.TextWrapped = true
+    textLabel.Parent = frame
+    
+    instructionGui.Parent = player:FindFirstChild("PlayerGui")
+    
+    -- Remove after duration
+    if duration and duration > 0 then
+        task.delay(duration, function()
+            if instructionGui then
+                instructionGui:Destroy()
+                instructionGui = nil
+            end
+        end)
+    end
+    
+    return instructionGui
+end
+
+-- Helper function to create controls GUI
+local function createSledGui()
+    -- Check if GUI should be enabled
+    if not CONFIG.EnableGUI then return end
+    
+    -- Remove existing GUI if it exists
+    if sledControlGui then
+        sledControlGui:Destroy()
+        sledControlGui = nil
+    end
+    
+    -- Create the GUI
+    sledControlGui = Instance.new("ScreenGui")
+    sledControlGui.Name = "SledControlGui"
+    sledControlGui.ResetOnSpawn = false
+    sledControlGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Create container frame
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 240, 0, 120)
+    frame.Position = UDim2.new(1, -250, 1, -130)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.Parent = sledControlGui
+    
+    local cornerRadius = Instance.new("UICorner")
+    cornerRadius.CornerRadius = UDim.new(0, 8)
+    cornerRadius.Parent = frame
+    
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0.25, 0)
+    titleLabel.Position = UDim2.new(0, 0, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "SLED CONTROLS"
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 18
+    titleLabel.Parent = frame
+    
+    -- Controls list
+    local controlsText = {
+        "W - Push Forward",
+        "A/D - Steer Left/Right",
+        "Space - Release Sled"
+    }
+    
+    -- Add control texts
+    for i, controlText in ipairs(controlsText) do
+        local controlLabel = Instance.new("TextLabel")
+        controlLabel.Size = UDim2.new(0.95, 0, 0.2, 0)
+        controlLabel.Position = UDim2.new(0.025, 0, 0.25 + (i-1) * 0.25, 0)
+        controlLabel.BackgroundTransparency = 1
+        controlLabel.Text = controlText
+        controlLabel.Font = Enum.Font.SourceSans
+        controlLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        controlLabel.TextSize = 16
+        controlLabel.TextXAlignment = Enum.TextXAlignment.Left
+        controlLabel.Parent = frame
+    end
+    
+    -- Add the GUI to PlayerGui
+    sledControlGui.Parent = player:FindFirstChild("PlayerGui")
+    
+    return sledControlGui
+end
+
+-- Helper function to remove the GUI
+local function destroySledGui()
+    if sledControlGui then
+        sledControlGui:Destroy()
+        sledControlGui = nil
+    end
+    
+    if instructionGui then
+        instructionGui:Destroy()
+        instructionGui = nil
+    end
+end
+
 -- Helper function to load animations with fallbacks
 local function loadAnimations()
     if not CONFIG.EnableAnimations then return end
@@ -92,9 +244,9 @@ local function loadAnimations()
         if success and anim then
             animations.grab = anim
             grabAnimLoaded = true
-            print("Successfully loaded grab animation with ID:", animId)
+            debugPrint("Successfully loaded grab animation with ID:", animId)
         else
-            warn("Failed to load grab animation with ID:", animId)
+            debugPrint("Failed to load grab animation with ID:", animId)
         end
     end
     
@@ -115,9 +267,9 @@ local function loadAnimations()
         if success and anim then
             animations.push = anim
             pushAnimLoaded = true
-            print("Successfully loaded push animation with ID:", animId)
+            debugPrint("Successfully loaded push animation with ID:", animId)
         else
-            warn("Failed to load push animation with ID:", animId)
+            debugPrint("Failed to load push animation with ID:", animId)
         end
     end
     
@@ -135,7 +287,16 @@ end
 local function setupControls()
     local movingForward = false
     local steeringDirection = 0
-      -- Handle input for sled controls
+    
+    -- Create the control GUI
+    createSledGui()
+    
+    -- Show instructions if enabled
+    if CONFIG.ShowInstructions then
+        createInstructionGui("Use W to push forward, A/D to steer, and SPACE to release the sled.", CONFIG.InstructionDuration)
+    end
+    
+    -- Handle input for sled controls
     local function handleInput(actionName, inputState, inputObject)
         if actionName == "SledMoveForward" then
             if inputState == Enum.UserInputState.Begin then
@@ -231,6 +392,9 @@ local function releaseControls()
         animations.push:Stop()
     end
     
+    -- Remove the GUI
+    destroySledGui()
+    
     activeControlsSetup = false
 end
 
@@ -298,7 +462,13 @@ local function releaseSled()
     releaseControls()
     
     -- Tell server we're done using the sled
-    stopPushingRemote:FireServer()
+    local success, errorMsg = pcall(function()
+        stopPushingRemote:FireServer()
+    end)
+    
+    if not success then
+        warn("Failed to notify server about stopping:", errorMsg)
+    end
     
     -- Reset state
     currentPole = nil
@@ -309,7 +479,7 @@ end
 local function handlePromptTrigger(prompt)
     -- Check if we're already using the sled
     if activeControlsSetup then
-        print("Already using the sled, ignoring additional prompt.")
+        debugPrint("Already using the sled, ignoring additional prompt.")
         return
     end
     
@@ -361,8 +531,26 @@ local function setupPromptListeners()
             leftPrompt.Triggered:Connect(function()
                 handlePromptTrigger(leftPrompt)
             end)
+            debugPrint("Connected left prompt")
         else
             warn("SledPush.client: Left prompt not found or not a ProximityPrompt")
+            
+            -- Create a prompt if it doesn't exist
+            if not leftPrompt then
+                leftPrompt = Instance.new("ProximityPrompt")
+                leftPrompt.Name = "LeftPrompt"
+                leftPrompt.ActionText = "Grab Left Handle"
+                leftPrompt.ObjectText = "Fitness Sled"
+                leftPrompt.KeyboardKeyCode = Enum.KeyCode.E
+                leftPrompt.HoldDuration = 0
+                leftPrompt.MaxActivationDistance = 6
+                leftPrompt.Parent = poleLeft
+                
+                leftPrompt.Triggered:Connect(function()
+                    handlePromptTrigger(leftPrompt)
+                end)
+                debugPrint("Created and connected left prompt")
+            end
         end
     else
         warn("SledPush.client: Pole Left not found")
@@ -375,8 +563,26 @@ local function setupPromptListeners()
             rightPrompt.Triggered:Connect(function()
                 handlePromptTrigger(rightPrompt)
             end)
+            debugPrint("Connected right prompt")
         else
             warn("SledPush.client: Right prompt not found or not a ProximityPrompt")
+            
+            -- Create a prompt if it doesn't exist
+            if not rightPrompt then
+                rightPrompt = Instance.new("ProximityPrompt")
+                rightPrompt.Name = "RightPrompt"
+                rightPrompt.ActionText = "Grab Right Handle"
+                rightPrompt.ObjectText = "Fitness Sled"
+                rightPrompt.KeyboardKeyCode = Enum.KeyCode.E
+                rightPrompt.HoldDuration = 0
+                rightPrompt.MaxActivationDistance = 6
+                rightPrompt.Parent = poleRight
+                
+                rightPrompt.Triggered:Connect(function()
+                    handlePromptTrigger(rightPrompt)
+                end)
+                debugPrint("Created and connected right prompt")
+            end
         end
     else
         warn("SledPush.client: Pole Right not found")
@@ -393,8 +599,17 @@ local function setupPromptListeners()
     end
 end
 
+-- Clean up any existing UI when script is destroyed
+local function cleanupOnDestroy()
+    destroySledGui()
+    
+    if activeControlsSetup then
+        releaseControls()
+    end
+end
+
 -- Handle character changes
-player.CharacterAdded:Connect(function(newCharacter)
+local function onCharacterAdded(newCharacter)
     character = newCharacter
     humanoid = character:WaitForChild("Humanoid")
     
@@ -405,7 +620,20 @@ player.CharacterAdded:Connect(function(newCharacter)
     
     -- Re-load animations for new character
     loadAnimations()
+end
+
+-- Connect character changes
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Handle connection cleanup when script is destroyed
+script.AncestryChanged:Connect(function(_, newParent)
+    if not newParent then
+        cleanupOnDestroy()
+    end
 end)
 
 -- Check for existing proximity prompts
 setupPromptListeners()
+
+-- Debug message on initialization
+debugPrint("SledPush client script initialized successfully")
