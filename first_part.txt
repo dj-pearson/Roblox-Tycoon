@@ -1,0 +1,40 @@
+﻿--[[
+    CriticalFixesInitializer.server.luau
+    
+    This script initializes all critical systems and ensures proper folder structure.
+    It runs very early in the game lifecycle to ensure all systems can properly initialize.
+    
+    Created as part of the May 2, 2025 fixes to address initialization and structure issues.
+]]
+
+local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+-- Configuration
+local CONFIG = {
+    debug = true,
+    criticalFolders = {
+        {parent = ServerStorage, name = "GymStructure"},
+        {parent = ServerStorage, name = "BuyTiles"},
+        {parent = ServerStorage, name = "GymParts"},
+        {parent = ReplicatedStorage, name = "shared"},
+        {parent = ServerScriptService, name = "Core"}
+    },
+    criticalModules = {
+        {
+            name = "CoreRegistry",
+            parent = ServerScriptService.Core,
+            sourceLocation = ServerScriptService.Core.CoreRegistry_fixed
+        },
+        {
+            name = "SafeRequire",
+            parent = ReplicatedStorage.shared,
+            sourceLocation = ServerScriptService.Core.SafeRequire
+        },
+        {
+            name = "ModuleLoader",
+            parent = ReplicatedStorage.shared,
+            sourceLocation = ServerScriptService.Core.ModuleLoader
+        },

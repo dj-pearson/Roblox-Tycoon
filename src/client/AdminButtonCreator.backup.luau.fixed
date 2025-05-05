@@ -323,24 +323,14 @@ local function createAdminButton()
                         local assignPrimaryPartsRemote = game:GetService("ReplicatedStorage"):FindFirstChild("AssignPrimaryPartsRemote")
                         if assignPrimaryPartsRemote and assignPrimaryPartsRemote:IsA("RemoteFunction") then
                             success, commandResult = pcall(function()
-                                                            return assignPrimaryPartsRemote:InvokeServer()
+                                return assignPrimaryPartsRemote:InvokeServer()
                             end)
                             log("AssignPrimaryParts remote call - success: " .. tostring(success) .. ", result: " .. tostring(commandResult))
                         else
                             log("AssignPrimaryPartsRemote not found")
                         end
                     end
-                
-                    -- Try with the specific remote function
-                    local assignPrimaryPartsRemote = game:GetService("ReplicatedStorage"):FindFirstChild("AssignPrimaryPartsRemote")
-                    local success, commandResult
-                    if assignPrimaryPartsRemote and assignPrimaryPartsRemote:IsA("RemoteFunction") then
-                        success, commandResult = pcall(function()
-                            return assignPrimaryPartsRemote:InvokeServer()
-                        end)
-                        print("Method 4 (specific command) result - success:", success, "result:", commandResult)
-                    end
-                end,
+                end
                 
                 -- Process result and provide feedback
                 if status then

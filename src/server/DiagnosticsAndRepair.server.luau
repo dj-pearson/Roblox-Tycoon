@@ -438,23 +438,32 @@ local Repairs = {
         
         -- Try to load DataManager
         local DataManager = getSystem("DataManager", getSafeRequire())
-        
-        -- If not found, try DataPersistenceManager
+          -- If not found, try DataPersistenceManager
         if not DataManager then
             DataManager = getSystem("DataPersistenceManager", getSafeRequire())
-        }
-       if not DataManager then
-           -- Try to find it directly and register with CoreRegistry
-           local safeRequire = getSafeRequire()
-           local success, module = pcall(function()
-               return safeRequire(ServerScriptService.Core.DataPersistenceManager)
-           end)
+        end
+        
+        if not DataManager then
+            -- Try to find it directly and register with CoreRegistry
+            local safeRequire = getSafeRequire()
+            local success, module
+            if safeRequire then
+                success, module = pcall(function()
+                    if typeof(safeRequire.requireFromPath) == "function" then
+                        return safeRequire.requireFromPath("DataPersistenceManager")
+                    elseif typeof(safeRequire) == "function" then
+                        return safeRequire(ServerScriptService.Core.DataPersistenceManager)
+                    end
+                    return nil
+                end)
+            else
+                success = false
+            end
 
-           if success and module then
+            if success and module then
                DataManager = module
-               log("Found DataPersistenceManager module, registering with CoreRegistry")
-               local CoreRegistry = getSystem("CoreRegistry")
-                if CoreRegistry then
+               log("Found DataPersistenceManager module, registering with CoreRegistry")               local CoreRegistry = getSystem("CoreRegistry")
+               if CoreRegistry then
                     CoreRegistry:registerSystem("DataPersistenceManager", DataManager)
                     CoreRegistry:registerSystem("DataManager", DataManager) -- For backward compatibility
                     log("DataPersistence repair: registered DataManager with CoreRegistry")
@@ -495,14 +504,12 @@ local Repairs = {
                     return true
                 end
             end
-        end
-        
+        end        
         log("DataPersistence repair: partial success")
-        return true
-    end
+        return true    end,
     
     -- Fix BuyTileSystem
-    BuyTileSystem = function()
+    ["BuyTileSystem"] = function()
         log("Attempting to repair BuyTileSystem")
         
         -- Try to load BuyTileSystem
@@ -611,11 +618,10 @@ local Repairs = {
                 end
             end
         end)
-        
-        log("UISystem repair: partial success")
+          log("UISystem repair: partial success")
         return true
     end
-end
+}
 
 -- Run diagnostics on all systems
 local function runDiagnostics()

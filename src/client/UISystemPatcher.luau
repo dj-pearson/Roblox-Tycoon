@@ -162,10 +162,10 @@ function UISystemPatcher:patchUIComponents()
     end
     
     -- Patch createUI to handle missing template errors
-    if typeof(UIComponents.createUI) == "function" then
-        UIComponents.createUI = function(uiName, parent, ...)
+    if typeof(UIComponents.createUI) == "function" then        UIComponents.createUI = function(uiName, parent, ...)
+            local args = {...}
             local success, result = pcall(function()
-                return self.originalFunctions.createUI(uiName, parent, ...)
+                return self.originalFunctions.createUI(uiName, parent, unpack(args))
             end)
             
             if success then
@@ -180,10 +180,10 @@ function UISystemPatcher:patchUIComponents()
     end
     
     -- Patch showUI to handle errors
-    if typeof(UIComponents.showUI) == "function" then
-        UIComponents.showUI = function(uiName, ...)
+    if typeof(UIComponents.showUI) == "function" then        UIComponents.showUI = function(uiName, ...)
+            local args = {...}
             local success, result = pcall(function()
-                return self.originalFunctions.showUI(uiName, ...)
+                return self.originalFunctions.showUI(uiName, unpack(args))
             end)
             
             if success then
