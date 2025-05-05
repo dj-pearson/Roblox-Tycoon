@@ -1,39 +1,98 @@
--- Create a completely fresh version of the file with the fixed createModuleLocatorService function
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- CriticalFixesInitializer.server.luau - Fully fixed version
+-- This script initializes all critical systems and ensures proper folder structure.
+
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 -- Configuration
 local CONFIG = {
+    debug = true,
+    criticalFolders = {
+        {parent = ServerStorage, name = "GymStructure"},
+        {parent = ServerStorage, name = "BuyTiles"},
+        {parent = ServerStorage, name = "GymParts"},
+        {parent = ReplicatedStorage, name = "shared"},
+        {parent = ServerScriptService, name = "Core"}
+    },
+    criticalModules = {
+        {
+            name = "CoreRegistry",
+            parent = ServerScriptService.Core,
+            sourceLocation = ServerScriptService.Core.CoreRegistry_fixed
+        },
+        {
+            name = "SafeRequire",
+            parent = ReplicatedStorage.shared,
+            sourceLocation = ServerScriptService.Core.SafeRequire
+        },
+        {
+            name = "ModuleLoader",
+            parent = ReplicatedStorage.shared,
+            sourceLocation = ServerScriptService.Core.ModuleLoader
+        },
+        {
+            name = "SafeWaitForChild",
+            parent = ReplicatedStorage.shared,
+            sourceLocation = ServerScriptService.Core.SafeWaitForChild
+        },
+        {
+            name = "DataPersistenceManager",
+            parent = ServerScriptService.Core,
+            sourceLocation = ServerScriptService.Core.DataPersistenceManager
+        },
+        {
+            name = "SystemBootstrap",
+            parent = ServerScriptService.Core,
+            sourceLocation = ServerScriptService.Core.SystemBootstrap
+        }
+    },
     criticalSystems = {
         "CoreRegistry",
-        "ModuleLoader",
-        "DataManager",
+        "DataPersistenceManager",
+        "BuyTileSystem",
+        "TycoonSystem",
+        "GymAutomationManager",
         "UIComponents",
         "AssetValidator",
-        "BuyTileSystem",
-        "TycoonSystem"
-    },
-    debug = true
+        "EventBridge"
+    }
 }
 
--- Debug logging
-local function log(message)
+-- Debug logger
+local function log(...)
     if CONFIG.debug then
-        print("[CriticalFixesInitializer] " .. message)
+        print("[CriticalFixesInitializer]", ...)
     end
 end
 
--- Ensure critical folder structure
+-- Create required folder structure
 local function ensureFolderStructure()
     log("Ensuring folder structure...")
     
-    -- Make sure shared folder exists
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if not shared then
-        shared = Instance.new("Folder")
-        shared.Name = "shared"
-        shared.Parent = ReplicatedStorage
-        log("Created shared folder")
+    for _, folderInfo in ipairs(CONFIG.criticalFolders) do
+        local folder = folderInfo.parent:FindFirstChild(folderInfo.name)
+        
+        if not folder then
+            log("Creating missing folder: " .. folderInfo.name .. " in " .. folderInfo.parent:GetFullName())
+            folder = Instance.new("Folder")
+            folder.Name = folderInfo.name
+            folder.Parent = folderInfo.parent
+        elseif not folder:IsA("Folder") then
+            log("Converting " .. folderInfo.name .. " to a Folder")
+            local newFolder = Instance.new("Folder")
+            newFolder.Name = folderInfo.name
+            
+            -- Move children if any
+            for _, child in ipairs(folder:GetChildren()) do
+                child.Parent = newFolder
+            end
+            
+            -- Replace the old instance
+            folder:Destroy()
+            newFolder.Parent = folderInfo.parent
+        end
     end
     
     log("Folder structure verification complete")
@@ -41,11 +100,49 @@ end
 
 -- Ensure critical modules exist
 local function ensureCriticalModules()
+    log("Ensuring critical modules exist...")
+    
+    for _, moduleInfo in ipairs(CONFIG.criticalModules) do
+        if not moduleInfo.parent then
+            log("Parent missing for " .. moduleInfo.name .. ", skipping")
+            continue
+        end
+        
+        local existingModule = moduleInfo.parent:FindFirstChild(moduleInfo.name)
+        
+        if not existingModule then
+            log("Creating missing module: " .. moduleInfo.name)
+            
+            if moduleInfo.sourceLocation and moduleInfo.sourceLocation:IsA("ModuleScript") then
+                -- Clone from source
+                local newModule = moduleInfo.sourceLocation:Clone()
+                newModule.Name = moduleInfo.name
+                newModule.Parent = moduleInfo.parent
+                log("Cloned module: " .. moduleInfo.name .. " from " .. moduleInfo.sourceLocation:GetFullName())
+            else
+                -- Create empty module
+                local newModule = Instance.new("ModuleScript")
+                newModule.Name = moduleInfo.name
+                newModule.Source = "-- " .. moduleInfo.name .. "\nreturn {}"
+                newModule.Parent = moduleInfo.parent
+                log("Created empty module: " .. moduleInfo.name)
+            end
+        elseif existingModule:IsA("ModuleScript") and moduleInfo.sourceLocation and moduleInfo.sourceLocation:IsA("ModuleScript") then
+            -- Check if source needs to be updated
+            if existingModule.Source ~= moduleInfo.sourceLocation.Source then
+                log("Updating source for: " .. moduleInfo.name)
+                existingModule.Source = moduleInfo.sourceLocation.Source
+            end
+        end
+    end
+    
     log("Critical modules verification complete")
 end
 
 -- Initialize CoreRegistry with critical systems
 local function initializeCoreRegistry()
+    log("Initializing CoreRegistry...")
+    
     local success, coreRegistry = pcall(function()
         -- Try to find and require CoreRegistry
         local registryModule = ServerScriptService:FindFirstChild("Core"):FindFirstChild("CoreRegistry")
@@ -100,7 +197,11 @@ local function initializeCriticalSystems(coreRegistry)
         end
         
         -- Try to find and require the system
-        local systemLocations = {}
+        local systemLocations = {
+            ServerScriptService.Core:FindFirstChild(systemName),
+            ReplicatedStorage.shared:FindFirstChild(systemName),
+            ServerScriptService:FindFirstChild(systemName)
+        }
         
         local system
         for _, location in ipairs(systemLocations) do
@@ -181,18 +282,20 @@ local function createModuleLocatorService()
     local moduleLocatorService = Instance.new("ModuleScript")
     moduleLocatorService.Name = "ModuleLocatorService"
     
-    -- Define the module source with proper multiline string format
-    moduleLocatorService.Source = [[
---[[
-    ModuleLocatorService.luau
-    
-    This module provides robust module discovery and path resolution services.
-    Created as part of the May 2, 2025 fixes to address module discovery issues.
+    -- Create the module content as separate strings
+    local header = [[
+-- ModuleLocatorService.luau
+-- 
+-- This module provides robust module discovery and path resolution services.
+-- Created as part of the May 2, 2025 fixes to address module discovery issues.
 ]]
 
+    local imports = [[
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+]]
 
+    local moduleDefinition = [[
 local ModuleLocatorService = {
     debug = true,
     cachedModules = {},
@@ -205,14 +308,18 @@ local ModuleLocatorService = {
         ServerScriptService.Server.Core
     }
 }
+]]
 
+    local debugFunction = [[
 -- Debug function
 local function log(...)
     if ModuleLocatorService.debug then
         print("[ModuleLocatorService]", ...)
     end
 end
+]]
 
+    local otherFunctions = [[
 -- Add a search path
 function ModuleLocatorService:addSearchPath(path)
     if typeof(path) == "Instance" then
@@ -257,7 +364,9 @@ function ModuleLocatorService:findModule(moduleName)
     log("Could not find module: " .. moduleName)
     return nil
 end
+]]
 
+    local requireFunction = [[
 -- Safely require a module
 function ModuleLocatorService:requireModule(moduleName)
     local module = self:findModule(moduleName)
@@ -277,7 +386,9 @@ function ModuleLocatorService:requireModule(moduleName)
     
     return result
 end
+]]
 
+    local cacheFunction = [[
 -- Clear module from cache
 function ModuleLocatorService:clearCache(moduleName)
     if not moduleName then
@@ -290,7 +401,9 @@ function ModuleLocatorService:clearCache(moduleName)
         log("Cleared cache for module: " .. moduleName)
     end
 end
+]]
 
+    local initFunction = [[
 -- Initialize by scanning the workspace
 function ModuleLocatorService:init()
     log("Initializing ModuleLocatorService...")
@@ -314,9 +427,20 @@ function ModuleLocatorService:init()
     log("ModuleLocatorService initialized")
     return self
 end
+]]
 
+    local returnStatement = [[
 return ModuleLocatorService
 ]]
+
+    -- Create the complete module source by concatenating all parts
+    local moduleSource = header .. "\n" .. imports .. "\n" .. moduleDefinition .. 
+                         "\n" .. debugFunction .. "\n" .. otherFunctions .. 
+                         "\n" .. requireFunction .. "\n" .. cacheFunction .. 
+                         "\n" .. initFunction .. "\n" .. returnStatement
+    
+    -- Set the source
+    moduleLocatorService.Source = moduleSource
     
     -- Set the parent
     moduleLocatorService.Parent = sharedFolder

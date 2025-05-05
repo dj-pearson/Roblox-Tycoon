@@ -340,7 +340,7 @@ local function createAdminButton()
                         end)
                         print("Method 4 (specific command) result - success:", success, "result:", commandResult)
                     end
-                end,
+                end
                 
                 -- Process result and provide feedback
                 if status then

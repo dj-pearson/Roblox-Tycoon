@@ -465,9 +465,10 @@ function UIComponentBase:triggerEvent(eventName, ...)
         return
     end
     
+    local args = {...}
     for _, handler in pairs(self._events[eventName]) do
         task.spawn(function()
-            handler(self, ...)
+            handler(self, unpack(args))
         end)
     end
 end

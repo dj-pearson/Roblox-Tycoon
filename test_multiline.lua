@@ -6,13 +6,12 @@ This is a
 multiline string
 ]]
     print(str1)
-    
-    -- This is a nested multiline string
+      -- This is a nested multiline string
     local str2 = [[
 First level
-    [[
+    [=[
     Second level
-    ]]
+    ]=]
 End first level
 ]]
     print(str2)
