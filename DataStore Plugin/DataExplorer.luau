@@ -143,8 +143,28 @@ local function createLabel(text: string, parent: Instance): TextLabel
 
         if #cacheContents > 0 then
             for _, cacheEntry in ipairs(cacheContents) do
-                local entryLabel = createLabel(cacheEntry.dataStoreName .. ":" .. cacheEntry.keyName, cacheViewerPane)
-                entryLabel.Parent = cacheViewerPane
+                local entryFrame = Instance.new("Frame")
+                entryFrame.Size = UDim2.new(1, 0, 0, 20) -- Fixed height for each entry
+                entryFrame.BackgroundTransparency = 1
+                entryFrame.Parent = cacheViewerPane
+
+                local entryLayout = Instance.new("UIListLayout")
+                entryLayout.FillDirection = Enum.FillDirection.Horizontal
+                entryLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                entryLayout.Parent = entryFrame
+                
+                local dataStoreLabel = createLabel(cacheEntry.dataStoreName, entryFrame)
+                dataStoreLabel.Size = UDim2.new(0.2,0,1,0)
+                local keyLabel = createLabel(cacheEntry.keyName, entryFrame)
+                keyLabel.Size = UDim2.new(0.3,0,1,0)
+                local sizeLabel = createLabel(string.format("%.2f KB", cacheEntry.estimatedSize / 1024), entryFrame)
+                sizeLabel.Size = UDim2.new(0.15,0,1,0)
+                local lastAccessedLabel = createLabel(os.date("%Y-%m-%d %H:%M:%S", cacheEntry.lastAccessed), entryFrame)
+                lastAccessedLabel.Size = UDim2.new(0.25,0,1,0)
+                local accessCountLabel = createLabel(tostring(cacheEntry.accessCount), entryFrame)
+                accessCountLabel.Size = UDim2.new(0.1,0,1,0)
+
+
             end
         else
             local noDataLabel = createLabel("No data in cache", cacheViewerPane)
@@ -209,6 +229,16 @@ function DataExplorer.updatePerformanceDataUI()
     local cacheMissesLabel = createLabel("Cache Misses: " .. tostring(cacheAnalytics.misses), cacheFrame)
     cacheMissesLabel.Position = UDim2.new(0, 0, 0, 20)
 
+        -- Display cache hit rate percentage
+    local hitRate = 0
+    if cacheAnalytics.hits + cacheAnalytics.misses > 0 then
+        hitRate = (cacheAnalytics.hits / (cacheAnalytics.hits + cacheAnalytics.misses)) * 100
+    end
+    local hitRateLabel = createLabel(string.format("Hit Rate: %.2f%%", hitRate), cacheFrame)
+    hitRateLabel.Position = UDim2.new(0, 0, 0, 40) -- Position below misses
+
+
+
         -- Add cache memory usage display
         local memoryUsage = CacheManager.estimateMemoryUsage()
         local memoryUsageLabel = createLabel("Cache Memory: " .. string.format("%.2f", memoryUsage / 1024) .. " KB", cacheFrame) -- Display in KB
@@ -221,30 +251,59 @@ function DataExplorer.updatePerformanceDataUI()
 
     if operationSummary then
         for operationName, summary in pairs(operationSummary) do
+
             local operationFrame = Instance.new("Frame")
-            operationFrame.Size = UDim2.new(1, 0, 0, 60)
+            operationFrame.Size = UDim2.new(1, 0, 0, 40)
             operationFrame.Position = UDim2.new(0,0,0,cacheFrame.Size.Y.Offset)
             operationFrame.BackgroundTransparency = 1
             operationFrame.Parent = performancePane
 
-            local operationLabel = createLabel(operationName, operationFrame)
-            operationLabel.Size = UDim2.new(1,0,0,20)
-            operationLabel.Parent = operationFrame
+            -- Create a frame for the table header
+            local headerFrame = Instance.new("Frame")
+            headerFrame.Size = UDim2.new(1, 0, 0, 20)
+            headerFrame.BackgroundTransparency = 1
+            headerFrame.Parent = operationFrame
 
-            local countLabel = createLabel("Count: " .. tostring(summary.count), operationFrame)
-            countLabel.Position = UDim2.new(0, 0, 0, 20)
-            countLabel.Size = UDim2.new(1,0,0,20)
-            countLabel.Parent = operationFrame
+            -- Create a frame for the table rows
+            local rowFrame = Instance.new("Frame")
+            rowFrame.Size = UDim2.new(1, 0, 0, 20)
+            rowFrame.Position = UDim2.new(0,0,0,20)
+            rowFrame.BackgroundTransparency = 1
+            rowFrame.Parent = operationFrame
 
-            local avgDurationLabel = createLabel("Avg Duration: " .. string.format("%.4f", summary.averageDuration) .. "s", operationFrame)
-            avgDurationLabel.Position = UDim2.new(0, 0, 0, 40)
-            avgDurationLabel.Size = UDim2.new(1,0,0,20)
-            avgDurationLabel.Parent = operationFrame
 
-            -- Highlight potential bottlenecks
-            if summary.averageDuration > 0.5 then -- Example threshold for highlighting
-                operationLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Highlight in red
+            -- Table header labels
+            local headerLabels = {
+                {name = "Operation", widthScale = 0.3},
+                {name = "Count", widthScale = 0.2},
+                {name = "Total Duration", widthScale = 0.25},
+                {name = "Average Duration", widthScale = 0.25}
+            }
+
+            local headerOffset = 0
+            for _, header in ipairs(headerLabels) do
+                local headerLabel = createLabel(header.name, headerFrame)
+                headerLabel.Size = UDim2.new(header.widthScale, 0, 1, 0)
+                headerLabel.Position = UDim2.new(0, headerOffset, 0, 0)
+                headerOffset += header.widthScale * 100
             end
+
+            -- Row labels (data)
+            local rowLabels = {
+                {value = operationName, widthScale = 0.3, color = (summary.averageDuration > 0.5) and Color3.fromRGB(255, 100, 100) or nil},
+                {value = tostring(summary.count), widthScale = 0.2},
+                {value = string.format("%.2fms", summary.totalDuration * 1000), widthScale = 0.25},
+                {value = string.format("%.2fms", summary.averageDuration * 1000), widthScale = 0.25}
+            }
+
+            local rowOffset = 0
+            for _, row in ipairs(rowLabels) do
+                local rowLabel = createLabel(row.value, rowFrame)
+                rowLabel.Size = UDim2.new(row.widthScale, 0, 1, 0)
+                rowLabel.Position = UDim2.new(0, rowOffset, 0, 0)
+                rowLabel.TextColor3 = row.color or Color3.new(1,1,1)
+                rowOffset += row.widthScale * 100
+            end   
         end
     else
         local noDataLabel = createLabel("No performance data yet.", performancePane)
