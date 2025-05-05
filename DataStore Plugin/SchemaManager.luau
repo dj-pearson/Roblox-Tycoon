@@ -2,6 +2,7 @@
 -- DataStore Plugin/SchemaManager.luau
 
 local DataStoreService = game:GetService("DataStoreService")
+local SchemaVersioning = require(script.Parent.SchemaVersioning)
 local SchemaManager = {}
 
 local SCHEMA_DATA_STORE_NAME = "PluginSchemas" -- Separate DataStore for schemas
@@ -37,7 +38,13 @@ function SchemaManager.saveSchema(schema, dataStoreName, keyName)
 
 	if not success then
 		warn("Error saving schema:", result)
+		return false
 	end
+	
+	-- Create a version record for this schema
+	SchemaVersioning.createVersion(dataStoreName, keyName, schema)
+	
+	return true
 end
 
 function SchemaManager.loadSchema(dataStoreName, keyName)

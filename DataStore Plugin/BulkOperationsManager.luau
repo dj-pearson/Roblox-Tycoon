@@ -1,7 +1,7 @@
 --luau
 -- DataStore Plugin/BulkOperationsManager.luau
 
-local DataStoreService = game:GetService("HttpService")
+local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 
 local DataStoreManager = require(script.Parent.DataStoreManager)

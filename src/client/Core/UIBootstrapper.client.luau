@@ -1,4 +1,4 @@
-luau
+--luau
 --!strict
 -- UIBootstrapper.client.luau
 -- Manages the loading and display of UI components on the client
