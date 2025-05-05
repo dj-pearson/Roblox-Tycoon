@@ -1,13 +1,10 @@
 # Roblox Issues Tracking Document
 
-## CoreRegistry Degraded State (⚠️ ACTIVE - May 4, 2025)
+## CoreRegistry Degraded State (⚠️ ACTIVE - May 5, 2025)
 
 **Error Messages:**
 - `[CoreRegistry] Registry status set to: Degraded`
 - `[CoreRegistry] Critical system missing: DataManager`
-- `[CoreRegistry] Critical system missing: UIComponents`
-- `[CoreRegistry] Critical system missing: AssetValidator`
-- `[CoreRegistry] Critical system missing: BuyTileSystem`
 - `[CoreRegistry] Critical system missing: TycoonSystem`
 - `[CoreRegistry] Critical system missing: EventBridge`
 
@@ -20,8 +17,8 @@
 **Status:** 
 - ⚠️ CoreRegistry initializes but enters a degraded state
 - ⚠️ Multiple critical systems are missing or fail to register properly
-- ✅ Emergency admin systems implemented to provide temporary workarounds
-- ✅ EmergencyAdminButton.client.luau successfully providing critical admin functions
+- ✅ DiagnosticsAndRepair is attempting to repair issues but failing
+- ✅ Emergency admin systems providing temporary workarounds
 
 **Required Actions:**
 1. Investigate folder structure issues preventing correct module loading
@@ -30,16 +27,16 @@
 4. Fix initialization order to ensure dependencies are loaded before dependent systems
 5. Create a comprehensive system restoration process
 
-## Client UI System Failures (⚠️ ACTIVE - May 4, 2025)
+## Client UI System Failures (⚠️ ACTIVE - May 5, 2025)
 
 **Error Messages:**
-- `ClientRegistry.getSystem: System not found - UISystem`
-- `UISystemPatcher: UISystem not found, cannot patch`
-- `[UILoader] Failed to load: MenuButtonCreator - Attempted to call require with invalid argument(s).`
-- `[UILoader] Failed to load: GymTycoonMenuUI - Attempted to call require with invalid argument(s).`
-- `[UILoader] Failed to load: AdminButtonCreator - Attempted to call require with invalid argument(s).`
+- `ClientRegistry.getSystem: System not found - table: 0x7666e0f059484816`
 - `[UISystemEnhancer] UI folder not found`
 - `[UISystemEnhancer] All attempts to show UI failed: MainMenuUI`
+- `[UISystemEnhancer] Failed to show MainMenuUI after 10 attempts`
+- `[UISystemFixer] Some fixes failed to apply. Check the logs for details.`
+- `MainMenuUILoader: Could not find UIRegistry after timeout`
+- `[ClientRegistry] Failed to preload critical system: ClientBootstrap`
 
 **Context:** The client UI systems are failing to load and register properly, causing UI components to be unavailable or non-functional.
 
@@ -49,10 +46,10 @@
 
 **Status:** 
 - ⚠️ Multiple UI systems failing to load or initialize
-- ⚠️ ClientRegistry unable to find or register UI systems
+- ⚠️ ClientRegistry creating fallback systems but many are still failing
 - ⚠️ UI component creation failing due to missing dependencies
-- ✅ EmergencyAdminButton successfully provides critical admin UI functionality
-- ✅ Basic UI components for emergency functions are working
+- ⚠️ UISystemFixer and ClientRegistryFixer failing to repair UI systems
+- ✅ UIRegistry successfully initialized but missing most components
 
 **Required Actions:**
 1. Fix ClientRegistry initialization to properly register UI systems
@@ -61,15 +58,16 @@
 4. Fix dependency resolution between UI systems
 5. Create a dedicated UI system recovery process
 
-## Module Loading and Path Resolution Issues (⚠️ ACTIVE - May 4, 2025)
+## Module Loading and Path Resolution Issues (⚠️ ACTIVE - May 5, 2025)
 
 **Error Messages:**
-- `Attempted to call require with invalid argument(s).`
-- `Modules is not a valid member of ServerStorage "ServerStorage"`
-- `Systems is not a valid member of ServerScriptService "ServerScriptService"`
-- `Core is not a valid member of ServerScriptService "ServerScriptService"`
-- `Infinite yield possible on 'ServerScriptService.Core:WaitForChild("CoreRegistry")'`
+- `Failed to require module: Players.Xdjpearsonx.PlayerScripts.Client.UI.UIRegistry`
 - `Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("shared")'`
+- `Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("GameSystem")'`
+- `Infinite yield possible on 'ReplicatedStorage.src:WaitForChild("StarterGui")'`
+- `Timeout waiting for ReplicatedStorage.src:shared`
+- `ReplicatedStorage.shared.IconSet:176: attempt to call missing method 'preloadImageAsync' of table`
+- `ReplicatedStorage.shared.ButtonFactory:241: attempt to call missing method 'createButton' of string`
 
 **Context:** The game is experiencing widespread module loading failures due to incorrect paths, missing folders, and module resolution issues.
 
@@ -79,10 +77,10 @@
 
 **Status:** 
 - ⚠️ Core module paths are incorrect or missing
-- ⚠️ System folder structure has inconsistencies
+- ⚠️ Multiple timeouts waiting for shared modules
 - ⚠️ Infinite yield errors occurring due to missing expected paths
-- ✅ Some fallback implementations have been created for critical functions
-- ✅ Emergency admin functionality working despite module loading issues
+- ⚠️ ModuleScriptAccessor is failing tests
+- ✅ Some fallback implementations are being created but aren't fully functional
 
 **Required Actions:**
 1. Create and organize proper folder structure for modules
@@ -91,14 +89,133 @@
 4. Implement robust error handling for module loading failures
 5. Set up proper dependency injection to reduce hard-coded paths
 
-## Tycoon Structure and Data Restoration Issues (⚠️ ACTIVE - May 4, 2025)
+## SledPush Script and GUI Issues (⚠️ NEW - May 5, 2025)
 
 **Error Messages:**
-- `GymPartsScanner: Found 0 items in GymParts structure`
-- `GymPartsScanner: No items found in GymParts folder`
-- `[DataManager] Using fallback spawnGymPart for ID: Xdjpearsonx`
-- `Could not find gym part with ID: Xdjpearsonx`
-- `Failed to restore tile 2 for Xdjpearsonx`
+- `ContextActionService:BindAction can only be called from a local script`
+- `Workspace.GymParts.1st Floor.Functional.Sled.SledPush:318: attempt to index nil with 'IsA'`
+- `120 kg weight display visible from anywhere in the game`
+- `Player gets stuck after grabbing the left handle`
+
+**Context:** The SledPush script is attempting to run server-side code that should be client-side, causing functionality issues. The weight display (120kg) is visible from anywhere in the game and not proximity-based. Players are getting stuck after grabbing the left handle.
+
+**Impact:** High. Players cannot properly use the sled equipment, get stuck in animations, and see GUI elements they shouldn't.
+
+**Frequency:** Occurs consistently whenever a player tries to use the sled equipment.
+
+**Status:** 
+- ⚠️ ContextActionService being called from server script instead of local script
+- ⚠️ GUI visible from anywhere instead of using proximity
+- ⚠️ Player controls get stuck when using the sled
+- ⚠️ Nil reference errors occurring in SledPush script
+
+**Required Actions:**
+1. Convert SledPush script to use a client-side script for UI and controls
+2. Implement proper proximity-based GUI visibility for the weight display
+3. Fix nil reference errors in the SledPush script
+4. Fix the issue causing players to get stuck after grabbing the left handle
+5. Implement proper cleanup of player controls when releasing the sled
+
+## Sports Equipment UI Issues (⚠️ NEW - May 5, 2025)
+
+**Error Messages:**
+- `HOME/Away score visible throughout the game`
+- `Failed to load animation with sanitized ID rbxassetid://11712650405: Animation failed to load`
+- `Failed to load animation with sanitized ID rbxassetid://11712653634: Animation failed to load`
+
+**Context:** The Soccer Field script displays HOME/Away score UI regardless of player proximity to the field. Animations for sports equipment are failing to load properly.
+
+**Impact:** Medium. Players see UI elements they shouldn't, and animations are not playing correctly, affecting gameplay experience.
+
+**Frequency:** Occurs consistently for all players.
+
+**Status:** 
+- ⚠️ Soccer Field scoreboard visible from anywhere in the game
+- ⚠️ HOME/Away score not tied to proximity of the "field" part
+- ⚠️ Multiple animations failing to load from asset IDs
+- ⚠️ Basketball system scoreboards need cleanup
+
+**Required Actions:**
+1. Modify Soccer Field script to only display scoreboard UI when players are near the field
+2. Fix animation loading issues for sports equipment
+3. Properly tie UI visibility to the "field" part that is the primary part of the Soccer Field model
+4. Implement proper cleanup for sports equipment UI and scoreboards
+
+## Data Persistence Issues (⚠️ ACTIVE - May 5, 2025)
+
+**Error Messages:**
+- `[DiagnosticsAndRepair] DataPersistence diagnostic result: ERROR`
+- `[DiagnosticsAndRepair] No data manager module found to repair`
+- `[CoreRegistry] Critical system missing: DataManager`
+- `[DataPersistenceFix] Regular save successful for: Xdjpearsonx (Attempt 1)`
+- `[DataManager] Successfully saved data for Xdjpearsonx on exit`
+
+**Context:** The data persistence system is encountering errors. Although data appears to be saving successfully for players on exit, the DataManager system is missing from the CoreRegistry, and repairs are failing.
+
+**Impact:** High. Player data could be at risk of not saving properly or being lost, though current logs show successful saves.
+
+**Frequency:** Occurs for all players, with automatic repair attempts.
+
+**Status:** 
+- ⚠️ DataPersistence diagnostic showing ERROR
+- ⚠️ DataManager missing from CoreRegistry
+- ⚠️ Auto-repair unable to fix DataPersistence issues
+- ✅ Data still being successfully saved for players on exit
+- ✅ Backup saves are being created
+
+**Required Actions:**
+1. Restore the DataManager module and register it with CoreRegistry
+2. Fix the DataPersistence repair mechanism in DiagnosticsAndRepair
+3. Implement more robust data save verification
+4. Ensure proper data loading on player join
+5. Fix data system integration with other core systems
+
+## GymAutomation System Failure (⚠️ ACTIVE - May 5, 2025)
+
+**Error Messages:**
+- `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
+- `[GymAutomationLoader] Could not find GymAutomation in any search path`
+- `[GymAutomationLoader] Failed to find any GymAutomation module`
+- `[GymAutomationLoader] Failed to load GymAutomation after 5 attempts. Giving up.`
+
+**Context:** The GymAutomation system is completely missing, and the loader is failing to find or load any related modules after multiple attempts.
+
+**Impact:** Medium. Automated gym functions may not be working, affecting the gym simulation aspects of the game.
+
+**Frequency:** Occurs on every server startup.
+
+**Status:** 
+- ⚠️ GymAutomation modules missing from all search paths
+- ⚠️ GymAutomationLoader failing after multiple attempts
+- ⚠️ No fallback implementation for gym automation
+
+**Required Actions:**
+1. Create or restore the GymAutomation module
+2. Fix the search paths in GymAutomationLoader
+3. Implement fallback functionality for critical gym automation features
+4. Add proper error handling for when the module can't be found
+
+## Issue Priority Summary
+
+### Critical Priority:
+1. **CoreRegistry Degraded State** - Multiple critical systems missing
+2. **Module Loading and Path Resolution Issues** - Widespread module loading failures
+3. **Data Persistence Issues** - Potential risk to player data
+
+### High Priority:
+1. **Client UI System Failures** - UI components unavailable or non-functional
+2. **Tycoon Structure and Data Restoration Issues** - Missing critical tycoon components
+3. **SledPush Script and GUI Issues** - Players getting stuck and UI visibility problems
+
+### Medium Priority:
+1. **Sports Equipment UI Issues** - Incorrect UI visibility
+2. **Animation and Asset Loading Failures** - Missing animations and visual elements
+3. **GymAutomation System Failure** - Missing automation functionality
+
+### Low Priority:
+1. Minor UI positioning and styling issues
+2. Non-critical animation failures
+3. Warning-level diagnostics that don't affect gameplay
 - `[DataManager] Restored 1 of 40 tiles for Xdjpearsonx`
 
 **Context:** The tycoon system is failing to properly scan, structure, and restore player gym components. This affects both new tycoons and restored player data.
