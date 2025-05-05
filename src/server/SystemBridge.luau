@@ -48,12 +48,10 @@ local function findModule(moduleName)
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
         ServerScriptService:FindFirstChild("Systems"),
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Systems"),
-        -- Specialized folders
-        ServerScriptService:FindFirstChild("GymAutomation"),
+        -- Specialized folders        ServerScriptService:FindFirstChild("GymAutomation"),
         ServerScriptService:FindFirstChild("Data"),
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Data"),
         ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("GymAutomation")
-    }
     }
     
     -- Try each path
