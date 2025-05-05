@@ -179,16 +179,16 @@ function DataManagerFix:enhanceDataManager()
     local originalSave = DataManager.savePlayerData
     local originalLoad = DataManager.loadPlayerData
     local originalUpdate = DataManager.updatePlayerData
-    
-    -- Enhance save function with retries
+      -- Enhance save function with retries
     if typeof(originalSave) == "function" then
         DataManager.savePlayerData = function(player, ...)
+            local args = {...}  -- Capture varargs in a local variable
             local success, result
             local attempts = 0
             
             while attempts < CONFIG.MAX_RETRIES do
                 success, result = pcall(function() 
-                    return originalSave(player, ...) 
+                    return originalSave(player, unpack(args)) 
                 end)
                 
                 if success then
@@ -207,16 +207,16 @@ function DataManagerFix:enhanceDataManager()
             return false
         end
     end
-    
-    -- Enhance load function with fallback
+      -- Enhance load function with fallback
     if typeof(originalLoad) == "function" then
         DataManager.loadPlayerData = function(player, ...)
+            local args = {...}  -- Capture varargs in a local variable
             local success, result
             local attempts = 0
             
             while attempts < CONFIG.MAX_RETRIES do
                 success, result = pcall(function() 
-                    return originalLoad(player, ...) 
+                    return originalLoad(player, unpack(args)) 
                 end)
                 
                 if success and result then

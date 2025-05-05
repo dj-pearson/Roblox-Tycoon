@@ -142,7 +142,7 @@ local function init()
 end
 
 -- Create buttons demo
-function createButtonsDemo()
+local createButtonsDemo = function()
     local container = Instance.new("Frame")
     container.Size = UDim2.new(1, 0, 1, 0)
     container.BackgroundTransparency = 1
@@ -200,7 +200,7 @@ function createButtonsDemo()
     
     largeButton:onClick(function()
         print("Large button clicked")
-    end)
+    })
     
     largeButton:mount(buttonContainer:getInstance())
     
@@ -242,16 +242,14 @@ function createButtonsDemo()
             text = "Button " .. i,
             size = UDim2.new(0, 120, 0, 40),
             backgroundColor = Color3.fromRGB(80, 80, 180)
-        })
-        
-        button:mount(buttonRow:getInstance())
+        })        button:mount(buttonRow:getInstance())
     end
     
     return container
 end
 
 -- Create cards demo
-function createCardsDemo()
+local createCardsDemo = function()
     local container = Instance.new("Frame")
     container.Size = UDim2.new(1, 0, 1, 0)
     container.BackgroundTransparency = 1
@@ -410,9 +408,7 @@ function createCardsDemo()
         
         -- Show dialog
         DialogSystem.alert("Card Clicked", "You clicked on the clickable card!")
-    end)
-    
-    clickableCard:mount(cardContainer:getInstance())
+    end)    clickableCard:mount(cardContainer:getInstance())
     
     return container
 end
@@ -580,11 +576,11 @@ function createFormsDemo()
         
         for _, errorMsg in pairs(errors) do
             count += 1
-            errorMessages ..= "� " .. errorMsg .. "\n"
+            errorMessages ..= "• " .. errorMsg .. "\n"
             
             -- Limit to first 3 errors for readability
             if count >= 3 then
-                errorMessages ..= "� ...and other fields have errors"
+                errorMessages ..= "• ...and other fields have errors"
                 break
             end
         end
@@ -594,9 +590,7 @@ function createFormsDemo()
             backgroundColor = Color3.fromRGB(180, 50, 50),
             width = 450
         })
-    end)
-    
-    registrationForm:mount(formContainer:getInstance())
+    end)    registrationForm:mount(formContainer:getInstance())
     
     return container
 end
@@ -783,11 +777,9 @@ function createDialogsDemo()
                         closeDialog()
                     end
                 }
-            }
-        })
+            }        })
     end)
-    
-    customButton:mount(customSection:getInstance():WaitForChild("Content"))
+      customButton:mount(customSection:getInstance():WaitForChild("Content"))
     customSection:mount(buttonContainer:getInstance())
     
     return container
