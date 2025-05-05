@@ -8,6 +8,7 @@ local SchemaManager = require(script.Parent.SchemaManager)
 local SessionManager = require(script.Parent.SessionManager)
 local PerformanceMonitor = require(script.Parent.PerformanceMonitor)
 local CacheManager = require(script.Parent.CacheManager)
+local BulkOperationsManager = require(script.Parent.BulkOperationsManager) -- Add BulkOperationsManager
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
