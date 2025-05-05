@@ -37,8 +37,7 @@ DataStoreManager.initialize()
 -- Set up event handlers
 button.Click:Connect(function()
     widget.Enabled = not widget.Enabled
-    
-    if widget.Enabled and widget:FindFirstChild("DataStoreExplorerFrame") == nil then
+      if widget.Enabled and widget:FindFirstChild("DataStoreExplorerFrame") == nil then
         -- Create the main GUI
         local mainFrame = DataExplorer.createMainGui(widget)
         mainFrame.Parent = widget
