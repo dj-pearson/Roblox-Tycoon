@@ -280,9 +280,12 @@ function APIIntegration.callPluginMethod(pluginName, methodName, ...)
         return nil, "Method not found in plugin extension: " .. methodName
     end
     
+    -- Capture varargs to pass them correctly
+    local args = {...}
+    
     -- Call the method on the plugin extension
     local success, result = pcall(function()
-        return plugin[methodName](...)
+        return plugin[methodName](unpack(args))
     end)
     
     if not success then
