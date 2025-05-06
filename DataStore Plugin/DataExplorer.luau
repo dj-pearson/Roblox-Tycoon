@@ -17,6 +17,7 @@ local SchemaVersionViewer = require(script.Parent.SchemaVersionViewer)
 local generateSchemaFromData = require(script.Parent.generateSchemaFromData)
 local SchemaVisualIndicator = require(script.Parent.SchemaVisualIndicator)
 local SessionManagementUI = require(script.Parent.SessionManagementUI)
+local DataMigrationUI = require(script.Parent.DataMigrationUI)
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
@@ -24,6 +25,7 @@ DataExplorer.sessionId = HttpService:GenerateGUID()
 
 DataExplorer.lockStatusUI = {}
 DataExplorer.sessionManagementUI = nil -- Add a reference for the session management UI
+DataExplorer.dataMigrationContainer = nil -- Add a reference for the data migration UI
 
 -- Local helper to avoid repetition
 DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel
@@ -60,10 +62,8 @@ local function createLabel(text: string, parent: Instance): TextLabel
     splitPane.ScrollBarInset = Enum.ScrollBarInset.Always
     splitPane.ElasticBehavior = Enum.ElasticBehavior.Never
     splitPane.Parent = mainFrame
-    DataExplorer.splitPane = splitPane
-
-    -- Create a UIHorizontalListLayout for the panes within the ScrollingFrame
-    local horizontalLayout = Instance.new("UIHorizontalListLayout")
+    DataExplorer.splitPane = splitPane    -- Create a UIListLayout for the panes within the ScrollingFrame
+    local horizontalLayout = Instance.new("UIListLayout")
     horizontalLayout.FillDirection = Enum.FillDirection.Horizontal
     horizontalLayout.SortOrder = Enum.SortOrder.LayoutOrder
     horizontalLayout.Parent = splitPane
@@ -1894,6 +1894,81 @@ function DataExplorer.initMonitoringDashboardUI()
             
             if DataExplorer.bulkOperationsContainer then
                 DataExplorer.bulkOperationsContainer.Visible = false
+            end
+        end
+    end)
+end
+
+function DataExplorer.initDataMigrationUI()
+    local mainFrame = DataExplorer.mainFrame
+    if not mainFrame then return end
+    
+    -- Create a button to open data migration tools
+    local dataMigrationButton = Instance.new("TextButton")
+    dataMigrationButton.Size = UDim2.new(0, 150, 0, 30)
+    dataMigrationButton.Position = UDim2.new(1, -160, 0, 50) -- Position below other buttons
+    dataMigrationButton.BackgroundColor3 = Color3.fromRGB(142, 145, 250) -- Purple color
+    dataMigrationButton.BorderSizePixel = 0
+    dataMigrationButton.Text = "Data Migration"
+    dataMigrationButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dataMigrationButton.Font = Enum.Font.SourceSansBold
+    dataMigrationButton.TextSize = 14
+    dataMigrationButton.ZIndex = 5
+    dataMigrationButton.Parent = mainFrame
+    
+    -- Add rounded corners
+    local migrationButtonCorner = Instance.new("UICorner")
+    migrationButtonCorner.CornerRadius = UDim.new(0, 4)
+    migrationButtonCorner.Parent = dataMigrationButton
+    
+    -- Create the data migration container (initially invisible)
+    local dataMigrationContainer = DataMigrationUI.createTab(mainFrame)
+    DataExplorer.dataMigrationContainer = dataMigrationContainer
+    
+    -- Toggle visibility when button is clicked
+    dataMigrationButton.MouseButton1Click:Connect(function()
+        local contentPane = DataExplorer.contentPane
+        local navPane = DataExplorer.navigationPane
+        
+        if dataMigrationContainer.Visible then
+            -- Hide data migration and show normal UI
+            dataMigrationContainer.Visible = false
+            contentPane.Visible = true
+            navPane.Visible = true
+            dataMigrationButton.Text = "Data Migration"
+            dataMigrationButton.BackgroundColor3 = Color3.fromRGB(142, 145, 250)
+            
+            -- Also ensure other containers are hidden
+            if DataExplorer.bulkOperationsContainer then
+                DataExplorer.bulkOperationsContainer.Visible = false
+            end
+            
+            if DataExplorer.schemaBuilderContainer then
+                DataExplorer.schemaBuilderContainer.Visible = false
+            end
+            
+            if DataExplorer.monitoringDashboardContainer then
+                DataExplorer.monitoringDashboardContainer.Visible = false
+            end
+        else
+            -- Show data migration and hide normal UI
+            dataMigrationContainer.Visible = true
+            contentPane.Visible = false
+            navPane.Visible = false
+            dataMigrationButton.Text = "Back to Explorer"
+            dataMigrationButton.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+            
+            -- Also ensure other containers are hidden
+            if DataExplorer.bulkOperationsContainer then
+                DataExplorer.bulkOperationsContainer.Visible = false
+            end
+            
+            if DataExplorer.schemaBuilderContainer then
+                DataExplorer.schemaBuilderContainer.Visible = false
+            end
+            
+            if DataExplorer.monitoringDashboardContainer then
+                DataExplorer.monitoringDashboardContainer.Visible = false
             end
         end
     end)

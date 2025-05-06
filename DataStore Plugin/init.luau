@@ -1,9 +1,9 @@
---luau
 -- DataStore Plugin/init.luau
 
-local plugin = script.Parent
+local plugin = plugin -- Use the global plugin variable
 local toolbar = plugin:CreateToolbar("DataStore Manager Pro")
-local button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://6031090990") -- Updated to database icon
+-- Custom logo for DataStore Manager Pro
+local button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://131528729537417")
 
 local DataStoreManager = require(script.DataStoreManager)
 local DataExplorer = require(script.DataExplorer)
@@ -17,6 +17,7 @@ local DataVisualization = require(script.DataVisualization)
 local StyleGuide = require(script.StyleGuide)
 local SchemaEditor = require(script.SchemaEditor)
 local MonitoringDashboard = require(script.MonitoringDashboard)
+local DataMigrationTools = require(script.DataMigrationTools)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -35,6 +36,7 @@ widget.Title = "DataStore Manager Pro"
 -- Initialize the plugin components
 DataStoreManager.initialize()
 MonitoringDashboard.initialize()
+DataMigrationTools:initialize()
 
 -- Set up event handlers
 button.Click:Connect(function()
@@ -47,14 +49,15 @@ button.Click:Connect(function()
         -- Initialize UI components
         DataExplorer.initBulkOperationsUI()
         DataExplorer.initMonitoringDashboardUI()
+        DataExplorer.initDataMigrationUI()
         
         -- Update performance data at intervals
-        spawn(function()
+        task.spawn(function() -- Using task.spawn instead of spawn (deprecated)
             while widget.Enabled do
                 DataExplorer.updatePerformanceUI()
                 DataExplorer.updateLockStatusUI()
                 DataExplorer.updateCacheViewerUI()
-                wait(5) -- Update every 5 seconds
+                task.wait(5) -- Update every 5 seconds, using task.wait instead of wait
             end
         end)
     end
@@ -68,6 +71,7 @@ local DataStoreManagerPlugin = {
     DataVisualization = DataVisualization,
     SchemaEditor = SchemaEditor,
     StyleGuide = StyleGuide,
+    DataMigrationTools = DataMigrationTools,
     
     -- Convenience functions for external access
     getData = DataStoreManager.getData,
@@ -84,6 +88,11 @@ local DataStoreManagerPlugin = {
     -- Performance monitoring
     getPerformanceData = PerformanceMonitor.getPerformanceData,
     getOperationSummary = PerformanceMonitor.getOperationSummary,
+    
+    -- Migration functions
+    migrateKey = DataMigrationTools.migrateKey,
+    migrateDataStore = DataMigrationTools.migrateDataStore,
+    getMigrationStatus = DataMigrationTools.getMigrationStatus,
     
     -- Visualization functions
     createBarChart = DataVisualization.createBarChart,
