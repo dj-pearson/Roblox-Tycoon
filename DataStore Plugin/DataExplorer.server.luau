@@ -21,8 +21,10 @@ local DataMigrationUI = require(script.Parent.DataMigrationUI)
 local MultiServerCoordinationUI = require(script.Parent.MultiServerCoordinationUI)
 local PerformanceAnalyzerUI = require(script.Parent.PerformanceAnalyzerUI)
 local CachingSystemUI = require(script.Parent.CachingSystemUI)
+local LoadTestingUI = require(script.Parent.LoadTestingUI)
 -- Import integration modules
 local CachingSystemIntegration = require(script.Parent.CachingSystemIntegration)
+local LoadTestingIntegration = require(script.Parent.LoadTestingIntegration)
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
@@ -34,6 +36,7 @@ DataExplorer.dataMigrationContainer = nil -- Add a reference for the data migrat
 DataExplorer.coordinationContainer = nil -- Add a reference for the multi-server coordination UI
 DataExplorer.performanceAnalyzerContainer = nil -- Add a reference for the performance analyzer UI
 DataExplorer.cachingSystemContainer = nil -- Add a reference for the caching system UI
+DataExplorer.loadTestingContainer = nil -- Add a reference for the load testing UI
 
 -- Local helper to avoid repetition
 DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel
@@ -2164,6 +2167,15 @@ DataExplorer.initCachingSystemUI = function()
         CachingSystemIntegration.initCachingSystemUI(DataExplorer)
     else
         warn("CachingSystemIntegration module or initCachingSystemUI function not found")
+    end
+end
+
+-- Use the integration module's implementation of initLoadTestingUI
+DataExplorer.initLoadTestingUI = function()
+    if LoadTestingIntegration and LoadTestingIntegration.initLoadTestingUI then
+        LoadTestingIntegration.initLoadTestingUI(DataExplorer)
+    else
+        warn("LoadTestingIntegration module or initLoadTestingUI function not found")
     end
 end
 
