@@ -1,0 +1,12 @@
+{
+  "name": "DataStore Manager Pro",
+  "tree": {
+    "$className": "Folder",
+    "MainModule": {
+      "$path": "DataStore Plugin/init.server.luau",
+      "$properties": {
+        "Source": ""
+      }
+    }
+  }
+}

@@ -1,18 +1,10 @@
 ﻿{
-  "name": "DataStore Manager Pro",
-  "tree": {
-    "$className": "Plugin",
-    "$properties": {
-      "RunContext": "Server"
-    },
-    "DataStore Plugin": {
-      "$path": "DataStore Plugin",
-      "$ignoreUnknownInstances": true,
-      "$ignoreFiles": [
-        "*.png",
-        "Backups/*",
-        "*.backup*"
-      ]
+    "name": "DataStore Manager Pro",
+    "tree": {
+        "$className": "Plugin",
+        "$properties": {
+            "RunContext": "Server"
+        },
+        "$path": "DataStore Plugin"
     }
-  }
 }
