@@ -21,8 +21,6 @@ local MonitoringDashboardUI = require(script.MonitoringDashboardUI)
 local DataMigrationTools = require(script.DataMigrationTools)
 local MultiServerCoordination = require(script.MultiServerCoordination)
 local MultiServerCoordinationUI = require(script.MultiServerCoordinationUI)
-local PerformanceAnalyzer = require(script.PerformanceAnalyzer)
-local PerformanceAnalyzerUI = require(script.PerformanceAnalyzerUI)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -45,8 +43,6 @@ MonitoringDashboardUI.initialize()
 DataMigrationTools:initialize()
 MultiServerCoordination.initialize()
 MultiServerCoordinationUI.initialize()
-PerformanceAnalyzer.initialize()
-PerformanceAnalyzerUI.initialize()
 
 -- Set up event handlers
 button.Click:Connect(function()
@@ -61,7 +57,6 @@ button.Click:Connect(function()
         DataExplorer.initMonitoringDashboardUI()
         DataExplorer.initDataMigrationUI()
         DataExplorer.initMultiServerCoordinationUI()
-        DataExplorer.initPerformanceAnalyzerUI()
         
         -- Update performance data at intervals
         task.spawn(function() -- Using task.spawn instead of spawn (deprecated)

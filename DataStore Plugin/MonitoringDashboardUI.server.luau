@@ -1073,4 +1073,37 @@ function MonitoringDashboardUI.startRefreshLoop()
     end)
 end
 
+-- Initialize the monitoring dashboard
+function MonitoringDashboardUI.initialize()
+    -- Set initial states
+    dashboardState.usageData = {
+        reads = { total = 0, history = {} },
+        writes = { total = 0, history = {} },
+        memory = { current = 0, history = {} }
+    }
+    
+    dashboardState.quotaData = {
+        remaining = 100,
+        used = 0,
+        limit = 100,
+        resetTime = os.time() + 60 * 60 * 24, -- 24 hours from now
+        history = {}
+    }
+    
+    dashboardState.requestData = {
+        current = 0,
+        peak = 0,
+        history = {}
+    }
+    
+    dashboardState.errorLogs = {
+        total = 0,
+        byType = {},
+        history = {}
+    }
+    
+    -- Start data collection
+    MonitoringDashboardUI.startRefreshLoop()
+end
+
 return MonitoringDashboardUI

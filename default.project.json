@@ -2,22 +2,42 @@
   "name": "Roblox Scripts",
   "tree": {
     "$className": "DataModel",
+    "Lighting": {
+      "$properties": {
+        "Outlines": false,
+        "Brightness": 2,
+        "Technology": "Voxel",
+        "Ambient": [
+          0,
+          0,
+          0
+        ],
+        "GlobalShadows": true
+      }
+    },
+    "Plugins": {
+      "DataStore Plugin": {
+        "$path": "DataStore Plugin"
+      }
+    },
     "ReplicatedStorage": {
-      "Shared": {
-        "$path": "src/shared"
-      },
       "shared": {
         "$path": "src/shared"
       }
     },
     "ServerScriptService": {
-      "Server": {
+      "server": {
         "$path": "src/server"
+      }
+    },
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
       }
     },
     "StarterGui": {
       "$path": "src/StarterGui",
-      "$ignoreUnknownInstances": true
+      "$keepUnknowns": true
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {
@@ -29,29 +49,6 @@
     "Workspace": {
       "$properties": {
         "FilteringEnabled": true
-      }
-    },
-    "Lighting": {
-      "$properties": {
-        "Ambient": [
-          0,
-          0,
-          0
-        ],
-        "Brightness": 2,
-        "GlobalShadows": true,
-        "Outlines": false,
-        "Technology": "Voxel"
-      }
-    },
-    "SoundService": {
-      "$properties": {
-        "RespectFilteringEnabled": true
-      }
-    },
-    "Plugins": {
-      "DataStore Plugin": {
-        "$path": "DataStore Plugin"
       }
     }
   }

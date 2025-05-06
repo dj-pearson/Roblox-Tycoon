@@ -10,6 +10,7 @@ local SchemaValidator = require(script.Parent.SchemaValidator)
 local SessionManager = require(script.Parent.SessionManager)
 local PerformanceMonitor = require(script.Parent.PerformanceMonitor)
 local SecurityManager = require(script.Parent.SecurityManager)
+local MultiServerCoordination = require(script.Parent.MultiServerCoordination)
 
 local DataStoreManager = {}
 DataStoreManager.sessionId = HttpService:GenerateGUID()
@@ -43,8 +44,7 @@ function DataStoreManager.getData(dataStoreName, keyName, userId)
     if not locked then
         return nil, "Failed to acquire lock for reading data"
     end
-    
-    -- Get data from DataStore
+      -- Get data from DataStore
     local success, result = PerformanceMonitor.timeOperation(
         "GetAsync",
         function()
@@ -54,6 +54,9 @@ function DataStoreManager.getData(dataStoreName, keyName, userId)
         dataStoreName,
         keyName
     )
+    
+    -- Notify multi-server coordination about this data access
+    MultiServerCoordination.notifyDataAccess(dataStoreName, keyName, "read")
     
     -- Release the lock if we only acquired it for reading
     SessionManager.releaseLock(dataStoreName, keyName, DataStoreManager.sessionId)
@@ -119,9 +122,11 @@ function DataStoreManager.setData(dataStoreName, keyName, data, userId)
         SessionManager.releaseLock(dataStoreName, keyName, DataStoreManager.sessionId)
         return false, result
     end
-    
-    -- Update cache with the new data
+      -- Update cache with the new data
     CacheManager.set(dataStoreName, keyName, data, 300) -- Cache for 5 minutes
+    
+    -- Notify multi-server coordination about this data access
+    MultiServerCoordination.notifyDataAccess(dataStoreName, keyName, "write")
     
     return true
 end
@@ -170,10 +175,12 @@ function DataStoreManager.updateData(dataStoreName, keyName, updateFunction, use
     
     -- Release the lock
     SessionManager.releaseLock(dataStoreName, keyName, DataStoreManager.sessionId)
-    
-    if success then
+      if success then
         -- Update cache with the new data
         CacheManager.set(dataStoreName, keyName, result, 300) -- Cache for 5 minutes
+        
+        -- Notify multi-server coordination about this data access
+        MultiServerCoordination.notifyDataAccess(dataStoreName, keyName, "write")
         
         return result
     else
@@ -204,12 +211,14 @@ function DataStoreManager.removeData(dataStoreName, keyName, userId)
         dataStoreName,
         keyName
     )
-    
-    -- Release the lock
+      -- Release the lock
     SessionManager.releaseLock(dataStoreName, keyName, DataStoreManager.sessionId)
     
     -- Invalidate cache
     CacheManager.invalidate(dataStoreName, keyName)
+    
+    -- Notify multi-server coordination about this data removal
+    MultiServerCoordination.notifyDataAccess(dataStoreName, keyName, "delete")
     
     return success, result
 end
