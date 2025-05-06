@@ -24,6 +24,8 @@ local MultiServerCoordinationUI = require(script.MultiServerCoordinationUI)
 local PerformanceAnalyzer = require(script.PerformanceAnalyzer)
 local PerformanceAnalyzerUI = require(script.PerformanceAnalyzerUI)
 local CachingSystemUI = require(script.CachingSystemUI)
+local LoadTesting = require(script.LoadTesting)
+local LoadTestingUI = require(script.LoadTestingUI)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -49,7 +51,6 @@ MultiServerCoordinationUI.initialize()
 PerformanceAnalyzer.initialize()
 PerformanceAnalyzerUI.initialize()
 CachingSystemUI.initialize()
-LoadTestingUI.initialize()
 
 -- Set up event handlers
 button.Click:Connect(function()
@@ -66,7 +67,6 @@ button.Click:Connect(function()
         DataExplorer.initMultiServerCoordinationUI()
         DataExplorer.initPerformanceAnalyzerUI()
         DataExplorer.initCachingSystemUI()
-        DataExplorer.initLoadTestingUI()
         
         -- Update performance data at intervals
         task.spawn(function() -- Using task.spawn instead of spawn (deprecated)
