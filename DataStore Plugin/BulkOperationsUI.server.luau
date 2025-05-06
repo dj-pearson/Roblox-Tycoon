@@ -8,6 +8,46 @@ local BulkOperationsManager = require(script.Parent.BulkOperationsManager)
 
 local BulkOperationsUI = {}
 
+-- Helper function to create a text input container
+local function createTextContainer(parent, title, height, placeholder, position)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, -20, 0, height or 200)
+    container.Position = position or UDim2.new(0, 10, 0, 0)
+    container.BackgroundColor3 = Color3.fromRGB(53, 53, 53)
+    container.BorderColor3 = Color3.fromRGB(80, 80, 80)
+    
+    addUICorner(container)
+    container.Parent = parent
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0, 26)
+    titleLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    titleLabel.BorderSizePixel = 0
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.TextSize = 14
+    titleLabel.Parent = container
+    
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(1, 0, 1, -26)
+    textBox.Position = UDim2.new(0, 0, 0, 26)
+    textBox.BackgroundColor3 = Color3.fromRGB(62, 62, 62)
+    textBox.BorderSizePixel = 0
+    textBox.ClearTextOnFocus = false
+    textBox.PlaceholderText = placeholder or "Enter text..."
+    textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBox.Font = Enum.Font.SourceSans
+    textBox.TextSize = 14
+    textBox.TextYAlignment = Enum.TextYAlignment.Top
+    textBox.TextXAlignment = Enum.TextXAlignment.Left
+    textBox.MultiLine = true
+    textBox.Parent = container
+    
+    return container, textBox
+end
+
 -- Create the bulk operations tab
 function BulkOperationsUI.createTab(parent)
     -- Main container for the bulk operations UI
@@ -109,36 +149,35 @@ function BulkOperationsUI.createTab(parent)
     
     -- Initially show the Find tab content
     findContent.Visible = true
-      -- Function to switch between tabs
+          -- Function to switch between tabs
     local function switchTab(selectedTab)
-        -- Update tab button appearance
-        findTab.BackgroundColor3 = selectedTab == "Find" and Color3.fromRGB(67, 67, 67) or Color3.fromRGB(46, 46, 46)
-        readTab.BackgroundColor3 = selectedTab == "Read" and Color3.fromRGB(67, 67, 67) or Color3.fromRGB(46, 46, 46)
-        writeTab.BackgroundColor3 = selectedTab == "Write" and Color3.fromRGB(67, 67, 67) or Color3.fromRGB(46, 46, 46)
-        updateTab.BackgroundColor3 = selectedTab == "Update" and Color3.fromRGB(67, 67, 67) or Color3.fromRGB(46, 46, 46)
-        deleteTab.BackgroundColor3 = selectedTab == "Delete" and Color3.fromRGB(67, 67, 67) or Color3.fromRGB(46, 46, 46)
+        local tabs = {
+            {btn=findTab, name="Find", content=findContent},
+            {btn=readTab, name="Read", content=readContent},
+            {btn=writeTab, name="Write", content=writeContent},
+            {btn=updateTab, name="Update", content=updateContent},
+            {btn=deleteTab, name="Delete", content=deleteContent}
+        }
         
-        -- Update text color
-        findTab.TextColor3 = selectedTab == "Find" and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
-        readTab.TextColor3 = selectedTab == "Read" and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
-        writeTab.TextColor3 = selectedTab == "Write" and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
-        updateTab.TextColor3 = selectedTab == "Update" and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
-        deleteTab.TextColor3 = selectedTab == "Delete" and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
-        
-        -- Show selected content, hide others
-        findContent.Visible = selectedTab == "Find"
-        readContent.Visible = selectedTab == "Read"
-        writeContent.Visible = selectedTab == "Write"
-        updateContent.Visible = selectedTab == "Update"
-        deleteContent.Visible = selectedTab == "Delete"
+        for _, tab in ipairs(tabs) do
+            local isSelected = selectedTab == tab.name
+            tab.btn.BackgroundColor3 = isSelected and Color3.fromRGB(67, 67, 67) or Color3.fromRGB(46, 46, 46)
+            tab.btn.TextColor3 = isSelected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+            tab.content.Visible = isSelected
+        end
     end
+      -- Connect tab buttons to switch function
+    local tabButtons = {
+        {btn=findTab, name="Find"},
+        {btn=readTab, name="Read"},
+        {btn=writeTab, name="Write"},
+        {btn=updateTab, name="Update"},
+        {btn=deleteTab, name="Delete"}
+    }
     
-    -- Connect tab buttons to switch function
-    findTab.MouseButton1Click:Connect(function() switchTab("Find") end)
-    readTab.MouseButton1Click:Connect(function() switchTab("Read") end)
-    writeTab.MouseButton1Click:Connect(function() switchTab("Write") end)
-    updateTab.MouseButton1Click:Connect(function() switchTab("Update") end)
-    deleteTab.MouseButton1Click:Connect(function() switchTab("Delete") end)
+    for _, tab in ipairs(tabButtons) do
+        tab.btn.MouseButton1Click:Connect(function() switchTab(tab.name) end)
+    end
       -- Helper function to create a labeled input
     local function createLabeledInput(parent, labelText, inputType)
         local container = Instance.new("Frame")
@@ -185,8 +224,7 @@ function BulkOperationsUI.createTab(parent)
         
         input.Parent = container
         return container, input
-    end
-      -- Helper function to create a button
+    end    -- Helper function to create a button
     local function createButton(parent, text, position, color)
         local button = Instance.new("TextButton")
         button.Size = UDim2.new(0, 100, 0, 28)
@@ -198,15 +236,10 @@ function BulkOperationsUI.createTab(parent)
         button.TextSize = 14
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
         
-        -- Add rounded corners
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 4)
-        corner.Parent = button
-        
+        addUICorner(button)
         button.Parent = parent
         return button
-    end
-      -- Helper function to create a results display
+    end    -- Helper function to create a results display
     local function createResultsDisplay(parent, title)
         local resultsFrame = Instance.new("Frame")
         resultsFrame.Name = "ResultsFrame"
@@ -215,11 +248,7 @@ function BulkOperationsUI.createTab(parent)
         resultsFrame.BackgroundColor3 = Color3.fromRGB(53, 53, 53)
         resultsFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
         
-        -- Add rounded corners
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 4)
-        corner.Parent = resultsFrame
-        
+        addUICorner(resultsFrame)
         resultsFrame.Parent = parent
         
         local titleLabel = Instance.new("TextLabel")
@@ -248,8 +277,7 @@ function BulkOperationsUI.createTab(parent)
         layout.Parent = resultsContent
         
         return resultsFrame, resultsContent
-    end
-      -- Helper function to create a progress bar
+    end    -- Helper function to create a progress bar
     local function createProgressBar(parent)
         local barContainer = Instance.new("Frame")
         barContainer.Name = "ProgressBarContainer"
@@ -277,11 +305,7 @@ function BulkOperationsUI.createTab(parent)
         progressBg.BackgroundColor3 = Color3.fromRGB(62, 62, 62)
         progressBg.BorderColor3 = Color3.fromRGB(80, 80, 80)
         
-        -- Add rounded corners for progress bar
-        local cornerBg = Instance.new("UICorner")
-        cornerBg.CornerRadius = UDim.new(0, 4)
-        cornerBg.Parent = progressBg
-        
+        addUICorner(progressBg)
         progressBg.Parent = barContainer
         
         local progressFill = Instance.new("Frame")
@@ -290,13 +314,10 @@ function BulkOperationsUI.createTab(parent)
         progressFill.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
         progressFill.BorderSizePixel = 0
         
-        -- Add rounded corners for fill
-        local cornerFill = Instance.new("UICorner")
-        cornerFill.CornerRadius = UDim.new(0, 4)
-        cornerFill.Parent = progressFill
-        
+        addUICorner(progressFill)
         progressFill.Parent = progressBg
-          local percentLabel = Instance.new("TextLabel")
+        
+        local percentLabel = Instance.new("TextLabel")
         percentLabel.Name = "PercentLabel"
         percentLabel.Size = UDim2.new(1, 0, 1, 0)
         percentLabel.BackgroundTransparency = 1
@@ -347,48 +368,18 @@ function BulkOperationsUI.createTab(parent)
     local findResults, findResultsContent = createResultsDisplay(findContent, "Found Keys")
     findResults.Position = UDim2.new(0, 10, 0, findSpace)
     
-    -- Read Operation Tab Content
-    local readSpace = 10
+    -- Read Operation Tab Content    local readSpace = 10
     local readDataStoreContainer, readDataStoreInput = createLabeledInput(readContent, "DataStore", "TextBox")
     readDataStoreContainer.Position = UDim2.new(0, 10, 0, readSpace)
     readSpace += 40
-      local keysContainer = Instance.new("Frame")
-    keysContainer.Size = UDim2.new(1, -20, 0, 200)
-    keysContainer.Position = UDim2.new(0, 10, 0, readSpace)
-    keysContainer.BackgroundColor3 = Color3.fromRGB(53, 53, 53)
-    keysContainer.BorderColor3 = Color3.fromRGB(80, 80, 80)
     
-    -- Add rounded corners
-    local keysCorner = Instance.new("UICorner")
-    keysCorner.CornerRadius = UDim.new(0, 4)
-    keysCorner.Parent = keysContainer
-    
-    keysContainer.Parent = readContent
-    
-    local keysLabel = Instance.new("TextLabel")
-    keysLabel.Size = UDim2.new(1, 0, 0, 26)
-    keysLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    keysLabel.BorderSizePixel = 0
-    keysLabel.Text = "Keys to Read (one per line)"
-    keysLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
-    keysLabel.Font = Enum.Font.SourceSansBold
-    keysLabel.TextSize = 14
-    keysLabel.Parent = keysContainer
-      local keysInput = Instance.new("TextBox")
-    keysInput.Size = UDim2.new(1, 0, 1, -26)
-    keysInput.Position = UDim2.new(0, 0, 0, 26)
-    keysInput.BackgroundColor3 = Color3.fromRGB(62, 62, 62)
-    keysInput.BorderSizePixel = 0
-    keysInput.ClearTextOnFocus = false
-    keysInput.PlaceholderText = "Enter one key per line..."
-    keysInput.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
-    keysInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keysInput.Font = Enum.Font.SourceSans
-    keysInput.TextSize = 14
-    keysInput.TextYAlignment = Enum.TextYAlignment.Top
-    keysInput.TextXAlignment = Enum.TextXAlignment.Left
-    keysInput.MultiLine = true
-    keysInput.Parent = keysContainer
+    local keysContainer, keysInput = createTextContainer(
+        readContent, 
+        "Keys to Read (one per line)", 
+        200, 
+        "Enter one key per line...", 
+        UDim2.new(0, 10, 0, readSpace)
+    )
     
     readSpace += 210
     
@@ -402,50 +393,21 @@ function BulkOperationsUI.createTab(parent)
     local readResults, readResultsContent = createResultsDisplay(readContent, "Read Results")
     readResults.Position = UDim2.new(0, 10, 0, readSpace)
     
-    -- Write Operation Tab Content
-    local writeSpace = 10
+    -- Write Operation Tab Content    local writeSpace = 10
     local writeDataStoreContainer, writeDataStoreInput = createLabeledInput(writeContent, "DataStore", "TextBox")
     writeDataStoreContainer.Position = UDim2.new(0, 10, 0, writeSpace)
     writeSpace += 40
-      -- This would be expanded in a real implementation to include key-value pair inputs
-    local writeDataContainer = Instance.new("Frame")
-    writeDataContainer.Size = UDim2.new(1, -20, 0, 200)
-    writeDataContainer.Position = UDim2.new(0, 10, 0, writeSpace)
-    writeDataContainer.BackgroundColor3 = Color3.fromRGB(53, 53, 53)
-    writeDataContainer.BorderColor3 = Color3.fromRGB(80, 80, 80)
     
-    -- Add rounded corners
-    local writeDataCorner = Instance.new("UICorner")
-    writeDataCorner.CornerRadius = UDim.new(0, 4)
-    writeDataCorner.Parent = writeDataContainer
+    local writeDataContainer, writeDataInput = createTextContainer(
+        writeContent,
+        "JSON Data to Write (format: {\"key1\": value1, \"key2\": value2, ...})",
+        200,
+        "Enter JSON data mapping keys to values...",
+        UDim2.new(0, 10, 0, writeSpace)
+    )
     
-    writeDataContainer.Parent = writeContent
-    
-    local writeDataLabel = Instance.new("TextLabel")
-    writeDataLabel.Size = UDim2.new(1, 0, 0, 26)
-    writeDataLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    writeDataLabel.BorderSizePixel = 0
-    writeDataLabel.Text = "JSON Data to Write (format: {\"key1\": value1, \"key2\": value2, ...})"
-    writeDataLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
-    writeDataLabel.Font = Enum.Font.SourceSansBold
-    writeDataLabel.TextSize = 14
-    writeDataLabel.Parent = writeDataContainer
-    
-    local writeDataInput = Instance.new("TextBox")
-    writeDataInput.Size = UDim2.new(1, 0, 1, -26)
-    writeDataInput.Position = UDim2.new(0, 0, 0, 26)
-    writeDataInput.BackgroundColor3 = Color3.fromRGB(62, 62, 62)
-    writeDataInput.BorderSizePixel = 0
-    writeDataInput.ClearTextOnFocus = false
-    writeDataInput.PlaceholderText = "Enter JSON data mapping keys to values..."
-    writeDataInput.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
-    writeDataInput.TextColor3 = Color3.fromRGB(255, 255, 255)
     writeDataInput.Font = Enum.Font.Code
     writeDataInput.TextSize = 13
-    writeDataInput.TextYAlignment = Enum.TextYAlignment.Top
-    writeDataInput.TextXAlignment = Enum.TextXAlignment.Left
-    writeDataInput.MultiLine = true
-    writeDataInput.Parent = writeDataContainer
     
     writeSpace += 210
     
@@ -459,49 +421,18 @@ function BulkOperationsUI.createTab(parent)
     local writeResults, writeResultsContent = createResultsDisplay(writeContent, "Write Results")
     writeResults.Position = UDim2.new(0, 10, 0, writeSpace)
     
-    -- Update Operation Tab Content
-    local updateSpace = 10
+    -- Update Operation Tab Content    local updateSpace = 10
     local updateDataStoreContainer, updateDataStoreInput = createLabeledInput(updateContent, "DataStore", "TextBox")
     updateDataStoreContainer.Position = UDim2.new(0, 10, 0, updateSpace)
     updateSpace += 40
-      local updateKeysContainer = Instance.new("Frame")
-    updateKeysContainer.Size = UDim2.new(1, -20, 0, 100)
-    updateKeysContainer.Position = UDim2.new(0, 10, 0, updateSpace)
-    updateKeysContainer.BackgroundColor3 = Color3.fromRGB(53, 53, 53)
-    updateKeysContainer.BorderColor3 = Color3.fromRGB(80, 80, 80)
     
-    -- Add rounded corners
-    local updateKeysCorner = Instance.new("UICorner")
-    updateKeysCorner.CornerRadius = UDim.new(0, 4)
-    updateKeysCorner.Parent = updateKeysContainer
-    
-    updateKeysContainer.Parent = updateContent
-    
-    local updateKeysLabel = Instance.new("TextLabel")
-    updateKeysLabel.Size = UDim2.new(1, 0, 0, 26)
-    updateKeysLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    updateKeysLabel.BorderSizePixel = 0
-    updateKeysLabel.Text = "Keys to Update (one per line)"
-    updateKeysLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
-    updateKeysLabel.Font = Enum.Font.SourceSansBold
-    updateKeysLabel.TextSize = 14
-    updateKeysLabel.Parent = updateKeysContainer
-    
-    local updateKeysInput = Instance.new("TextBox")
-    updateKeysInput.Size = UDim2.new(1, 0, 1, -26)
-    updateKeysInput.Position = UDim2.new(0, 0, 0, 26)
-    updateKeysInput.BackgroundColor3 = Color3.fromRGB(62, 62, 62)
-    updateKeysInput.BorderSizePixel = 0
-    updateKeysInput.ClearTextOnFocus = false
-    updateKeysInput.PlaceholderText = "Enter one key per line..."
-    updateKeysInput.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
-    updateKeysInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    updateKeysInput.Font = Enum.Font.SourceSans
-    updateKeysInput.TextSize = 14
-    updateKeysInput.TextYAlignment = Enum.TextYAlignment.Top
-    updateKeysInput.TextXAlignment = Enum.TextXAlignment.Left
-    updateKeysInput.MultiLine = true
-    updateKeysInput.Parent = updateKeysContainer
+    local updateKeysContainer, updateKeysInput = createTextContainer(
+        updateContent,
+        "Keys to Update (one per line)",
+        100,
+        "Enter one key per line...",
+        UDim2.new(0, 10, 0, updateSpace)
+    )
     
     updateSpace += 110
       local transformContainer = Instance.new("Frame")
