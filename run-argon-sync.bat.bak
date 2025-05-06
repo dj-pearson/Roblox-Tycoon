@@ -1,0 +1,73 @@
+@echo off
+echo Setting up environment for Argon...
+echo.
+
+REM Try all possible Node.js path locations
+set POSSIBLE_PATHS=C:\Program Files\nodejs;C:\Program Files\nodejs\;%APPDATA%\npm;%LOCALAPPDATA%\Programs\nodejs
+
+REM First check if node is in PATH already
+where node >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo Found node in PATH
+    set NODE_CMD=node
+    FOR %%p IN (%POSSIBLE_PATHS%) DO (
+        if exist "%%p\node.exe" (
+            set NODE_PATH=%%p
+            goto :FOUND_NODE
+        )
+    )
+) else (
+    REM Try each possible path
+    FOR %%p IN (%POSSIBLE_PATHS%) DO (
+        if exist "%%p\node.exe" (
+            echo Found Node.js at: %%p
+            set NODE_PATH=%%p
+            set NODE_CMD="%%p\node.exe"
+            set PATH=%%p;%PATH%
+            goto :FOUND_NODE
+        )
+    )
+)
+
+echo ERROR: Could not find Node.js
+exit /b 1
+
+:FOUND_NODE
+echo NODE_PATH set to: %NODE_PATH%
+echo Node.js version:
+%NODE_CMD% -v
+
+REM Also add Argon bin to PATH
+set PATH=%NODE_PATH%;%USERPROFILE%\.argon\bin;%PATH%
+echo PATH updated with Node.js and Argon paths.
+
+echo.
+echo Starting Argon sync with proper environment...
+echo Current directory: %CD%
+echo Project directory: %~dp0
+echo.
+
+REM Check for blank project files and fix them if needed
+if exist "%~dp0Fix-JsonFiles.ps1" (
+    echo Checking and fixing JSON files...
+    powershell -ExecutionPolicy Bypass -File "%~dp0Fix-JsonFiles.ps1"
+)
+
+REM Check which project file to use
+if "%1"=="main" (
+    echo Syncing main project with: %~dp0default.project.json
+    start roblox-studio://roblox/argon/sync?path=%~dp0default.project.json
+) else (
+    echo Syncing DataStore plugin with: %~dp0DataStore-plugin.project.json
+    start roblox-studio://roblox/argon/sync?path=%~dp0DataStore-plugin.project.json
+)
+
+echo.
+echo Argon sync initiated!
+echo If Roblox Studio doesn't open automatically, please:
+echo 1. Open Roblox Studio manually
+echo 2. In the Argon plugin, click "Open Project"
+echo 3. Navigate to: %~dp0
+echo 4. Select the appropriate project.json file
+echo.
+pause

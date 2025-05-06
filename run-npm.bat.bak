@@ -1,0 +1,50 @@
+@echo off
+echo Setting up Node.js environment for Roblox project...
+echo.
+
+REM Set the known Node.js path directly
+set NODE_PATH=C:\Program Files\nodejs
+set NODE_CMD="%NODE_PATH%\node.exe"
+set PATH=%NODE_PATH%;%PATH%
+
+if exist %NODE_CMD% (
+    echo Found Node.js at: %NODE_PATH%
+    goto :FOUND_NODE
+) else (
+    echo ERROR: Node.js not found at %NODE_PATH%
+    exit /b 1
+)
+
+echo ERROR: Could not find Node.js
+exit /b 1
+
+:FOUND_NODE
+echo Node.js version:
+%NODE_CMD% -v
+
+echo.
+FOR %%p IN (%POSSIBLE_PATHS%) DO (
+    if exist "%%p\npm.cmd" (
+        echo Found npm at: %%p
+        set NPM_CMD="%%p\npm.cmd"
+        goto :FOUND_NPM
+    )
+)
+
+echo ERROR: Could not find npm
+exit /b 1
+
+:FOUND_NPM
+echo NPM version:
+%NPM_CMD% -v
+
+echo.
+echo Running npm command: %*
+echo.
+
+REM Run the npm command
+%NPM_CMD% %*
+
+echo.
+echo Done!
+pause

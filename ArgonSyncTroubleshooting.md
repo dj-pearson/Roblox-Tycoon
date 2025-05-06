@@ -75,6 +75,17 @@ This script automatically fixes JSON files by removing comments:
 powershell -ExecutionPolicy Bypass -File .\Fix-JsonFiles.ps1
 ```
 
+### Clean-JsonFiles.ps1
+This script performs a complete cleanup of project files:
+- Completely recreates the JSON files with known good content
+- Creates backups of the original files before replacement
+- Validates the new files after creation
+- Useful when other methods have failed to fix JSON issues
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Clean-JsonFiles.ps1
+```
+
 ### Analyze-LuauFile.ps1
 This script analyzes large Luau scripts to help optimize them:
 - Provides size breakdowns of code vs. comments
@@ -118,11 +129,57 @@ Key points:
 
 ## Workflow for Successful Sync
 
+### Standard Workflow
 1. Run `Fix-JsonFiles.ps1` to fix any JSON formatting issues
 2. Run `ValidateDataStorePlugin.ps1` to check for any remaining issues
 3. Run `SyncWithArgon.bat` to sync the plugin to Roblox Studio
 4. Check Roblox Studio's output window for any sync errors
 5. Test the plugin functionality after syncing
+
+### If You Continue to Experience JSON Parsing Errors
+1. Run `Clean-JsonFiles.ps1` to completely recreate the JSON files with known good content
+2. Use `SyncWithArgon.bat` to sync the DataStore plugin
+3. Use `SyncMainProject.bat` to sync the main Roblox project
+4. If errors persist, try closing all Roblox Studio instances and restarting
+
+### Using the Simplified Project Structure
+If you continue to have issues with the default.project.json file, you can try using the simplified structure:
+```json
+{
+  "name": "RobloxProject",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Plugins": {
+      "DataStore Plugin": {
+        "$path": "DataStore Plugin",
+        "$ignoreUnknownInstances": true,
+        "$ignoreFiles": [
+          "*.png",
+          "Backups/*",
+          "*.backup*"
+        ]
+      }
+    }
+  }
+}
+```
 
 ## Support Resources
 

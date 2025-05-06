@@ -1,0 +1,43 @@
+{
+    "name": "RobloxProject",
+    "globIgnorePaths": [
+        "**/*.spec.lua",
+        "**/*.backup*"
+    ],
+    "tree": {
+        "$className": "DataModel",
+        "HttpService": {
+            "$className": "HttpService",
+            "$properties": {
+                "HttpEnabled": true
+            }
+        },
+        "ReplicatedStorage": {
+            "$className": "ReplicatedStorage",
+            "$path": "src/shared"
+        },
+        "ServerScriptService": {
+            "$className": "ServerScriptService",
+            "$path": "src/server"
+        },
+        "StarterPlayer": {
+            "$className": "StarterPlayer",
+            "StarterPlayerScripts": {
+                "$className": "StarterPlayerScripts",
+                "$path": "src/client"
+            }
+        },
+        "Plugins": {
+            "$className": "Plugins",
+            "DataStore Plugin": {
+                "$path": "DataStore Plugin",
+                "$ignoreUnknownInstances": true,
+                "$ignoreFiles": [
+                    "*.png",
+                    "Backups/*",
+                    "*.backup*"
+                ]
+            }
+        }
+    }
+}
