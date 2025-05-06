@@ -32,6 +32,15 @@ local operationTiming = {
 -- Track key access frequency 
 local keyAccessFrequency = {}
 
+-- Track errors
+local errorData = {
+    total = 0,
+    byType = {},
+    history = {},
+    lastPeriod = 0,
+    lastErrorTime = 0
+}
+
 function PerformanceMonitor.timeOperation(operationName, func, dataStoreName, keyName)
     local startTime = os.clock() -- Use os.clock() for higher precision timing
     local success, result = pcall(func)
@@ -73,6 +82,49 @@ function PerformanceMonitor.timeOperation(operationName, func, dataStoreName, ke
         quotaInfo.dataSize.sampleCount += 1
         quotaInfo.dataSize.average = quotaInfo.dataSize.total / quotaInfo.dataSize.sampleCount
         quotaInfo.dataSize.largest = math.max(quotaInfo.dataSize.largest, size)
+    end
+    
+    -- Track error information if the operation failed
+    if not success then
+        errorData.total += 1
+        errorData.lastErrorTime = os.time()
+        
+        -- Extract error type
+        local errorType = "Unknown Error"
+        if type(result) == "string" then
+            -- Try to extract error type from error message
+            local errorPattern = "([%w%s_]+Error)"
+            local foundErrorType = string.match(result, errorPattern)
+            if foundErrorType then
+                errorType = foundErrorType
+            elseif string.find(result, "quota") then
+                errorType = "Quota Exceeded"
+            elseif string.find(result, "permission") then
+                errorType = "Permission Denied"
+            elseif string.find(result, "too large") then
+                errorType = "Data Size Error"
+            elseif string.find(result, "throttled") or string.find(result, "rate limit") then
+                errorType = "Rate Limited"
+            end
+        end
+        
+        -- Update error counts by type
+        errorData.byType[errorType] = (errorData.byType[errorType] or 0) + 1
+        
+        -- Store full error details
+        table.insert(errorData.history, {
+            timestamp = os.time(),
+            operation = operationName,
+            dataStore = dataStoreName,
+            key = keyName,
+            errorType = errorType,
+            message = tostring(result)
+        })
+        
+        -- Keep history manageable
+        if #errorData.history > 100 then
+            table.remove(errorData.history, 1)
+        end
     end
 
     return success, result, duration
@@ -182,6 +234,24 @@ function PerformanceMonitor.getTimingStats(category)
         max = max,
         total = sum
     }
+end
+
+-- Add function to get error data
+function PerformanceMonitor.getErrorData()
+    -- Update lastPeriod based on errors in the last 5 minutes
+    local recentErrors = 0
+    local currentTime = os.time()
+    local periodStart = currentTime - 300 -- 5 minutes
+    
+    for _, errorInfo in ipairs(errorData.history) do
+        if errorInfo.timestamp >= periodStart then
+            recentErrors += 1
+        end
+    end
+    
+    errorData.lastPeriod = recentErrors
+    
+    return errorData
 end
 
 -- Get most frequently accessed keys

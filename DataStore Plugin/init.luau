@@ -16,6 +16,7 @@ local SecurityManager = require(script.SecurityManager)
 local DataVisualization = require(script.DataVisualization)
 local StyleGuide = require(script.StyleGuide)
 local SchemaEditor = require(script.SchemaEditor)
+local MonitoringDashboard = require(script.MonitoringDashboard)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -33,6 +34,7 @@ widget.Title = "DataStore Manager Pro"
 
 -- Initialize the plugin components
 DataStoreManager.initialize()
+MonitoringDashboard.initialize()
 
 -- Set up event handlers
 button.Click:Connect(function()
@@ -41,6 +43,10 @@ button.Click:Connect(function()
         -- Create the main GUI
         local mainFrame = DataExplorer.createMainGui(widget)
         mainFrame.Parent = widget
+        
+        -- Initialize UI components
+        DataExplorer.initBulkOperationsUI()
+        DataExplorer.initMonitoringDashboardUI()
         
         -- Update performance data at intervals
         spawn(function()

@@ -1318,6 +1318,213 @@ function BulkOperationsUI.createTab(parent)
         end)
     end)
     
+    -- Create the batch operations section in the write tab content
+    local batchOperationsFrame = Instance.new("Frame")
+    batchOperationsFrame.Name = "BatchOperationsFrame"
+    batchOperationsFrame.Size = UDim2.new(1, -20, 0, 200)
+    batchOperationsFrame.Position = UDim2.new(0, 10, 0, 360) -- Position below other write options
+    batchOperationsFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    batchOperationsFrame.Parent = writeContent
+    
+    local batchOpTitle = Instance.new("TextLabel")
+    batchOpTitle.Name = "BatchOpTitle"
+    batchOpTitle.Size = UDim2.new(1, -20, 0, 30)
+    batchOpTitle.Position = UDim2.new(0, 10, 0, 5)
+    batchOpTitle.BackgroundTransparency = 1
+    batchOpTitle.Text = "Batch Operations"
+    batchOpTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    batchOpTitle.TextSize = 16
+    batchOpTitle.Font = Enum.Font.SourceSansBold
+    batchOpTitle.TextXAlignment = Enum.TextXAlignment.Left
+    batchOpTitle.Parent = batchOperationsFrame
+    
+    -- Key Pattern Input for Batch Operations
+    local keyPatternLabel = Instance.new("TextLabel")
+    keyPatternLabel.Name = "KeyPatternLabel"
+    keyPatternLabel.Size = UDim2.new(0.3, -20, 0, 30)
+    keyPatternLabel.Position = UDim2.new(0, 10, 0, 40)
+    keyPatternLabel.BackgroundTransparency = 1
+    keyPatternLabel.Text = "Key Pattern:"
+    keyPatternLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyPatternLabel.TextSize = 14
+    keyPatternLabel.Font = Enum.Font.SourceSans
+    keyPatternLabel.TextXAlignment = Enum.TextXAlignment.Left
+    keyPatternLabel.Parent = batchOperationsFrame
+    
+    local keyPatternInput = Instance.new("TextBox")
+    keyPatternInput.Name = "KeyPatternInput"
+    keyPatternInput.Size = UDim2.new(0.7, -20, 0, 30)
+    keyPatternInput.Position = UDim2.new(0.3, 10, 0, 40)
+    keyPatternInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    keyPatternInput.Text = ".*" -- Default to match all keys
+    keyPatternInput.PlaceholderText = "Regular expression pattern (e.g. Player_.* or .*)"
+    keyPatternInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyPatternInput.TextSize = 14
+    keyPatternInput.Font = Enum.Font.SourceSans
+    keyPatternInput.ClearTextOnFocus = false
+    keyPatternInput.Parent = batchOperationsFrame
+    
+    -- Create buttons for different batch operations
+    local batchEditButton = Instance.new("TextButton")
+    batchEditButton.Name = "BatchEditButton"
+    batchEditButton.Size = UDim2.new(0.3, -15, 0, 30)
+    batchEditButton.Position = UDim2.new(0, 10, 0, 80)
+    batchEditButton.BackgroundColor3 = Color3.fromRGB(66, 134, 244)
+    batchEditButton.Text = "Batch Edit"
+    batchEditButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    batchEditButton.TextSize = 14
+    batchEditButton.Font = Enum.Font.SourceSansBold
+    batchEditButton.Parent = batchOperationsFrame
+    
+    local batchExportButton = Instance.new("TextButton")
+    batchExportButton.Name = "BatchExportButton"
+    batchExportButton.Size = UDim2.new(0.3, -15, 0, 30)
+    batchExportButton.Position = UDim2.new(0.35, 0, 0, 80)
+    batchExportButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
+    batchExportButton.Text = "Batch Export"
+    batchExportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    batchExportButton.TextSize = 14
+    batchExportButton.Font = Enum.Font.SourceSansBold
+    batchExportButton.Parent = batchOperationsFrame
+    
+    local batchImportButton = Instance.new("TextButton")
+    batchImportButton.Name = "BatchImportButton"
+    batchImportButton.Size = UDim2.new(0.3, -15, 0, 30)
+    batchImportButton.Position = UDim2.new(0.7, 0, 0, 80)
+    batchImportButton.BackgroundColor3 = Color3.fromRGB(240, 156, 0)
+    batchImportButton.Text = "Batch Import"
+    batchImportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    batchImportButton.TextSize = 14
+    batchImportButton.Font = Enum.Font.SourceSansBold
+    batchImportButton.Parent = batchOperationsFrame
+    
+    local batchDeleteButton = Instance.new("TextButton")
+    batchDeleteButton.Name = "BatchDeleteButton"
+    batchDeleteButton.Size = UDim2.new(0.3, -15, 0, 30)
+    batchDeleteButton.Position = UDim2.new(0.35, 0, 0, 120)
+    batchDeleteButton.BackgroundColor3 = Color3.fromRGB(239, 83, 80)
+    batchDeleteButton.Text = "Batch Delete"
+    batchDeleteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    batchDeleteButton.TextSize = 14
+    batchDeleteButton.Font = Enum.Font.SourceSansBold
+    batchDeleteButton.Parent = batchOperationsFrame
+    
+    local batchValidateButton = Instance.new("TextButton")
+    batchValidateButton.Name = "BatchValidateButton"
+    batchValidateButton.Size = UDim2.new(0.3, -15, 0, 30)
+    batchValidateButton.Position = UDim2.new(0.7, 0, 0, 120)
+    batchValidateButton.BackgroundColor3 = Color3.fromRGB(156, 39, 176)
+    batchValidateButton.Text = "Batch Validate"
+    batchValidateButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    batchValidateButton.TextSize = 14
+    batchValidateButton.Font = Enum.Font.SourceSansBold
+    batchValidateButton.Parent = batchOperationsFrame
+    
+    -- Status and Limit section
+    local limitLabel = Instance.new("TextLabel")
+    limitLabel.Name = "LimitLabel"
+    limitLabel.Size = UDim2.new(0.3, -20, 0, 30)
+    limitLabel.Position = UDim2.new(0, 10, 0, 160)
+    limitLabel.BackgroundTransparency = 1
+    limitLabel.Text = "Key Limit:"
+    limitLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    limitLabel.TextSize = 14
+    limitLabel.Font = Enum.Font.SourceSans
+    limitLabel.TextXAlignment = Enum.TextXAlignment.Left
+    limitLabel.Parent = batchOperationsFrame
+    
+    local limitInput = Instance.new("TextBox")
+    limitInput.Name = "LimitInput"
+    limitInput.Size = UDim2.new(0.2, -10, 0, 30)
+    limitInput.Position = UDim2.new(0.3, 10, 0, 160)
+    limitInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    limitInput.Text = "100"
+    limitInput.PlaceholderText = "Max keys"
+    limitInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    limitInput.TextSize = 14
+    limitInput.Font = Enum.Font.SourceSans
+    limitInput.ClearTextOnFocus = false
+    limitInput.Parent = batchOperationsFrame
+    
+    -- Add event handlers for batch operation buttons
+    batchEditButton.MouseButton1Click:Connect(function()
+        if selectedDataStore == "" then
+            BulkOperationsUI.showMessage("Please select a DataStore first", Color3.fromRGB(255, 0, 0))
+            return
+        end
+        
+        -- Create a dialog to get the edit function
+        BulkOperationsUI.showBatchEditDialog(selectedDataStore, keyPatternInput.Text, tonumber(limitInput.Text) or 100)
+    end)
+    
+    batchExportButton.MouseButton1Click:Connect(function()
+        if selectedDataStore == "" then
+            BulkOperationsUI.showMessage("Please select a DataStore first", Color3.fromRGB(255, 0, 0))
+            return
+        end
+        
+        -- Start batch export operation
+        local operationId = BulkOperationsManager.createOperation("BatchExport", {
+            dataStoreName = selectedDataStore,
+            keyPattern = keyPatternInput.Text,
+            limit = tonumber(limitInput.Text) or 100
+        })
+        
+        BulkOperationsManager.startOperation(operationId)
+        BulkOperationsUI.showOperationProgress(operationId)
+    end)
+    
+    batchImportButton.MouseButton1Click:Connect(function()
+        if selectedDataStore == "" then
+            BulkOperationsUI.showMessage("Please select a DataStore first", Color3.fromRGB(255, 0, 0))
+            return
+        end
+        
+        -- Create a dialog to get the import data
+        BulkOperationsUI.showBatchImportDialog(selectedDataStore)
+    end)
+    
+    batchDeleteButton.MouseButton1Click:Connect(function()
+        if selectedDataStore == "" then
+            BulkOperationsUI.showMessage("Please select a DataStore first", Color3.fromRGB(255, 0, 0))
+            return
+        end
+        
+        -- Confirm deletion
+        BulkOperationsUI.showConfirmDialog(
+            "Confirm Batch Delete",
+            "Are you sure you want to delete all keys matching the pattern '" .. keyPatternInput.Text .. 
+            "' in DataStore '" .. selectedDataStore .. "'? This action cannot be undone.",
+            function()
+                local operationId = BulkOperationsManager.createOperation("BatchDelete", {
+                    dataStoreName = selectedDataStore,
+                    keyPattern = keyPatternInput.Text,
+                    limit = tonumber(limitInput.Text) or 100
+                })
+                
+                BulkOperationsManager.startOperation(operationId)
+                BulkOperationsUI.showOperationProgress(operationId)
+            end
+        )
+    end)
+    
+    batchValidateButton.MouseButton1Click:Connect(function()
+        if selectedDataStore == "" then
+            BulkOperationsUI.showMessage("Please select a DataStore first", Color3.fromRGB(255, 0, 0))
+            return
+        end
+        
+        -- Start batch validation operation
+        local operationId = BulkOperationsManager.createOperation("BatchValidate", {
+            dataStoreName = selectedDataStore,
+            keyPattern = keyPatternInput.Text,
+            limit = tonumber(limitInput.Text) or 100
+        })
+        
+        BulkOperationsManager.startOperation(operationId)
+        BulkOperationsUI.showOperationProgress(operationId)
+    end)
+    
     -- Update active operations count periodically
     RunService.Heartbeat:Connect(function()
         local activeOps = BulkOperationsManager.getActiveOperations()
@@ -1325,6 +1532,755 @@ function BulkOperationsUI.createTab(parent)
     end)
     
     return container
+end
+
+-- Show an operation progress dialog
+function BulkOperationsUI.showOperationProgress(operationId)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "ProgressDialog"
+    mainFrame.Size = UDim2.new(0.8, 0, 0.7, 0)
+    mainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.ZIndex = 10
+    mainFrame.Parent = script.Parent.Parent
+    
+    -- Add rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = mainFrame
+    
+    -- Add a title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -20, 0, 40)
+    title.Position = UDim2.new(0, 10, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Text = "Operation Progress"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 18
+    title.Font = Enum.Font.SourceSansBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.ZIndex = 11
+    title.Parent = mainFrame
+    
+    -- Add a close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -40, 0, 10)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 16
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.ZIndex = 11
+    closeButton.Parent = mainFrame
+    
+    -- Add rounded corners to close button
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
+    
+    -- Add progress bar
+    local progressBar = Instance.new("Frame")
+    progressBar.Name = "ProgressBar"
+    progressBar.Size = UDim2.new(1, -40, 0, 24)
+    progressBar.Position = UDim2.new(0, 20, 0, 60)
+    progressBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    progressBar.BorderSizePixel = 0
+    progressBar.ZIndex = 11
+    progressBar.Parent = mainFrame
+    
+    -- Add rounded corners to progress bar
+    local progressCorner = Instance.new("UICorner")
+    progressCorner.CornerRadius = UDim.new(0, 4)
+    progressCorner.Parent = progressBar
+    
+    -- Add progress fill
+    local progressFill = Instance.new("Frame")
+    progressFill.Name = "ProgressFill"
+    progressFill.Size = UDim2.new(0, 0, 1, 0)
+    progressFill.BackgroundColor3 = Color3.fromRGB(66, 134, 244)
+    progressFill.BorderSizePixel = 0
+    progressFill.ZIndex = 11
+    progressFill.Parent = progressBar
+    
+    -- Add rounded corners to progress fill
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(0, 4)
+    fillCorner.Parent = progressFill
+    
+    -- Add progress text
+    local progressText = Instance.new("TextLabel")
+    progressText.Name = "ProgressText"
+    progressText.Size = UDim2.new(1, 0, 1, 0)
+    progressText.BackgroundTransparency = 1
+    progressText.Text = "0%"
+    progressText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    progressText.TextSize = 14
+    progressText.Font = Enum.Font.SourceSansBold
+    progressText.ZIndex = 12
+    progressText.Parent = progressBar
+    
+    -- Add status text
+    local statusText = Instance.new("TextLabel")
+    statusText.Name = "StatusText"
+    statusText.Size = UDim2.new(1, -40, 0, 24)
+    statusText.Position = UDim2.new(0, 20, 0, 90)
+    statusText.BackgroundTransparency = 1
+    statusText.Text = "Starting operation..."
+    statusText.TextColor3 = Color3.fromRGB(200, 200, 200)
+    statusText.TextSize = 14
+    statusText.Font = Enum.Font.SourceSans
+    statusText.TextXAlignment = Enum.TextXAlignment.Left
+    statusText.ZIndex = 11
+    statusText.Parent = mainFrame
+    
+    -- Add results container
+    local resultsFrame = Instance.new("ScrollingFrame")
+    resultsFrame.Name = "ResultsFrame"
+    resultsFrame.Size = UDim2.new(1, -40, 1, -130)
+    resultsFrame.Position = UDim2.new(0, 20, 0, 120)
+    resultsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    resultsFrame.BorderSizePixel = 0
+    resultsFrame.ScrollBarThickness = 6
+    resultsFrame.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
+    resultsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    resultsFrame.ZIndex = 11
+    resultsFrame.Parent = mainFrame
+    
+    -- Add layout for results
+    local resultsLayout = Instance.new("UIListLayout")
+    resultsLayout.FillDirection = Enum.FillDirection.Vertical
+    resultsLayout.Padding = UDim.new(0, 2)
+    resultsLayout.Parent = resultsFrame
+    
+    -- Close button handler
+    closeButton.MouseButton1Click:Connect(function()
+        mainFrame:Destroy()
+    end)
+    
+    -- Cancel button
+    local cancelButton = Instance.new("TextButton")
+    cancelButton.Name = "CancelButton"
+    cancelButton.Size = UDim2.new(0, 100, 0, 30)
+    cancelButton.Position = UDim2.new(1, -120, 0, 60)
+    cancelButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    cancelButton.Text = "Cancel"
+    cancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    cancelButton.TextSize = 14
+    cancelButton.Font = Enum.Font.SourceSansBold
+    cancelButton.ZIndex = 11
+    cancelButton.Parent = mainFrame
+    
+    -- Add rounded corners to cancel button
+    local cancelCorner = Instance.new("UICorner")
+    cancelCorner.CornerRadius = UDim.new(0, 4)
+    cancelCorner.Parent = cancelButton
+    
+    -- Cancel button handler
+    cancelButton.MouseButton1Click:Connect(function()
+        BulkOperationsManager.cancelOperation(operationId)
+        statusText.Text = "Operation cancelled."
+        statusText.TextColor3 = Color3.fromRGB(200, 60, 60)
+        cancelButton.Visible = false
+    end)
+    
+    -- Update progress at regular intervals
+    local updateConnection
+    updateConnection = RunService.Heartbeat:Connect(function()
+        local status = BulkOperationsManager.getOperationStatus(operationId)
+        
+        if status then
+            -- Update progress bar
+            progressFill.Size = UDim2.new(status.progress.current / math.max(status.progress.total, 1), 0, 1, 0)
+            progressText.Text = string.format("%.1f%%", (status.progress.current / math.max(status.progress.total, 1)) * 100)
+            
+            -- Update status text
+            statusText.Text = string.format(
+                "Status: %s | Processed: %d/%d | Successful: %d | Failed: %d",
+                status.status,
+                status.progress.current,
+                status.progress.total,
+                #status.progress.processedKeys - #status.progress.failedKeys,
+                #status.progress.failedKeys
+            )
+            
+            -- If operation is complete, show the results and disconnect the update
+            if status.status == "Completed" or status.status == "Failed" or status.status == "Cancelled" then
+                if status.status == "Completed" then
+                    statusText.Text = "Operation completed successfully."
+                    statusText.TextColor3 = Color3.fromRGB(76, 175, 80)
+                elseif status.status == "Failed" then
+                    statusText.Text = "Operation failed: " .. (status.errors.message or "Unknown error")
+                    statusText.TextColor3 = Color3.fromRGB(200, 60, 60)
+                end
+                
+                cancelButton.Visible = false
+                
+                -- Show operation results
+                if status.status == "Completed" then
+                    local results = BulkOperationsManager.getOperationResults(operationId)
+                    
+                    -- Create a title for results
+                    local resultsTitle = Instance.new("TextLabel")
+                    resultsTitle.Name = "ResultsTitle"
+                    resultsTitle.Size = UDim2.new(1, -10, 0, 30)
+                    resultsTitle.BackgroundTransparency = 1
+                    resultsTitle.Text = "Operation Results:"
+                    resultsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    resultsTitle.TextSize = 16
+                    resultsTitle.Font = Enum.Font.SourceSansBold
+                    resultsTitle.TextXAlignment = Enum.TextXAlignment.Left
+                    resultsTitle.Parent = resultsFrame
+                    
+                    -- Create a summary
+                    local resultsSummary = Instance.new("TextLabel")
+                    resultsSummary.Name = "ResultsSummary"
+                    resultsSummary.Size = UDim2.new(1, -10, 0, 50)
+                    resultsSummary.BackgroundTransparency = 1
+                    resultsSummary.Text = string.format(
+                        "Processed: %d keys\nSuccessful: %d keys\nFailed: %d keys\nDuration: %.1f seconds",
+                        results.processed,
+                        results.successful,
+                        results.failed,
+                        results.duration
+                    )
+                    resultsSummary.TextColor3 = Color3.fromRGB(200, 200, 200)
+                    resultsSummary.TextSize = 14
+                    resultsSummary.Font = Enum.Font.SourceSans
+                    resultsSummary.TextXAlignment = Enum.TextXAlignment.Left
+                    resultsSummary.TextYAlignment = Enum.TextYAlignment.Top
+                    resultsSummary.Parent = resultsFrame
+                    
+                    -- For export operations, show a copy button
+                    if status.type == "BatchExport" and results.exportedData then
+                        local copyDataButton = Instance.new("TextButton")
+                        copyDataButton.Name = "CopyDataButton"
+                        copyDataButton.Size = UDim2.new(0, 200, 0, 30)
+                        copyDataButton.Position = UDim2.new(0, 0, 0, 80)
+                        copyDataButton.BackgroundColor3 = Color3.fromRGB(66, 134, 244)
+                        copyDataButton.Text = "Copy Data to Clipboard"
+                        copyDataButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        copyDataButton.TextSize = 14
+                        copyDataButton.Font = Enum.Font.SourceSansBold
+                        copyDataButton.Parent = resultsFrame
+                        
+                        -- Add rounded corners
+                        local copyCorner = Instance.new("UICorner")
+                        copyCorner.CornerRadius = UDim.new(0, 4)
+                        copyCorner.Parent = copyDataButton
+                        
+                        -- Click handler
+                        copyDataButton.MouseButton1Click:Connect(function()
+                            local json = HttpService:JSONEncode(results.exportedData)
+                            setclipboard(json)
+                            copyDataButton.Text = "Copied!"
+                            task.wait(2)
+                            copyDataButton.Text = "Copy Data to Clipboard"
+                        end)
+                    end
+                end
+                
+                updateConnection:Disconnect()
+            end
+        else
+            statusText.Text = "Error: Could not retrieve operation status"
+            statusText.TextColor3 = Color3.fromRGB(200, 60, 60)
+            updateConnection:Disconnect()
+        end
+    end)
+end
+
+-- Show a batch edit dialog
+function BulkOperationsUI.showBatchEditDialog(dataStoreName, keyPattern, limit)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "BatchEditDialog"
+    mainFrame.Size = UDim2.new(0.8, 0, 0.7, 0)
+    mainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.ZIndex = 10
+    mainFrame.Parent = script.Parent.Parent
+    
+    -- Add rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = mainFrame
+    
+    -- Add a title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -20, 0, 40)
+    title.Position = UDim2.new(0, 10, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Text = "Batch Edit - " .. dataStoreName
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 18
+    title.Font = Enum.Font.SourceSansBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.ZIndex = 11
+    title.Parent = mainFrame
+    
+    -- Add a close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -40, 0, 10)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 16
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.ZIndex = 11
+    closeButton.Parent = mainFrame
+    
+    -- Add rounded corners to close button
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
+    
+    -- Add description
+    local description = Instance.new("TextLabel")
+    description.Name = "Description"
+    description.Size = UDim2.new(1, -40, 0, 60)
+    description.Position = UDim2.new(0, 20, 0, 50)
+    description.BackgroundTransparency = 1
+    description.Text = "Enter a Lua function that will be applied to each key. The function should take two parameters:\n1. data - The current data of the key\n2. keyName - The name of the key\nThe function should return the modified data."
+    description.TextColor3 = Color3.fromRGB(200, 200, 200)
+    description.TextSize = 14
+    description.Font = Enum.Font.SourceSans
+    description.TextXAlignment = Enum.TextXAlignment.Left
+    description.TextYAlignment = Enum.TextYAlignment.Top
+    description.TextWrapped = true
+    description.ZIndex = 11
+    description.Parent = mainFrame
+    
+    -- Add function editor
+    local functionEditor = Instance.new("TextBox")
+    functionEditor.Name = "FunctionEditor"
+    functionEditor.Size = UDim2.new(1, -40, 0, 200)
+    functionEditor.Position = UDim2.new(0, 20, 0, 120)
+    functionEditor.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    functionEditor.BorderSizePixel = 0
+    functionEditor.Text = "function(data, keyName)\n    -- Modify data here\n    -- Example: data.value = data.value + 1\n    return data\nend"
+    functionEditor.TextColor3 = Color3.fromRGB(255, 255, 255)
+    functionEditor.TextSize = 14
+    functionEditor.Font = Enum.Font.Code
+    functionEditor.TextXAlignment = Enum.TextXAlignment.Left
+    functionEditor.TextYAlignment = Enum.TextYAlignment.Top
+    functionEditor.ClearTextOnFocus = false
+    functionEditor.MultiLine = true
+    functionEditor.ZIndex = 11
+    functionEditor.Parent = mainFrame
+    
+    -- Add rounded corners to editor
+    local editorCorner = Instance.new("UICorner")
+    editorCorner.CornerRadius = UDim.new(0, 4)
+    editorCorner.Parent = functionEditor
+    
+    -- Add start button
+    local startButton = Instance.new("TextButton")
+    startButton.Name = "StartButton"
+    startButton.Size = UDim2.new(0, 150, 0, 40)
+    startButton.Position = UDim2.new(0.5, -75, 0, 340)
+    startButton.BackgroundColor3 = Color3.fromRGB(66, 134, 244)
+    startButton.Text = "Start Batch Edit"
+    startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    startButton.TextSize = 16
+    startButton.Font = Enum.Font.SourceSansBold
+    startButton.ZIndex = 11
+    startButton.Parent = mainFrame
+    
+    -- Add rounded corners to start button
+    local startCorner = Instance.new("UICorner")
+    startCorner.CornerRadius = UDim.new(0, 4)
+    startCorner.Parent = startButton
+    
+    -- Close button handler
+    closeButton.MouseButton1Click:Connect(function()
+        mainFrame:Destroy()
+    end)
+    
+    -- Start button handler
+    startButton.MouseButton1Click:Connect(function()
+        -- Parse the function
+        local editFunction, errorMessage = loadstring("return " .. functionEditor.Text)
+        
+        if not editFunction then
+            BulkOperationsUI.showMessage("Error in function: " .. (errorMessage or "Unknown error"), Color3.fromRGB(255, 0, 0))
+            return
+        end
+        
+        local actualFunction = editFunction()
+        if type(actualFunction) ~= "function" then
+            BulkOperationsUI.showMessage("Error: Not a valid function", Color3.fromRGB(255, 0, 0))
+            return
+        end
+        
+        -- Create the batch edit operation
+        local operationId = BulkOperationsManager.createOperation("BatchEdit", {
+            dataStoreName = dataStoreName,
+            keyPattern = keyPattern,
+            editFunction = actualFunction,
+            limit = limit
+        })
+        
+        BulkOperationsManager.startOperation(operationId)
+        mainFrame:Destroy()
+        BulkOperationsUI.showOperationProgress(operationId)
+    end)
+end
+
+-- Show a batch import dialog
+function BulkOperationsUI.showBatchImportDialog(dataStoreName)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "BatchImportDialog"
+    mainFrame.Size = UDim2.new(0.8, 0, 0.7, 0)
+    mainFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.ZIndex = 10
+    mainFrame.Parent = script.Parent.Parent
+    
+    -- Add rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = mainFrame
+    
+    -- Add a title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -20, 0, 40)
+    title.Position = UDim2.new(0, 10, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Text = "Batch Import - " .. dataStoreName
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 18
+    title.Font = Enum.Font.SourceSansBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.ZIndex = 11
+    title.Parent = mainFrame
+    
+    -- Add a close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -40, 0, 10)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 16
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.ZIndex = 11
+    closeButton.Parent = mainFrame
+    
+    -- Add rounded corners to close button
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
+    
+    -- Add description
+    local description = Instance.new("TextLabel")
+    description.Name = "Description"
+    description.Size = UDim2.new(1, -40, 0, 60)
+    description.Position = UDim2.new(0, 20, 0, 50)
+    description.BackgroundTransparency = 1
+    description.Text = "Paste JSON data to import. The JSON should be an object where keys are the DataStore keys and values are the data to import."
+    description.TextColor3 = Color3.fromRGB(200, 200, 200)
+    description.TextSize = 14
+    description.Font = Enum.Font.SourceSans
+    description.TextXAlignment = Enum.TextXAlignment.Left
+    description.TextYAlignment = Enum.TextYAlignment.Top
+    description.TextWrapped = true
+    description.ZIndex = 11
+    description.Parent = mainFrame
+    
+    -- Add JSON editor
+    local jsonEditor = Instance.new("TextBox")
+    jsonEditor.Name = "JSONEditor"
+    jsonEditor.Size = UDim2.new(1, -40, 0, 200)
+    jsonEditor.Position = UDim2.new(0, 20, 0, 120)
+    jsonEditor.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    jsonEditor.BorderSizePixel = 0
+    jsonEditor.Text = '{\n    "key1": {"property1": "value1"},\n    "key2": {"property1": "value2"}\n}'
+    jsonEditor.TextColor3 = Color3.fromRGB(255, 255, 255)
+    jsonEditor.TextSize = 14
+    jsonEditor.Font = Enum.Font.Code
+    jsonEditor.TextXAlignment = Enum.TextXAlignment.Left
+    jsonEditor.TextYAlignment = Enum.TextYAlignment.Top
+    jsonEditor.ClearTextOnFocus = false
+    jsonEditor.MultiLine = true
+    jsonEditor.ZIndex = 11
+    jsonEditor.Parent = mainFrame
+    
+    -- Add rounded corners to editor
+    local editorCorner = Instance.new("UICorner")
+    editorCorner.CornerRadius = UDim.new(0, 4)
+    editorCorner.Parent = jsonEditor
+    
+    -- Add options
+    local optionsFrame = Instance.new("Frame")
+    optionsFrame.Name = "OptionsFrame"
+    optionsFrame.Size = UDim2.new(1, -40, 0, 30)
+    optionsFrame.Position = UDim2.new(0, 20, 0, 330)
+    optionsFrame.BackgroundTransparency = 1
+    optionsFrame.ZIndex = 11
+    optionsFrame.Parent = mainFrame
+    
+    -- Add overwrite option
+    local overwriteCheckbox = Instance.new("Frame")
+    overwriteCheckbox.Name = "OverwriteCheckbox"
+    overwriteCheckbox.Size = UDim2.new(0, 20, 0, 20)
+    overwriteCheckbox.Position = UDim2.new(0, 0, 0, 5)
+    overwriteCheckbox.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    overwriteCheckbox.BorderSizePixel = 0
+    overwriteCheckbox.ZIndex = 12
+    overwriteCheckbox.Parent = optionsFrame
+    
+    -- Add rounded corners to checkbox
+    local checkboxCorner = Instance.new("UICorner")
+    checkboxCorner.CornerRadius = UDim.new(0, 4)
+    checkboxCorner.Parent = overwriteCheckbox
+    
+    -- Add checkmark
+    local checkmark = Instance.new("TextLabel")
+    checkmark.Name = "Checkmark"
+    checkmark.Size = UDim2.new(1, 0, 1, 0)
+    checkmark.BackgroundTransparency = 1
+    checkmark.Text = "✓"
+    checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
+    checkmark.TextSize = 14
+    checkmark.Font = Enum.Font.SourceSansBold
+    checkmark.ZIndex = 13
+    checkmark.Parent = overwriteCheckbox
+    
+    -- Add checkbox label
+    local checkboxLabel = Instance.new("TextLabel")
+    checkboxLabel.Name = "CheckboxLabel"
+    checkboxLabel.Size = UDim2.new(0, 200, 0, 30)
+    checkboxLabel.Position = UDim2.new(0, 30, 0, 0)
+    checkboxLabel.BackgroundTransparency = 1
+    checkboxLabel.Text = "Overwrite existing keys"
+    checkboxLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    checkboxLabel.TextSize = 14
+    checkboxLabel.Font = Enum.Font.SourceSans
+    checkboxLabel.TextXAlignment = Enum.TextXAlignment.Left
+    checkboxLabel.ZIndex = 12
+    checkboxLabel.Parent = optionsFrame
+    
+    -- Make the checkbox clickable
+    local overwriteEnabled = true
+    checkmark.Visible = overwriteEnabled
+    
+    local function toggleOverwrite()
+        overwriteEnabled = not overwriteEnabled
+        checkmark.Visible = overwriteEnabled
+    end
+    
+    overwriteCheckbox.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            toggleOverwrite()
+        end
+    end)
+    
+    checkboxLabel.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            toggleOverwrite()
+        end
+    end)
+    
+    -- Add start button
+    local startButton = Instance.new("TextButton")
+    startButton.Name = "StartButton"
+    startButton.Size = UDim2.new(0, 150, 0, 40)
+    startButton.Position = UDim2.new(0.5, -75, 0, 380)
+    startButton.BackgroundColor3 = Color3.fromRGB(240, 156, 0)
+    startButton.Text = "Start Import"
+    startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    startButton.TextSize = 16
+    startButton.Font = Enum.Font.SourceSansBold
+    startButton.ZIndex = 11
+    startButton.Parent = mainFrame
+    
+    -- Add rounded corners to start button
+    local startCorner = Instance.new("UICorner")
+    startCorner.CornerRadius = UDim.new(0, 4)
+    startCorner.Parent = startButton
+    
+    -- Close button handler
+    closeButton.MouseButton1Click:Connect(function()
+        mainFrame:Destroy()
+    end)
+    
+    -- Start button handler
+    startButton.MouseButton1Click:Connect(function()
+        -- Parse the JSON
+        local success, importData = pcall(function()
+            return HttpService:JSONDecode(jsonEditor.Text)
+        end)
+        
+        if not success or type(importData) ~= "table" then
+            BulkOperationsUI.showMessage("Error parsing JSON: " .. (importData or "Invalid format"), Color3.fromRGB(255, 0, 0))
+            return
+        end
+        
+        -- Create the batch import operation
+        local operationId = BulkOperationsManager.createOperation("BatchImport", {
+            dataStoreName = dataStoreName,
+            importData = importData,
+            overwriteExisting = overwriteEnabled
+        })
+        
+        BulkOperationsManager.startOperation(operationId)
+        mainFrame:Destroy()
+        BulkOperationsUI.showOperationProgress(operationId)
+    end)
+end
+
+-- Show a confirmation dialog
+function BulkOperationsUI.showConfirmDialog(title, message, confirmCallback)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "ConfirmDialog"
+    mainFrame.Size = UDim2.new(0.5, 0, 0.3, 0)
+    mainFrame.Position = UDim2.new(0.25, 0, 0.35, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.ZIndex = 20
+    mainFrame.Parent = script.Parent.Parent
+    
+    -- Add rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = mainFrame
+    
+    -- Add a title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -20, 0, 40)
+    titleLabel.Position = UDim2.new(0, 10, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 18
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.ZIndex = 21
+    titleLabel.Parent = mainFrame
+    
+    -- Add message
+    local messageLabel = Instance.new("TextLabel")
+    messageLabel.Name = "Message"
+    messageLabel.Size = UDim2.new(1, -40, 0, 80)
+    messageLabel.Position = UDim2.new(0, 20, 0, 50)
+    messageLabel.BackgroundTransparency = 1
+    messageLabel.Text = message
+    messageLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    messageLabel.TextSize = 14
+    messageLabel.Font = Enum.Font.SourceSans
+    messageLabel.TextXAlignment = Enum.TextXAlignment.Left
+    messageLabel.TextYAlignment = Enum.TextYAlignment.Top
+    messageLabel.TextWrapped = true
+    messageLabel.ZIndex = 21
+    messageLabel.Parent = mainFrame
+    
+    -- Add confirm button
+    local confirmButton = Instance.new("TextButton")
+    confirmButton.Name = "ConfirmButton"
+    confirmButton.Size = UDim2.new(0, 120, 0, 40)
+    confirmButton.Position = UDim2.new(0.3, -60, 0.8, -20)
+    confirmButton.BackgroundColor3 = Color3.fromRGB(239, 83, 80)
+    confirmButton.Text = "Confirm"
+    confirmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    confirmButton.TextSize = 16
+    confirmButton.Font = Enum.Font.SourceSansBold
+    confirmButton.ZIndex = 21
+    confirmButton.Parent = mainFrame
+    
+    -- Add rounded corners to confirm button
+    local confirmCorner = Instance.new("UICorner")
+    confirmCorner.CornerRadius = UDim.new(0, 4)
+    confirmCorner.Parent = confirmButton
+    
+    -- Add cancel button
+    local cancelButton = Instance.new("TextButton")
+    cancelButton.Name = "CancelButton"
+    cancelButton.Size = UDim2.new(0, 120, 0, 40)
+    cancelButton.Position = UDim2.new(0.7, -60, 0.8, -20)
+    cancelButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    cancelButton.Text = "Cancel"
+    cancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    cancelButton.TextSize = 16
+    cancelButton.Font = Enum.Font.SourceSansBold
+    cancelButton.ZIndex = 21
+    cancelButton.Parent = mainFrame
+    
+    -- Add rounded corners to cancel button
+    local cancelCorner = Instance.new("UICorner")
+    cancelCorner.CornerRadius = UDim.new(0, 4)
+    cancelCorner.Parent = cancelButton
+    
+    -- Button handlers
+    confirmButton.MouseButton1Click:Connect(function()
+        mainFrame:Destroy()
+        confirmCallback()
+    end)
+    
+    cancelButton.MouseButton1Click:Connect(function()
+        mainFrame:Destroy()
+    end)
+end
+    messageLabel.TextYAlignment = Enum.TextYAlignment.Top
+    messageLabel.TextWrapped = true
+    messageLabel.ZIndex = 21
+    messageLabel.Parent = mainFrame
+    
+    -- Add confirm button
+    local confirmButton = Instance.new("TextButton")
+    confirmButton.Name = "ConfirmButton"
+    confirmButton.Size = UDim2.new(0, 120, 0, 40)
+    confirmButton.Position = UDim2.new(0.3, -60, 0.8, -20)
+    confirmButton.BackgroundColor3 = Color3.fromRGB(239, 83, 80)
+    confirmButton.Text = "Confirm"
+    confirmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    confirmButton.TextSize = 16
+    confirmButton.Font = Enum.Font.SourceSansBold
+    confirmButton.ZIndex = 21
+    confirmButton.Parent = mainFrame
+    
+    -- Add rounded corners to confirm button
+    local confirmCorner = Instance.new("UICorner")
+    confirmCorner.CornerRadius = UDim.new(0, 4)
+    confirmCorner.Parent = confirmButton
+    
+    -- Add cancel button
+    local cancelButton = Instance.new("TextButton")
+    cancelButton.Name = "CancelButton"
+    cancelButton.Size = UDim2.new(0, 120, 0, 40)
+    cancelButton.Position = UDim2.new(0.7, -60, 0.8, -20)
+    cancelButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    cancelButton.Text = "Cancel"
+    cancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    cancelButton.TextSize = 16
+    cancelButton.Font = Enum.Font.SourceSansBold
+    cancelButton.ZIndex = 21
+    cancelButton.Parent = mainFrame
+    
+    -- Add rounded corners to cancel button
+    local cancelCorner = Instance.new("UICorner")
+    cancelCorner.CornerRadius = UDim.new(0, 4)
+    cancelCorner.Parent = cancelButton
+    
+    -- Button handlers
+    confirmButton.MouseButton1Click:Connect(function()
+        mainFrame:Destroy()
+        confirmCallback()
+    end)
+    
+    cancelButton.MouseButton1Click:Connect(function()
+        mainFrame:Destroy()
+    end)
 end
 
 return BulkOperationsUI

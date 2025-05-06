@@ -1822,7 +1822,79 @@ function DataExplorer.showSessionManagementUI()
     DataExplorer.sessionManagementUI = uiContainer
 end
 
--- Connect session management button
-    sessionManagementButton.MouseButton1Click:Connect(function()
-        DataExplorer.showSessionManagementUI()
+function DataExplorer.initMonitoringDashboardUI()
+    local mainFrame = DataExplorer.mainFrame
+    if not mainFrame then return end
+    
+    -- Create a button to open monitoring dashboard
+    local monitoringButton = Instance.new("TextButton")
+    monitoringButton.Size = UDim2.new(0, 150, 0, 28)
+    monitoringButton.Position = UDim2.new(1, -450, 0, 10) -- Position it to the left of Schema Builder button
+    monitoringButton.BackgroundColor3 = Color3.fromRGB(142, 68, 173) -- Purple color for monitoring
+    monitoringButton.BorderSizePixel = 0
+    monitoringButton.Text = "Monitoring Dashboard"
+    monitoringButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    monitoringButton.Font = Enum.Font.SourceSansSemibold
+    monitoringButton.TextSize = 14
+    monitoringButton.ZIndex = 5
+    monitoringButton.Parent = mainFrame
+    
+    -- Add rounded corners
+    local monitoringButtonCorner = Instance.new("UICorner")
+    monitoringButtonCorner.CornerRadius = UDim.new(0, 4)
+    monitoringButtonCorner.Parent = monitoringButton
+    
+    -- Create a container for the monitoring dashboard (initially invisible)
+    local monitoringDashboardContainer = Instance.new("Frame")
+    monitoringDashboardContainer.Size = UDim2.new(1, 0, 1, 0)
+    monitoringDashboardContainer.Position = UDim2.new(0, 0, 0, 0)
+    monitoringDashboardContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    monitoringDashboardContainer.Visible = false
+    monitoringDashboardContainer.Name = "MonitoringDashboardContainer"
+    monitoringDashboardContainer.Parent = mainFrame
+    DataExplorer.monitoringDashboardContainer = monitoringDashboardContainer
+    
+    -- Create the monitoring dashboard
+    local MonitoringDashboard = require(script.Parent.MonitoringDashboard)
+    MonitoringDashboard.createDashboardUI(monitoringDashboardContainer)
+    
+    -- Toggle visibility when monitoring button is clicked
+    monitoringButton.MouseButton1Click:Connect(function()
+        local contentPane = DataExplorer.contentPane
+        local navPane = DataExplorer.navigationPane
+        
+        if DataExplorer.monitoringDashboardContainer.Visible then
+            -- Hide monitoring dashboard and show normal UI
+            DataExplorer.monitoringDashboardContainer.Visible = false
+            contentPane.Visible = true
+            navPane.Visible = true
+            monitoringButton.Text = "Monitoring Dashboard"
+            monitoringButton.BackgroundColor3 = Color3.fromRGB(142, 68, 173)
+            
+            -- Also ensure other containers are hidden
+            if DataExplorer.schemaBuilderContainer then
+                DataExplorer.schemaBuilderContainer.Visible = false
+            end
+            
+            if DataExplorer.bulkOperationsContainer then
+                DataExplorer.bulkOperationsContainer.Visible = false
+            end
+        else
+            -- Show monitoring dashboard and hide normal UI
+            DataExplorer.monitoringDashboardContainer.Visible = true
+            contentPane.Visible = false
+            navPane.Visible = false
+            monitoringButton.Text = "Back to Explorer"
+            monitoringButton.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+            
+            -- Also ensure other containers are hidden
+            if DataExplorer.schemaBuilderContainer then
+                DataExplorer.schemaBuilderContainer.Visible = false
+            end
+            
+            if DataExplorer.bulkOperationsContainer then
+                DataExplorer.bulkOperationsContainer.Visible = false
+            end
+        end
     end)
+end

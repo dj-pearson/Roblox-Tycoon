@@ -29,6 +29,9 @@
     "Workspace": {
       "$properties": {
         "FilteringEnabled": true
+      },
+      "DataStore Plugin": {
+        "$path": "DataStore Plugin"
       }
     },
     "Lighting": {
