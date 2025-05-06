@@ -1,0 +1,66 @@
+--[[
+    CachingSystemIntegration.server.luau
+    Part of DataStore Manager Pro
+    
+    This module provides integration between the CachingSystemUI and DataExplorer components.
+]]
+
+local CachingSystemUI = require(script.Parent.CachingSystemUI)
+local StyleGuide = require(script.Parent.StyleGuide)
+
+-- Initialize the Caching System UI
+function DataExplorer.initCachingSystemUI()
+    local mainFrame = DataExplorer.mainFrame
+    if not mainFrame then return end
+    
+    -- Create a button to open the caching system UI
+    local cachingButton = Instance.new("TextButton")
+    cachingButton.Size = UDim2.new(0, 150, 0, 28)
+    cachingButton.Position = UDim2.new(1, -610, 0, 10) -- Position it to the left of other buttons
+    cachingButton.BackgroundColor3 = Color3.fromRGB(52, 152, 219) -- Blue color for caching
+    cachingButton.BorderSizePixel = 0
+    cachingButton.Text = "Caching System"
+    cachingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    cachingButton.Font = Enum.Font.SourceSansSemibold
+    cachingButton.TextSize = 14
+    cachingButton.ZIndex = 5
+    cachingButton.Parent = mainFrame
+    
+    -- Add rounded corners
+    local cachingButtonCorner = Instance.new("UICorner")
+    cachingButtonCorner.CornerRadius = UDim.new(0, 4)
+    cachingButtonCorner.Parent = cachingButton
+    
+    -- Create container for caching system UI (hidden by default)
+    local cachingSystemContainer = Instance.new("Frame")
+    cachingSystemContainer.Size = UDim2.new(1, -20, 1, -60)
+    cachingSystemContainer.Position = UDim2.new(0, 10, 0, 50)
+    cachingSystemContainer.BackgroundTransparency = 1
+    cachingSystemContainer.Visible = false
+    cachingSystemContainer.Name = "CachingSystemContainer"
+    cachingSystemContainer.Parent = mainFrame
+    
+    -- Store reference to container
+    DataExplorer.cachingSystemContainer = cachingSystemContainer
+    
+    -- Add button click handler
+    cachingButton.MouseButton1Click:Connect(function()
+        -- Hide all content panes
+        DataExplorer.hideAllPanes()
+        
+        -- Hide schema editor if open
+        if DataExplorer.schemaEditorContainer and DataExplorer.schemaEditorContainer.Visible then
+            DataExplorer.schemaEditorContainer.Visible = false
+        end
+        
+        -- If the caching system UI is already initialized, just show it
+        if cachingSystemContainer and #cachingSystemContainer:GetChildren() > 0 then
+            cachingSystemContainer.Visible = true
+            return
+        end
+        
+        -- Initialize the caching system UI
+        CachingSystemUI.createUI(cachingSystemContainer)
+        cachingSystemContainer.Visible = true
+    end)
+end

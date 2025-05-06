@@ -20,6 +20,7 @@ local SessionManagementUI = require(script.Parent.SessionManagementUI)
 local DataMigrationUI = require(script.Parent.DataMigrationUI)
 local MultiServerCoordinationUI = require(script.Parent.MultiServerCoordinationUI)
 local PerformanceAnalyzerUI = require(script.Parent.PerformanceAnalyzerUI)
+local CachingSystemUI = require(script.Parent.CachingSystemUI)
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
@@ -30,6 +31,7 @@ DataExplorer.sessionManagementUI = nil -- Add a reference for the session manage
 DataExplorer.dataMigrationContainer = nil -- Add a reference for the data migration UI
 DataExplorer.coordinationContainer = nil -- Add a reference for the multi-server coordination UI
 DataExplorer.performanceAnalyzerContainer = nil -- Add a reference for the performance analyzer UI
+DataExplorer.cachingSystemContainer = nil -- Add a reference for the caching system UI
 
 -- Local helper to avoid repetition
 DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel

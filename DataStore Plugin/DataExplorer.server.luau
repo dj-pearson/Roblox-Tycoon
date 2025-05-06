@@ -20,6 +20,7 @@ local SessionManagementUI = require(script.Parent.SessionManagementUI)
 local DataMigrationUI = require(script.Parent.DataMigrationUI)
 local MultiServerCoordinationUI = require(script.Parent.MultiServerCoordinationUI)
 local PerformanceAnalyzerUI = require(script.Parent.PerformanceAnalyzerUI)
+local CachingSystemUI = require(script.Parent.CachingSystemUI)
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
@@ -30,6 +31,7 @@ DataExplorer.sessionManagementUI = nil -- Add a reference for the session manage
 DataExplorer.dataMigrationContainer = nil -- Add a reference for the data migration UI
 DataExplorer.coordinationContainer = nil -- Add a reference for the multi-server coordination UI
 DataExplorer.performanceAnalyzerContainer = nil -- Add a reference for the performance analyzer UI
+DataExplorer.cachingSystemContainer = nil -- Add a reference for the caching system UI
 
 -- Local helper to avoid repetition
 DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel
@@ -1592,8 +1594,6 @@ function DataExplorer.displayKeyContent(dataStoreName: string, keyName: string)
             nameLabel.Parent = entryFrame
             
             local typeLabel = Instance.new("TextLabel")
-           
-
             typeLabel.Size = UDim2.new(0.6, 0, 1, 0)
             typeLabel.Position = UDim2.new(0.4, 0, 0, 0)
             typeLabel.BackgroundTransparency = 1
@@ -2077,6 +2077,139 @@ function DataExplorer.initMultiServerCoordinationUI()
                 DataExplorer.dataMigrationContainer.Visible = false
             end
         end
+    end)
+end
+
+function DataExplorer.initPerformanceAnalyzerUI()
+    local mainFrame = DataExplorer.mainFrame
+    if not mainFrame then return end
+    
+    -- Create a button to open the performance analyzer UI
+    local performanceButton = Instance.new("TextButton")
+    performanceButton.Size = UDim2.new(0, 150, 0, 28)
+    performanceButton.Position = UDim2.new(1, -450, 0, 10) -- Position it to the left of other buttons
+    performanceButton.BackgroundColor3 = Color3.fromRGB(155, 89, 182) -- Purple color for performance
+    performanceButton.BorderSizePixel = 0
+    performanceButton.Text = "Performance Analyzer"
+    performanceButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    performanceButton.Font = Enum.Font.SourceSansSemibold
+    performanceButton.TextSize = 14
+    performanceButton.ZIndex = 5
+    performanceButton.Parent = mainFrame
+    
+    -- Add rounded corners
+    local performanceButtonCorner = Instance.new("UICorner")
+    performanceButtonCorner.CornerRadius = UDim.new(0, 4)
+    performanceButtonCorner.Parent = performanceButton
+    
+    -- Create a container for the performance analyzer UI (initially invisible)
+    local performanceContainer = Instance.new("Frame")
+    performanceContainer.Size = UDim2.new(1, 0, 1, 0)
+    performanceContainer.Position = UDim2.new(0, 0, 0, 0)
+    performanceContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    performanceContainer.Visible = false
+    performanceContainer.Name = "PerformanceAnalyzerContainer"
+    performanceContainer.Parent = mainFrame
+    DataExplorer.performanceAnalyzerContainer = performanceContainer
+    
+    -- Create the performance analyzer UI
+    local PerformanceAnalyzerUI = require(script.Parent.PerformanceAnalyzerUI)
+    PerformanceAnalyzerUI.createUI(performanceContainer)
+    
+    -- Toggle visibility when performance button is clicked
+    performanceButton.MouseButton1Click:Connect(function()
+        local contentPane = DataExplorer.contentPane
+        local navPane = DataExplorer.navigationPane
+        
+        if DataExplorer.performanceAnalyzerContainer.Visible then
+            -- Hide performance analyzer UI and show normal UI
+            DataExplorer.performanceAnalyzerContainer.Visible = false
+            if contentPane then contentPane.Visible = true end
+            if navPane then navPane.Visible = true end
+        else
+            -- Hide normal UI and show performance analyzer UI
+            DataExplorer.performanceAnalyzerContainer.Visible = true
+            if contentPane then contentPane.Visible = false end
+            if navPane then navPane.Visible = false end
+            
+            -- Hide other containers
+            if DataExplorer.bulkOperationsContainer then
+                DataExplorer.bulkOperationsContainer.Visible = false
+            end
+            
+            if DataExplorer.monitoringDashboardContainer then
+                DataExplorer.monitoringDashboardContainer.Visible = false
+            end
+            
+            if DataExplorer.dataMigrationContainer then
+                DataExplorer.dataMigrationContainer.Visible = false
+            end
+            
+            if DataExplorer.coordinationContainer then
+                DataExplorer.coordinationContainer.Visible = false
+            end
+            
+            if DataExplorer.cachingSystemContainer then
+                DataExplorer.cachingSystemContainer.Visible = false
+            end
+        end
+    end)
+end
+
+function DataExplorer.initCachingSystemUI()
+    local mainFrame = DataExplorer.mainFrame
+    if not mainFrame then return end
+    
+    -- Create a button to open the caching system UI
+    local cachingButton = Instance.new("TextButton")
+    cachingButton.Size = UDim2.new(0, 150, 0, 28)
+    cachingButton.Position = UDim2.new(1, -610, 0, 10) -- Position it to the left of other buttons
+    cachingButton.BackgroundColor3 = Color3.fromRGB(52, 152, 219) -- Blue color for caching
+    cachingButton.BorderSizePixel = 0
+    cachingButton.Text = "Caching System"
+    cachingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    cachingButton.Font = Enum.Font.SourceSansSemibold
+    cachingButton.TextSize = 14
+    cachingButton.ZIndex = 5
+    cachingButton.Parent = mainFrame
+    
+    -- Add rounded corners
+    local cachingButtonCorner = Instance.new("UICorner")
+    cachingButtonCorner.CornerRadius = UDim.new(0, 4)
+    cachingButtonCorner.Parent = cachingButton
+    
+    -- Create container for caching system UI (hidden by default)
+    local cachingSystemContainer = Instance.new("Frame")
+    cachingSystemContainer.Size = UDim2.new(1, -20, 1, -60)
+    cachingSystemContainer.Position = UDim2.new(0, 10, 0, 50)
+    cachingSystemContainer.BackgroundTransparency = 1
+    cachingSystemContainer.Visible = false
+    cachingSystemContainer.Name = "CachingSystemContainer"
+    cachingSystemContainer.Parent = mainFrame
+    
+    -- Store reference to container
+    DataExplorer.cachingSystemContainer = cachingSystemContainer
+    
+    -- Add button click handler
+    cachingButton.MouseButton1Click:Connect(function()
+        -- Hide all content panes
+        DataExplorer.hideAllPanes()
+        
+        -- Hide schema editor if open
+        if DataExplorer.schemaEditorContainer and DataExplorer.schemaEditorContainer.Visible then
+            DataExplorer.schemaEditorContainer.Visible = false
+        end
+        
+        -- If the caching system UI is already initialized, just show it
+        if cachingSystemContainer and #cachingSystemContainer:GetChildren() > 0 then
+            cachingSystemContainer.Visible = true
+            return
+        end
+        
+        -- Initialize the caching system UI
+        local CachingSystemUI = require(script.Parent.CachingSystemUI)
+        CachingSystemUI.createUI(cachingSystemContainer)
+        cachingSystemContainer.Visible = true
     end)
 end
 

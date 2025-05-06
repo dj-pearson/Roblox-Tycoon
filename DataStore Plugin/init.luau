@@ -23,6 +23,7 @@ local MultiServerCoordination = require(script.MultiServerCoordination)
 local MultiServerCoordinationUI = require(script.MultiServerCoordinationUI)
 local PerformanceAnalyzer = require(script.PerformanceAnalyzer)
 local PerformanceAnalyzerUI = require(script.PerformanceAnalyzerUI)
+local CachingSystemUI = require(script.CachingSystemUI)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -47,6 +48,7 @@ MultiServerCoordination.initialize()
 MultiServerCoordinationUI.initialize()
 PerformanceAnalyzer.initialize()
 PerformanceAnalyzerUI.initialize()
+CachingSystemUI.initialize()
 
 -- Set up event handlers
 button.Click:Connect(function()
@@ -62,6 +64,7 @@ button.Click:Connect(function()
         DataExplorer.initDataMigrationUI()
         DataExplorer.initMultiServerCoordinationUI()
         DataExplorer.initPerformanceAnalyzerUI()
+        DataExplorer.initCachingSystemUI()
         
         -- Update performance data at intervals
         task.spawn(function() -- Using task.spawn instead of spawn (deprecated)
@@ -111,6 +114,12 @@ local DataStoreManagerPlugin = {
     requestDistributedLock = MultiServerCoordination.requestDistributedLock,
     releaseDistributedLock = MultiServerCoordination.releaseDistributedLock,
     getActiveServers = MultiServerCoordination.getActiveServers,
+    
+    -- Caching functions
+    getCacheAnalytics = CacheManager.getCacheAnalytics,
+    getCacheContents = CacheManager.getCacheContents,
+    optimizeCache = CacheManager.optimizeCache,
+    preloadData = CacheManager.preloadData,
     
     -- Visualization functions
     createBarChart = DataVisualization.createBarChart,
