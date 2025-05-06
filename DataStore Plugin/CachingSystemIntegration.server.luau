@@ -2,13 +2,10 @@
     CachingSystemIntegration.server.luau
     Part of DataStore Manager Pro
     
-    This module provides integration between the CachingSystemUI and DataExplorer components.
+    This file contains the integration code to add the Caching System UI
+    to the main DataExplorer interface.
 ]]
 
-local CachingSystemUI = require(script.Parent.CachingSystemUI)
-local StyleGuide = require(script.Parent.StyleGuide)
-
--- Initialize the Caching System UI
 function DataExplorer.initCachingSystemUI()
     local mainFrame = DataExplorer.mainFrame
     if not mainFrame then return end
@@ -45,22 +42,50 @@ function DataExplorer.initCachingSystemUI()
     
     -- Add button click handler
     cachingButton.MouseButton1Click:Connect(function()
-        -- Hide all content panes
-        DataExplorer.hideAllPanes()
+        local contentPane = DataExplorer.contentPane
+        local navPane = DataExplorer.navigationPane
         
-        -- Hide schema editor if open
-        if DataExplorer.schemaEditorContainer and DataExplorer.schemaEditorContainer.Visible then
-            DataExplorer.schemaEditorContainer.Visible = false
+        if DataExplorer.cachingSystemContainer.Visible then
+            -- Hide caching system UI and show normal UI
+            DataExplorer.cachingSystemContainer.Visible = false
+            if contentPane then contentPane.Visible = true end
+            if navPane then navPane.Visible = true end
+            cachingButton.Text = "Caching System"
+            cachingButton.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+        else
+            -- Hide normal UI and show caching system UI
+            DataExplorer.cachingSystemContainer.Visible = true
+            if contentPane then contentPane.Visible = false end
+            if navPane then navPane.Visible = false end
+            cachingButton.Text = "Back to Explorer"
+            cachingButton.BackgroundColor3 = Color3.fromRGB(41, 128, 185)
+            
+            -- Hide other containers
+            if DataExplorer.bulkOperationsContainer then
+                DataExplorer.bulkOperationsContainer.Visible = false
+            end
+            
+            if DataExplorer.monitoringDashboardContainer then
+                DataExplorer.monitoringDashboardContainer.Visible = false
+            end
+            
+            if DataExplorer.dataMigrationContainer then
+                DataExplorer.dataMigrationContainer.Visible = false
+            end
+            
+            if DataExplorer.coordinationContainer then
+                DataExplorer.coordinationContainer.Visible = false
+            end
+            
+            if DataExplorer.performanceAnalyzerContainer then
+                DataExplorer.performanceAnalyzerContainer.Visible = false
+            end
+            
+            -- If the caching system UI is not initialized yet, create it
+            if #cachingSystemContainer:GetChildren() == 0 then
+                local CachingSystemUI = require(script.Parent.CachingSystemUI)
+                CachingSystemUI.createUI(cachingSystemContainer)
+            end
         end
-        
-        -- If the caching system UI is already initialized, just show it
-        if cachingSystemContainer and #cachingSystemContainer:GetChildren() > 0 then
-            cachingSystemContainer.Visible = true
-            return
-        end
-        
-        -- Initialize the caching system UI
-        CachingSystemUI.createUI(cachingSystemContainer)
-        cachingSystemContainer.Visible = true
     end)
 end
