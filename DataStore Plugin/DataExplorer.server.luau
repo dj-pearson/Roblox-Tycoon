@@ -1,6 +1,3 @@
---luau
--- DataStore Plugin/DataExplorer.luau
-
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local DataStoreService = game:GetService("DataStoreService")
@@ -25,52 +22,46 @@ local LoadTestingUI = require(script.Parent.LoadTestingUI)
 local CodeGeneratorUI = require(script.Parent.CodeGeneratorUI)
 local APIIntegrationUI = require(script.Parent.APIIntegrationUI)
 local AccessControlUI = require(script.Parent.AccessControlUI)
--- Import integration modules
 local CachingSystemIntegration = require(script.Parent.CachingSystemIntegration)
 local LoadTestingIntegration = require(script.Parent.LoadTestingIntegration)
 local CodeGeneratorIntegration = require(script.Parent.CodeGeneratorIntegration)
 local APIIntegrationIntegration = require(script.Parent.APIIntegrationIntegration)
 local AccessControlIntegration = require(script.Parent.AccessControlIntegration)
 
-local DataExplorer = {}
-DataExplorer.performanceDataUI = {}
-DataExplorer.sessionId = HttpService:GenerateGUID()
+local DataExplorer = {
+    performanceDataUI = {},
+    sessionId = HttpService:GenerateGUID(),
+    lockStatusUI = {},
+    sessionManagementUI = nil,
+    dataMigrationContainer = nil,
+    coordinationContainer = nil,
+    performanceAnalyzerContainer = nil,
+    cachingSystemContainer = nil,
+    loadTestingContainer = nil,
+    codeGeneratorContainer = nil,
+    apiIntegrationContainer = nil,
+    accessControlContainer = nil,
+    cacheViewerPane = nil
+}
 
-DataExplorer.lockStatusUI = {}
-DataExplorer.sessionManagementUI = nil -- Add a reference for the session management UI
-DataExplorer.dataMigrationContainer = nil -- Add a reference for the data migration UI
-DataExplorer.coordinationContainer = nil -- Add a reference for the multi-server coordination UI
-DataExplorer.performanceAnalyzerContainer = nil -- Add a reference for the performance analyzer UI
-DataExplorer.cachingSystemContainer = nil -- Add a reference for the caching system UI
-DataExplorer.loadTestingContainer = nil -- Add a reference for the load testing UI
-DataExplorer.codeGeneratorContainer = nil -- Add a reference for the code generator UI
-DataExplorer.apiIntegrationContainer = nil -- Add a reference for the API integration UI
-DataExplorer.accessControlContainer = nil -- Add a reference for the access control UI
-
--- Local helper to avoid repetition
-DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel
-
-local function createLabel(text: string, parent: Instance): TextLabel
+-- Helper function to create text labels
+local function createLabel(text, parent)
 	local label = Instance.new("TextButton")
     label.BorderSizePixel = 0
 	label.BackgroundTransparency = 1
-    label.TextTransparency = 0
     label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.TextSize = 14
     label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
     label.AutoButtonColor = false
-    label.Parent = parent
-
-    
-	label.Text = text
+    label.Text = text
 	label.Size = UDim2.new(1, 0, 0, 18)
+    label.Parent = parent
+    return label
+end
 
-    -- Create the main frame for the data explorer
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(1, 0, 1, 0)
-    mainFrame.Name = "DataStoreExplorerFrame"
-    DataExplorer.mainFrame = mainFrame
+-- Create the main UI frame
+function DataExplorer.createMainUI()
     
 
     -- Create a split-pane layout (Using ScrollingFrame for potential future scrolling)
