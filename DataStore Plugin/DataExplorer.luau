@@ -47,11 +47,12 @@ local function createLabel(text: string, parent: Instance): TextLabel
 	label.TextXAlignment = Enum.TextXAlignment.Left
     label.AutoButtonColor = false
     label.Parent = parent
-
-    
 	label.Text = text
 	label.Size = UDim2.new(1, 0, 0, 18)
+    return label
+end
 
+function DataExplorer.createMainGui(parent)
     -- Create the main frame for the data explorer
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(1, 0, 1, 0)

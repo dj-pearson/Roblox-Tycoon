@@ -2281,6 +2281,5 @@ end
     cancelButton.MouseButton1Click:Connect(function()
         mainFrame:Destroy()
     end)
-end
 
 return BulkOperationsUI

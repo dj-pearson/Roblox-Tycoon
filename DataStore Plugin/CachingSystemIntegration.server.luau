@@ -6,7 +6,9 @@
     to the main DataExplorer interface.
 ]]
 
-function DataExplorer.initCachingSystemUI()
+local CachingSystemIntegration = {}
+
+function CachingSystemIntegration.initCachingSystemUI(DataExplorer)
     local mainFrame = DataExplorer.mainFrame
     if not mainFrame then return end
     
@@ -89,3 +91,5 @@ function DataExplorer.initCachingSystemUI()
         end
     end)
 end
+
+return CachingSystemIntegration
