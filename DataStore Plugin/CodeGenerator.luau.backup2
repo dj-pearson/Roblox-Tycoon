@@ -487,10 +487,16 @@ local dataStore = DataStoreService:GetDataStore("{{DATA_STORE_NAME}}")
 local playerData = {}
 
 -- Validation functions
-{{VALIDATION_CODE}}
+local function validateData(data)
+    -- This will be replaced by the generated validation code
+    return true, ""
+end
 
 -- Default data generation
-{{DEFAULT_DATA}}
+local function createDefaultData()
+    -- This will be replaced by the generated default data code
+    return {}
+end
 
 -- Server module
 local ServerModule = {}
