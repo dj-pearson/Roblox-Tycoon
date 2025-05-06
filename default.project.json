@@ -18,11 +18,6 @@
           "$path": "src/client"
         }
       }
-    },
-    "Plugins": {
-      "DataStore Plugin": {
-        "$path": "DataStore Plugin"
-      }
     }
   }
 }
