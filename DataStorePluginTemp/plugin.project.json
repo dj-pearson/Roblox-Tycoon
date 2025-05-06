@@ -1,0 +1,23 @@
+{
+    "name": "DataStore Manager Pro",
+    "tree": {
+        "$"+"className": "Plugin",
+        "$"+"properties": {
+            "RunContext": "Server"
+        },
+        "$"+"children": [
+            {
+                "$"+"className": "Script",
+                "$"+"name": "Main",
+                "$"+"properties": {
+                    "Source": "-- DataStore Plugin Main Entry Point\nlocal plugin = plugin -- Use the global plugin variable\n\n-- This is a Roblox plugin for managing DataStore data\nlocal toolbar = plugin:CreateToolbar('DataStore Manager Pro')\nlocal button = toolbar:CreateButton('Open DataStore Manager', 'Open the DataStore Manager Pro Interface', 'rbxassetid://7634658388')\n\n-- Set up event handlers\nbutton.Click:Connect(function()\n    -- Implement plugin functionality here\nend)\n"
+                }
+            },
+            {
+                "$"+"className": "Folder",
+                "$"+"name": "Modules",
+                "$"+"path": "DataStore Plugin"
+            }
+        ]
+    }
+}

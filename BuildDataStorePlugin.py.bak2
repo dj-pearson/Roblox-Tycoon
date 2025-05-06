@@ -1,0 +1,143 @@
+#!/usr/bin/env python
+"""
+BuildDataStorePlugin.py
+This script builds the DataStore Plugin and deploys it to the Roblox Plugins folder using Argon
+"""
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+# Configuration
+SOURCE_FOLDER = "DataStore Plugin"
+OUTPUT_FILE = "DataStorePlugin.rbxm"
+
+def find_argon():
+    """Find the Argon executable"""
+    # Try if argon is in PATH
+    try:
+        subprocess.run(["argon", "--version"], capture_output=True, check=False)
+        return "argon"
+    except FileNotFoundError:
+        # Check common locations
+        potential_paths = [
+            os.path.join(os.environ.get('USERPROFILE', ''), '.argon', 'argon.exe'),
+            os.path.join('.', 'tools', 'argon', 'argon.exe')
+        ]
+        
+        for path in potential_paths:
+            if os.path.exists(path):
+                return path
+                
+        print("Argon not found. Please make sure Argon is installed and accessible.")
+        print("You can try running Argon-Setup.bat first or add Argon to your PATH.")
+        sys.exit(1)
+
+def main():
+    print("Building DataStore Plugin using Argon...")
+    
+    # Get the Roblox Plugins folder path
+    plugins_folder = os.path.join(os.environ['LOCALAPPDATA'], 'Roblox', 'Plugins')
+    
+    # Find Argon
+    argon_exe = find_argon()
+    print(f"Using Argon at: {argon_exe}")
+      # Create temporary directory
+    temp_dir = "./DataStorePluginTemp"
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
+    os.makedirs(temp_dir)
+    
+    # Initialize an Argon project in the temp directory
+    print("Initializing Argon project...")
+    subprocess.run([argon_exe, "init", temp_dir, "--yes"], check=False)
+    
+    # Create main script
+    main_script = """-- DataStore Plugin Main Entry Point
+local plugin = plugin -- Use the global plugin variable
+
+-- This is a Roblox plugin for managing DataStore data
+local toolbar = plugin:CreateToolbar("DataStore Manager Pro")
+local button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://7634658388")
+
+-- Load all the modules
+local dataStorePlugin = require(script.Parent)
+
+-- Set up event handlers
+button.Click:Connect(function()
+    -- Implement plugin functionality here
+end)
+
+return dataStorePlugin
+"""
+      # Save the main script
+    src_dir = os.path.join(temp_dir, "src")
+    if not os.path.exists(src_dir):
+        os.makedirs(src_dir)
+    with open(os.path.join(src_dir, "init.server.lua"), 'w') as f:
+        f.write(main_script)
+    
+    # Create a plugin specific structure
+    plugin_dir = os.path.join(src_dir, "Plugin")
+    if not os.path.exists(plugin_dir):
+        os.makedirs(plugin_dir)
+    
+    # Copy all files from source folder
+    source_path = SOURCE_FOLDER
+    print(f"Copying files from {source_path} to {plugin_dir}...")
+    
+    # Use recursive copy to preserve directory structure
+    for item in os.listdir(source_path):
+        s = os.path.join(source_path, item)
+        d = os.path.join(plugin_dir, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d)
+        else:
+            shutil.copy2(s, d)
+            
+    # Update the Argon project file to mark this as a plugin
+    argon_toml_path = os.path.join(temp_dir, "argon.toml")
+    if os.path.exists(argon_toml_path):
+        with open(argon_toml_path, 'a') as f:
+            f.write("\n\n[plugin]\nenabled = true\n")
+        print("Updated Argon project configuration for plugin.")
+    
+    # Build the plugin using Argon
+    print("Building plugin with Argon...")
+    result = subprocess.run([argon_exe, "build", temp_dir, "-o", OUTPUT_FILE], 
+                           capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        print("Build failed! Error:")
+        print(result.stderr)
+        shutil.rmtree(temp_dir)  # Clean up
+        return
+    
+    # Check if the output file was created
+    if not os.path.exists(OUTPUT_FILE):
+        print("Build failed! Output file was not created.")
+        shutil.rmtree(temp_dir)  # Clean up
+        return
+    
+    print(f"Build successful! Created {OUTPUT_FILE}")
+    
+    # Clean up temporary directory
+    shutil.rmtree(temp_dir)
+    print("Cleaned up temporary files.")
+    
+    # Check if Plugins directory exists
+    if not os.path.exists(plugins_folder):
+        print(f"Creating Plugins folder at {plugins_folder}")
+        os.makedirs(plugins_folder, exist_ok=True)
+    
+    # Copy plugin to Plugins folder
+    print("Copying plugin to Roblox Plugins folder...")
+    shutil.copy2(OUTPUT_FILE, os.path.join(plugins_folder, OUTPUT_FILE))
+    
+    print(f"Plugin successfully deployed to {os.path.join(plugins_folder, OUTPUT_FILE)}")
+    print("You can now use the plugin in Roblox Studio!")
+
+if __name__ == "__main__":
+    main()

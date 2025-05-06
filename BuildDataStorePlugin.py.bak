@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+"""
+BuildDataStorePlugin.py
+This script builds the DataStore Plugin and deploys it to the Roblox Plugins folder
+"""
+
+import os
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+# Configuration
+SOURCE_FOLDER = "DataStore Plugin"
+OUTPUT_FILE = "DataStorePlugin.rbxm"
+PROJECT_JSON_PATH = "./DataStore-plugin.project.json"
+
+def main():
+    print("Building DataStore Plugin...")
+    
+    # Get the Roblox Plugins folder path
+    plugins_folder = os.path.join(os.environ['LOCALAPPDATA'], 'Roblox', 'Plugins')
+      # Check if we have a project.json file
+    if not os.path.exists(PROJECT_JSON_PATH) or True:
+        print("Creating project configuration...")
+        
+        # Create a project.json file for a plugin
+        project_json = {
+            "name": "DataStore Manager Pro",
+            "tree": {
+                "$className": "Plugin",
+                "$properties": {
+                    "RunContext": "Server"
+                },
+                "$path": SOURCE_FOLDER
+            }
+        }
+        
+        with open(PROJECT_JSON_PATH, 'w') as f:
+            json.dump(project_json, f, indent=4)
+            
+        print(f"Created project.json file at {PROJECT_JSON_PATH}")
+    
+    # Build the plugin using Rojo
+    print("Building plugin with Rojo...")
+    result = subprocess.run(['rojo', 'build', PROJECT_JSON_PATH, '--output', OUTPUT_FILE], 
+                           capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        print("Build failed! Error:")
+        print(result.stderr)
+        return
+    
+    # Check if the output file was created
+    if not os.path.exists(OUTPUT_FILE):
+        print("Build failed! Output file was not created.")
+        return
+    
+    print(f"Build successful! Created {OUTPUT_FILE}")
+    
+    # Check if Plugins directory exists
+    if not os.path.exists(plugins_folder):
+        print(f"Creating Plugins folder at {plugins_folder}")
+        os.makedirs(plugins_folder, exist_ok=True)
+    
+    # Copy plugin to Plugins folder
+    print("Copying plugin to Roblox Plugins folder...")
+    shutil.copy2(OUTPUT_FILE, os.path.join(plugins_folder, OUTPUT_FILE))
+    
+    print(f"Plugin successfully deployed to {os.path.join(plugins_folder, OUTPUT_FILE)}")
+    print("You can now use the plugin in Roblox Studio!")
+
+if __name__ == "__main__":
+    main()
