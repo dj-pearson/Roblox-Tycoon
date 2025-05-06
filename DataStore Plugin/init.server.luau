@@ -30,6 +30,8 @@ local CodeGenerator = require(script.CodeGenerator)
 local CodeGeneratorUI = require(script.CodeGeneratorUI)
 local APIIntegration = require(script.APIIntegration)
 local APIIntegrationUI = require(script.APIIntegrationUI)
+local AccessControl = require(script.AccessControl)
+local AccessControlUI = require(script.AccessControlUI)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -59,6 +61,8 @@ CodeGenerator.initialize()
 CodeGeneratorUI.initialize()
 APIIntegration.initialize()
 APIIntegrationUI.initialize()
+AccessControl.initialize()
+AccessControlUI.initialize()
 
 -- Set up event handlers
 button.Click:Connect(function()
@@ -78,6 +82,7 @@ button.Click:Connect(function()
         DataExplorer.initLoadTestingUI()
         DataExplorer.initCodeGeneratorUI()
         DataExplorer.initAPIIntegrationUI()
+        DataExplorer.initAccessControlUI()
         
         -- Update performance data at intervals
         task.spawn(function() -- Using task.spawn instead of spawn (deprecated)

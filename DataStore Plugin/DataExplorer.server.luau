@@ -24,11 +24,13 @@ local CachingSystemUI = require(script.Parent.CachingSystemUI)
 local LoadTestingUI = require(script.Parent.LoadTestingUI)
 local CodeGeneratorUI = require(script.Parent.CodeGeneratorUI)
 local APIIntegrationUI = require(script.Parent.APIIntegrationUI)
+local AccessControlUI = require(script.Parent.AccessControlUI)
 -- Import integration modules
 local CachingSystemIntegration = require(script.Parent.CachingSystemIntegration)
 local LoadTestingIntegration = require(script.Parent.LoadTestingIntegration)
 local CodeGeneratorIntegration = require(script.Parent.CodeGeneratorIntegration)
 local APIIntegrationIntegration = require(script.Parent.APIIntegrationIntegration)
+local AccessControlIntegration = require(script.Parent.AccessControlIntegration)
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
@@ -43,6 +45,7 @@ DataExplorer.cachingSystemContainer = nil -- Add a reference for the caching sys
 DataExplorer.loadTestingContainer = nil -- Add a reference for the load testing UI
 DataExplorer.codeGeneratorContainer = nil -- Add a reference for the code generator UI
 DataExplorer.apiIntegrationContainer = nil -- Add a reference for the API integration UI
+DataExplorer.accessControlContainer = nil -- Add a reference for the access control UI
 
 -- Local helper to avoid repetition
 DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel
@@ -2200,6 +2203,15 @@ DataExplorer.initAPIIntegrationUI = function()
         APIIntegrationIntegration.initAPIIntegrationUI(DataExplorer)
     else
         warn("APIIntegrationIntegration module or initAPIIntegrationUI function not found")
+    end
+end
+
+-- Use the integration module's implementation of initAccessControlUI
+DataExplorer.initAccessControlUI = function()
+    if AccessControlIntegration and AccessControlIntegration.initialize then
+        AccessControlIntegration.initialize(DataExplorer)
+    else
+        warn("AccessControlIntegration module or initialize function not found")
     end
 end
 
