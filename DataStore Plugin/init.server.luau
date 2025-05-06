@@ -28,6 +28,8 @@ local LoadTesting = require(script.LoadTesting)
 local LoadTestingUI = require(script.LoadTestingUI)
 local CodeGenerator = require(script.CodeGenerator)
 local CodeGeneratorUI = require(script.CodeGeneratorUI)
+local APIIntegration = require(script.APIIntegration)
+local APIIntegrationUI = require(script.APIIntegrationUI)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -55,6 +57,8 @@ PerformanceAnalyzerUI.initialize()
 CachingSystemUI.initialize()
 CodeGenerator.initialize()
 CodeGeneratorUI.initialize()
+APIIntegration.initialize()
+APIIntegrationUI.initialize()
 
 -- Set up event handlers
 button.Click:Connect(function()
@@ -73,6 +77,7 @@ button.Click:Connect(function()
         DataExplorer.initCachingSystemUI()
         DataExplorer.initLoadTestingUI()
         DataExplorer.initCodeGeneratorUI()
+        DataExplorer.initAPIIntegrationUI()
         
         -- Update performance data at intervals
         task.spawn(function() -- Using task.spawn instead of spawn (deprecated)
@@ -132,6 +137,12 @@ local DataStoreManagerPlugin = {
     -- Code generation functions
     generateCode = CodeGenerator.generateModuleFromSchema,
     getTemplates = function(moduleType) return CodeGenerator.templates[moduleType or "module"] end,
+    
+    -- API Integration functions
+    configureWebhook = APIIntegration.configureWebhook,
+    triggerWebhook = APIIntegration.triggerWebhook,
+    configureOpenCloudAPI = APIIntegration.configureOpenCloudAPI,
+    getWebhooks = APIIntegration.getWebhooks,
     
     -- Visualization functions
     createBarChart = DataVisualization.createBarChart,

@@ -23,10 +23,12 @@ local PerformanceAnalyzerUI = require(script.Parent.PerformanceAnalyzerUI)
 local CachingSystemUI = require(script.Parent.CachingSystemUI)
 local LoadTestingUI = require(script.Parent.LoadTestingUI)
 local CodeGeneratorUI = require(script.Parent.CodeGeneratorUI)
+local APIIntegrationUI = require(script.Parent.APIIntegrationUI)
 -- Import integration modules
 local CachingSystemIntegration = require(script.Parent.CachingSystemIntegration)
 local LoadTestingIntegration = require(script.Parent.LoadTestingIntegration)
 local CodeGeneratorIntegration = require(script.Parent.CodeGeneratorIntegration)
+local APIIntegrationIntegration = require(script.Parent.APIIntegrationIntegration)
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
@@ -40,6 +42,7 @@ DataExplorer.performanceAnalyzerContainer = nil -- Add a reference for the perfo
 DataExplorer.cachingSystemContainer = nil -- Add a reference for the caching system UI
 DataExplorer.loadTestingContainer = nil -- Add a reference for the load testing UI
 DataExplorer.codeGeneratorContainer = nil -- Add a reference for the code generator UI
+DataExplorer.apiIntegrationContainer = nil -- Add a reference for the API integration UI
 
 -- Local helper to avoid repetition
 DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel
@@ -2188,6 +2191,15 @@ DataExplorer.initCodeGeneratorUI = function()
         CodeGeneratorIntegration.initCodeGeneratorUI(DataExplorer)
     else
         warn("CodeGeneratorIntegration module or initCodeGeneratorUI function not found")
+    end
+end
+
+-- Use the integration module's implementation of initAPIIntegrationUI
+DataExplorer.initAPIIntegrationUI = function()
+    if APIIntegrationIntegration and APIIntegrationIntegration.initAPIIntegrationUI then
+        APIIntegrationIntegration.initAPIIntegrationUI(DataExplorer)
+    else
+        warn("APIIntegrationIntegration module or initAPIIntegrationUI function not found")
     end
 end
 
