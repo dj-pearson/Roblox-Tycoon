@@ -1,6 +1,22 @@
 @echo off
 echo Starting Argon synchronization for DataStore Manager Pro plugin...
 echo.
+echo Checking for JSON issues before syncing...
+echo.
+
+REM Run the Fix-JsonFiles script if it exists
+if exist "%~dp0Fix-JsonFiles.ps1" (
+    powershell -ExecutionPolicy Bypass -File "%~dp0Fix-JsonFiles.ps1"
+    if %ERRORLEVEL% NEQ 0 (
+        echo.
+        echo There was an issue with the JSON files. Please fix the issues before continuing.
+        echo.
+        pause
+        exit /b 1
+    )
+)
+
+echo.
 echo This will open Roblox Studio with Argon and attempt to sync your plugin.
 echo Make sure Roblox Studio is installed and Argon plugin is installed.
 echo.

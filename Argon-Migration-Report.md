@@ -8,6 +8,7 @@ This document summarizes the changes made to migrate the DataStore Plugin from R
 2. **Configuration Changes**: Created a dedicated Argon project file separate from the Rojo project file
 3. **Asset References**: Fixed asset ID in the plugin's toolbar button
 4. **Structure Optimization**: Ensured proper plugin initialization with Argon's project structure
+5. **JSON Format Issues**: Removed comments from JSON project files as they caused parsing errors with Argon
 
 ## Changes Made
 
@@ -53,11 +54,19 @@ This document summarizes the changes made to migrate the DataStore Plugin from R
   - ValidateDataStorePlugin.ps1 - A PowerShell script to validate the plugin setup
   - Analyze-LuauFile.ps1 - A tool to identify optimization opportunities in large Luau files
 
+### 5. JSON Format Fixes
+- **Removed Comments from JSON Files**:
+  - Removed filepath comments from the top of project.json files
+  - Fixed JSON parsing errors that were preventing Argon sync
+  - Updated ValidateDataStorePlugin.ps1 to detect and warn about JSON comments
+  - Added a Fix-JsonComments function to automatically fix comment issues
+
 ## Testing & Validation
 1. **Pre-Sync Validation**:
    - Ran ValidateDataStorePlugin.ps1 to check for potential issues
    - Confirmed all required files are present and under size limits
    - Verified that the DataExplorer.server.luau file is being properly referenced
+   - Validated JSON files for proper formatting and absence of comments
 
 2. **Sync Process**:
    - Created SyncWithArgon.bat to streamline the sync process

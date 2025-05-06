@@ -23,6 +23,10 @@
 - Large image files have been moved to the Backups folder to prevent sync issues
 - The main entry point is `init.server.luau`
 - We're using the server version of DataExplorer (DataExplorer.server.luau) instead of the non-server version
+- JSON files must not contain comments (lines starting with //) to be compatible with Argon
+
+### Utility Scripts
+Several utility scripts are available in the RobloxProject directory to help manage this plugin:
 
 ### Utility Scripts
 Several utility scripts are available in the RobloxProject directory to help manage this plugin:
@@ -41,13 +45,28 @@ powershell -ExecutionPolicy Bypass -File .\Analyze-LuauFile.ps1 -FilePath ".\Dat
 - If the plugin doesn't appear in Roblox Studio after syncing, check the Output window for any errors
 - If you see messages about file size limits, verify that all large files (>100KB) have been properly excluded in the project file
 - The asset ID for the toolbar button is set to "rbxassetid://7634658388" - if the button has no icon, you may need to use a different asset ID
+- If you see JSON parsing errors, make sure your JSON files don't contain comments (lines starting with //)
 - Run the ValidateDataStorePlugin.ps1 script to check for common issues:
   ```powershell
   powershell -ExecutionPolicy Bypass -File .\ValidateDataStorePlugin.ps1
   ```
 
-## Troubleshooting
-If you experience sync issues:
-1. Check that no files exceed 100KB
-2. Try using DataStore-plugin.project.json file specifically created for this plugin
-3. Make sure your Argon plugin is updated to the latest version
+### Common Errors and Solutions
+
+#### "Failed to parse project" error
+If you see an error like: `ERROR: Failed to parse project at [...] invalid type: sequence, expected struct ProjectNode`
+1. Check if the JSON file contains comments (lines starting with //)
+2. Run the ValidateDataStorePlugin.ps1 script which can detect and fix this issue
+3. Or run the Fix-JsonComments function from the script:
+   ```powershell
+   # Load the function
+   . .\ValidateDataStorePlugin.ps1
+   # Fix the file
+   Fix-JsonComments -FilePath ".\DataStore-plugin.project.json"
+   ```
+
+#### "Project already exists" error
+If you see: `ERROR: Project [...] already exists!`
+1. Close all instances of Roblox Studio
+2. Restart Roblox Studio and try again
+3. If that doesn't work, try manually deleting the project from Argon plugin in Studio and then re-adding it
