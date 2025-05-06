@@ -22,9 +22,11 @@ local MultiServerCoordinationUI = require(script.Parent.MultiServerCoordinationU
 local PerformanceAnalyzerUI = require(script.Parent.PerformanceAnalyzerUI)
 local CachingSystemUI = require(script.Parent.CachingSystemUI)
 local LoadTestingUI = require(script.Parent.LoadTestingUI)
+local CodeGeneratorUI = require(script.Parent.CodeGeneratorUI)
 -- Import integration modules
 local CachingSystemIntegration = require(script.Parent.CachingSystemIntegration)
 local LoadTestingIntegration = require(script.Parent.LoadTestingIntegration)
+local CodeGeneratorIntegration = require(script.Parent.CodeGeneratorIntegration)
 
 local DataExplorer = {}
 DataExplorer.performanceDataUI = {}
@@ -37,6 +39,7 @@ DataExplorer.coordinationContainer = nil -- Add a reference for the multi-server
 DataExplorer.performanceAnalyzerContainer = nil -- Add a reference for the performance analyzer UI
 DataExplorer.cachingSystemContainer = nil -- Add a reference for the caching system UI
 DataExplorer.loadTestingContainer = nil -- Add a reference for the load testing UI
+DataExplorer.codeGeneratorContainer = nil -- Add a reference for the code generator UI
 
 -- Local helper to avoid repetition
 DataExplorer.cacheViewerPane = nil -- Add a variable to store the cache viewer panel
@@ -2176,6 +2179,15 @@ DataExplorer.initLoadTestingUI = function()
         LoadTestingIntegration.initLoadTestingUI(DataExplorer)
     else
         warn("LoadTestingIntegration module or initLoadTestingUI function not found")
+    end
+end
+
+-- Use the integration module's implementation of initCodeGeneratorUI
+DataExplorer.initCodeGeneratorUI = function()
+    if CodeGeneratorIntegration and CodeGeneratorIntegration.initCodeGeneratorUI then
+        CodeGeneratorIntegration.initCodeGeneratorUI(DataExplorer)
+    else
+        warn("CodeGeneratorIntegration module or initCodeGeneratorUI function not found")
     end
 end
 

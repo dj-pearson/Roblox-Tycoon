@@ -26,6 +26,8 @@ local PerformanceAnalyzerUI = require(script.PerformanceAnalyzerUI)
 local CachingSystemUI = require(script.CachingSystemUI)
 local LoadTesting = require(script.LoadTesting)
 local LoadTestingUI = require(script.LoadTestingUI)
+local CodeGenerator = require(script.CodeGenerator)
+local CodeGeneratorUI = require(script.CodeGeneratorUI)
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -51,6 +53,8 @@ MultiServerCoordinationUI.initialize()
 PerformanceAnalyzer.initialize()
 PerformanceAnalyzerUI.initialize()
 CachingSystemUI.initialize()
+CodeGenerator.initialize()
+CodeGeneratorUI.initialize()
 
 -- Set up event handlers
 button.Click:Connect(function()
@@ -67,6 +71,8 @@ button.Click:Connect(function()
         DataExplorer.initMultiServerCoordinationUI()
         DataExplorer.initPerformanceAnalyzerUI()
         DataExplorer.initCachingSystemUI()
+        DataExplorer.initLoadTestingUI()
+        DataExplorer.initCodeGeneratorUI()
         
         -- Update performance data at intervals
         task.spawn(function() -- Using task.spawn instead of spawn (deprecated)
@@ -122,6 +128,10 @@ local DataStoreManagerPlugin = {
     getCacheContents = CacheManager.getCacheContents,
     optimizeCache = CacheManager.optimizeCache,
     preloadData = CacheManager.preloadData,
+    
+    -- Code generation functions
+    generateCode = CodeGenerator.generateModuleFromSchema,
+    getTemplates = function(moduleType) return CodeGenerator.templates[moduleType or "module"] end,
     
     -- Visualization functions
     createBarChart = DataVisualization.createBarChart,
