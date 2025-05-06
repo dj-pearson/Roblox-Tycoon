@@ -17,7 +17,13 @@
     },
     "Plugins": {
       "DataStore Plugin": {
-        "$path": "DataStore Plugin"
+        "$path": "DataStore Plugin",
+        "$ignoreUnknownInstances": true,
+        "$ignoreFiles": [
+          "*.png",
+          "Backups/*",
+          "*.backup*"
+        ]
       }
     },
     "ReplicatedStorage": {

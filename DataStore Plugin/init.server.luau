@@ -3,10 +3,10 @@
 local plugin = plugin -- Use the global plugin variable
 local toolbar = plugin:CreateToolbar("DataStore Manager Pro")
 -- Custom logo for DataStore Manager Pro
-local button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://131528729537417")
+local button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://7634658388")
 
 local DataStoreManager = require(script.DataStoreManager)
-local DataExplorer = require(script.DataExplorer)
+local DataExplorer = require(script.DataExplorer)  -- This will use DataExplorer.server.luau
 local PerformanceMonitor = require(script.PerformanceMonitor)
 local SchemaManager = require(script.SchemaManager)
 local SessionManager = require(script.SessionManager)
