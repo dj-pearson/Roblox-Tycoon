@@ -1,0 +1,62 @@
+  22:59:06.617  user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro:1: Expected identifier when parsing expression, got Unicode character U+feff  -  Studio
+  22:59:06.618  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.AccessControlUI', Line 14  -  Studio
+  22:59:06.618  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.AccessControlIntegration', Line 10  -  Studio
+  22:59:06.621  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.DataStoreManager', Line 7  -  Studio
+  22:59:06.621  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.BulkOperationsManager', Line 7  -  Studio
+  22:59:06.624  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.BulkOperationsUI', Line 7  -  Studio
+  22:59:06.626  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.CachingSystemUI', Line 9  -  Studio
+  22:59:06.627  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.CodeGeneratorUI', Line 9  -  Studio
+  22:59:06.627  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.CodeGeneratorIntegration', Line 9  -  Studio
+  22:59:06.629  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.DataExplorer', Line 4  -  Studio
+  22:59:06.630  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.DataMigrationTools', Line 23  -  Studio
+  22:59:06.631  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.DataMigrationUI', Line 15  -  Studio
+  22:59:06.632  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.DataStoreManager', Line 7  -  Studio
+  22:59:06.633  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.MonitoringDashboard', Line 8  -  Studio
+  22:59:06.634  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.MonitoringDashboardUI', Line 8  -  Studio
+  22:59:06.635  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.MultiServerCoordination', Line 8  -  Studio
+  22:59:06.635  user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.MultiServerCoordinationIntegration:1: attempt to index nil with 'initMultiServerCoordinationUI'  -  Edit
+  22:59:06.635  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.MultiServerCoordinationIntegration', Line 1  -  Studio
+  22:59:06.637  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.MultiServerCoordination', Line 8  -  Studio
+  22:59:06.637  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.MultiServerCoordinationUI', Line 6  -  Studio
+  22:59:06.638  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.PerformanceAnalyzer', Line 12  -  Studio
+  22:59:06.638  user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.PerformanceAnalyzerIntegration:9: attempt to index nil with 'initPerformanceAnalyzerUI'  -  Edit
+  22:59:06.638  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.PerformanceAnalyzerIntegration', Line 9  -  Studio
+  22:59:06.639  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.PerformanceAnalyzerUI', Line 12  -  Studio
+  22:59:06.640  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.SchemaBuilder', Line 5  -  Studio
+  22:59:06.641  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.SchemaBuilderUI', Line 7  -  Studio
+  22:59:06.642  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.SchemaEditor', Line 4  -  Studio
+  22:59:06.643  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.SchemaManager', Line 5  -  Studio
+  22:59:06.643  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.SchemaVersionViewer', Line 5  -  Studio
+  22:59:06.645  Script 'user_DataStore Manager Pro.rbxmx.DataStore Manager Pro.Plugins.DataStoreManagerPro.SessionManagementUI', Line 4  -  Studio
+  22:59:06.713  user_DataStoreManagerPro.rbxmx.src:1: Expected identifier when parsing expression, got Unicode character U+feff  -  Studio
+  22:59:06.714  Script 'user_DataStoreManagerPro.rbxmx.src.AccessControlUI', Line 14  -  Studio
+  22:59:06.714  Script 'user_DataStoreManagerPro.rbxmx.src.AccessControlIntegration', Line 10  -  Studio
+  22:59:06.716  Attempted to call require with invalid argument(s).  -  Edit - DataStoreManager:7
+  22:59:06.716  Script 'user_DataStoreManagerPro.rbxmx.src.DataStoreManager', Line 7  -  Studio
+  22:59:06.717  Script 'user_DataStoreManagerPro.rbxmx.src.BulkOperationsManager', Line 7  -  Studio
+  22:59:06.719  Script 'user_DataStoreManagerPro.rbxmx.src.BulkOperationsUI', Line 7  -  Studio
+  22:59:06.721  Script 'user_DataStoreManagerPro.rbxmx.src.CachingSystemUI', Line 9  -  Studio
+  22:59:06.722  Script 'user_DataStoreManagerPro.rbxmx.src.CodeGeneratorUI', Line 9  -  Studio
+  22:59:06.722  Script 'user_DataStoreManagerPro.rbxmx.src.CodeGeneratorIntegration', Line 9  -  Studio
+  22:59:06.724  Script 'user_DataStoreManagerPro.rbxmx.src.DataExplorer', Line 4  -  Studio
+  22:59:06.725  Script 'user_DataStoreManagerPro.rbxmx.src.DataMigrationTools', Line 23  -  Studio
+  22:59:06.726  Script 'user_DataStoreManagerPro.rbxmx.src.DataMigrationUI', Line 15  -  Studio
+  22:59:06.727  Attempted to call require with invalid argument(s).  -  Edit - DataStoreManager:7
+  22:59:06.727  Script 'user_DataStoreManagerPro.rbxmx.src.DataStoreManager', Line 7  -  Studio
+  22:59:06.728  Script 'user_DataStoreManagerPro.rbxmx.src.MonitoringDashboard', Line 8  -  Studio
+  22:59:06.730  Script 'user_DataStoreManagerPro.rbxmx.src.MonitoringDashboardUI', Line 8  -  Studio
+  22:59:06.730  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordination', Line 8  -  Studio
+  22:59:06.731  user_DataStoreManagerPro.rbxmx.src.MultiServerCoordinationIntegration:1: attempt to index nil with 'initMultiServerCoordinationUI'  -  Edit - MultiServerCoordinationIntegration:1
+  22:59:06.731  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordinationIntegration', Line 1  -  Studio
+  22:59:06.732  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordination', Line 8  -  Studio
+  22:59:06.732  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordinationUI', Line 6  -  Studio
+  22:59:06.733  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzer', Line 12  -  Studio
+  22:59:06.733  user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzerIntegration:9: attempt to index nil with 'initPerformanceAnalyzerUI'  -  Edit - PerformanceAnalyzerIntegration:9
+  22:59:06.733  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzerIntegration', Line 9  -  Studio
+  22:59:06.734  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  22:59:06.735  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaBuilder', Line 5  -  Studio
+  22:59:06.736  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaBuilderUI', Line 7  -  Studio
+  22:59:06.737  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaEditor', Line 4  -  Studio
+  22:59:06.737  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaManager', Line 5  -  Studio
+  22:59:06.738  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
+  22:59:06.739  Script 'user_DataStoreManagerPro.rbxmx.src.SessionManagementUI', Line 4  -  Studio

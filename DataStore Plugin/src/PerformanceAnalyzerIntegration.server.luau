@@ -6,6 +6,8 @@
     to the main DataExplorer interface.
 ]]
 
+local DataExplorer = require(script.Parent.DataExplorer.server)
+
 function DataExplorer.initPerformanceAnalyzerUI()
     local mainFrame = DataExplorer.mainFrame
     if not mainFrame then return end

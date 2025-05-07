@@ -1,3 +1,8 @@
+--luau
+-- DataStore Plugin/MultiServerCoordinationIntegration.luau
+
+local DataExplorer = require(script.Parent.DataExplorer.server)
+
 function DataExplorer.initMultiServerCoordinationUI()
     local mainFrame = DataExplorer.mainFrame
     if not mainFrame then return end
