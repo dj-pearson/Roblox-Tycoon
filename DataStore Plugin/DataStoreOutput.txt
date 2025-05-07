@@ -1,33 +1,250 @@
-  13:12:10.176  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataStoreManager', Line 7  -  Studio
-  13:12:10.178  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin', Line 8  -  Studio
-  13:12:10.184  user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.APIIntegration:285: Cannot use '...' outside of a vararg function  -  Studio
-  13:12:10.185  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.APIIntegrationUI', Line 9  -  Studio
-  13:12:10.186  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.APIIntegrationIntegration', Line 9  -  Studio
-  13:12:10.191  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.AccessControlUI', Line 14  -  Studio
-  13:12:10.192  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.AccessControlIntegration', Line 10  -  Studio
-  13:12:10.198  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.BulkOperationsManager', Line 7  -  Studio
-  13:12:10.206  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.BulkOperationsUI', Line 7  -  Studio
-  13:12:10.211  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.CachingSystemUI', Line 9  -  Studio
-  13:12:10.215  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.CodeGeneratorUI', Line 9  -  Studio
-  13:12:10.216  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.CodeGeneratorIntegration', Line 9  -  Studio
-  13:12:10.224  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataExplorer', Line 4  -  Studio
-  13:12:10.229  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataMigrationTools', Line 23  -  Studio
-  13:12:10.233  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataMigrationUI', Line 15  -  Studio
-  13:12:10.235  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataStoreManager', Line 7  -  Studio
-  13:12:10.244  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MonitoringDashboard', Line 8  -  Studio
-  13:12:10.249  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MonitoringDashboardUI', Line 8  -  Studio
-  13:12:10.254  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordination', Line 8  -  Studio
-  13:12:10.255  user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordinationIntegration:1: attempt to index nil with 'initMultiServerCoordinationUI'  -  Edit
-  13:12:10.256  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordinationIntegration', Line 1  -  Studio
-  13:12:10.262  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordination', Line 8  -  Studio
-  13:12:10.263  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordinationUI', Line 6  -  Studio
-  13:12:10.266  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.PerformanceAnalyzer', Line 12  -  Studio
-  13:12:10.267  user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.PerformanceAnalyzerIntegration:9: attempt to index nil with 'initPerformanceAnalyzerUI'  -  Edit
-  13:12:10.267  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.PerformanceAnalyzerIntegration', Line 9  -  Studio
-  13:12:10.272  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.PerformanceAnalyzerUI', Line 12  -  Studio
-  13:12:10.276  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaBuilder', Line 5  -  Studio
-  13:12:10.281  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaBuilderUI', Line 7  -  Studio
-  13:12:10.285  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaEditor', Line 4  -  Studio
-  13:12:10.287  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaManager', Line 5  -  Studio
-  13:12:10.289  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaVersionViewer', Line 5  -  Studio
-  13:12:10.296  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SessionManagementUI', Line 4  -  Studio
+  14:12:33.101  DataModel Loading https://assetdelivery.roblox.com/v1/asset/?id=95206881  -  Studio
+  14:12:37.293  Failed to apply StyleRule property 'Color' from '.X-Gradient100-Deg180 ::UIGradient': Unable to cast Color3 to ColorSequence  -  Studio
+  14:12:37.294  Failed to apply StyleRule property 'Color' from '.X-Gradient100-Deg0 ::UIGradient': Unable to cast Color3 to ColorSequence  -  Studio
+  14:12:43.250  DataStore Manager Pro plugin running in non-plugin context (possibly Argon)  -  Edit
+  14:12:43.254  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.254  Stack Begin  -  Studio
+  14:12:43.255  Script 'user_DataStorePlugin.rbxmx.src.DataStoreManager', Line 7  -  Studio
+  14:12:43.255  Stack End  -  Studio
+  14:12:43.258  Requested module experienced an error while loading  -  Edit
+  14:12:43.258  Stack Begin  -  Studio
+  14:12:43.258  Script 'user_DataStorePlugin.rbxmx.src', Line 20  -  Studio
+  14:12:43.258  Stack End  -  Studio
+  14:12:43.267  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.267  Stack Begin  -  Studio
+  14:12:43.267  Script 'user_DataStorePlugin.rbxmx.src.AccessControlUI', Line 14  -  Studio
+  14:12:43.268  Stack End  -  Studio
+  14:12:43.268  Requested module experienced an error while loading  -  Edit
+  14:12:43.268  Stack Begin  -  Studio
+  14:12:43.268  Script 'user_DataStorePlugin.rbxmx.src.AccessControlIntegration', Line 10  -  Studio
+  14:12:43.268  Stack End  -  Studio
+  14:12:43.277  Requested module experienced an error while loading  -  Edit
+  14:12:43.277  Stack Begin  -  Studio
+  14:12:43.278  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsManager', Line 7  -  Studio
+  14:12:43.278  Stack End  -  Studio
+  14:12:43.289  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.289  Stack Begin  -  Studio
+  14:12:43.289  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsUI', Line 7  -  Studio
+  14:12:43.290  Stack End  -  Studio
+  14:12:43.294  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.294  Stack Begin  -  Studio
+  14:12:43.295  Script 'user_DataStorePlugin.rbxmx.src.CachingSystemUI', Line 9  -  Studio
+  14:12:43.295  Stack End  -  Studio
+  14:12:43.298  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.299  Stack Begin  -  Studio
+  14:12:43.299  Script 'user_DataStorePlugin.rbxmx.src.CodeGeneratorUI', Line 9  -  Studio
+  14:12:43.300  Stack End  -  Studio
+  14:12:43.300  Requested module experienced an error while loading  -  Edit
+  14:12:43.301  Stack Begin  -  Studio
+  14:12:43.301  Script 'user_DataStorePlugin.rbxmx.src.CodeGeneratorIntegration', Line 9  -  Studio
+  14:12:43.301  Stack End  -  Studio
+  14:12:43.309  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.310  Stack Begin  -  Studio
+  14:12:43.310  Script 'user_DataStorePlugin.rbxmx.src.DataExplorer', Line 4  -  Studio
+  14:12:43.310  Stack End  -  Studio
+  14:12:43.312  Requested module experienced an error while loading  -  Edit
+  14:12:43.314  Stack Begin  -  Studio
+  14:12:43.314  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationTools', Line 23  -  Studio
+  14:12:43.314  Stack End  -  Studio
+  14:12:43.320  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.320  Stack Begin  -  Studio
+  14:12:43.320  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationUI', Line 15  -  Studio
+  14:12:43.321  Stack End  -  Studio
+  14:12:43.322  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.322  Stack Begin  -  Studio
+  14:12:43.322  Script 'user_DataStorePlugin.rbxmx.src.DataStoreManager', Line 7  -  Studio
+  14:12:43.322  Stack End  -  Studio
+  14:12:43.327  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.328  Stack Begin  -  Studio
+  14:12:43.328  Script 'user_DataStorePlugin.rbxmx.src.MonitoringDashboard', Line 8  -  Studio
+  14:12:43.328  Stack End  -  Studio
+  14:12:43.332  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.333  Stack Begin  -  Studio
+  14:12:43.333  Script 'user_DataStorePlugin.rbxmx.src.MonitoringDashboardUI', Line 8  -  Studio
+  14:12:43.333  Stack End  -  Studio
+  14:12:43.338  Requested module experienced an error while loading  -  Edit
+  14:12:43.338  Stack Begin  -  Studio
+  14:12:43.339  Script 'user_DataStorePlugin.rbxmx.src.MultiServerCoordination', Line 8  -  Studio
+  14:12:43.339  Stack End  -  Studio
+  14:12:43.340  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.341  Stack Begin  -  Studio
+  14:12:43.341  Script 'user_DataStorePlugin.rbxmx.src.MultiServerCoordinationIntegration', Line 4  -  Studio
+  14:12:43.341  Stack End  -  Studio
+  14:12:43.347  Requested module experienced an error while loading  -  Edit
+  14:12:43.347  Stack Begin  -  Studio
+  14:12:43.347  Script 'user_DataStorePlugin.rbxmx.src.MultiServerCoordination', Line 8  -  Studio
+  14:12:43.348  Stack End  -  Studio
+  14:12:43.348  Requested module experienced an error while loading  -  Edit
+  14:12:43.349  Stack Begin  -  Studio
+  14:12:43.349  Script 'user_DataStorePlugin.rbxmx.src.MultiServerCoordinationUI', Line 6  -  Studio
+  14:12:43.349  Stack End  -  Studio
+  14:12:43.351  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.352  Stack Begin  -  Studio
+  14:12:43.352  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzer', Line 12  -  Studio
+  14:12:43.352  Stack End  -  Studio
+  14:12:43.353  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.353  Stack Begin  -  Studio
+  14:12:43.354  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzerIntegration', Line 9  -  Studio
+  14:12:43.354  Stack End  -  Studio
+  14:12:43.356  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.357  Stack Begin  -  Studio
+  14:12:43.357  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  14:12:43.357  Stack End  -  Studio
+  14:12:43.359  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.360  Stack Begin  -  Studio
+  14:12:43.360  Script 'user_DataStorePlugin.rbxmx.src.SchemaBuilder', Line 5  -  Studio
+  14:12:43.360  Stack End  -  Studio
+  14:12:43.365  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.366  Stack Begin  -  Studio
+  14:12:43.366  Script 'user_DataStorePlugin.rbxmx.src.SchemaBuilderUI', Line 7  -  Studio
+  14:12:43.366  Stack End  -  Studio
+  14:12:43.369  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.369  Stack Begin  -  Studio
+  14:12:43.369  Script 'user_DataStorePlugin.rbxmx.src.SchemaEditor', Line 4  -  Studio
+  14:12:43.370  Stack End  -  Studio
+  14:12:43.370  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.371  Stack Begin  -  Studio
+  14:12:43.371  Script 'user_DataStorePlugin.rbxmx.src.SchemaManager', Line 5  -  Studio
+  14:12:43.371  Stack End  -  Studio
+  14:12:43.373  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.374  Stack Begin  -  Studio
+  14:12:43.374  Script 'user_DataStorePlugin.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
+  14:12:43.374  Stack End  -  Studio
+  14:12:43.377  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:43.377  Stack Begin  -  Studio
+  14:12:43.378  Script 'user_DataStorePlugin.rbxmx.src.SessionManagementUI', Line 4  -  Studio
+  14:12:43.378  Stack End  -  Studio
+  14:12:43.384  You must publish this place to the web to access DataStore.  -  Edit
+  14:12:43.384  Stack Begin  -  Studio
+  14:12:43.385  Script 'user_DataStorePlugin.rbxmx.src.SessionManager', Line 8  -  Studio
+  14:12:43.385  Stack End  -  Studio
+  14:12:45.321  Requiring asset 16781084836.
+Callstack:
+cloud_6514761722.UITools.Main, line 155
+cloud_6514761722.UITools.Main, line 154
+  -  Edit
+  14:12:50.501  Finished installing plugin.  -  Studio
+  14:12:50.563  DataStore Manager Pro plugin running in non-plugin context (possibly Argon)  -  Edit
+  14:12:50.572  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.573  Stack Begin  -  Studio
+  14:12:50.573  Script 'cloud_92445245962836.src.DataStoreManager', Line 7  -  Studio
+  14:12:50.573  Stack End  -  Studio
+  14:12:50.579  Requested module experienced an error while loading  -  Edit
+  14:12:50.580  Stack Begin  -  Studio
+  14:12:50.580  Script 'cloud_92445245962836.src', Line 20  -  Studio
+  14:12:50.580  Stack End  -  Studio
+  14:12:50.591  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.592  Stack Begin  -  Studio
+  14:12:50.592  Script 'cloud_92445245962836.src.AccessControlUI', Line 14  -  Studio
+  14:12:50.592  Stack End  -  Studio
+  14:12:50.593  Requested module experienced an error while loading  -  Edit
+  14:12:50.593  Stack Begin  -  Studio
+  14:12:50.593  Script 'cloud_92445245962836.src.AccessControlIntegration', Line 10  -  Studio
+  14:12:50.593  Stack End  -  Studio
+  14:12:50.606  Requested module experienced an error while loading  -  Edit
+  14:12:50.606  Stack Begin  -  Studio
+  14:12:50.606  Script 'cloud_92445245962836.src.BulkOperationsManager', Line 7  -  Studio
+  14:12:50.606  Stack End  -  Studio
+  14:12:50.619  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.619  Stack Begin  -  Studio
+  14:12:50.619  Script 'cloud_92445245962836.src.BulkOperationsUI', Line 7  -  Studio
+  14:12:50.619  Stack End  -  Studio
+  14:12:50.626  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.626  Stack Begin  -  Studio
+  14:12:50.627  Script 'cloud_92445245962836.src.CachingSystemUI', Line 9  -  Studio
+  14:12:50.627  Stack End  -  Studio
+  14:12:50.630  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.631  Stack Begin  -  Studio
+  14:12:50.631  Script 'cloud_92445245962836.src.CodeGeneratorUI', Line 9  -  Studio
+  14:12:50.631  Stack End  -  Studio
+  14:12:50.632  Requested module experienced an error while loading  -  Edit
+  14:12:50.632  Stack Begin  -  Studio
+  14:12:50.632  Script 'cloud_92445245962836.src.CodeGeneratorIntegration', Line 9  -  Studio
+  14:12:50.632  Stack End  -  Studio
+  14:12:50.642  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.643  Stack Begin  -  Studio
+  14:12:50.643  Script 'cloud_92445245962836.src.DataExplorer', Line 4  -  Studio
+  14:12:50.643  Stack End  -  Studio
+  14:12:50.646  Requested module experienced an error while loading  -  Edit
+  14:12:50.646  Stack Begin  -  Studio
+  14:12:50.646  Script 'cloud_92445245962836.src.DataMigrationTools', Line 23  -  Studio
+  14:12:50.646  Stack End  -  Studio
+  14:12:50.652  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.652  Stack Begin  -  Studio
+  14:12:50.653  Script 'cloud_92445245962836.src.DataMigrationUI', Line 15  -  Studio
+  14:12:50.653  Stack End  -  Studio
+  14:12:50.655  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.655  Stack Begin  -  Studio
+  14:12:50.655  Script 'cloud_92445245962836.src.DataStoreManager', Line 7  -  Studio
+  14:12:50.655  Stack End  -  Studio
+  14:12:50.662  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.662  Stack Begin  -  Studio
+  14:12:50.663  Script 'cloud_92445245962836.src.MonitoringDashboard', Line 8  -  Studio
+  14:12:50.663  Stack End  -  Studio
+  14:12:50.668  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.669  Stack Begin  -  Studio
+  14:12:50.669  Script 'cloud_92445245962836.src.MonitoringDashboardUI', Line 8  -  Studio
+  14:12:50.669  Stack End  -  Studio
+  14:12:50.672  Requested module experienced an error while loading  -  Edit
+  14:12:50.672  Stack Begin  -  Studio
+  14:12:50.673  Script 'cloud_92445245962836.src.MultiServerCoordination', Line 8  -  Studio
+  14:12:50.673  Stack End  -  Studio
+  14:12:50.674  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.674  Stack Begin  -  Studio
+  14:12:50.674  Script 'cloud_92445245962836.src.MultiServerCoordinationIntegration', Line 4  -  Studio
+  14:12:50.674  Stack End  -  Studio
+  14:12:50.680  Requested module experienced an error while loading  -  Edit
+  14:12:50.681  Stack Begin  -  Studio
+  14:12:50.681  Script 'cloud_92445245962836.src.MultiServerCoordination', Line 8  -  Studio
+  14:12:50.681  Stack End  -  Studio
+  14:12:50.682  Requested module experienced an error while loading  -  Edit
+  14:12:50.682  Stack Begin  -  Studio
+  14:12:50.682  Script 'cloud_92445245962836.src.MultiServerCoordinationUI', Line 6  -  Studio
+  14:12:50.683  Stack End  -  Studio
+  14:12:50.685  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.685  Stack Begin  -  Studio
+  14:12:50.685  Script 'cloud_92445245962836.src.PerformanceAnalyzer', Line 12  -  Studio
+  14:12:50.685  Stack End  -  Studio
+  14:12:50.686  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.687  Stack Begin  -  Studio
+  14:12:50.687  Script 'cloud_92445245962836.src.PerformanceAnalyzerIntegration', Line 9  -  Studio
+  14:12:50.687  Stack End  -  Studio
+  14:12:50.692  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.692  Stack Begin  -  Studio
+  14:12:50.692  Script 'cloud_92445245962836.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  14:12:50.693  Stack End  -  Studio
+  14:12:50.695  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.695  Stack Begin  -  Studio
+  14:12:50.695  Script 'cloud_92445245962836.src.SchemaBuilder', Line 5  -  Studio
+  14:12:50.696  Stack End  -  Studio
+  14:12:50.701  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.701  Stack Begin  -  Studio
+  14:12:50.701  Script 'cloud_92445245962836.src.SchemaBuilderUI', Line 7  -  Studio
+  14:12:50.701  Stack End  -  Studio
+  14:12:50.705  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.705  Stack Begin  -  Studio
+  14:12:50.705  Script 'cloud_92445245962836.src.SchemaEditor', Line 4  -  Studio
+  14:12:50.705  Stack End  -  Studio
+  14:12:50.706  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.706  Stack Begin  -  Studio
+  14:12:50.707  Script 'cloud_92445245962836.src.SchemaManager', Line 5  -  Studio
+  14:12:50.707  Stack End  -  Studio
+  14:12:50.710  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.710  Stack Begin  -  Studio
+  14:12:50.710  Script 'cloud_92445245962836.src.SchemaVersionViewer', Line 5  -  Studio
+  14:12:50.710  Stack End  -  Studio
+  14:12:50.716  Attempted to call require with invalid argument(s).  -  Edit
+  14:12:50.717  Stack Begin  -  Studio
+  14:12:50.717  Script 'cloud_92445245962836.src.SessionManagementUI', Line 4  -  Studio
+  14:12:50.717  Stack End  -  Studio
+  14:12:50.725  You must publish this place to the web to access DataStore.  -  Edit
+  14:12:50.725  Stack Begin  -  Studio
+  14:12:50.726  Script 'cloud_92445245962836.src.SessionManager', Line 8  -  Studio
+  14:12:50.726  Stack End  -  Studio
+  14:12:58.720  This plugin cannot create more than one PluginGui with id: "Tooltip"  -  Standalone
+  14:12:58.731  Stack Begin  -  Studio
+  14:12:58.732  Script 'Ribbon.Ribbon.Src.Hooks.useTooltip', Line 174 - function loadTooltipPanel  -  Studio
+  14:12:58.732  Script 'Ribbon.Ribbon.Src.Hooks.useTooltip', Line 193 - function showTooltip  -  Studio
+  14:12:58.732  Script 'Ribbon.Ribbon.Src.Hooks.useTooltip', Line 302  -  Studio
+  14:12:58.733  Script 'Ribbon.Ribbon.Packages._Index.ReactRoblox.ReactRoblox.client.roblox.SingleEventManager', Line 112  -  Studio
+  14:12:58.733  Stack End  -  Studio

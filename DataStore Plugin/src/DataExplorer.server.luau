@@ -27,6 +27,8 @@ local LoadTestingIntegration = require(script.Parent.LoadTestingIntegration)
 local CodeGeneratorIntegration = require(script.Parent.CodeGeneratorIntegration)
 local APIIntegrationIntegration = require(script.Parent.APIIntegrationIntegration)
 local AccessControlIntegration = require(script.Parent.AccessControlIntegration)
+local MultiServerCoordinationIntegration = require(script.Parent.MultiServerCoordinationIntegration)
+local PerformanceAnalyzerIntegration = require(script.Parent.PerformanceAnalyzerIntegration)
 
 local DataExplorer = {
     performanceDataUI = {},
@@ -37,6 +39,7 @@ local DataExplorer = {
     coordinationContainer = nil,
     performanceAnalyzerContainer = nil,
     cachingSystemContainer = nil,
+    mainFrame = nil,
     loadTestingContainer = nil,
     codeGeneratorContainer = nil,
     apiIntegrationContainer = nil,
@@ -62,7 +65,11 @@ end
 
 -- Create the main UI frame
 function DataExplorer.createMainUI()
-    
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(1, 0, 1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    mainFrame.BorderSizePixel = 0
+    DataExplorer.mainFrame = mainFrame
 
     -- Create a split-pane layout (Using ScrollingFrame for potential future scrolling)
     local splitPane = Instance.new("ScrollingFrame")
@@ -448,6 +455,9 @@ function DataExplorer.initBulkOperationsUI()
     bulkOperationsButton.ZIndex = 5
     bulkOperationsButton.Parent = mainFrame
     
+    -- Store reference in DataExplorer
+    DataExplorer.bulkOperationsButton = bulkOperationsButton
+    
     -- Create the bulk operations container (initially invisible)
     local bulkOperationsContainer = BulkOperationsUI.createTab(mainFrame)
     DataExplorer.bulkOperationsContainer = bulkOperationsContainer
@@ -473,17 +483,14 @@ function DataExplorer.initBulkOperationsUI()
               -- Also ensure schema builder is hidden
             if DataExplorer.schemaBuilderContainer and DataExplorer.schemaBuilderContainer.Visible then
                 DataExplorer.schemaBuilderContainer.Visible = false
-                schemaBuilderButton.Text = "Schema Builder"
-                schemaBuilderButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
+                DataExplorer.schemaBuilderButton.Text = "Schema Builder"
+                DataExplorer.schemaBuilderButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
             end
-                DataExplorer.schemaBuilderContainer.Visible = false
-                schemaBuilderButton.Text = "Schema Builder"
-                schemaBuilderButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
-            end
-        end)
-    end
+        end
+    end)
+end
     
-    -- Add Schema Builder button
+-- Add Schema Builder button
     local schemaBuilderButton = Instance.new("TextButton")
     schemaBuilderButton.Size = UDim2.new(0, 130, 0, 28)
     schemaBuilderButton.Position = UDim2.new(1, -280, 0, 10) -- Position to the left of Bulk Operations button
@@ -495,15 +502,18 @@ function DataExplorer.initBulkOperationsUI()
     schemaBuilderButton.TextSize = 14
     schemaBuilderButton.ZIndex = 5
     
+    -- Store reference in DataExplorer
+    DataExplorer.schemaBuilderButton = schemaBuilderButton
+    
     -- Add rounded corners
     local schemaButtonCorner = Instance.new("UICorner")
     schemaButtonCorner.CornerRadius = UDim.new(0, 4)
     schemaButtonCorner.Parent = schemaBuilderButton
     
-    schemaBuilderButton.Parent = mainFrame
+    schemaBuilderButton.Parent = DataExplorer.mainFrame
     
     -- Create the schema builder container (initially invisible)
-    local schemaBuilderContainer = SchemaBuilderUI.createUI(mainFrame)
+    local schemaBuilderContainer = SchemaBuilderUI.createUI(DataExplorer.mainFrame)
     DataExplorer.schemaBuilderContainer = schemaBuilderContainer.container
     DataExplorer.schemaBuilderContainer.Visible = false
     
@@ -521,9 +531,9 @@ function DataExplorer.initBulkOperationsUI()
             schemaBuilderButton.BackgroundColor3 = Color3.fromRGB(76, 175, 80)
             
             -- Also ensure bulk operations is hidden
-            bulkOperationsContainer.Visible = false
-            bulkOperationsButton.Text = "Bulk Operations"
-            bulkOperationsButton.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
+            DataExplorer.bulkOperationsContainer.Visible = false
+            DataExplorer.bulkOperationsButton.Text = "Bulk Operations"
+            DataExplorer.bulkOperationsButton.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
         else
             -- Show schema builder and hide normal UI
             DataExplorer.schemaBuilderContainer.Visible = true
@@ -533,9 +543,9 @@ function DataExplorer.initBulkOperationsUI()
             schemaBuilderButton.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
             
             -- Also ensure bulk operations is hidden
-            bulkOperationsContainer.Visible = false
-            bulkOperationsButton.Text = "Bulk Operations"
-            bulkOperationsButton.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
+            DataExplorer.bulkOperationsContainer.Visible = false
+            DataExplorer.bulkOperationsButton.Text = "Bulk Operations"
+            DataExplorer.bulkOperationsButton.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
         end
     end)
 
@@ -1999,18 +2009,18 @@ function DataExplorer.initMultiServerCoordinationUI()
         local mainFrame = DataExplorer.mainFrame
         if not mainFrame then return end
     
-    -- Create a button to open multi-server coordination UI
-    local coordinationButton = Instance.new("TextButton")
-    coordinationButton.Size = UDim2.new(0, 150, 0, 28)
-    coordinationButton.Position = UDim2.new(1, -600, 0, 10) -- Position it to the left of other buttons
-    coordinationButton.BackgroundColor3 = Color3.fromRGB(52, 152, 219) -- Blue color for coordination
-    coordinationButton.BorderSizePixel = 0
-    coordinationButton.Text = "Server Coordination"
-    coordinationButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    coordinationButton.Font = Enum.Font.SourceSansSemibold
-    coordinationButton.TextSize = 14
-    coordinationButton.ZIndex = 5
-    coordinationButton.Parent = mainFrame
+        -- Create a button to open multi-server coordination UI
+        local coordinationButton = Instance.new("TextButton")
+        coordinationButton.Size = UDim2.new(0, 150, 0, 28)
+        coordinationButton.Position = UDim2.new(1, -600, 0, 10) -- Position it to the left of other buttons
+        coordinationButton.BackgroundColor3 = Color3.fromRGB(52, 152, 219) -- Blue color for coordination
+        coordinationButton.BorderSizePixel = 0
+        coordinationButton.Text = "Server Coordination"
+        coordinationButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        coordinationButton.Font = Enum.Font.SourceSansSemibold
+        coordinationButton.TextSize = 14
+        coordinationButton.ZIndex = 5
+        coordinationButton.Parent = mainFrame
     
     -- Add rounded corners
     local coordinationButtonCorner = Instance.new("UICorner")
@@ -2086,7 +2096,9 @@ function DataExplorer.initMultiServerCoordinationUI()
             end
         end
     end)
+    end
 end
+
 
 function DataExplorer.initPerformanceAnalyzerUI()
     if PerformanceAnalyzerIntegration and PerformanceAnalyzerIntegration.initPerformanceAnalyzerUI then
@@ -2095,7 +2107,7 @@ function DataExplorer.initPerformanceAnalyzerUI()
         local mainFrame = DataExplorer.mainFrame
         if not mainFrame then return end
     
-    -- Create a button to open the performance analyzer UI
+        -- Create a button to open the performance analyzer UI
     local performanceButton = Instance.new("TextButton")
     performanceButton.Size = UDim2.new(0, 150, 0, 28)
     performanceButton.Position = UDim2.new(1, -450, 0, 10) -- Position it to the left of other buttons
@@ -2165,6 +2177,7 @@ function DataExplorer.initPerformanceAnalyzerUI()
             end
         end
     end)
+end
 end
 
 -- Use the integration module's implementation of initCachingSystemUI
