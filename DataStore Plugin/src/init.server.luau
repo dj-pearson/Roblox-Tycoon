@@ -14,9 +14,9 @@ local function resolveModule(moduleName)
         return moduleCache[moduleName]
     end
     
-    -- First try to require directly from script
+    -- First try to require from script.Parent (correct for this structure)
     local success, result = pcall(function()
-        return require(script:FindFirstChild(moduleName))
+        return require(script.Parent:FindFirstChild(moduleName))
     end)
     
     if success and result then
@@ -24,22 +24,19 @@ local function resolveModule(moduleName)
         return result
     end
     
-    -- If that fails, try alternative methods
-    warn("Failed to load module directly: " .. moduleName .. ". Trying alternative methods...")
-    
-    -- Try to access it through the plugin hierarchy
-    if script.Parent and script.Parent:FindFirstChild(moduleName) then
-        success, result = pcall(function()
-            return require(script.Parent:FindFirstChild(moduleName))
-        end)
-        
-        if success and result then
-            moduleCache[moduleName] = result
-            return result
-        end
+    -- If that fails, try alternative methods (e.g. direct child - less likely)
+    warn("Failed to load module from Parent: " .. moduleName .. ". Trying script child...")
+    success, result = pcall(function()
+        return require(script:FindFirstChild(moduleName))
+    end)
+
+    if success and result then
+        moduleCache[moduleName] = result
+        return result
     end
-    
+
     -- Last resort - try to require by string name (works in some cloud environments)
+    warn("Failed to load module as script child: " .. moduleName .. ". Trying string require...")
     success, result = pcall(function()
         -- This might work in cloud environment
         return require(moduleName)
@@ -128,7 +125,7 @@ widget.Title = "DataStore Manager Pro"
 DataStoreManager.initialize()
 MonitoringDashboard.initialize()
 MonitoringDashboardUI.initialize()
-DataMigrationTools:initialize()
+DataMigrationTools:initialize() -- Note: This uses a colon, ensure this is intended.
 MultiServerCoordination.initialize()
 MultiServerCoordinationUI.initialize()
 PerformanceAnalyzer.initialize()
@@ -144,36 +141,38 @@ MultiServerCoordinationIntegration.initialize()
 PerformanceAnalyzerIntegration.initialize()
 
 -- Set up event handlers
-button.Click:Connect(function()
-    widget.Enabled = not widget.Enabled
-      if widget.Enabled and widget:FindFirstChild("DataStoreExplorerFrame") == nil then
-        -- Create the main GUI
-        local mainFrame = DataExplorer.createMainGui(widget)
-        mainFrame.Parent = widget
-        
-        -- Initialize UI components
-        DataExplorer.initBulkOperationsUI()
-        DataExplorer.initMonitoringDashboardUI()
-        DataExplorer.initDataMigrationUI()
-        DataExplorer.initMultiServerCoordinationUI()
-        DataExplorer.initPerformanceAnalyzerUI()
-        DataExplorer.initCachingSystemUI()
-        DataExplorer.initLoadTestingUI()
-        DataExplorer.initCodeGeneratorUI()
-        DataExplorer.initAPIIntegrationUI()
-        DataExplorer.initAccessControlUI()
-        
-        -- Update performance data at intervals
-        task.spawn(function() -- Using task.spawn instead of spawn (deprecated)
-            while widget.Enabled do
-                DataExplorer.updatePerformanceUI()
-                DataExplorer.updateLockStatusUI()
-                DataExplorer.updateCacheViewerUI()
-                task.wait(5) -- Update every 5 seconds, using task.wait instead of wait
-            end
-        end)
-    end
-end)
+if button then -- Check if button exists before connecting
+    button.Click:Connect(function()
+        widget.Enabled = not widget.Enabled
+        if widget.Enabled and widget:FindFirstChild("DataStoreExplorerFrame") == nil then
+            -- Create the main GUI
+            local mainFrame = DataExplorer.createMainGui(widget)
+            mainFrame.Parent = widget
+            
+            -- Initialize UI components
+            DataExplorer.initBulkOperationsUI()
+            DataExplorer.initMonitoringDashboardUI()
+            DataExplorer.initDataMigrationUI()
+            DataExplorer.initMultiServerCoordinationUI()
+            DataExplorer.initPerformanceAnalyzerUI()
+            DataExplorer.initCachingSystemUI()
+            DataExplorer.initLoadTestingUI()
+            DataExplorer.initCodeGeneratorUI()
+            DataExplorer.initAPIIntegrationUI()
+            DataExplorer.initAccessControlUI()
+            
+            -- Update performance data at intervals
+            task.spawn(function() -- Using task.spawn instead of spawn (deprecated)
+                while widget.Enabled and widget.Parent do -- Added check for widget.Parent to ensure it's still in GUI
+                    DataExplorer.updatePerformanceUI()
+                    DataExplorer.updateLockStatusUI()
+                    DataExplorer.updateCacheViewerUI()
+                    task.wait(5) -- Update every 5 seconds, using task.wait instead of wait
+                end
+            end)
+        end
+    end)
+end
 
 -- Expose the API for external usage
 local DataStoreManagerPlugin = {
@@ -242,7 +241,12 @@ local DataStoreManagerPlugin = {
 if not runningInPluginContext then
     print("DataStore Manager Pro loaded successfully in non-plugin context")
     print("Plugin Version:", DataStoreManagerPlugin.Version)
-    print("Available modules:", #DataStoreManagerPlugin > 0 and "Yes" or "No")
+    -- Check available modules more robustly by iterating through the table
+    local availableModulesCount = 0
+    for _, _ in pairs(DataStoreManagerPlugin) do
+        availableModulesCount = availableModulesCount + 1
+    end
+    print("Available modules count:", availableModulesCount)
 end
 
 return DataStoreManagerPlugin
