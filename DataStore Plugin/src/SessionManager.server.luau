@@ -5,6 +5,25 @@ local SessionManager = {}
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
+
+-- Get module resolver from init script or define a local one
+local resolver = script.Parent:FindFirstChild("ModuleResolver")
+local resolveModule = resolver and require(resolver).resolveModule or function(name)
+    local success, result = pcall(function()
+        return require(script.Parent:FindFirstChild(name))
+    end)
+    
+    if success and result then
+        return result
+    end
+    
+    warn("Failed to resolve module: " .. name)
+    return {
+        initialize = function() return true end,
+        createUI = function() return Instance.new("Frame") end
+    }
+end
+
 local LockDataStore = DataStoreService:GetDataStore("SessionLocks")
 
 local DEFAULT_LOCK_TIMEOUT = 600 -- 10 minutes in seconds

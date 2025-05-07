@@ -1,22 +1,21 @@
 -- Add module resolver at the beginning of the file
-local ModuleResolver
-local success, result = pcall(function()
-    return require(script.Parent:FindFirstChild("ModuleResolver"))
-end)
-
-if success and result then
-    ModuleResolver = result
-else
-    -- Inline minimal resolver as fallback
-    ModuleResolver = {
-        resolveModule = function(moduleName)
-            local success, result = pcall(function() 
-                return require(script.Parent:FindFirstChild(moduleName)) 
-            end)
-            if success then return result else return {} end
-        end
+local resolver = script.Parent:FindFirstChild("ModuleResolver")
+local resolveModule = resolver and require(resolver).resolveModule or function(name)
+    local success, result = pcall(function()
+        return require(script.Parent:FindFirstChild(name))
+    end)
+    
+    if success and result then
+        return result
+    end
+    
+    warn("Failed to resolve module: " .. name)
+    return {
+        initialize = function() return true end,
+        createUI = function() return Instance.new("Frame") end
     }
 end
+
 
 -- Helper function to safely require modules
 local function safeRequire(moduleName)

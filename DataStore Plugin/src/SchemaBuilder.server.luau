@@ -2,7 +2,25 @@
 -- DataStore Plugin/SchemaBuilder.luau
 -- DataStore Plugin/SchemaBuilder.luau
 
-local SchemaManager = require(script.Parent.SchemaManager)
+-- Get module resolver from init script or define a local one
+local resolver = script.Parent:FindFirstChild("ModuleResolver")
+local resolveModule = resolver and require(resolver).resolveModule or function(name)
+    local success, result = pcall(function()
+        return require(script.Parent:FindFirstChild(name))
+    end)
+    
+    if success and result then
+        return result
+    end
+    
+    warn("Failed to resolve module: " .. name)
+    return {
+        initialize = function() return true end,
+        createUI = function() return Instance.new("Frame") end
+    }
+end
+
+local SchemaManager = resolveModule('SchemaManager')
 
 local SchemaBuilder = {}
 

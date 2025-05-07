@@ -4,13 +4,31 @@
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 
-local CacheManager = require(script.Parent.CacheManager)
-local SchemaManager = require(script.Parent.SchemaManager)
-local SchemaValidator = require(script.Parent.SchemaValidator)
-local SessionManager = require(script.Parent.SessionManager)
-local PerformanceMonitor = require(script.Parent.PerformanceMonitor)
-local SecurityManager = require(script.Parent.SecurityManager)
-local MultiServerCoordination = require(script.Parent.MultiServerCoordination)
+-- Get module resolver from init script or define a local one
+local resolver = script.Parent:FindFirstChild("ModuleResolver")
+local resolveModule = resolver and require(resolver).resolveModule or function(name)
+    local success, result = pcall(function()
+        return require(script.Parent:FindFirstChild(name))
+    end)
+    
+    if success and result then
+        return result
+    end
+    
+    warn("Failed to resolve module: " .. name)
+    return {
+        initialize = function() return true end,
+        createUI = function() return Instance.new("Frame") end
+    }
+end
+
+local CacheManager = resolveModule('CacheManager')
+local SchemaManager = resolveModule('SchemaManager')
+local SchemaValidator = resolveModule('SchemaValidator')
+local SessionManager = resolveModule('SessionManager')
+local PerformanceMonitor = resolveModule('PerformanceMonitor')
+local SecurityManager = resolveModule('SecurityManager')
+local MultiServerCoordination = resolveModule('MultiServerCoordination')
 
 local DataStoreManager = {}
 DataStoreManager.sessionId = HttpService:GenerateGUID()
