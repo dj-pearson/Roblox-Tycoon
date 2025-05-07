@@ -14,9 +14,22 @@ local function resolveModule(moduleName)
         return moduleCache[moduleName]
     end
 
+    -- ##### START DEBUG #####
+    if script and script.Parent then
+        print("Children of script.Parent (" .. script.Parent:GetFullName() .. "):")
+        for _, child in ipairs(script.Parent:GetChildren()) do
+            print("- Child Name: '" .. child.Name .. "', ClassName: " .. child.ClassName)
+        end
+    else
+        print("Error: script or script.Parent is nil.")
+    end
+    print("Attempting to find module: '" .. moduleName .. "' in script.Parent")
+    -- ##### END DEBUG #####
+
     local moduleScript = script.Parent:FindFirstChild(moduleName)
     
     if moduleScript then
+        print("Found module: '" .. moduleName .. "' with ClassName: " .. moduleScript.ClassName) -- Print if found
         local success, result = pcall(function()
             return require(moduleScript)
         end)
@@ -25,14 +38,14 @@ local function resolveModule(moduleName)
             moduleCache[moduleName] = result
             return result
         else
-            warn("Error requiring module: " .. moduleName .. " - " .. tostring(result)) -- result here is the error message
+            warn("Error requiring module: " .. moduleName .. " - " .. tostring(result)) 
         end
     else
-        warn("Could not find module: " .. moduleName .. " in script.Parent.")
+        warn("Could not find module: '" .. moduleName .. "' in script.Parent.")
     end
     
-    -- Return a dummy module if loading failed
     warn("Failed to resolve module: " .. moduleName .. ". Using dummy.")
+    -- ... (rest of dummy module code)
     local dummyModule = {
         initialize = function(...) 
             warn("Dummy " .. moduleName .. ".initialize() called with: ", ...) 
@@ -42,7 +55,6 @@ local function resolveModule(moduleName)
             warn("Dummy " .. moduleName .. ".createUI() called with: ", ...) 
             return Instance.new("Frame") 
         end,
-        -- Add other common functions here for dummy modules to prevent further errors
         createMainGui = function(...) warn("Dummy " .. moduleName .. ".createMainGui() called with: ", ...) return Instance.new("Frame") end,
         initBulkOperationsUI = function(...) warn("Dummy " .. moduleName .. ".initBulkOperationsUI() called with: ", ...) end,
         initMonitoringDashboardUI = function(...) warn("Dummy " .. moduleName .. ".initMonitoringDashboardUI() called with: ", ...) end,
@@ -78,7 +90,7 @@ local function resolveModule(moduleName)
         optimizeCache = function(...) warn("Dummy " .. moduleName .. ".optimizeCache() called with: ", ...) end,
         preloadData = function(...) warn("Dummy " .. moduleName .. ".preloadData() called with: ", ...) end,
         generateModuleFromSchema = function(...) warn("Dummy " .. moduleName .. ".generateModuleFromSchema() called with: ", ...) end,
-        templates = function(...) warn("Dummy " .. moduleName .. ".templates() called with: ", ...) return {} end, -- Added dummy templates table
+        templates = function(...) warn("Dummy " .. moduleName .. ".templates() called with: ", ...) return {} end, 
         configureWebhook = function(...) warn("Dummy " .. moduleName .. ".configureWebhook() called with: ", ...) end,
         triggerWebhook = function(...) warn("Dummy " .. moduleName .. ".triggerWebhook() called with: ", ...) end,
         configureOpenCloudAPI = function(...) warn("Dummy " .. moduleName .. ".configureOpenCloudAPI() called with: ", ...) end,
@@ -160,10 +172,9 @@ DataStoreManager.initialize()
 MonitoringDashboard.initialize()
 MonitoringDashboardUI.initialize()
 
--- Ensure DataMigrationTools is a table with an initialize method or handle it if it could be a function directly
 if type(DataMigrationTools) == "table" and DataMigrationTools.initialize then
     DataMigrationTools:initialize()
-elseif type(DataMigrationTools) == "function" then --This case should not happen with the current dummy but good for future
+elif type(DataMigrationTools) == "function" then
     DataMigrationTools()
 else
     warn("DataMigrationTools does not have an initialize method or is not a function.")
@@ -184,15 +195,13 @@ MultiServerCoordinationIntegration.initialize()
 PerformanceAnalyzerIntegration.initialize()
 
 -- Set up event handlers
-if button and widget then -- Check if button and widget exist before connecting
+if button and widget then 
     button.Click:Connect(function()
         widget.Enabled = not widget.Enabled
         if widget.Enabled and widget:FindFirstChild("DataStoreExplorerFrame") == nil then
-            -- Create the main GUI
             local mainFrame = DataExplorer.createMainGui(widget)
             mainFrame.Parent = widget
             
-            -- Initialize UI components
             DataExplorer.initBulkOperationsUI()
             DataExplorer.initMonitoringDashboardUI()
             DataExplorer.initDataMigrationUI()
@@ -204,7 +213,6 @@ if button and widget then -- Check if button and widget exist before connecting
             DataExplorer.initAPIIntegrationUI()
             DataExplorer.initAccessControlUI()
             
-            -- Update performance data at intervals
             task.spawn(function() 
                 while widget.Enabled and widget.Parent do 
                     DataExplorer.updatePerformanceUI()
@@ -280,15 +288,15 @@ if not runningInPluginContext then
     print("Plugin Version:", DataStoreManagerPlugin.Version)
     local availableModulesCount = 0
     for k, v in pairs(DataStoreManagerPlugin) do
-        if type(v) == "table" then -- Count only modules, not functions/version string
+        if type(v) == "table" then
           local isDummy = true
           for funcName, _ in pairs(v) do
-            if funcName ~= "initialize" and funcName ~= "createUI" then -- crude check for dummy
+            if funcName ~= "initialize" and funcName ~= "createUI" then
               isDummy = false
               break
             end
           end
-          if not isDummy or k == "DataStoreManager" then -- Assuming DataStoreManager is critical and should be real
+          if not isDummy or k == "DataStoreManager" then 
              availableModulesCount = availableModulesCount + 1
           end
         end
