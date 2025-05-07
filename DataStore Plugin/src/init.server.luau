@@ -15,13 +15,19 @@ local function resolveModule(moduleName)
     end
 
     -- ##### START DEBUG #####
-    if script and script.Parent then
-        print("Children of script.Parent (" .. script.Parent:GetFullName() .. "):")
-        for _, child in ipairs(script.Parent:GetChildren()) do
-            print("- Child Name: '" .. child.Name .. "', ClassName: " .. child.ClassName)
-        end
+    if script then
+      print("Script Path:", script:GetFullName())
+      if script.Parent then
+          print("Script Parent:", script.Parent:GetFullName())
+          print("Children of script.Parent (" .. script.Parent:GetFullName() .. "):")
+          for _, child in ipairs(script.Parent:GetChildren()) do
+              print("- Child Name: '" .. child.Name .. "', ClassName: " .. child.ClassName)
+          end
+      else
+          print("Error: script.Parent is nil.")
+      end
     else
-        print("Error: script or script.Parent is nil.")
+      print("Error: script is nil.")
     end
     print("Attempting to find module: '" .. moduleName .. "' in script.Parent")
     -- ##### END DEBUG #####
