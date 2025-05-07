@@ -1,0 +1,15 @@
+{
+    "name": "DataStore Manager Pro",
+    "tree": {
+        "$className": "Folder",
+        "Plugins": {
+            "DataStoreManagerPro": {
+                "$className": "Plugin",
+                "$properties": {
+                    "RunContext": "Server"
+                },
+                "$path": "src"
+            }
+        }
+    }
+}
