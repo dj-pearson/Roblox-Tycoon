@@ -32,10 +32,28 @@ local function resolveModule(moduleName)
     print("Attempting to find module: '" .. moduleName .. "' in script.Parent")
     -- ##### END DEBUG #####
 
-    local moduleScript = script.Parent:FindFirstChild(moduleName)
+    -- Try multiple approaches to find the module
+    local moduleScript = nil
     
-    if moduleScript then
-        print("Found module: '" .. moduleName .. "' with ClassName: " .. moduleScript.ClassName) -- Print if found
+    -- Try direct reference first
+    moduleScript = script.Parent:FindFirstChild(moduleName)
+    
+    -- If not found, try with .server suffix
+    if not moduleScript then
+        moduleScript = script.Parent:FindFirstChild(moduleName .. ".server")
+    end
+    
+    -- If not found, try with .luau suffix
+    if not moduleScript then
+        moduleScript = script.Parent:FindFirstChild(moduleName .. ".luau")
+    end
+    
+    -- If still not found, try with .server.luau suffix
+    if not moduleScript then
+        moduleScript = script.Parent:FindFirstChild(moduleName .. ".server.luau")
+    end
+      if moduleScript then
+        print("Found module: '" .. moduleName .. "' with ClassName: " .. moduleScript.ClassName .. " at path: " .. moduleScript:GetFullName()) -- Print if found
         local success, result = pcall(function()
             return require(moduleScript)
         end)
@@ -47,11 +65,11 @@ local function resolveModule(moduleName)
             warn("Error requiring module: " .. moduleName .. " - " .. tostring(result)) 
         end
     else
-        warn("Could not find module: '" .. moduleName .. "' in script.Parent.")
+        warn("Could not find module: '" .. moduleName .. "' in script.Parent. Tried all common suffixes.")
     end
     
     warn("Failed to resolve module: " .. moduleName .. ". Using dummy.")
-    -- ... (rest of dummy module code)
+    -- Create a dummy module with all necessary functions
     local dummyModule = {
         initialize = function(...) 
             warn("Dummy " .. moduleName .. ".initialize() called with: ", ...) 
@@ -180,7 +198,7 @@ MonitoringDashboardUI.initialize()
 
 if type(DataMigrationTools) == "table" and DataMigrationTools.initialize then
     DataMigrationTools:initialize()
-elif type(DataMigrationTools) == "function" then
+elseif type(DataMigrationTools) == "function" then
     DataMigrationTools()
 else
     warn("DataMigrationTools does not have an initialize method or is not a function.")

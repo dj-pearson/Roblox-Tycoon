@@ -1,365 +1,435 @@
-  16:04:28.269  Plugin successfully saved as C:/Users/dpearson/AppData/Local/Roblox/Plugins/DataStorePlugin.rbxmx  -  Studio
-  16:04:28.517  user_DataStorePlugin.rbxmx.src:177: Incomplete statement: expected assignment or a function call  -  Studio
-  16:04:28.520  Module code did not return exactly one value  -  Edit - AccessControlUI:14
-  16:04:28.520  Stack Begin  -  Studio
-  16:04:28.520  Script 'user_DataStorePlugin.rbxmx.src.AccessControlUI', Line 14  -  Studio
-  16:04:28.520  Stack End  -  Studio
-  16:04:28.521  Requested module experienced an error while loading  -  Edit - AccessControlIntegration:10
-  16:04:28.521  Stack Begin  -  Studio
-  16:04:28.521  Script 'user_DataStorePlugin.rbxmx.src.AccessControlIntegration', Line 10  -  Studio
-  16:04:28.521  Stack End  -  Studio
-  16:04:28.527  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
-  16:04:28.527  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaManager"  -  Edit - SchemaManager:5
-  16:04:28.527  Stack Begin  -  Studio
-  16:04:28.527  Script 'user_DataStorePlugin.rbxmx.src.SchemaManager', Line 5  -  Studio
-  16:04:28.527  Stack End  -  Studio
-  16:04:28.527  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  16:04:28.527  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaValidator"  -  Edit - SchemaValidator:5
-  16:04:28.528  Stack Begin  -  Studio
-  16:04:28.528  Script 'user_DataStorePlugin.rbxmx.src.SchemaValidator', Line 5  -  Studio
-  16:04:28.528  Stack End  -  Studio
-  16:04:28.528  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
-  16:04:28.528  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  16:04:28.528  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.PerformanceMonitor"  -  Edit - PerformanceMonitor:5
-  16:04:28.528  Stack Begin  -  Studio
-  16:04:28.528  Script 'user_DataStorePlugin.rbxmx.src.PerformanceMonitor', Line 5  -  Studio
-  16:04:28.528  Stack End  -  Studio
-  16:04:28.528  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
-  16:04:28.528  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
-  16:04:28.529  ModuleResolver: Failed to resolve module: DataStoreManager  -  Edit - ModuleResolver:47
-  16:04:28.529  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  16:04:28.529  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.DataVisualization"  -  Edit - DataVisualization:5
-  16:04:28.530  Stack Begin  -  Studio
-  16:04:28.530  Script 'user_DataStorePlugin.rbxmx.src.DataVisualization', Line 5  -  Studio
-  16:04:28.530  Stack End  -  Studio
-  16:04:28.530  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
-  16:04:28.530  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
-  16:04:28.530  Module code did not return exactly one value  -  Edit - BulkOperationsManager:8
-  16:04:28.530  Stack Begin  -  Studio
-  16:04:28.530  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsManager', Line 8  -  Studio
-  16:04:28.530  Stack End  -  Studio
-  16:04:28.539  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.BulkOperationsManager"  -  Edit - BulkOperationsManager:5
-  16:04:28.539  Stack Begin  -  Studio
-  16:04:28.539  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsManager', Line 5  -  Studio
-  16:04:28.540  Stack End  -  Studio
-  16:04:28.541  Requested module experienced an error while loading  -  Edit - BulkOperationsUI:7
-  16:04:28.541  Stack Begin  -  Studio
-  16:04:28.541  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsUI', Line 7  -  Studio
-  16:04:28.542  Stack End  -  Studio
-  16:04:28.547  Module code did not return exactly one value  -  Edit - CachingSystemUI:9
-  16:04:28.547  Stack Begin  -  Studio
-  16:04:28.548  Script 'user_DataStorePlugin.rbxmx.src.CachingSystemUI', Line 9  -  Studio
-  16:04:28.548  Stack End  -  Studio
-  16:04:28.550  Requested module experienced an error while loading  -  Edit - CodeGeneratorUI:9
-  16:04:28.550  Stack Begin  -  Studio
-  16:04:28.550  Script 'user_DataStorePlugin.rbxmx.src.CodeGeneratorUI', Line 9  -  Studio
-  16:04:28.551  Stack End  -  Studio
-  16:04:28.551  Requested module experienced an error while loading  -  Edit - CodeGeneratorIntegration:9
-  16:04:28.551  Stack Begin  -  Studio
-  16:04:28.551  Script 'user_DataStorePlugin.rbxmx.src.CodeGeneratorIntegration', Line 9  -  Studio
-  16:04:28.551  Stack End  -  Studio
-  16:04:28.557  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.BulkOperationsUI"  -  Edit - BulkOperationsUI:5
-  16:04:28.557  Stack Begin  -  Studio
-  16:04:28.558  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsUI', Line 5  -  Studio
-  16:04:28.558  Stack End  -  Studio
-  16:04:28.558  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaBuilderUI"  -  Edit - SchemaBuilderUI:5
-  16:04:28.558  Stack Begin  -  Studio
-  16:04:28.558  Script 'user_DataStorePlugin.rbxmx.src.SchemaBuilderUI', Line 5  -  Studio
-  16:04:28.558  Stack End  -  Studio
-  16:04:28.558  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaEditor"  -  Edit - SchemaEditor:5
-  16:04:28.558  Stack Begin  -  Studio
-  16:04:28.558  Script 'user_DataStorePlugin.rbxmx.src.SchemaEditor', Line 5  -  Studio
-  16:04:28.558  Stack End  -  Studio
-  16:04:28.558  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaVersionViewer"  -  Edit - SchemaVersionViewer:5
-  16:04:28.558  Stack Begin  -  Studio
-  16:04:28.558  Script 'user_DataStorePlugin.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
-  16:04:28.559  Stack End  -  Studio
-  16:04:28.559  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SessionManagementUI"  -  Edit - SessionManagementUI:5
-  16:04:28.559  Stack Begin  -  Studio
-  16:04:28.559  Script 'user_DataStorePlugin.rbxmx.src.SessionManagementUI', Line 5  -  Studio
-  16:04:28.559  Stack End  -  Studio
-  16:04:28.559  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.DataMigrationUI"  -  Edit - DataMigrationUI:5
-  16:04:28.559  Stack Begin  -  Studio
-  16:04:28.559  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationUI', Line 5  -  Studio
-  16:04:28.559  Stack End  -  Studio
-  16:04:28.561  Requested module experienced an error while loading  -  Edit - MultiServerCoordinationUI:7
-  16:04:28.561  Stack Begin  -  Studio
-  16:04:28.561  Script 'user_DataStorePlugin.rbxmx.src.MultiServerCoordinationUI', Line 7  -  Studio
-  16:04:28.561  Stack End  -  Studio
-  16:04:28.563  Module code did not return exactly one value  -  Edit - PerformanceAnalyzerUI:12
-  16:04:28.563  Stack Begin  -  Studio
-  16:04:28.563  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  16:04:28.563  Stack End  -  Studio
-  16:04:28.565  Module code did not return exactly one value  -  Edit - CachingSystemUI:9
-  16:04:28.565  Stack Begin  -  Studio
-  16:04:28.565  Script 'user_DataStorePlugin.rbxmx.src.CachingSystemUI', Line 9  -  Studio
-  16:04:28.565  Stack End  -  Studio
-  16:04:28.567  Module code did not return exactly one value  -  Edit - LoadTestingUI:9
-  16:04:28.567  Stack Begin  -  Studio
-  16:04:28.567  Script 'user_DataStorePlugin.rbxmx.src.LoadTestingUI', Line 9  -  Studio
-  16:04:28.567  Stack End  -  Studio
-  16:04:28.567  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.CodeGeneratorIntegration"  -  Edit - CodeGeneratorIntegration:5
-  16:04:28.567  Stack Begin  -  Studio
-  16:04:28.567  Script 'user_DataStorePlugin.rbxmx.src.CodeGeneratorIntegration', Line 5  -  Studio
-  16:04:28.567  Stack End  -  Studio
-  16:04:28.568  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.AccessControlIntegration"  -  Edit - AccessControlIntegration:5
-  16:04:28.568  Stack Begin  -  Studio
-  16:04:28.568  Script 'user_DataStorePlugin.rbxmx.src.AccessControlIntegration', Line 5  -  Studio
-  16:04:28.568  Stack End  -  Studio
-  16:04:28.568  Attempt to connect failed: Passed value is not a function  -  Studio
-  16:04:28.568  Stack Begin  -  Studio
-  16:04:28.569  Script 'user_DataStorePlugin.rbxmx.src.DataExplorer', Line 472  -  Studio
-  16:04:28.569  Stack End  -  Studio
-  16:04:28.569  user_DataStorePlugin.rbxmx.src.DataExplorer:549: attempt to call a nil value  -  Edit - DataExplorer:549
-  16:04:28.569  Stack Begin  -  Studio
-  16:04:28.569  Script 'user_DataStorePlugin.rbxmx.src.DataExplorer', Line 549  -  Studio
-  16:04:28.569  Stack End  -  Studio
-  16:04:28.570  Requested module experienced an error while loading  -  Edit - DataMigrationTools:24
-  16:04:28.570  Stack Begin  -  Studio
-  16:04:28.570  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationTools', Line 24  -  Studio
-  16:04:28.570  Stack End  -  Studio
-  16:04:28.573  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.DataMigrationTools"  -  Edit - DataMigrationTools:5
-  16:04:28.573  Stack Begin  -  Studio
-  16:04:28.573  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationTools', Line 5  -  Studio
-  16:04:28.573  Stack End  -  Studio
-  16:04:28.573  Requested module experienced an error while loading  -  Edit - DataMigrationUI:15
-  16:04:28.573  Stack Begin  -  Studio
-  16:04:28.574  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationUI', Line 15  -  Studio
-  16:04:28.574  Stack End  -  Studio
-  16:04:28.575  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
-  16:04:28.575  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  16:04:28.575  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
-  16:04:28.575  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  16:04:28.576  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
-  16:04:28.576  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
-  16:04:28.578  Running module resolver update...  -  Edit - InstallModuleResolver:7
-  16:04:28.578  Could not find init script  -  Edit - InstallModuleResolver:12
-  16:04:28.580  Requested module experienced an error while loading  -  Edit - MonitoringDashboard:8
-  16:04:28.580  Stack Begin  -  Studio
-  16:04:28.580  Script 'user_DataStorePlugin.rbxmx.src.MonitoringDashboard', Line 8  -  Studio
-  16:04:28.580  Stack End  -  Studio
-  16:04:28.582  Requested module experienced an error while loading  -  Edit - MonitoringDashboardUI:8
-  16:04:28.582  Stack Begin  -  Studio
-  16:04:28.582  Script 'user_DataStorePlugin.rbxmx.src.MonitoringDashboardUI', Line 8  -  Studio
-  16:04:28.582  Stack End  -  Studio
-  16:04:28.583  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  16:04:28.584  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
-  16:04:28.584  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
-  16:04:28.584  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
-  16:04:28.587  Requested module experienced an error while loading  -  Edit - MultiServerCoordinationUI:7
-  16:04:28.587  Stack Begin  -  Studio
-  16:04:28.587  Script 'user_DataStorePlugin.rbxmx.src.MultiServerCoordinationUI', Line 7  -  Studio
-  16:04:28.587  Stack End  -  Studio
-  16:04:28.587  Requested module experienced an error while loading  -  Edit - PerformanceAnalyzer:12
-  16:04:28.587  Stack Begin  -  Studio
-  16:04:28.587  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzer', Line 12  -  Studio
-  16:04:28.588  Stack End  -  Studio
-  16:04:28.588  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
-  16:04:28.590  Module code did not return exactly one value  -  Edit - PerformanceAnalyzerUI:12
-  16:04:28.590  Stack Begin  -  Studio
-  16:04:28.590  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  16:04:28.590  Stack End  -  Studio
-  16:04:28.591  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  16:04:28.593  Requested module experienced an error while loading  -  Edit - SchemaBuilderUI:7
-  16:04:28.593  Stack Begin  -  Studio
-  16:04:28.593  Script 'user_DataStorePlugin.rbxmx.src.SchemaBuilderUI', Line 7  -  Studio
-  16:04:28.594  Stack End  -  Studio
-  16:04:28.595  Module code did not return exactly one value  -  Edit - SchemaEditor:4
-  16:04:28.595  Stack Begin  -  Studio
-  16:04:28.595  Script 'user_DataStorePlugin.rbxmx.src.SchemaEditor', Line 4  -  Studio
-  16:04:28.595  Stack End  -  Studio
-  16:04:28.596  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaVersioning"  -  Edit - SchemaVersioning:5
-  16:04:28.596  Stack Begin  -  Studio
-  16:04:28.596  Script 'user_DataStorePlugin.rbxmx.src.SchemaVersioning', Line 5  -  Studio
-  16:04:28.596  Stack End  -  Studio
-  16:04:28.597  ModuleResolver: Failed to resolve module: SchemaVersioning  -  Edit - ModuleResolver:47
-  16:04:28.598  Requested module experienced an error while loading  -  Edit - SchemaVersionViewer:5
-  16:04:28.598  Stack Begin  -  Studio
-  16:04:28.599  Script 'user_DataStorePlugin.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
-  16:04:28.599  Stack End  -  Studio
-  16:04:28.604  Module code did not return exactly one value  -  Edit - SessionManagementUI:4
-  16:04:28.605  Stack Begin  -  Studio
-  16:04:28.605  Script 'user_DataStorePlugin.rbxmx.src.SessionManagementUI', Line 4  -  Studio
-  16:04:28.605  Stack End  -  Studio
-  16:04:28.956  user_DataStorePlugin.rbxmx.src:177: Incomplete statement: expected assignment or a function call  -  Studio
-  16:04:28.957  Module code did not return exactly one value  -  Edit - AccessControlUI:14
-  16:04:28.957  Stack Begin  -  Studio
-  16:04:28.957  Script 'user_DataStorePlugin.rbxmx.src.AccessControlUI', Line 14  -  Studio
-  16:04:28.957  Stack End  -  Studio
-  16:04:28.958  Requested module experienced an error while loading  -  Edit - AccessControlIntegration:10
-  16:04:28.958  Stack Begin  -  Studio
-  16:04:28.958  Script 'user_DataStorePlugin.rbxmx.src.AccessControlIntegration', Line 10  -  Studio
-  16:04:28.958  Stack End  -  Studio
-  16:04:28.959  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
-  16:04:28.959  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaManager"  -  Edit - SchemaManager:5
-  16:04:28.959  Stack Begin  -  Studio
-  16:04:28.959  Script 'user_DataStorePlugin.rbxmx.src.SchemaManager', Line 5  -  Studio
-  16:04:28.959  Stack End  -  Studio
-  16:04:28.959  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  16:04:28.960  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaValidator"  -  Edit - SchemaValidator:5
-  16:04:28.960  Stack Begin  -  Studio
-  16:04:28.960  Script 'user_DataStorePlugin.rbxmx.src.SchemaValidator', Line 5  -  Studio
-  16:04:28.960  Stack End  -  Studio
-  16:04:28.960  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
-  16:04:28.960  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  16:04:28.960  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.PerformanceMonitor"  -  Edit - PerformanceMonitor:5
-  16:04:28.960  Stack Begin  -  Studio
-  16:04:28.960  Script 'user_DataStorePlugin.rbxmx.src.PerformanceMonitor', Line 5  -  Studio
-  16:04:28.960  Stack End  -  Studio
-  16:04:28.961  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
-  16:04:28.961  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
-  16:04:28.961  ModuleResolver: Failed to resolve module: DataStoreManager  -  Edit - ModuleResolver:47
-  16:04:28.961  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  16:04:28.961  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.DataVisualization"  -  Edit - DataVisualization:5
-  16:04:28.961  Stack Begin  -  Studio
-  16:04:28.961  Script 'user_DataStorePlugin.rbxmx.src.DataVisualization', Line 5  -  Studio
-  16:04:28.961  Stack End  -  Studio
-  16:04:28.961  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
-  16:04:28.961  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
-  16:04:28.961  Module code did not return exactly one value  -  Edit - BulkOperationsManager:8
-  16:04:28.961  Stack Begin  -  Studio
-  16:04:28.962  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsManager', Line 8  -  Studio
-  16:04:28.962  Stack End  -  Studio
-  16:04:28.968  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.BulkOperationsManager"  -  Edit - BulkOperationsManager:5
-  16:04:28.968  Stack Begin  -  Studio
-  16:04:28.968  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsManager', Line 5  -  Studio
-  16:04:28.968  Stack End  -  Studio
-  16:04:28.968  Requested module experienced an error while loading  -  Edit - BulkOperationsUI:7
-  16:04:28.968  Stack Begin  -  Studio
-  16:04:28.968  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsUI', Line 7  -  Studio
-  16:04:28.968  Stack End  -  Studio
-  16:04:28.970  Module code did not return exactly one value  -  Edit - CachingSystemUI:9
-  16:04:28.970  Stack Begin  -  Studio
-  16:04:28.970  Script 'user_DataStorePlugin.rbxmx.src.CachingSystemUI', Line 9  -  Studio
-  16:04:28.971  Stack End  -  Studio
-  16:04:28.971  Requested module experienced an error while loading  -  Edit - CodeGeneratorUI:9
-  16:04:28.971  Stack Begin  -  Studio
-  16:04:28.971  Script 'user_DataStorePlugin.rbxmx.src.CodeGeneratorUI', Line 9  -  Studio
-  16:04:28.971  Stack End  -  Studio
-  16:04:28.971  Requested module experienced an error while loading  -  Edit - CodeGeneratorIntegration:9
-  16:04:28.972  Stack Begin  -  Studio
-  16:04:28.972  Script 'user_DataStorePlugin.rbxmx.src.CodeGeneratorIntegration', Line 9  -  Studio
-  16:04:28.972  Stack End  -  Studio
-  16:04:28.977  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.BulkOperationsUI"  -  Edit - BulkOperationsUI:5
-  16:04:28.977  Stack Begin  -  Studio
-  16:04:28.977  Script 'user_DataStorePlugin.rbxmx.src.BulkOperationsUI', Line 5  -  Studio
-  16:04:28.977  Stack End  -  Studio
-  16:04:28.978  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaBuilderUI"  -  Edit - SchemaBuilderUI:5
-  16:04:28.978  Stack Begin  -  Studio
-  16:04:28.978  Script 'user_DataStorePlugin.rbxmx.src.SchemaBuilderUI', Line 5  -  Studio
-  16:04:28.978  Stack End  -  Studio
-  16:04:28.979  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaEditor"  -  Edit - SchemaEditor:5
-  16:04:28.979  Stack Begin  -  Studio
-  16:04:28.979  Script 'user_DataStorePlugin.rbxmx.src.SchemaEditor', Line 5  -  Studio
-  16:04:28.979  Stack End  -  Studio
-  16:04:28.979  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaVersionViewer"  -  Edit - SchemaVersionViewer:5
-  16:04:28.979  Stack Begin  -  Studio
-  16:04:28.979  Script 'user_DataStorePlugin.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
-  16:04:28.980  Stack End  -  Studio
-  16:04:28.980  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SessionManagementUI"  -  Edit - SessionManagementUI:5
-  16:04:28.980  Stack Begin  -  Studio
-  16:04:28.980  Script 'user_DataStorePlugin.rbxmx.src.SessionManagementUI', Line 5  -  Studio
-  16:04:28.980  Stack End  -  Studio
-  16:04:28.980  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.DataMigrationUI"  -  Edit - DataMigrationUI:5
-  16:04:28.980  Stack Begin  -  Studio
-  16:04:28.980  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationUI', Line 5  -  Studio
-  16:04:28.981  Stack End  -  Studio
-  16:04:28.981  Requested module experienced an error while loading  -  Edit - MultiServerCoordinationUI:7
-  16:04:28.981  Stack Begin  -  Studio
-  16:04:28.982  Script 'user_DataStorePlugin.rbxmx.src.MultiServerCoordinationUI', Line 7  -  Studio
-  16:04:28.982  Stack End  -  Studio
-  16:04:28.982  Module code did not return exactly one value  -  Edit - PerformanceAnalyzerUI:12
-  16:04:28.982  Stack Begin  -  Studio
-  16:04:28.982  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  16:04:28.982  Stack End  -  Studio
-  16:04:28.983  Module code did not return exactly one value  -  Edit - CachingSystemUI:9
-  16:04:28.983  Stack Begin  -  Studio
-  16:04:28.983  Script 'user_DataStorePlugin.rbxmx.src.CachingSystemUI', Line 9  -  Studio
-  16:04:28.983  Stack End  -  Studio
-  16:04:28.983  Module code did not return exactly one value  -  Edit - LoadTestingUI:9
-  16:04:28.984  Stack Begin  -  Studio
-  16:04:28.984  Script 'user_DataStorePlugin.rbxmx.src.LoadTestingUI', Line 9  -  Studio
-  16:04:28.984  Stack End  -  Studio
-  16:04:28.985  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.CodeGeneratorIntegration"  -  Edit - CodeGeneratorIntegration:5
-  16:04:28.985  Stack Begin  -  Studio
-  16:04:28.986  Script 'user_DataStorePlugin.rbxmx.src.CodeGeneratorIntegration', Line 5  -  Studio
-  16:04:28.986  Stack End  -  Studio
-  16:04:28.986  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.AccessControlIntegration"  -  Edit - AccessControlIntegration:5
-  16:04:28.987  Stack Begin  -  Studio
-  16:04:28.987  Script 'user_DataStorePlugin.rbxmx.src.AccessControlIntegration', Line 5  -  Studio
-  16:04:28.987  Stack End  -  Studio
-  16:04:28.988  Attempt to connect failed: Passed value is not a function  -  Studio
-  16:04:28.988  Stack Begin  -  Studio
-  16:04:28.988  Script 'user_DataStorePlugin.rbxmx.src.DataExplorer', Line 472  -  Studio
-  16:04:28.988  Stack End  -  Studio
-  16:04:28.989  user_DataStorePlugin.rbxmx.src.DataExplorer:549: attempt to call a nil value  -  Edit - DataExplorer:549
-  16:04:28.989  Stack Begin  -  Studio
-  16:04:28.989  Script 'user_DataStorePlugin.rbxmx.src.DataExplorer', Line 549  -  Studio
-  16:04:28.990  Stack End  -  Studio
-  16:04:28.992  Requested module experienced an error while loading  -  Edit - DataMigrationTools:24
-  16:04:28.992  Stack Begin  -  Studio
-  16:04:28.993  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationTools', Line 24  -  Studio
-  16:04:28.993  Stack End  -  Studio
-  16:04:28.996  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.DataMigrationTools"  -  Edit - DataMigrationTools:5
-  16:04:28.996  Stack Begin  -  Studio
-  16:04:28.996  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationTools', Line 5  -  Studio
-  16:04:28.997  Stack End  -  Studio
-  16:04:28.997  Requested module experienced an error while loading  -  Edit - DataMigrationUI:15
-  16:04:28.997  Stack Begin  -  Studio
-  16:04:28.997  Script 'user_DataStorePlugin.rbxmx.src.DataMigrationUI', Line 15  -  Studio
-  16:04:28.997  Stack End  -  Studio
-  16:04:28.998  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
-  16:04:28.998  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  16:04:28.999  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
-  16:04:28.999  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  16:04:28.999  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
-  16:04:28.999  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
-  16:04:29.001  Running module resolver update...  -  Edit - InstallModuleResolver:7
-  16:04:29.001  Could not find init script  -  Edit - InstallModuleResolver:12
-  16:04:29.002  Requested module experienced an error while loading  -  Edit - MonitoringDashboard:8
-  16:04:29.003  Stack Begin  -  Studio
-  16:04:29.003  Script 'user_DataStorePlugin.rbxmx.src.MonitoringDashboard', Line 8  -  Studio
-  16:04:29.003  Stack End  -  Studio
-  16:04:29.005  Requested module experienced an error while loading  -  Edit - MonitoringDashboardUI:8
-  16:04:29.006  Stack Begin  -  Studio
-  16:04:29.006  Script 'user_DataStorePlugin.rbxmx.src.MonitoringDashboardUI', Line 8  -  Studio
-  16:04:29.006  Stack End  -  Studio
-  16:04:29.008  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  16:04:29.008  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
-  16:04:29.008  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
-  16:04:29.009  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
-  16:04:29.011  Requested module experienced an error while loading  -  Edit - MultiServerCoordinationUI:7
-  16:04:29.011  Stack Begin  -  Studio
-  16:04:29.011  Script 'user_DataStorePlugin.rbxmx.src.MultiServerCoordinationUI', Line 7  -  Studio
-  16:04:29.012  Stack End  -  Studio
-  16:04:29.013  Requested module experienced an error while loading  -  Edit - PerformanceAnalyzer:12
-  16:04:29.013  Stack Begin  -  Studio
-  16:04:29.013  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzer', Line 12  -  Studio
-  16:04:29.013  Stack End  -  Studio
-  16:04:29.014  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
-  16:04:29.016  Module code did not return exactly one value  -  Edit - PerformanceAnalyzerUI:12
-  16:04:29.016  Stack Begin  -  Studio
-  16:04:29.016  Script 'user_DataStorePlugin.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  16:04:29.017  Stack End  -  Studio
-  16:04:29.018  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  16:04:29.020  Requested module experienced an error while loading  -  Edit - SchemaBuilderUI:7
-  16:04:29.020  Stack Begin  -  Studio
-  16:04:29.020  Script 'user_DataStorePlugin.rbxmx.src.SchemaBuilderUI', Line 7  -  Studio
-  16:04:29.021  Stack End  -  Studio
-  16:04:29.023  Module code did not return exactly one value  -  Edit - SchemaEditor:4
-  16:04:29.023  Stack Begin  -  Studio
-  16:04:29.023  Script 'user_DataStorePlugin.rbxmx.src.SchemaEditor', Line 4  -  Studio
-  16:04:29.023  Stack End  -  Studio
-  16:04:29.024  server is not a valid member of ModuleScript "user_DataStorePlugin.rbxmx.src.SchemaVersioning"  -  Edit - SchemaVersioning:5
-  16:04:29.025  Stack Begin  -  Studio
-  16:04:29.025  Script 'user_DataStorePlugin.rbxmx.src.SchemaVersioning', Line 5  -  Studio
-  16:04:29.025  Stack End  -  Studio
-  16:04:29.025  ModuleResolver: Failed to resolve module: SchemaVersioning  -  Edit - ModuleResolver:47
-  16:04:29.026  Requested module experienced an error while loading  -  Edit - SchemaVersionViewer:5
-  16:04:29.026  Stack Begin  -  Studio
-  16:04:29.026  Script 'user_DataStorePlugin.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
-  16:04:29.026  Stack End  -  Studio
-  16:04:29.029  Module code did not return exactly one value  -  Edit - SessionManagementUI:4
-  16:04:29.029  Stack Begin  -  Studio
-  16:04:29.029  Script 'user_DataStorePlugin.rbxmx.src.SessionManagementUI', Line 4  -  Studio
-  16:04:29.029  Stack End  -  Studio
+  17:42:41.608  Plugin successfully saved as C:/Users/pears/AppData/Local/Roblox/Plugins/DataStoreManagerPro.rbxmx  -  Studio
+  17:42:41.708  DataStore Manager Pro plugin running in non-plugin context (possibly Argon)  -  Edit - src:122
+  17:42:41.708  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.708  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.708  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.708  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.708  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.708  Attempting to find module: 'DataStoreManager' in script.Parent  -  Edit - src:32
+  17:42:41.708  Could not find module: 'DataStoreManager' in script.Parent.  -  Edit - src:50
+  17:42:41.708  Failed to resolve module: DataStoreManager. Using dummy.  -  Edit - src:53
+  17:42:41.708  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.708  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.709  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.709  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.709  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.709  Attempting to find module: 'DataExplorer' in script.Parent  -  Edit - src:32
+  17:42:41.709  Could not find module: 'DataExplorer' in script.Parent.  -  Edit - src:50
+  17:42:41.709  Failed to resolve module: DataExplorer. Using dummy.  -  Edit - src:53
+  17:42:41.709  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.709  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.709  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.709  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.709  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.709  Attempting to find module: 'PerformanceMonitor' in script.Parent  -  Edit - src:32
+  17:42:41.709  Could not find module: 'PerformanceMonitor' in script.Parent.  -  Edit - src:50
+  17:42:41.709  Failed to resolve module: PerformanceMonitor. Using dummy.  -  Edit - src:53
+  17:42:41.709  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.709  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.709  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.709  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.709  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.709  Attempting to find module: 'SchemaManager' in script.Parent  -  Edit - src:32
+  17:42:41.709  Could not find module: 'SchemaManager' in script.Parent.  -  Edit - src:50
+  17:42:41.709  Failed to resolve module: SchemaManager. Using dummy.  -  Edit - src:53
+  17:42:41.709  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.709  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.709  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.709  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.709  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.709  Attempting to find module: 'SessionManager' in script.Parent  -  Edit - src:32
+  17:42:41.709  Could not find module: 'SessionManager' in script.Parent.  -  Edit - src:50
+  17:42:41.709  Failed to resolve module: SessionManager. Using dummy.  -  Edit - src:53
+  17:42:41.709  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.710  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.710  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.710  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.710  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.710  Attempting to find module: 'CacheManager' in script.Parent  -  Edit - src:32
+  17:42:41.710  Could not find module: 'CacheManager' in script.Parent.  -  Edit - src:50
+  17:42:41.710  Failed to resolve module: CacheManager. Using dummy.  -  Edit - src:53
+  17:42:41.710  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.710  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.710  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.710  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.710  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.710  Attempting to find module: 'SchemaValidator' in script.Parent  -  Edit - src:32
+  17:42:41.710  Could not find module: 'SchemaValidator' in script.Parent.  -  Edit - src:50
+  17:42:41.710  Failed to resolve module: SchemaValidator. Using dummy.  -  Edit - src:53
+  17:42:41.710  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.710  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.710  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.710  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.710  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.710  Attempting to find module: 'SecurityManager' in script.Parent  -  Edit - src:32
+  17:42:41.710  Could not find module: 'SecurityManager' in script.Parent.  -  Edit - src:50
+  17:42:41.710  Failed to resolve module: SecurityManager. Using dummy.  -  Edit - src:53
+  17:42:41.710  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.710  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.710  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.710  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.710  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.710  Attempting to find module: 'DataVisualization' in script.Parent  -  Edit - src:32
+  17:42:41.710  Could not find module: 'DataVisualization' in script.Parent.  -  Edit - src:50
+  17:42:41.710  Failed to resolve module: DataVisualization. Using dummy.  -  Edit - src:53
+  17:42:41.710  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.711  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.711  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.711  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.711  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.711  Attempting to find module: 'StyleGuide' in script.Parent  -  Edit - src:32
+  17:42:41.711  Could not find module: 'StyleGuide' in script.Parent.  -  Edit - src:50
+  17:42:41.711  Failed to resolve module: StyleGuide. Using dummy.  -  Edit - src:53
+  17:42:41.711  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.711  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.711  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.711  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.711  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.711  Attempting to find module: 'SchemaEditor' in script.Parent  -  Edit - src:32
+  17:42:41.711  Could not find module: 'SchemaEditor' in script.Parent.  -  Edit - src:50
+  17:42:41.711  Failed to resolve module: SchemaEditor. Using dummy.  -  Edit - src:53
+  17:42:41.711  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.711  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.711  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.711  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.711  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.711  Attempting to find module: 'MonitoringDashboard' in script.Parent  -  Edit - src:32
+  17:42:41.711  Could not find module: 'MonitoringDashboard' in script.Parent.  -  Edit - src:50
+  17:42:41.711  Failed to resolve module: MonitoringDashboard. Using dummy.  -  Edit - src:53
+  17:42:41.712  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.712  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.712  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.712  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.712  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.712  Attempting to find module: 'MonitoringDashboardUI' in script.Parent  -  Edit - src:32
+  17:42:41.712  Could not find module: 'MonitoringDashboardUI' in script.Parent.  -  Edit - src:50
+  17:42:41.712  Failed to resolve module: MonitoringDashboardUI. Using dummy.  -  Edit - src:53
+  17:42:41.712  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.712  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.712  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.712  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.712  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.712  Attempting to find module: 'DataMigrationTools' in script.Parent  -  Edit - src:32
+  17:42:41.712  Could not find module: 'DataMigrationTools' in script.Parent.  -  Edit - src:50
+  17:42:41.712  Failed to resolve module: DataMigrationTools. Using dummy.  -  Edit - src:53
+  17:42:41.712  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.712  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.712  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.712  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.712  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.712  Attempting to find module: 'MultiServerCoordination' in script.Parent  -  Edit - src:32
+  17:42:41.712  Could not find module: 'MultiServerCoordination' in script.Parent.  -  Edit - src:50
+  17:42:41.712  Failed to resolve module: MultiServerCoordination. Using dummy.  -  Edit - src:53
+  17:42:41.712  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.712  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.712  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.712  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.713  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.713  Attempting to find module: 'MultiServerCoordinationUI' in script.Parent  -  Edit - src:32
+  17:42:41.713  Could not find module: 'MultiServerCoordinationUI' in script.Parent.  -  Edit - src:50
+  17:42:41.713  Failed to resolve module: MultiServerCoordinationUI. Using dummy.  -  Edit - src:53
+  17:42:41.713  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.713  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.713  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.713  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.713  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.713  Attempting to find module: 'MultiServerCoordinationIntegration' in script.Parent  -  Edit - src:32
+  17:42:41.713  Could not find module: 'MultiServerCoordinationIntegration' in script.Parent.  -  Edit - src:50
+  17:42:41.713  Failed to resolve module: MultiServerCoordinationIntegration. Using dummy.  -  Edit - src:53
+  17:42:41.713  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.713  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.713  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.713  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.713  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.713  Attempting to find module: 'PerformanceAnalyzer' in script.Parent  -  Edit - src:32
+  17:42:41.713  Could not find module: 'PerformanceAnalyzer' in script.Parent.  -  Edit - src:50
+  17:42:41.713  Failed to resolve module: PerformanceAnalyzer. Using dummy.  -  Edit - src:53
+  17:42:41.713  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.713  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.713  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.713  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.713  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.713  Attempting to find module: 'PerformanceAnalyzerUI' in script.Parent  -  Edit - src:32
+  17:42:41.713  Could not find module: 'PerformanceAnalyzerUI' in script.Parent.  -  Edit - src:50
+  17:42:41.713  Failed to resolve module: PerformanceAnalyzerUI. Using dummy.  -  Edit - src:53
+  17:42:41.713  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.714  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.714  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.714  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.714  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.714  Attempting to find module: 'PerformanceAnalyzerIntegration' in script.Parent  -  Edit - src:32
+  17:42:41.714  Could not find module: 'PerformanceAnalyzerIntegration' in script.Parent.  -  Edit - src:50
+  17:42:41.714  Failed to resolve module: PerformanceAnalyzerIntegration. Using dummy.  -  Edit - src:53
+  17:42:41.714  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.714  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.714  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.714  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.714  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.714  Attempting to find module: 'CachingSystemUI' in script.Parent  -  Edit - src:32
+  17:42:41.714  Could not find module: 'CachingSystemUI' in script.Parent.  -  Edit - src:50
+  17:42:41.714  Failed to resolve module: CachingSystemUI. Using dummy.  -  Edit - src:53
+  17:42:41.714  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.714  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.714  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.714  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.714  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.714  Attempting to find module: 'LoadTesting' in script.Parent  -  Edit - src:32
+  17:42:41.714  Could not find module: 'LoadTesting' in script.Parent.  -  Edit - src:50
+  17:42:41.714  Failed to resolve module: LoadTesting. Using dummy.  -  Edit - src:53
+  17:42:41.714  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.714  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.714  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.714  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.714  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.714  Attempting to find module: 'LoadTestingUI' in script.Parent  -  Edit - src:32
+  17:42:41.714  Could not find module: 'LoadTestingUI' in script.Parent.  -  Edit - src:50
+  17:42:41.714  Failed to resolve module: LoadTestingUI. Using dummy.  -  Edit - src:53
+  17:42:41.714  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.715  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.715  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.715  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.715  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.715  Attempting to find module: 'CodeGenerator' in script.Parent  -  Edit - src:32
+  17:42:41.715  Could not find module: 'CodeGenerator' in script.Parent.  -  Edit - src:50
+  17:42:41.715  Failed to resolve module: CodeGenerator. Using dummy.  -  Edit - src:53
+  17:42:41.715  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.715  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.715  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.715  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.715  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.715  Attempting to find module: 'CodeGeneratorUI' in script.Parent  -  Edit - src:32
+  17:42:41.715  Could not find module: 'CodeGeneratorUI' in script.Parent.  -  Edit - src:50
+  17:42:41.715  Failed to resolve module: CodeGeneratorUI. Using dummy.  -  Edit - src:53
+  17:42:41.715  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.715  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.715  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.715  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.715  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.715  Attempting to find module: 'APIIntegration' in script.Parent  -  Edit - src:32
+  17:42:41.715  Could not find module: 'APIIntegration' in script.Parent.  -  Edit - src:50
+  17:42:41.715  Failed to resolve module: APIIntegration. Using dummy.  -  Edit - src:53
+  17:42:41.715  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.715  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.716  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.716  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.716  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.716  Attempting to find module: 'APIIntegrationUI' in script.Parent  -  Edit - src:32
+  17:42:41.716  Could not find module: 'APIIntegrationUI' in script.Parent.  -  Edit - src:50
+  17:42:41.716  Failed to resolve module: APIIntegrationUI. Using dummy.  -  Edit - src:53
+  17:42:41.716  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.716  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.716  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.716  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.716  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.716  Attempting to find module: 'AccessControl' in script.Parent  -  Edit - src:32
+  17:42:41.716  Could not find module: 'AccessControl' in script.Parent.  -  Edit - src:50
+  17:42:41.716  Failed to resolve module: AccessControl. Using dummy.  -  Edit - src:53
+  17:42:41.716  Script Path: user_DataStoreManagerPro.rbxmx.src  -  Edit - src:19
+  17:42:41.716  Script Parent: user_DataStoreManagerPro.rbxmx  -  Edit - src:21
+  17:42:41.716  Children of script.Parent (user_DataStoreManagerPro.rbxmx):  -  Edit - src:22
+  17:42:41.716  - Child Name: 'src', ClassName: Script  -  Edit - src:24
+  17:42:41.716  - Child Name: 'MultipleDocumentInterfaceInstance', ClassName: MultipleDocumentInterfaceInstance  -  Edit - src:24
+  17:42:41.716  Attempting to find module: 'AccessControlUI' in script.Parent  -  Edit - src:32
+  17:42:41.716  Could not find module: 'AccessControlUI' in script.Parent.  -  Edit - src:50
+  17:42:41.716  Failed to resolve module: AccessControlUI. Using dummy.  -  Edit - src:53
+  17:42:41.716  Dummy DataStoreManager.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy MonitoringDashboard.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy MonitoringDashboardUI.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy DataMigrationTools.initialize() called with:   ▶ {...}  -  Edit - src:57
+  17:42:41.717  Dummy MultiServerCoordination.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy MultiServerCoordinationUI.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy PerformanceAnalyzer.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy PerformanceAnalyzerUI.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy CachingSystemUI.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy CodeGenerator.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy CodeGeneratorUI.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy APIIntegration.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy APIIntegrationUI.initialize() called with:   -  Edit - src:57
+  17:42:41.717  Dummy AccessControl.initialize() called with:   -  Edit - src:57
+  17:42:41.718  Dummy AccessControlUI.initialize() called with:   -  Edit - src:57
+  17:42:41.718  Dummy MultiServerCoordinationIntegration.initialize() called with:   -  Edit - src:57
+  17:42:41.718  Dummy PerformanceAnalyzerIntegration.initialize() called with:   -  Edit - src:57
+  17:42:41.718  DataStore Manager Pro loaded successfully in non-plugin context  -  Edit - src:293
+  17:42:41.718  Plugin Version: 1.0.0  -  Edit - src:294
+  17:42:41.718  Real (non-dummy) modules count (approx): 8  -  Edit - src:310
+  17:42:41.720  Module code did not return exactly one value  -  Edit - AccessControlUI:14
+  17:42:41.720  Stack Begin  -  Studio
+  17:42:41.720  Script 'user_DataStoreManagerPro.rbxmx.src.AccessControlUI', Line 14  -  Studio
+  17:42:41.720  Stack End  -  Studio
+  17:42:41.720  Requested module experienced an error while loading  -  Edit - AccessControlIntegration:10
+  17:42:41.720  Stack Begin  -  Studio
+  17:42:41.720  Script 'user_DataStoreManagerPro.rbxmx.src.AccessControlIntegration', Line 10  -  Studio
+  17:42:41.720  Stack End  -  Studio
+  17:42:41.724  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
+  17:42:41.724  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.SchemaManager"  -  Edit - SchemaManager:5
+  17:42:41.724  Stack Begin  -  Studio
+  17:42:41.724  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaManager', Line 5  -  Studio
+  17:42:41.724  Stack End  -  Studio
+  17:42:41.724  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  17:42:41.724  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.SchemaValidator"  -  Edit - SchemaValidator:5
+  17:42:41.724  Stack Begin  -  Studio
+  17:42:41.724  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaValidator', Line 5  -  Studio
+  17:42:41.724  Stack End  -  Studio
+  17:42:41.724  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
+  17:42:41.725  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  17:42:41.725  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.PerformanceMonitor"  -  Edit - PerformanceMonitor:5
+  17:42:41.725  Stack Begin  -  Studio
+  17:42:41.725  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceMonitor', Line 5  -  Studio
+  17:42:41.725  Stack End  -  Studio
+  17:42:41.725  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
+  17:42:41.725  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
+  17:42:41.725  ModuleResolver: Failed to resolve module: DataStoreManager  -  Edit - ModuleResolver:47
+  17:42:41.726  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  17:42:41.726  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.DataVisualization"  -  Edit - DataVisualization:5
+  17:42:41.726  Stack Begin  -  Studio
+  17:42:41.726  Script 'user_DataStoreManagerPro.rbxmx.src.DataVisualization', Line 5  -  Studio
+  17:42:41.726  Stack End  -  Studio
+  17:42:41.726  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
+  17:42:41.726  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
+  17:42:41.726  Module code did not return exactly one value  -  Edit - BulkOperationsManager:8
+  17:42:41.726  Stack Begin  -  Studio
+  17:42:41.726  Script 'user_DataStoreManagerPro.rbxmx.src.BulkOperationsManager', Line 8  -  Studio
+  17:42:41.726  Stack End  -  Studio
+  17:42:41.729  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.BulkOperationsManager"  -  Edit - BulkOperationsManager:5
+  17:42:41.729  Stack Begin  -  Studio
+  17:42:41.729  Script 'user_DataStoreManagerPro.rbxmx.src.BulkOperationsManager', Line 5  -  Studio
+  17:42:41.729  Stack End  -  Studio
+  17:42:41.729  Requested module experienced an error while loading  -  Edit - BulkOperationsUI:7
+  17:42:41.729  Stack Begin  -  Studio
+  17:42:41.729  Script 'user_DataStoreManagerPro.rbxmx.src.BulkOperationsUI', Line 7  -  Studio
+  17:42:41.729  Stack End  -  Studio
+  17:42:41.731  Module code did not return exactly one value  -  Edit - CachingSystemUI:9
+  17:42:41.731  Stack Begin  -  Studio
+  17:42:41.731  Script 'user_DataStoreManagerPro.rbxmx.src.CachingSystemUI', Line 9  -  Studio
+  17:42:41.731  Stack End  -  Studio
+  17:42:41.732  Requested module experienced an error while loading  -  Edit - CodeGeneratorUI:9
+  17:42:41.732  Stack Begin  -  Studio
+  17:42:41.732  Script 'user_DataStoreManagerPro.rbxmx.src.CodeGeneratorUI', Line 9  -  Studio
+  17:42:41.732  Stack End  -  Studio
+  17:42:41.732  Requested module experienced an error while loading  -  Edit - CodeGeneratorIntegration:9
+  17:42:41.732  Stack Begin  -  Studio
+  17:42:41.732  Script 'user_DataStoreManagerPro.rbxmx.src.CodeGeneratorIntegration', Line 9  -  Studio
+  17:42:41.732  Stack End  -  Studio
+  17:42:41.734  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.BulkOperationsUI"  -  Edit - BulkOperationsUI:5
+  17:42:41.734  Stack Begin  -  Studio
+  17:42:41.734  Script 'user_DataStoreManagerPro.rbxmx.src.BulkOperationsUI', Line 5  -  Studio
+  17:42:41.734  Stack End  -  Studio
+  17:42:41.734  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.SchemaBuilderUI"  -  Edit - SchemaBuilderUI:5
+  17:42:41.734  Stack Begin  -  Studio
+  17:42:41.734  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaBuilderUI', Line 5  -  Studio
+  17:42:41.734  Stack End  -  Studio
+  17:42:41.735  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.SchemaEditor"  -  Edit - SchemaEditor:5
+  17:42:41.735  Stack Begin  -  Studio
+  17:42:41.735  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaEditor', Line 5  -  Studio
+  17:42:41.735  Stack End  -  Studio
+  17:42:41.735  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.SchemaVersionViewer"  -  Edit - SchemaVersionViewer:5
+  17:42:41.735  Stack Begin  -  Studio
+  17:42:41.735  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
+  17:42:41.735  Stack End  -  Studio
+  17:42:41.735  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.SessionManagementUI"  -  Edit - SessionManagementUI:5
+  17:42:41.735  Stack Begin  -  Studio
+  17:42:41.735  Script 'user_DataStoreManagerPro.rbxmx.src.SessionManagementUI', Line 5  -  Studio
+  17:42:41.735  Stack End  -  Studio
+  17:42:41.736  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.DataMigrationUI"  -  Edit - DataMigrationUI:5
+  17:42:41.736  Stack Begin  -  Studio
+  17:42:41.736  Script 'user_DataStoreManagerPro.rbxmx.src.DataMigrationUI', Line 5  -  Studio
+  17:42:41.736  Stack End  -  Studio
+  17:42:41.737  Requested module experienced an error while loading  -  Edit - MultiServerCoordinationUI:7
+  17:42:41.737  Stack Begin  -  Studio
+  17:42:41.737  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordinationUI', Line 7  -  Studio
+  17:42:41.737  Stack End  -  Studio
+  17:42:41.739  Module code did not return exactly one value  -  Edit - PerformanceAnalyzerUI:12
+  17:42:41.739  Stack Begin  -  Studio
+  17:42:41.739  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  17:42:41.739  Stack End  -  Studio
+  17:42:41.740  Module code did not return exactly one value  -  Edit - CachingSystemUI:9
+  17:42:41.740  Stack Begin  -  Studio
+  17:42:41.740  Script 'user_DataStoreManagerPro.rbxmx.src.CachingSystemUI', Line 9  -  Studio
+  17:42:41.740  Stack End  -  Studio
+  17:42:41.741  Module code did not return exactly one value  -  Edit - LoadTestingUI:9
+  17:42:41.741  Stack Begin  -  Studio
+  17:42:41.741  Script 'user_DataStoreManagerPro.rbxmx.src.LoadTestingUI', Line 9  -  Studio
+  17:42:41.741  Stack End  -  Studio
+  17:42:41.742  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.CodeGeneratorIntegration"  -  Edit - CodeGeneratorIntegration:5
+  17:42:41.742  Stack Begin  -  Studio
+  17:42:41.742  Script 'user_DataStoreManagerPro.rbxmx.src.CodeGeneratorIntegration', Line 5  -  Studio
+  17:42:41.742  Stack End  -  Studio
+  17:42:41.742  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.AccessControlIntegration"  -  Edit - AccessControlIntegration:5
+  17:42:41.742  Stack Begin  -  Studio
+  17:42:41.742  Script 'user_DataStoreManagerPro.rbxmx.src.AccessControlIntegration', Line 5  -  Studio
+  17:42:41.742  Stack End  -  Studio
+  17:42:41.742  Attempt to connect failed: Passed value is not a function  -  Studio
+  17:42:41.742  Stack Begin  -  Studio
+  17:42:41.742  Script 'user_DataStoreManagerPro.rbxmx.src.DataExplorer', Line 472  -  Studio
+  17:42:41.743  Stack End  -  Studio
+  17:42:41.743  user_DataStoreManagerPro.rbxmx.src.DataExplorer:549: attempt to call a nil value  -  Edit - DataExplorer:549
+  17:42:41.743  Stack Begin  -  Studio
+  17:42:41.743  Script 'user_DataStoreManagerPro.rbxmx.src.DataExplorer', Line 549  -  Studio
+  17:42:41.743  Stack End  -  Studio
+  17:42:41.743  Requested module experienced an error while loading  -  Edit - DataMigrationTools:24
+  17:42:41.743  Stack Begin  -  Studio
+  17:42:41.743  Script 'user_DataStoreManagerPro.rbxmx.src.DataMigrationTools', Line 24  -  Studio
+  17:42:41.743  Stack End  -  Studio
+  17:42:41.745  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.DataMigrationTools"  -  Edit - DataMigrationTools:5
+  17:42:41.745  Stack Begin  -  Studio
+  17:42:41.745  Script 'user_DataStoreManagerPro.rbxmx.src.DataMigrationTools', Line 5  -  Studio
+  17:42:41.745  Stack End  -  Studio
+  17:42:41.745  Requested module experienced an error while loading  -  Edit - DataMigrationUI:15
+  17:42:41.745  Stack Begin  -  Studio
+  17:42:41.745  Script 'user_DataStoreManagerPro.rbxmx.src.DataMigrationUI', Line 15  -  Studio
+  17:42:41.745  Stack End  -  Studio
+  17:42:41.746  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
+  17:42:41.746  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  17:42:41.746  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
+  17:42:41.746  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  17:42:41.746  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
+  17:42:41.746  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
+  17:42:41.747  Running module resolver update...  -  Edit - InstallModuleResolver:7
+  17:42:41.747  Could not find init script  -  Edit - InstallModuleResolver:12
+  17:42:41.748  Requested module experienced an error while loading  -  Edit - MonitoringDashboard:8
+  17:42:41.748  Stack Begin  -  Studio
+  17:42:41.748  Script 'user_DataStoreManagerPro.rbxmx.src.MonitoringDashboard', Line 8  -  Studio
+  17:42:41.748  Stack End  -  Studio
+  17:42:41.749  Requested module experienced an error while loading  -  Edit - MonitoringDashboardUI:8
+  17:42:41.749  Stack Begin  -  Studio
+  17:42:41.749  Script 'user_DataStoreManagerPro.rbxmx.src.MonitoringDashboardUI', Line 8  -  Studio
+  17:42:41.749  Stack End  -  Studio
+  17:42:41.750  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  17:42:41.750  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
+  17:42:41.750  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
+  17:42:41.750  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
+  17:42:41.751  Requested module experienced an error while loading  -  Edit - MultiServerCoordinationUI:7
+  17:42:41.751  Stack Begin  -  Studio
+  17:42:41.751  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordinationUI', Line 7  -  Studio
+  17:42:41.751  Stack End  -  Studio
+  17:42:41.751  Requested module experienced an error while loading  -  Edit - PerformanceAnalyzer:12
+  17:42:41.751  Stack Begin  -  Studio
+  17:42:41.751  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzer', Line 12  -  Studio
+  17:42:41.751  Stack End  -  Studio
+  17:42:41.752  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
+  17:42:41.753  Module code did not return exactly one value  -  Edit - PerformanceAnalyzerUI:12
+  17:42:41.753  Stack Begin  -  Studio
+  17:42:41.753  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  17:42:41.753  Stack End  -  Studio
+  17:42:41.754  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  17:42:41.755  Requested module experienced an error while loading  -  Edit - SchemaBuilderUI:7
+  17:42:41.755  Stack Begin  -  Studio
+  17:42:41.755  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaBuilderUI', Line 7  -  Studio
+  17:42:41.755  Stack End  -  Studio
+  17:42:41.756  Module code did not return exactly one value  -  Edit - SchemaEditor:4
+  17:42:41.756  Stack Begin  -  Studio
+  17:42:41.756  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaEditor', Line 4  -  Studio
+  17:42:41.756  Stack End  -  Studio
+  17:42:41.756  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.SchemaVersioning"  -  Edit - SchemaVersioning:5
+  17:42:41.756  Stack Begin  -  Studio
+  17:42:41.756  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaVersioning', Line 5  -  Studio
+  17:42:41.756  Stack End  -  Studio
+  17:42:41.756  ModuleResolver: Failed to resolve module: SchemaVersioning  -  Edit - ModuleResolver:47
+  17:42:41.757  Requested module experienced an error while loading  -  Edit - SchemaVersionViewer:5
+  17:42:41.757  Stack Begin  -  Studio
+  17:42:41.757  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
+  17:42:41.757  Stack End  -  Studio
+  17:42:41.758  Module code did not return exactly one value  -  Edit - SessionManagementUI:4
+  17:42:41.758  Stack Begin  -  Studio
+  17:42:41.758  Script 'user_DataStoreManagerPro.rbxmx.src.SessionManagementUI', Line 4  -  Studio
+  17:42:41.758  Stack End  -  Studio

@@ -7,7 +7,7 @@ local function executeUpdates()
     print("Running module resolver update...")
 
     -- Make the init script's resolveModule function accessible to other modules
-    local initScript = script.Parent:FindFirstChild("init.server") or script.Parent:FindFirstChild("init")
+    local initScript = script.Parent:FindFirstChild("init.server.luau") or script.Parent:FindFirstChild("init.server") or script.Parent:FindFirstChild("init")
     if not initScript then
         warn("Could not find init script")
         return
