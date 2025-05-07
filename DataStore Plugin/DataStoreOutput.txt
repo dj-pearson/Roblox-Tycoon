@@ -1,408 +1,445 @@
-  15:28:14.944  Unable to resume sync for 'ServerStorage.UnusedScripts.EquipmentUpgrades': Contained errors in the previous session  -  Studio
-  15:28:14.945  Unable to resume sync for 'Workspace.GymParts.2nd Floor.Basketball.Basketball.Court.Half.NewGoal20.HooperMaster Backstop.Timeboxes.DAKTRONICS TIMEBOX.TIME.Second.SecondScript': Contained errors in the previous session  -  Studio
-  15:28:14.945  Unable to resume sync for 'Workspace.GymParts.2nd Floor.Basketball.Basketball.Court.Half.NewGoal20.HooperMaster Backstop.Timeboxes.DAKTRONICS TIMEBOX.TIME.Circle1.Circle1Script': Contained errors in the previous session  -  Studio
-  15:28:14.946  Xdjpearsonx joined live editing session.  -  Studio
-  15:28:14.946  Unable to resume sync for 'Workspace.GymParts.2nd Floor.Basketball.Basketball.Court.Half.NewGoal20.HooperMaster Backstop.Timeboxes.DAKTRONICS TIMEBOX.TIME.Minutes.MinutesScript': Contained errors in the previous session  -  Studio
-  15:28:14.946  Unable to resume sync for 'ServerStorage.UnusedScripts.NPC_Movement': Contained errors in the previous session  -  Studio
-  15:28:14.947  Unable to resume sync for 'Workspace.GymParts.2nd Floor.Basketball.Basketball.Gym.Scoreboards.scoreboard.HomeBonus.Gui.Score.ScoreboardGuiScript': Contained errors in the previous session  -  Studio
-  15:28:14.948  Unable to resume sync for 'ServerStorage.UnusedScripts.NPCSystemIntegration': Contained errors in the previous session  -  Studio
-  15:28:14.948  Unable to resume sync for 'ServerStorage.UnusedScripts.NPCSpawner': Contained errors in the previous session  -  Studio
-  15:28:14.949  Unable to resume sync for 'ServerStorage.UnusedScripts.DynamicEconomyBalancer': Contained errors in the previous session  -  Studio
-  15:28:14.949  Unable to resume sync for 'Workspace.GymParts.2nd Floor.Basketball.Basketball.Court.Half.NewGoal20.Buzzer.RegBuzzer.Dots.regular buzzer script': Contained errors in the previous session  -  Studio
-  15:28:14.950  Unable to resume sync for 'ServerStorage.UnusedScripts.RevenueDisplay': Contained errors in the previous session  -  Studio
-  15:28:14.950  Unable to resume sync for 'ServerStorage.UnusedScripts.Buy Tile Pricing': Contained errors in the previous session  -  Studio
-  15:28:22.238  Failed to apply StyleRule property 'Color' from '.X-Gradient100-Deg0 ::UIGradient': Unable to cast Color3 to ColorSequence  -  Studio
-  15:28:22.239  Failed to apply StyleRule property 'Color' from '.X-Gradient100-Deg180 ::UIGradient': Unable to cast Color3 to ColorSequence  -  Studio
-  15:28:36.135  Requiring asset 16781084836.
-Callstack:
-cloud_6514761722.UITools.Main, line 155
-cloud_6514761722.UITools.Main, line 154
-  -  Edit
-  15:32:06.175  Plugin successfully saved as C:/Users/dpearson/AppData/Local/Roblox/Plugins/DataStorePlugin.rbxmx  -  Studio
-  15:32:06.659  DataStore Manager Pro plugin running in non-plugin context (possibly Argon)  -  Edit - src:79
-  15:32:06.666  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
-  15:32:06.666  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  15:32:06.666  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
-  15:32:06.667  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  15:32:06.667  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
-  15:32:06.667  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
-  15:32:06.671  ModuleResolver: Failed to resolve module: DataStoreManager  -  Edit - ModuleResolver:47
-  15:32:06.672  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  15:32:06.672  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
-  15:32:06.672  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
-  15:32:06.672  Failed to load module directly: DataExplorer. Trying alternative methods...  -  Edit - src:28
-  15:32:06.672  Failed to resolve module: DataExplorer  -  Edit - src:53
-  15:32:06.672  Failed to load module directly: PerformanceMonitor. Trying alternative methods...  -  Edit - src:28
-  15:32:06.672  Failed to resolve module: PerformanceMonitor  -  Edit - src:53
-  15:32:06.673  Failed to load module directly: SchemaManager. Trying alternative methods...  -  Edit - src:28
-  15:32:06.673  Failed to resolve module: SchemaManager  -  Edit - src:53
-  15:32:06.673  Failed to load module directly: SessionManager. Trying alternative methods...  -  Edit - src:28
-  15:32:06.673  Failed to resolve module: SessionManager  -  Edit - src:53
-  15:32:06.673  Failed to load module directly: CacheManager. Trying alternative methods...  -  Edit - src:28
-  15:32:06.674  Failed to resolve module: CacheManager  -  Edit - src:53
-  15:32:06.674  Failed to load module directly: SchemaValidator. Trying alternative methods...  -  Edit - src:28
-  15:32:06.674  Failed to resolve module: SchemaValidator  -  Edit - src:53
-  15:32:06.675  Failed to load module directly: SecurityManager. Trying alternative methods...  -  Edit - src:28
-  15:32:06.675  Failed to resolve module: SecurityManager  -  Edit - src:53
-  15:32:06.675  Failed to load module directly: DataVisualization. Trying alternative methods...  -  Edit - src:28
-  15:32:06.676  Failed to resolve module: DataVisualization  -  Edit - src:53
-  15:32:06.676  Failed to load module directly: StyleGuide. Trying alternative methods...  -  Edit - src:28
-  15:32:06.677  Failed to resolve module: StyleGuide  -  Edit - src:53
-  15:32:06.677  Failed to load module directly: SchemaEditor. Trying alternative methods...  -  Edit - src:28
-  15:32:06.678  Failed to resolve module: SchemaEditor  -  Edit - src:53
-  15:32:06.678  Failed to load module directly: MonitoringDashboard. Trying alternative methods...  -  Edit - src:28
-  15:32:06.679  Failed to resolve module: MonitoringDashboard  -  Edit - src:53
-  15:32:06.686  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboardUI:8
-  15:32:06.686  Stack Begin  -  Studio
-  15:32:06.686  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboardUI', Line 8  -  Studio
-  15:32:06.686  Stack End  -  Studio
-  15:32:06.688  Failed to load module directly: MonitoringDashboardUI. Trying alternative methods...  -  Edit - src:28
-  15:32:06.688  Failed to resolve module: MonitoringDashboardUI  -  Edit - src:53
-  15:32:06.688  Failed to load module directly: DataMigrationTools. Trying alternative methods...  -  Edit - src:28
-  15:32:06.688  Failed to resolve module: DataMigrationTools  -  Edit - src:53
-  15:32:06.691  Attempted to call require with invalid argument(s).  -  Edit - MultiServerCoordinationUI:7
-  15:32:06.691  Stack Begin  -  Studio
-  15:32:06.692  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MultiServerCoordinationUI', Line 7  -  Studio
-  15:32:06.692  Stack End  -  Studio
-  15:32:06.693  Failed to load module directly: MultiServerCoordinationUI. Trying alternative methods...  -  Edit - src:28
-  15:32:06.693  Failed to resolve module: MultiServerCoordinationUI  -  Edit - src:53
-  15:32:06.695  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzer:12
-  15:32:06.695  Stack Begin  -  Studio
-  15:32:06.695  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzer', Line 12  -  Studio
-  15:32:06.696  Stack End  -  Studio
-  15:32:06.696  Failed to load module directly: PerformanceAnalyzer. Trying alternative methods...  -  Edit - src:28
-  15:32:06.696  Failed to resolve module: PerformanceAnalyzer  -  Edit - src:53
-  15:32:06.699  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzerUI:12
-  15:32:06.699  Stack Begin  -  Studio
-  15:32:06.699  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  15:32:06.699  Stack End  -  Studio
-  15:32:06.699  Failed to load module directly: PerformanceAnalyzerUI. Trying alternative methods...  -  Edit - src:28
-  15:32:06.699  Failed to resolve module: PerformanceAnalyzerUI  -  Edit - src:53
-  15:32:06.699  Failed to load module directly: PerformanceAnalyzerIntegration. Trying alternative methods...  -  Edit - src:28
-  15:32:06.699  Failed to resolve module: PerformanceAnalyzerIntegration  -  Edit - src:53
-  15:32:06.702  Attempted to call require with invalid argument(s).  -  Edit - CachingSystemUI:9
-  15:32:06.702  Stack Begin  -  Studio
-  15:32:06.702  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CachingSystemUI', Line 9  -  Studio
-  15:32:06.702  Stack End  -  Studio
-  15:32:06.702  Failed to load module directly: CachingSystemUI. Trying alternative methods...  -  Edit - src:28
-  15:32:06.702  Failed to resolve module: CachingSystemUI  -  Edit - src:53
-  15:32:06.703  Attempted to call require with invalid argument(s).  -  Edit - LoadTesting:12
-  15:32:06.703  Stack Begin  -  Studio
-  15:32:06.703  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.LoadTesting', Line 12  -  Studio
-  15:32:06.704  Stack End  -  Studio
-  15:32:06.704  Failed to load module directly: LoadTesting. Trying alternative methods...  -  Edit - src:28
-  15:32:06.704  Failed to resolve module: LoadTesting  -  Edit - src:53
-  15:32:06.707  Attempted to call require with invalid argument(s).  -  Edit - LoadTestingUI:9
-  15:32:06.707  Stack Begin  -  Studio
-  15:32:06.708  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.LoadTestingUI', Line 9  -  Studio
-  15:32:06.708  Stack End  -  Studio
-  15:32:06.708  Failed to load module directly: LoadTestingUI. Trying alternative methods...  -  Edit - src:28
-  15:32:06.709  Failed to resolve module: LoadTestingUI  -  Edit - src:53
-  15:32:06.709  Failed to load module directly: CodeGenerator. Trying alternative methods...  -  Edit - src:28
-  15:32:06.709  Failed to resolve module: CodeGenerator  -  Edit - src:53
-  15:32:06.712  Attempted to call require with invalid argument(s).  -  Edit - CodeGeneratorUI:9
-  15:32:06.712  Stack Begin  -  Studio
-  15:32:06.712  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CodeGeneratorUI', Line 9  -  Studio
-  15:32:06.712  Stack End  -  Studio
-  15:32:06.712  Failed to load module directly: CodeGeneratorUI. Trying alternative methods...  -  Edit - src:28
-  15:32:06.712  Failed to resolve module: CodeGeneratorUI  -  Edit - src:53
-  15:32:06.718  Attempted to call require with invalid argument(s).  -  Edit - AccessControlUI:14
-  15:32:06.718  Stack Begin  -  Studio
-  15:32:06.718  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.AccessControlUI', Line 14  -  Studio
-  15:32:06.718  Stack End  -  Studio
-  15:32:06.718  Failed to load module directly: AccessControlUI. Trying alternative methods...  -  Edit - src:28
-  15:32:06.719  Failed to resolve module: AccessControlUI  -  Edit - src:53
-  15:32:06.720  Requested module experienced an error while loading  -  Edit - AccessControlIntegration:10
-  15:32:06.720  Stack Begin  -  Studio
-  15:32:06.720  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.AccessControlIntegration', Line 10  -  Studio
-  15:32:06.720  Stack End  -  Studio
-  15:32:06.722  Attempted to call require with invalid argument(s).  -  Edit - BulkOperationsManager:8
-  15:32:06.722  Stack Begin  -  Studio
-  15:32:06.723  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.BulkOperationsManager', Line 8  -  Studio
-  15:32:06.723  Stack End  -  Studio
-  15:32:06.727  Attempted to call require with invalid argument(s).  -  Edit - BulkOperationsUI:7
-  15:32:06.727  Stack Begin  -  Studio
-  15:32:06.727  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.BulkOperationsUI', Line 7  -  Studio
-  15:32:06.728  Stack End  -  Studio
-  15:32:06.730  Attempted to call require with invalid argument(s).  -  Edit - CachingSystemUI:9
-  15:32:06.731  Stack Begin  -  Studio
-  15:32:06.731  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CachingSystemUI', Line 9  -  Studio
-  15:32:06.731  Stack End  -  Studio
-  15:32:06.731  Requested module experienced an error while loading  -  Edit - CodeGeneratorIntegration:9
-  15:32:06.731  Stack Begin  -  Studio
-  15:32:06.731  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CodeGeneratorIntegration', Line 9  -  Studio
-  15:32:06.731  Stack End  -  Studio
-  15:32:06.736  Attempt to connect failed: Passed value is not a function  -  Studio
-  15:32:06.736  Stack Begin  -  Studio
-  15:32:06.736  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer', Line 472  -  Studio
-  15:32:06.736  Stack End  -  Studio
-  15:32:06.737  user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer:549: attempt to call a nil value  -  Edit - DataExplorer:549
-  15:32:06.738  Stack Begin  -  Studio
-  15:32:06.738  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer', Line 549  -  Studio
-  15:32:06.738  Stack End  -  Studio
-  15:32:06.741  Attempted to call require with invalid argument(s).  -  Edit - DataMigrationTools:24
-  15:32:06.742  Stack Begin  -  Studio
-  15:32:06.742  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataMigrationTools', Line 24  -  Studio
-  15:32:06.742  Stack End  -  Studio
-  15:32:06.746  Attempted to call require with invalid argument(s).  -  Edit - DataMigrationUI:15
-  15:32:06.746  Stack Begin  -  Studio
-  15:32:06.746  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataMigrationUI', Line 15  -  Studio
-  15:32:06.747  Stack End  -  Studio
-  15:32:06.748  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
-  15:32:06.748  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  15:32:06.748  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
-  15:32:06.748  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  15:32:06.748  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
-  15:32:06.749  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
-  15:32:06.756  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboard:8
-  15:32:06.756  Stack Begin  -  Studio
-  15:32:06.756  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboard', Line 8  -  Studio
-  15:32:06.756  Stack End  -  Studio
-  15:32:06.759  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboardUI:8
-  15:32:06.760  Stack Begin  -  Studio
-  15:32:06.760  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboardUI', Line 8  -  Studio
-  15:32:06.760  Stack End  -  Studio
-  15:32:06.761  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  15:32:06.761  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
-  15:32:06.762  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
-  15:32:06.762  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
-  15:32:06.765  Attempted to call require with invalid argument(s).  -  Edit - MultiServerCoordinationUI:7
-  15:32:06.765  Stack Begin  -  Studio
-  15:32:06.765  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MultiServerCoordinationUI', Line 7  -  Studio
-  15:32:06.765  Stack End  -  Studio
-  15:32:06.766  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzer:12
-  15:32:06.766  Stack Begin  -  Studio
-  15:32:06.767  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzer', Line 12  -  Studio
-  15:32:06.767  Stack End  -  Studio
-  15:32:06.767  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
-  15:32:06.772  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzerUI:12
-  15:32:06.772  Stack Begin  -  Studio
-  15:32:06.773  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  15:32:06.773  Stack End  -  Studio
-  15:32:06.776  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  15:32:06.780  Attempted to call require with invalid argument(s).  -  Edit - SchemaBuilderUI:7
-  15:32:06.780  Stack Begin  -  Studio
-  15:32:06.781  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaBuilderUI', Line 7  -  Studio
-  15:32:06.781  Stack End  -  Studio
-  15:32:06.784  Attempted to call require with invalid argument(s).  -  Edit - SchemaEditor:4
-  15:32:06.784  Stack Begin  -  Studio
-  15:32:06.784  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaEditor', Line 4  -  Studio
-  15:32:06.785  Stack End  -  Studio
-  15:32:06.786  ModuleResolver: Failed to resolve module: SchemaVersioning  -  Edit - ModuleResolver:47
-  15:32:06.788  Attempted to call require with invalid argument(s).  -  Edit - SchemaVersionViewer:5
-  15:32:06.789  Stack Begin  -  Studio
-  15:32:06.789  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaVersionViewer', Line 5  -  Studio
-  15:32:06.789  Stack End  -  Studio
-  15:32:06.794  Attempted to call require with invalid argument(s).  -  Edit - SessionManagementUI:4
-  15:32:06.794  Stack Begin  -  Studio
-  15:32:06.794  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SessionManagementUI', Line 4  -  Studio
-  15:32:06.794  Stack End  -  Studio
-  15:32:06.798  Running module resolver update...  -  Edit - InstallModuleResolver:7
-  15:32:06.799  Could not find init script  -  Edit - InstallModuleResolver:12
-  15:32:06.827  Using dummy implementation of SessionManager.initialize()  -  Edit - ModuleResolver:50
-  15:32:06.827  DataStoreManager initialized with session ID: {25afd8da-7be8-4621-83c6-0aedd60f9cc9}  -  Edit - DataStoreManager:284
-  15:32:06.828  Using dummy implementation of MonitoringDashboard.initialize()  -  Edit - src:58
-  15:32:06.828  Using dummy implementation of MonitoringDashboardUI.initialize()  -  Edit - src:58
-  15:32:06.828  Using dummy implementation of DataMigrationTools.initialize()  -  Edit - src:58
-  15:32:07.123  DataStore Manager Pro plugin running in non-plugin context (possibly Argon)  -  Edit - src:79
-  15:32:07.124  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
-  15:32:07.125  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  15:32:07.126  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
-  15:32:07.127  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  15:32:07.128  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
-  15:32:07.129  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
-  15:32:07.130  ModuleResolver: Failed to resolve module: DataStoreManager  -  Edit - ModuleResolver:47
-  15:32:07.131  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  15:32:07.131  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
-  15:32:07.132  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
-  15:32:07.132  Failed to load module directly: DataExplorer. Trying alternative methods...  -  Edit - src:28
-  15:32:07.133  Failed to resolve module: DataExplorer  -  Edit - src:53
-  15:32:07.133  Failed to load module directly: PerformanceMonitor. Trying alternative methods...  -  Edit - src:28
-  15:32:07.134  Failed to resolve module: PerformanceMonitor  -  Edit - src:53
-  15:32:07.134  Failed to load module directly: SchemaManager. Trying alternative methods...  -  Edit - src:28
-  15:32:07.135  Failed to resolve module: SchemaManager  -  Edit - src:53
-  15:32:07.136  Failed to load module directly: SessionManager. Trying alternative methods...  -  Edit - src:28
-  15:32:07.137  Failed to resolve module: SessionManager  -  Edit - src:53
-  15:32:07.137  Failed to load module directly: CacheManager. Trying alternative methods...  -  Edit - src:28
-  15:32:07.138  Failed to resolve module: CacheManager  -  Edit - src:53
-  15:32:07.139  Failed to load module directly: SchemaValidator. Trying alternative methods...  -  Edit - src:28
-  15:32:07.139  Failed to resolve module: SchemaValidator  -  Edit - src:53
-  15:32:07.140  Failed to load module directly: SecurityManager. Trying alternative methods...  -  Edit - src:28
-  15:32:07.140  Failed to resolve module: SecurityManager  -  Edit - src:53
-  15:32:07.141  Failed to load module directly: DataVisualization. Trying alternative methods...  -  Edit - src:28
-  15:32:07.142  Failed to resolve module: DataVisualization  -  Edit - src:53
-  15:32:07.143  Failed to load module directly: StyleGuide. Trying alternative methods...  -  Edit - src:28
-  15:32:07.143  Failed to resolve module: StyleGuide  -  Edit - src:53
-  15:32:07.144  Failed to load module directly: SchemaEditor. Trying alternative methods...  -  Edit - src:28
-  15:32:07.145  Failed to resolve module: SchemaEditor  -  Edit - src:53
-  15:32:07.145  Failed to load module directly: MonitoringDashboard. Trying alternative methods...  -  Edit - src:28
-  15:32:07.145  Failed to resolve module: MonitoringDashboard  -  Edit - src:53
-  15:32:07.146  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboardUI:8
-  15:32:07.146  Stack Begin  -  Studio
-  15:32:07.146  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboardUI', Line 8  -  Studio
-  15:32:07.147  Stack End  -  Studio
-  15:32:07.147  Failed to load module directly: MonitoringDashboardUI. Trying alternative methods...  -  Edit - src:28
-  15:32:07.147  Failed to resolve module: MonitoringDashboardUI  -  Edit - src:53
-  15:32:07.148  Failed to load module directly: DataMigrationTools. Trying alternative methods...  -  Edit - src:28
-  15:32:07.148  Failed to resolve module: DataMigrationTools  -  Edit - src:53
-  15:32:07.148  Attempted to call require with invalid argument(s).  -  Edit - MultiServerCoordinationUI:7
-  15:32:07.149  Stack Begin  -  Studio
-  15:32:07.149  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MultiServerCoordinationUI', Line 7  -  Studio
-  15:32:07.149  Stack End  -  Studio
-  15:32:07.149  Failed to load module directly: MultiServerCoordinationUI. Trying alternative methods...  -  Edit - src:28
-  15:32:07.150  Failed to resolve module: MultiServerCoordinationUI  -  Edit - src:53
-  15:32:07.151  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzer:12
-  15:32:07.151  Stack Begin  -  Studio
-  15:32:07.151  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzer', Line 12  -  Studio
-  15:32:07.152  Stack End  -  Studio
-  15:32:07.152  Failed to load module directly: PerformanceAnalyzer. Trying alternative methods...  -  Edit - src:28
-  15:32:07.153  Failed to resolve module: PerformanceAnalyzer  -  Edit - src:53
-  15:32:07.154  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzerUI:12
-  15:32:07.155  Stack Begin  -  Studio
-  15:32:07.156  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  15:32:07.156  Stack End  -  Studio
-  15:32:07.157  Failed to load module directly: PerformanceAnalyzerUI. Trying alternative methods...  -  Edit - src:28
-  15:32:07.158  Failed to resolve module: PerformanceAnalyzerUI  -  Edit - src:53
-  15:32:07.159  Failed to load module directly: PerformanceAnalyzerIntegration. Trying alternative methods...  -  Edit - src:28
-  15:32:07.160  Failed to resolve module: PerformanceAnalyzerIntegration  -  Edit - src:53
-  15:32:07.161  Attempted to call require with invalid argument(s).  -  Edit - CachingSystemUI:9
-  15:32:07.162  Stack Begin  -  Studio
-  15:32:07.162  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CachingSystemUI', Line 9  -  Studio
-  15:32:07.163  Stack End  -  Studio
-  15:32:07.163  Failed to load module directly: CachingSystemUI. Trying alternative methods...  -  Edit - src:28
-  15:32:07.164  Failed to resolve module: CachingSystemUI  -  Edit - src:53
-  15:32:07.164  Attempted to call require with invalid argument(s).  -  Edit - LoadTesting:12
-  15:32:07.164  Stack Begin  -  Studio
-  15:32:07.165  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.LoadTesting', Line 12  -  Studio
-  15:32:07.165  Stack End  -  Studio
-  15:32:07.165  Failed to load module directly: LoadTesting. Trying alternative methods...  -  Edit - src:28
-  15:32:07.166  Failed to resolve module: LoadTesting  -  Edit - src:53
-  15:32:07.166  Attempted to call require with invalid argument(s).  -  Edit - LoadTestingUI:9
-  15:32:07.167  Stack Begin  -  Studio
-  15:32:07.168  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.LoadTestingUI', Line 9  -  Studio
-  15:32:07.168  Stack End  -  Studio
-  15:32:07.169  Failed to load module directly: LoadTestingUI. Trying alternative methods...  -  Edit - src:28
-  15:32:07.170  Failed to resolve module: LoadTestingUI  -  Edit - src:53
-  15:32:07.170  Failed to load module directly: CodeGenerator. Trying alternative methods...  -  Edit - src:28
-  15:32:07.171  Failed to resolve module: CodeGenerator  -  Edit - src:53
-  15:32:07.171  Attempted to call require with invalid argument(s).  -  Edit - CodeGeneratorUI:9
-  15:32:07.172  Stack Begin  -  Studio
-  15:32:07.172  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CodeGeneratorUI', Line 9  -  Studio
-  15:32:07.172  Stack End  -  Studio
-  15:32:07.173  Failed to load module directly: CodeGeneratorUI. Trying alternative methods...  -  Edit - src:28
-  15:32:07.173  Failed to resolve module: CodeGeneratorUI  -  Edit - src:53
-  15:32:07.174  Attempted to call require with invalid argument(s).  -  Edit - AccessControlUI:14
-  15:32:07.174  Stack Begin  -  Studio
-  15:32:07.175  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.AccessControlUI', Line 14  -  Studio
-  15:32:07.175  Stack End  -  Studio
-  15:32:07.175  Failed to load module directly: AccessControlUI. Trying alternative methods...  -  Edit - src:28
-  15:32:07.176  Failed to resolve module: AccessControlUI  -  Edit - src:53
-  15:32:07.178  Requested module experienced an error while loading  -  Edit - AccessControlIntegration:10
-  15:32:07.178  Stack Begin  -  Studio
-  15:32:07.179  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.AccessControlIntegration', Line 10  -  Studio
-  15:32:07.179  Stack End  -  Studio
-  15:32:07.182  Attempted to call require with invalid argument(s).  -  Edit - BulkOperationsManager:8
-  15:32:07.182  Stack Begin  -  Studio
-  15:32:07.182  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.BulkOperationsManager', Line 8  -  Studio
-  15:32:07.182  Stack End  -  Studio
-  15:32:07.193  Attempted to call require with invalid argument(s).  -  Edit - BulkOperationsUI:7
-  15:32:07.194  Stack Begin  -  Studio
-  15:32:07.194  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.BulkOperationsUI', Line 7  -  Studio
-  15:32:07.194  Stack End  -  Studio
-  15:32:07.201  Attempted to call require with invalid argument(s).  -  Edit - CachingSystemUI:9
-  15:32:07.202  Stack Begin  -  Studio
-  15:32:07.202  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CachingSystemUI', Line 9  -  Studio
-  15:32:07.203  Stack End  -  Studio
-  15:32:07.204  Requested module experienced an error while loading  -  Edit - CodeGeneratorIntegration:9
-  15:32:07.204  Stack Begin  -  Studio
-  15:32:07.204  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CodeGeneratorIntegration', Line 9  -  Studio
-  15:32:07.204  Stack End  -  Studio
-  15:32:07.214  Attempt to connect failed: Passed value is not a function  -  Studio
-  15:32:07.214  Stack Begin  -  Studio
-  15:32:07.214  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer', Line 472  -  Studio
-  15:32:07.214  Stack End  -  Studio
-  15:32:07.215  user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer:549: attempt to call a nil value  -  Edit - DataExplorer:549
-  15:32:07.215  Stack Begin  -  Studio
-  15:32:07.215  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer', Line 549  -  Studio
-  15:32:07.215  Stack End  -  Studio
-  15:32:07.216  Attempted to call require with invalid argument(s).  -  Edit - DataMigrationTools:24
-  15:32:07.217  Stack Begin  -  Studio
-  15:32:07.217  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataMigrationTools', Line 24  -  Studio
-  15:32:07.217  Stack End  -  Studio
-  15:32:07.222  Attempted to call require with invalid argument(s).  -  Edit - DataMigrationUI:15
-  15:32:07.222  Stack Begin  -  Studio
-  15:32:07.222  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataMigrationUI', Line 15  -  Studio
-  15:32:07.222  Stack End  -  Studio
-  15:32:07.224  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
-  15:32:07.224  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  15:32:07.225  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
-  15:32:07.225  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  15:32:07.225  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
-  15:32:07.225  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
-  15:32:07.231  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboard:8
-  15:32:07.231  Stack Begin  -  Studio
-  15:32:07.232  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboard', Line 8  -  Studio
-  15:32:07.232  Stack End  -  Studio
-  15:32:07.237  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboardUI:8
-  15:32:07.237  Stack Begin  -  Studio
-  15:32:07.237  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboardUI', Line 8  -  Studio
-  15:32:07.238  Stack End  -  Studio
-  15:32:07.240  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
-  15:32:07.241  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
-  15:32:07.241  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
-  15:32:07.242  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
-  15:32:07.245  Attempted to call require with invalid argument(s).  -  Edit - MultiServerCoordinationUI:7
-  15:32:07.246  Stack Begin  -  Studio
-  15:32:07.246  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MultiServerCoordinationUI', Line 7  -  Studio
-  15:32:07.246  Stack End  -  Studio
-  15:32:07.247  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzer:12
-  15:32:07.247  Stack Begin  -  Studio
-  15:32:07.248  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzer', Line 12  -  Studio
-  15:32:07.248  Stack End  -  Studio
-  15:32:07.249  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
-  15:32:07.253  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzerUI:12
-  15:32:07.253  Stack Begin  -  Studio
-  15:32:07.253  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  15:32:07.254  Stack End  -  Studio
-  15:32:07.255  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
-  15:32:07.258  Attempted to call require with invalid argument(s).  -  Edit - SchemaBuilderUI:7
-  15:32:07.259  Stack Begin  -  Studio
-  15:32:07.259  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaBuilderUI', Line 7  -  Studio
-  15:32:07.259  Stack End  -  Studio
-  15:32:07.261  Attempted to call require with invalid argument(s).  -  Edit - SchemaEditor:4
-  15:32:07.261  Stack Begin  -  Studio
-  15:32:07.261  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaEditor', Line 4  -  Studio
-  15:32:07.261  Stack End  -  Studio
-  15:32:07.262  ModuleResolver: Failed to resolve module: SchemaVersioning  -  Edit - ModuleResolver:47
-  15:32:07.263  Attempted to call require with invalid argument(s).  -  Edit - SchemaVersionViewer:5
-  15:32:07.263  Stack Begin  -  Studio
-  15:32:07.263  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaVersionViewer', Line 5  -  Studio
-  15:32:07.264  Stack End  -  Studio
-  15:32:07.266  Attempted to call require with invalid argument(s).  -  Edit - SessionManagementUI:4
-  15:32:07.266  Stack Begin  -  Studio
-  15:32:07.267  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SessionManagementUI', Line 4  -  Studio
-  15:32:07.267  Stack End  -  Studio
-  15:32:07.269  Running module resolver update...  -  Edit - InstallModuleResolver:7
-  15:32:07.269  Could not find init script  -  Edit - InstallModuleResolver:12
-  15:32:07.291  Using dummy implementation of SessionManager.initialize()  -  Edit - ModuleResolver:50
-  15:32:07.292  DataStoreManager initialized with session ID: {88d16cd4-d531-4074-9672-d3d5857608dc}  -  Edit - DataStoreManager:284
-  15:32:07.292  Using dummy implementation of MonitoringDashboard.initialize()  -  Edit - src:58
-  15:32:07.292  Using dummy implementation of MonitoringDashboardUI.initialize()  -  Edit - src:58
-  15:32:07.292  Using dummy implementation of DataMigrationTools.initialize()  -  Edit - src:58
-  15:32:07.490  Using dummy implementation of MultiServerCoordinationUI.initialize()  -  Edit - src:58
-  15:32:07.490  Using dummy implementation of PerformanceAnalyzer.initialize()  -  Edit - src:58
-  15:32:07.491  Using dummy implementation of PerformanceAnalyzerUI.initialize()  -  Edit - src:58
-  15:32:07.491  Using dummy implementation of CachingSystemUI.initialize()  -  Edit - src:58
-  15:32:07.491  Using dummy implementation of CodeGenerator.initialize()  -  Edit - src:58
-  15:32:07.492  Using dummy implementation of CodeGeneratorUI.initialize()  -  Edit - src:58
-  15:32:07.492  APIIntegration: Initializing module...  -  Edit - APIIntegration:23
-  15:32:07.492  APIIntegrationUI: Initializing module...  -  Edit - APIIntegrationUI:15
-  15:32:07.492  APIIntegration: Initializing module...  -  Edit - APIIntegration:23
-  15:32:07.492  AccessControl: Initializing module...  -  Edit - AccessControl:23
-  15:32:07.493  Using dummy implementation of AccessControlUI.initialize()  -  Edit - src:58
-  15:32:07.493  MultiServerCoordinationIntegration: Initializing module...  -  Edit - MultiServerCoordinationIntegration:28
-  15:32:07.493  Using dummy implementation of PerformanceAnalyzerIntegration.initialize()  -  Edit - src:58
-  15:32:07.493  user_DataStorePlugin.rbxmx.DataStorePlugin.src:147: attempt to index nil with 'Click'  -  Edit - src:147
-  15:32:07.493  Stack Begin  -  Studio
-  15:32:07.494  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src', Line 147  -  Studio
-  15:32:07.494  Stack End  -  Studio
+15:41:58.797  Plugin successfully saved as C:/Users/dpearson/AppData/Local/Roblox/Plugins/DataStorePlugin.rbxmx  -  Studio
+  15:41:59.271  DataStore Manager Pro plugin running in non-plugin context (possibly Argon)  -  Edit - src:76
+  15:41:59.272  Failed to load module from Parent: DataStoreManager. Trying script child...  -  Edit - src:28
+  15:41:59.280  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
+  15:41:59.281  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  15:41:59.281  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
+  15:41:59.282  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  15:41:59.282  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
+  15:41:59.283  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
+  15:41:59.286  ModuleResolver: Failed to resolve module: DataStoreManager  -  Edit - ModuleResolver:47
+  15:41:59.286  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  15:41:59.286  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
+  15:41:59.287  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
+  15:41:59.287  Failed to load module from Parent: DataExplorer. Trying script child...  -  Edit - src:28
+  15:41:59.287  Failed to load module as script child: DataExplorer. Trying string require...  -  Edit - src:39
+  15:41:59.287  Failed to resolve module: DataExplorer  -  Edit - src:50
+  15:41:59.288  Failed to load module from Parent: PerformanceMonitor. Trying script child...  -  Edit - src:28
+  15:41:59.289  Failed to load module as script child: PerformanceMonitor. Trying string require...  -  Edit - src:39
+  15:41:59.290  Failed to resolve module: PerformanceMonitor  -  Edit - src:50
+  15:41:59.290  Failed to load module from Parent: SchemaManager. Trying script child...  -  Edit - src:28
+  15:41:59.291  Failed to load module as script child: SchemaManager. Trying string require...  -  Edit - src:39
+  15:41:59.292  Failed to resolve module: SchemaManager  -  Edit - src:50
+  15:41:59.292  Failed to load module from Parent: SessionManager. Trying script child...  -  Edit - src:28
+  15:41:59.292  Failed to load module as script child: SessionManager. Trying string require...  -  Edit - src:39
+  15:41:59.293  Failed to resolve module: SessionManager  -  Edit - src:50
+  15:41:59.293  Failed to load module from Parent: CacheManager. Trying script child...  -  Edit - src:28
+  15:41:59.293  Failed to load module as script child: CacheManager. Trying string require...  -  Edit - src:39
+  15:41:59.294  Failed to resolve module: CacheManager  -  Edit - src:50
+  15:41:59.294  Failed to load module from Parent: SchemaValidator. Trying script child...  -  Edit - src:28
+  15:41:59.295  Failed to load module as script child: SchemaValidator. Trying string require...  -  Edit - src:39
+  15:41:59.295  Failed to resolve module: SchemaValidator  -  Edit - src:50
+  15:41:59.295  Failed to load module from Parent: SecurityManager. Trying script child...  -  Edit - src:28
+  15:41:59.296  Failed to load module as script child: SecurityManager. Trying string require...  -  Edit - src:39
+  15:41:59.296  Failed to resolve module: SecurityManager  -  Edit - src:50
+  15:41:59.297  Failed to load module from Parent: DataVisualization. Trying script child...  -  Edit - src:28
+  15:41:59.297  Failed to load module as script child: DataVisualization. Trying string require...  -  Edit - src:39
+  15:41:59.298  Failed to resolve module: DataVisualization  -  Edit - src:50
+  15:41:59.298  Failed to load module from Parent: StyleGuide. Trying script child...  -  Edit - src:28
+  15:41:59.299  Failed to load module as script child: StyleGuide. Trying string require...  -  Edit - src:39
+  15:41:59.299  Failed to resolve module: StyleGuide  -  Edit - src:50
+  15:41:59.299  Failed to load module from Parent: SchemaEditor. Trying script child...  -  Edit - src:28
+  15:41:59.300  Failed to load module as script child: SchemaEditor. Trying string require...  -  Edit - src:39
+  15:41:59.300  Failed to resolve module: SchemaEditor  -  Edit - src:50
+  15:41:59.300  Failed to load module from Parent: MonitoringDashboard. Trying script child...  -  Edit - src:28
+  15:41:59.301  Failed to load module as script child: MonitoringDashboard. Trying string require...  -  Edit - src:39
+  15:41:59.301  Failed to resolve module: MonitoringDashboard  -  Edit - src:50
+  15:41:59.301  Failed to load module from Parent: MonitoringDashboardUI. Trying script child...  -  Edit - src:28
+  15:41:59.314  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboardUI:8
+  15:41:59.314  Stack Begin  -  Studio
+  15:41:59.314  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboardUI', Line 8  -  Studio
+  15:41:59.315  Stack End  -  Studio
+  15:41:59.315  Failed to load module as script child: MonitoringDashboardUI. Trying string require...  -  Edit - src:39
+  15:41:59.315  Failed to resolve module: MonitoringDashboardUI  -  Edit - src:50
+  15:41:59.315  Failed to load module from Parent: DataMigrationTools. Trying script child...  -  Edit - src:28
+  15:41:59.316  Failed to load module as script child: DataMigrationTools. Trying string require...  -  Edit - src:39
+  15:41:59.316  Failed to resolve module: DataMigrationTools  -  Edit - src:50
+  15:41:59.316  Failed to load module from Parent: MultiServerCoordination. Trying script child...  -  Edit - src:28
+  15:41:59.317  Failed to load module from Parent: MultiServerCoordinationUI. Trying script child...  -  Edit - src:28
+  15:41:59.323  Attempted to call require with invalid argument(s).  -  Edit - MultiServerCoordinationUI:7
+  15:41:59.323  Stack Begin  -  Studio
+  15:41:59.323  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MultiServerCoordinationUI', Line 7  -  Studio
+  15:41:59.323  Stack End  -  Studio
+  15:41:59.323  Failed to load module as script child: MultiServerCoordinationUI. Trying string require...  -  Edit - src:39
+  15:41:59.324  Failed to resolve module: MultiServerCoordinationUI  -  Edit - src:50
+  15:41:59.324  Failed to load module from Parent: MultiServerCoordinationIntegration. Trying script child...  -  Edit - src:28
+  15:41:59.325  Failed to load module from Parent: PerformanceAnalyzer. Trying script child...  -  Edit - src:28
+  15:41:59.327  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzer:12
+  15:41:59.327  Stack Begin  -  Studio
+  15:41:59.327  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzer', Line 12  -  Studio
+  15:41:59.327  Stack End  -  Studio
+  15:41:59.328  Failed to load module as script child: PerformanceAnalyzer. Trying string require...  -  Edit - src:39
+  15:41:59.328  Failed to resolve module: PerformanceAnalyzer  -  Edit - src:50
+  15:41:59.328  Failed to load module from Parent: PerformanceAnalyzerUI. Trying script child...  -  Edit - src:28
+  15:41:59.334  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzerUI:12
+  15:41:59.334  Stack Begin  -  Studio
+  15:41:59.335  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  15:41:59.335  Stack End  -  Studio
+  15:41:59.335  Failed to load module as script child: PerformanceAnalyzerUI. Trying string require...  -  Edit - src:39
+  15:41:59.335  Failed to resolve module: PerformanceAnalyzerUI  -  Edit - src:50
+  15:41:59.336  Failed to load module from Parent: PerformanceAnalyzerIntegration. Trying script child...  -  Edit - src:28
+  15:41:59.336  Failed to load module as script child: PerformanceAnalyzerIntegration. Trying string require...  -  Edit - src:39
+  15:41:59.337  Failed to resolve module: PerformanceAnalyzerIntegration  -  Edit - src:50
+  15:41:59.337  Failed to load module from Parent: CachingSystemUI. Trying script child...  -  Edit - src:28
+  15:41:59.356  Attempted to call require with invalid argument(s).  -  Edit - CachingSystemUI:9
+  15:41:59.356  Stack Begin  -  Studio
+  15:41:59.356  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CachingSystemUI', Line 9  -  Studio
+  15:41:59.356  Stack End  -  Studio
+  15:41:59.357  Failed to load module as script child: CachingSystemUI. Trying string require...  -  Edit - src:39
+  15:41:59.357  Failed to resolve module: CachingSystemUI  -  Edit - src:50
+  15:41:59.357  Failed to load module from Parent: LoadTesting. Trying script child...  -  Edit - src:28
+  15:41:59.360  Attempted to call require with invalid argument(s).  -  Edit - LoadTesting:12
+  15:41:59.360  Stack Begin  -  Studio
+  15:41:59.361  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.LoadTesting', Line 12  -  Studio
+  15:41:59.361  Stack End  -  Studio
+  15:41:59.361  Failed to load module as script child: LoadTesting. Trying string require...  -  Edit - src:39
+  15:41:59.361  Failed to resolve module: LoadTesting  -  Edit - src:50
+  15:41:59.362  Failed to load module from Parent: LoadTestingUI. Trying script child...  -  Edit - src:28
+  15:41:59.373  Attempted to call require with invalid argument(s).  -  Edit - LoadTestingUI:9
+  15:41:59.373  Stack Begin  -  Studio
+  15:41:59.373  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.LoadTestingUI', Line 9  -  Studio
+  15:41:59.373  Stack End  -  Studio
+  15:41:59.374  Failed to load module as script child: LoadTestingUI. Trying string require...  -  Edit - src:39
+  15:41:59.374  Failed to resolve module: LoadTestingUI  -  Edit - src:50
+  15:41:59.374  Failed to load module from Parent: CodeGenerator. Trying script child...  -  Edit - src:28
+  15:41:59.374  Failed to load module as script child: CodeGenerator. Trying string require...  -  Edit - src:39
+  15:41:59.375  Failed to resolve module: CodeGenerator  -  Edit - src:50
+  15:41:59.375  Failed to load module from Parent: CodeGeneratorUI. Trying script child...  -  Edit - src:28
+  15:41:59.383  Attempted to call require with invalid argument(s).  -  Edit - CodeGeneratorUI:9
+  15:41:59.383  Stack Begin  -  Studio
+  15:41:59.383  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CodeGeneratorUI', Line 9  -  Studio
+  15:41:59.384  Stack End  -  Studio
+  15:41:59.384  Failed to load module as script child: CodeGeneratorUI. Trying string require...  -  Edit - src:39
+  15:41:59.384  Failed to resolve module: CodeGeneratorUI  -  Edit - src:50
+  15:41:59.384  Failed to load module from Parent: APIIntegration. Trying script child...  -  Edit - src:28
+  15:41:59.387  Failed to load module from Parent: APIIntegrationUI. Trying script child...  -  Edit - src:28
+  15:41:59.402  Failed to load module from Parent: AccessControl. Trying script child...  -  Edit - src:28
+  15:41:59.404  Failed to load module from Parent: AccessControlUI. Trying script child...  -  Edit - src:28
+  15:41:59.415  Attempted to call require with invalid argument(s).  -  Edit - AccessControlUI:14
+  15:41:59.415  Stack Begin  -  Studio
+  15:41:59.415  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.AccessControlUI', Line 14  -  Studio
+  15:41:59.415  Stack End  -  Studio
+  15:41:59.416  Failed to load module as script child: AccessControlUI. Trying string require...  -  Edit - src:39
+  15:41:59.416  Failed to resolve module: AccessControlUI  -  Edit - src:50
+  15:41:59.417  Requested module experienced an error while loading  -  Edit - AccessControlIntegration:10
+  15:41:59.417  Stack Begin  -  Studio
+  15:41:59.418  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.AccessControlIntegration', Line 10  -  Studio
+  15:41:59.418  Stack End  -  Studio
+  15:41:59.420  Attempted to call require with invalid argument(s).  -  Edit - BulkOperationsManager:8
+  15:41:59.420  Stack Begin  -  Studio
+  15:41:59.421  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.BulkOperationsManager', Line 8  -  Studio
+  15:41:59.421  Stack End  -  Studio
+  15:41:59.439  Attempted to call require with invalid argument(s).  -  Edit - BulkOperationsUI:7
+  15:41:59.439  Stack Begin  -  Studio
+  15:41:59.439  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.BulkOperationsUI', Line 7  -  Studio
+  15:41:59.439  Stack End  -  Studio
+  15:41:59.457  Attempted to call require with invalid argument(s).  -  Edit - CachingSystemUI:9
+  15:41:59.457  Stack Begin  -  Studio
+  15:41:59.457  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CachingSystemUI', Line 9  -  Studio
+  15:41:59.457  Stack End  -  Studio
+  15:41:59.460  Requested module experienced an error while loading  -  Edit - CodeGeneratorIntegration:9
+  15:41:59.460  Stack Begin  -  Studio
+  15:41:59.460  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CodeGeneratorIntegration', Line 9  -  Studio
+  15:41:59.461  Stack End  -  Studio
+  15:41:59.483  Attempt to connect failed: Passed value is not a function  -  Studio
+  15:41:59.484  Stack Begin  -  Studio
+  15:41:59.484  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer', Line 472  -  Studio
+  15:41:59.484  Stack End  -  Studio
+  15:41:59.484  user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer:549: attempt to call a nil value  -  Edit - DataExplorer:549
+  15:41:59.484  Stack Begin  -  Studio
+  15:41:59.484  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer', Line 549  -  Studio
+  15:41:59.485  Stack End  -  Studio
+  15:41:59.486  Attempted to call require with invalid argument(s).  -  Edit - DataMigrationTools:24
+  15:41:59.487  Stack Begin  -  Studio
+  15:41:59.487  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataMigrationTools', Line 24  -  Studio
+  15:41:59.487  Stack End  -  Studio
+  15:41:59.495  Attempted to call require with invalid argument(s).  -  Edit - DataMigrationUI:15
+  15:41:59.495  Stack Begin  -  Studio
+  15:41:59.495  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataMigrationUI', Line 15  -  Studio
+  15:41:59.496  Stack End  -  Studio
+  15:41:59.497  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
+  15:41:59.497  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  15:41:59.497  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
+  15:41:59.497  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  15:41:59.497  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
+  15:41:59.498  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
+  15:41:59.503  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboard:8
+  15:41:59.503  Stack Begin  -  Studio
+  15:41:59.504  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboard', Line 8  -  Studio
+  15:41:59.504  Stack End  -  Studio
+  15:41:59.513  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboardUI:8
+  15:41:59.514  Stack Begin  -  Studio
+  15:41:59.514  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboardUI', Line 8  -  Studio
+  15:41:59.515  Stack End  -  Studio
+  15:41:59.518  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  15:41:59.518  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
+  15:41:59.520  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
+  15:41:59.521  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
+  15:41:59.532  Attempted to call require with invalid argument(s).  -  Edit - MultiServerCoordinationUI:7
+  15:41:59.532  Stack Begin  -  Studio
+  15:41:59.533  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MultiServerCoordinationUI', Line 7  -  Studio
+  15:41:59.533  Stack End  -  Studio
+  15:41:59.535  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzer:12
+  15:41:59.536  Stack Begin  -  Studio
+  15:41:59.536  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzer', Line 12  -  Studio
+  15:41:59.536  Stack End  -  Studio
+  15:41:59.538  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
+  15:41:59.550  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzerUI:12
+  15:41:59.550  Stack Begin  -  Studio
+  15:41:59.551  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  15:41:59.551  Stack End  -  Studio
+  15:41:59.554  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  15:41:59.565  Attempted to call require with invalid argument(s).  -  Edit - SchemaBuilderUI:7
+  15:41:59.565  Stack Begin  -  Studio
+  15:41:59.566  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaBuilderUI', Line 7  -  Studio
+  15:41:59.566  Stack End  -  Studio
+  15:41:59.571  Attempted to call require with invalid argument(s).  -  Edit - SchemaEditor:4
+  15:41:59.571  Stack Begin  -  Studio
+  15:41:59.571  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaEditor', Line 4  -  Studio
+  15:41:59.571  Stack End  -  Studio
+  15:41:59.573  ModuleResolver: Failed to resolve module: SchemaVersioning  -  Edit - ModuleResolver:47
+  15:41:59.576  Attempted to call require with invalid argument(s).  -  Edit - SchemaVersionViewer:5
+  15:41:59.576  Stack Begin  -  Studio
+  15:41:59.576  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaVersionViewer', Line 5  -  Studio
+  15:41:59.577  Stack End  -  Studio
+  15:41:59.582  Attempted to call require with invalid argument(s).  -  Edit - SessionManagementUI:4
+  15:41:59.583  Stack Begin  -  Studio
+  15:41:59.583  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SessionManagementUI', Line 4  -  Studio
+  15:41:59.583  Stack End  -  Studio
+  15:41:59.587  Running module resolver update...  -  Edit - InstallModuleResolver:7
+  15:41:59.587  Could not find init script  -  Edit - InstallModuleResolver:12
+  15:41:59.639  Using dummy implementation of SessionManager.initialize()  -  Edit - ModuleResolver:50
+  15:41:59.639  DataStoreManager initialized with session ID: {382383d9-2b89-45a5-ac59-327cb7e8960e}  -  Edit - DataStoreManager:284
+  15:41:59.640  Using dummy implementation of MonitoringDashboard.initialize()  -  Edit - src:55
+  15:41:59.640  Using dummy implementation of MonitoringDashboardUI.initialize()  -  Edit - src:55
+  15:41:59.640  Using dummy implementation of DataMigrationTools.initialize()  -  Edit - src:55
+  15:41:59.938  DataStore Manager Pro plugin running in non-plugin context (possibly Argon)  -  Edit - src:76
+  15:41:59.938  Failed to load module from Parent: DataStoreManager. Trying script child...  -  Edit - src:28
+  15:41:59.940  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
+  15:41:59.942  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  15:41:59.942  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
+  15:41:59.943  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  15:41:59.943  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
+  15:41:59.944  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
+  15:41:59.944  ModuleResolver: Failed to resolve module: DataStoreManager  -  Edit - ModuleResolver:47
+  15:41:59.945  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  15:41:59.945  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
+  15:41:59.946  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
+  15:41:59.947  Failed to load module from Parent: DataExplorer. Trying script child...  -  Edit - src:28
+  15:41:59.947  Failed to load module as script child: DataExplorer. Trying string require...  -  Edit - src:39
+  15:41:59.947  Failed to resolve module: DataExplorer  -  Edit - src:50
+  15:41:59.948  Failed to load module from Parent: PerformanceMonitor. Trying script child...  -  Edit - src:28
+  15:41:59.948  Failed to load module as script child: PerformanceMonitor. Trying string require...  -  Edit - src:39
+  15:41:59.949  Failed to resolve module: PerformanceMonitor  -  Edit - src:50
+  15:41:59.949  Failed to load module from Parent: SchemaManager. Trying script child...  -  Edit - src:28
+  15:41:59.949  Failed to load module as script child: SchemaManager. Trying string require...  -  Edit - src:39
+  15:41:59.950  Failed to resolve module: SchemaManager  -  Edit - src:50
+  15:41:59.950  Failed to load module from Parent: SessionManager. Trying script child...  -  Edit - src:28
+  15:41:59.951  Failed to load module as script child: SessionManager. Trying string require...  -  Edit - src:39
+  15:41:59.951  Failed to resolve module: SessionManager  -  Edit - src:50
+  15:41:59.952  Failed to load module from Parent: CacheManager. Trying script child...  -  Edit - src:28
+  15:41:59.952  Failed to load module as script child: CacheManager. Trying string require...  -  Edit - src:39
+  15:41:59.952  Failed to resolve module: CacheManager  -  Edit - src:50
+  15:41:59.952  Failed to load module from Parent: SchemaValidator. Trying script child...  -  Edit - src:28
+  15:41:59.953  Failed to load module as script child: SchemaValidator. Trying string require...  -  Edit - src:39
+  15:41:59.953  Failed to resolve module: SchemaValidator  -  Edit - src:50
+  15:41:59.953  Failed to load module from Parent: SecurityManager. Trying script child...  -  Edit - src:28
+  15:41:59.954  Failed to load module as script child: SecurityManager. Trying string require...  -  Edit - src:39
+  15:41:59.954  Failed to resolve module: SecurityManager  -  Edit - src:50
+  15:41:59.954  Failed to load module from Parent: DataVisualization. Trying script child...  -  Edit - src:28
+  15:41:59.954  Failed to load module as script child: DataVisualization. Trying string require...  -  Edit - src:39
+  15:41:59.955  Failed to resolve module: DataVisualization  -  Edit - src:50
+  15:41:59.955  Failed to load module from Parent: StyleGuide. Trying script child...  -  Edit - src:28
+  15:41:59.956  Failed to load module as script child: StyleGuide. Trying string require...  -  Edit - src:39
+  15:41:59.956  Failed to resolve module: StyleGuide  -  Edit - src:50
+  15:41:59.957  Failed to load module from Parent: SchemaEditor. Trying script child...  -  Edit - src:28
+  15:41:59.957  Failed to load module as script child: SchemaEditor. Trying string require...  -  Edit - src:39
+  15:41:59.957  Failed to resolve module: SchemaEditor  -  Edit - src:50
+  15:41:59.957  Failed to load module from Parent: MonitoringDashboard. Trying script child...  -  Edit - src:28
+  15:41:59.958  Failed to load module as script child: MonitoringDashboard. Trying string require...  -  Edit - src:39
+  15:41:59.958  Failed to resolve module: MonitoringDashboard  -  Edit - src:50
+  15:41:59.958  Failed to load module from Parent: MonitoringDashboardUI. Trying script child...  -  Edit - src:28
+  15:41:59.959  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboardUI:8
+  15:41:59.959  Stack Begin  -  Studio
+  15:41:59.959  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboardUI', Line 8  -  Studio
+  15:41:59.960  Stack End  -  Studio
+  15:41:59.960  Failed to load module as script child: MonitoringDashboardUI. Trying string require...  -  Edit - src:39
+  15:41:59.960  Failed to resolve module: MonitoringDashboardUI  -  Edit - src:50
+  15:41:59.960  Failed to load module from Parent: DataMigrationTools. Trying script child...  -  Edit - src:28
+  15:41:59.961  Failed to load module as script child: DataMigrationTools. Trying string require...  -  Edit - src:39
+  15:41:59.961  Failed to resolve module: DataMigrationTools  -  Edit - src:50
+  15:41:59.961  Failed to load module from Parent: MultiServerCoordination. Trying script child...  -  Edit - src:28
+  15:41:59.962  Failed to load module from Parent: MultiServerCoordinationUI. Trying script child...  -  Edit - src:28
+  15:41:59.962  Attempted to call require with invalid argument(s).  -  Edit - MultiServerCoordinationUI:7
+  15:41:59.963  Stack Begin  -  Studio
+  15:41:59.963  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MultiServerCoordinationUI', Line 7  -  Studio
+  15:41:59.964  Stack End  -  Studio
+  15:41:59.964  Failed to load module as script child: MultiServerCoordinationUI. Trying string require...  -  Edit - src:39
+  15:41:59.964  Failed to resolve module: MultiServerCoordinationUI  -  Edit - src:50
+  15:41:59.965  Failed to load module from Parent: MultiServerCoordinationIntegration. Trying script child...  -  Edit - src:28
+  15:41:59.966  Failed to load module from Parent: PerformanceAnalyzer. Trying script child...  -  Edit - src:28
+  15:41:59.966  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzer:12
+  15:41:59.966  Stack Begin  -  Studio
+  15:41:59.967  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzer', Line 12  -  Studio
+  15:41:59.967  Stack End  -  Studio
+  15:41:59.968  Failed to load module as script child: PerformanceAnalyzer. Trying string require...  -  Edit - src:39
+  15:41:59.969  Failed to resolve module: PerformanceAnalyzer  -  Edit - src:50
+  15:41:59.969  Failed to load module from Parent: PerformanceAnalyzerUI. Trying script child...  -  Edit - src:28
+  15:41:59.970  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzerUI:12
+  15:41:59.970  Stack Begin  -  Studio
+  15:41:59.970  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  15:41:59.970  Stack End  -  Studio
+  15:41:59.971  Failed to load module as script child: PerformanceAnalyzerUI. Trying string require...  -  Edit - src:39
+  15:41:59.971  Failed to resolve module: PerformanceAnalyzerUI  -  Edit - src:50
+  15:41:59.972  Failed to load module from Parent: PerformanceAnalyzerIntegration. Trying script child...  -  Edit - src:28
+  15:41:59.972  Failed to load module as script child: PerformanceAnalyzerIntegration. Trying string require...  -  Edit - src:39
+  15:41:59.972  Failed to resolve module: PerformanceAnalyzerIntegration  -  Edit - src:50
+  15:41:59.973  Failed to load module from Parent: CachingSystemUI. Trying script child...  -  Edit - src:28
+  15:41:59.974  Attempted to call require with invalid argument(s).  -  Edit - CachingSystemUI:9
+  15:41:59.974  Stack Begin  -  Studio
+  15:41:59.974  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CachingSystemUI', Line 9  -  Studio
+  15:41:59.974  Stack End  -  Studio
+  15:41:59.974  Failed to load module as script child: CachingSystemUI. Trying string require...  -  Edit - src:39
+  15:41:59.975  Failed to resolve module: CachingSystemUI  -  Edit - src:50
+  15:41:59.975  Failed to load module from Parent: LoadTesting. Trying script child...  -  Edit - src:28
+  15:41:59.975  Attempted to call require with invalid argument(s).  -  Edit - LoadTesting:12
+  15:41:59.976  Stack Begin  -  Studio
+  15:41:59.976  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.LoadTesting', Line 12  -  Studio
+  15:41:59.976  Stack End  -  Studio
+  15:41:59.976  Failed to load module as script child: LoadTesting. Trying string require...  -  Edit - src:39
+  15:41:59.977  Failed to resolve module: LoadTesting  -  Edit - src:50
+  15:41:59.977  Failed to load module from Parent: LoadTestingUI. Trying script child...  -  Edit - src:28
+  15:41:59.978  Attempted to call require with invalid argument(s).  -  Edit - LoadTestingUI:9
+  15:41:59.978  Stack Begin  -  Studio
+  15:41:59.978  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.LoadTestingUI', Line 9  -  Studio
+  15:41:59.978  Stack End  -  Studio
+  15:41:59.978  Failed to load module as script child: LoadTestingUI. Trying string require...  -  Edit - src:39
+  15:41:59.979  Failed to resolve module: LoadTestingUI  -  Edit - src:50
+  15:41:59.979  Failed to load module from Parent: CodeGenerator. Trying script child...  -  Edit - src:28
+  15:41:59.980  Failed to load module as script child: CodeGenerator. Trying string require...  -  Edit - src:39
+  15:41:59.980  Failed to resolve module: CodeGenerator  -  Edit - src:50
+  15:41:59.980  Failed to load module from Parent: CodeGeneratorUI. Trying script child...  -  Edit - src:28
+  15:41:59.980  Attempted to call require with invalid argument(s).  -  Edit - CodeGeneratorUI:9
+  15:41:59.981  Stack Begin  -  Studio
+  15:41:59.981  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CodeGeneratorUI', Line 9  -  Studio
+  15:41:59.981  Stack End  -  Studio
+  15:41:59.982  Failed to load module as script child: CodeGeneratorUI. Trying string require...  -  Edit - src:39
+  15:41:59.982  Failed to resolve module: CodeGeneratorUI  -  Edit - src:50
+  15:41:59.983  Failed to load module from Parent: APIIntegration. Trying script child...  -  Edit - src:28
+  15:41:59.983  Failed to load module from Parent: APIIntegrationUI. Trying script child...  -  Edit - src:28
+  15:41:59.983  Failed to load module from Parent: AccessControl. Trying script child...  -  Edit - src:28
+  15:41:59.984  Failed to load module from Parent: AccessControlUI. Trying script child...  -  Edit - src:28
+  15:41:59.984  Attempted to call require with invalid argument(s).  -  Edit - AccessControlUI:14
+  15:41:59.984  Stack Begin  -  Studio
+  15:41:59.985  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.AccessControlUI', Line 14  -  Studio
+  15:41:59.985  Stack End  -  Studio
+  15:41:59.985  Failed to load module as script child: AccessControlUI. Trying string require...  -  Edit - src:39
+  15:41:59.986  Failed to resolve module: AccessControlUI  -  Edit - src:50
+  15:41:59.988  Requested module experienced an error while loading  -  Edit - AccessControlIntegration:10
+  15:41:59.988  Stack Begin  -  Studio
+  15:41:59.989  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.AccessControlIntegration', Line 10  -  Studio
+  15:41:59.989  Stack End  -  Studio
+  15:41:59.994  Attempted to call require with invalid argument(s).  -  Edit - BulkOperationsManager:8
+  15:41:59.994  Stack Begin  -  Studio
+  15:41:59.994  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.BulkOperationsManager', Line 8  -  Studio
+  15:41:59.995  Stack End  -  Studio
+  15:42:00.030  Attempted to call require with invalid argument(s).  -  Edit - BulkOperationsUI:7
+  15:42:00.030  Stack Begin  -  Studio
+  15:42:00.031  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.BulkOperationsUI', Line 7  -  Studio
+  15:42:00.031  Stack End  -  Studio
+  15:42:00.050  Attempted to call require with invalid argument(s).  -  Edit - CachingSystemUI:9
+  15:42:00.051  Stack Begin  -  Studio
+  15:42:00.051  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CachingSystemUI', Line 9  -  Studio
+  15:42:00.051  Stack End  -  Studio
+  15:42:00.052  Requested module experienced an error while loading  -  Edit - CodeGeneratorIntegration:9
+  15:42:00.053  Stack Begin  -  Studio
+  15:42:00.053  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.CodeGeneratorIntegration', Line 9  -  Studio
+  15:42:00.054  Stack End  -  Studio
+  15:42:00.098  Attempt to connect failed: Passed value is not a function  -  Studio
+  15:42:00.099  Stack Begin  -  Studio
+  15:42:00.099  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer', Line 472  -  Studio
+  15:42:00.100  Stack End  -  Studio
+  15:42:00.101  user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer:549: attempt to call a nil value  -  Edit - DataExplorer:549
+  15:42:00.101  Stack Begin  -  Studio
+  15:42:00.102  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataExplorer', Line 549  -  Studio
+  15:42:00.102  Stack End  -  Studio
+  15:42:00.107  Attempted to call require with invalid argument(s).  -  Edit - DataMigrationTools:24
+  15:42:00.108  Stack Begin  -  Studio
+  15:42:00.108  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataMigrationTools', Line 24  -  Studio
+  15:42:00.108  Stack End  -  Studio
+  15:42:00.119  Attempted to call require with invalid argument(s).  -  Edit - DataMigrationUI:15
+  15:42:00.120  Stack Begin  -  Studio
+  15:42:00.120  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.DataMigrationUI', Line 15  -  Studio
+  15:42:00.121  Stack End  -  Studio
+  15:42:00.123  ModuleResolver: Failed to resolve module: CacheManager  -  Edit - ModuleResolver:47
+  15:42:00.123  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  15:42:00.124  ModuleResolver: Failed to resolve module: SchemaValidator  -  Edit - ModuleResolver:47
+  15:42:00.125  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  15:42:00.125  ModuleResolver: Failed to resolve module: PerformanceMonitor  -  Edit - ModuleResolver:47
+  15:42:00.126  ModuleResolver: Failed to resolve module: SecurityManager  -  Edit - ModuleResolver:47
+  15:42:00.141  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboard:8
+  15:42:00.141  Stack Begin  -  Studio
+  15:42:00.142  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboard', Line 8  -  Studio
+  15:42:00.142  Stack End  -  Studio
+  15:42:00.157  Attempted to call require with invalid argument(s).  -  Edit - MonitoringDashboardUI:8
+  15:42:00.157  Stack Begin  -  Studio
+  15:42:00.157  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MonitoringDashboardUI', Line 8  -  Studio
+  15:42:00.158  Stack End  -  Studio
+  15:42:00.161  ModuleResolver: Failed to resolve module: SessionManager  -  Edit - ModuleResolver:47
+  15:42:00.162  ModuleResolver: Failed to resolve module: DataVisualization  -  Edit - ModuleResolver:47
+  15:42:00.162  ModuleResolver: Failed to resolve module: StyleGuide  -  Edit - ModuleResolver:47
+  15:42:00.164  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
+  15:42:00.171  Attempted to call require with invalid argument(s).  -  Edit - MultiServerCoordinationUI:7
+  15:42:00.171  Stack Begin  -  Studio
+  15:42:00.172  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.MultiServerCoordinationUI', Line 7  -  Studio
+  15:42:00.172  Stack End  -  Studio
+  15:42:00.174  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzer:12
+  15:42:00.174  Stack Begin  -  Studio
+  15:42:00.175  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzer', Line 12  -  Studio
+  15:42:00.175  Stack End  -  Studio
+  15:42:00.176  ModuleResolver: Failed to resolve module: DataExplorer  -  Edit - ModuleResolver:47
+  15:42:00.186  Attempted to call require with invalid argument(s).  -  Edit - PerformanceAnalyzerUI:12
+  15:42:00.186  Stack Begin  -  Studio
+  15:42:00.187  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.PerformanceAnalyzerUI', Line 12  -  Studio
+  15:42:00.187  Stack End  -  Studio
+  15:42:00.189  ModuleResolver: Failed to resolve module: SchemaManager  -  Edit - ModuleResolver:47
+  15:42:00.205  Attempted to call require with invalid argument(s).  -  Edit - SchemaBuilderUI:7
+  15:42:00.205  Stack Begin  -  Studio
+  15:42:00.206  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaBuilderUI', Line 7  -  Studio
+  15:42:00.206  Stack End  -  Studio
+  15:42:00.210  Attempted to call require with invalid argument(s).  -  Edit - SchemaEditor:4
+  15:42:00.210  Stack Begin  -  Studio
+  15:42:00.211  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaEditor', Line 4  -  Studio
+  15:42:00.211  Stack End  -  Studio
+  15:42:00.213  ModuleResolver: Failed to resolve module: SchemaVersioning  -  Edit - ModuleResolver:47
+  15:42:00.215  Attempted to call require with invalid argument(s).  -  Edit - SchemaVersionViewer:5
+  15:42:00.215  Stack Begin  -  Studio
+  15:42:00.216  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SchemaVersionViewer', Line 5  -  Studio
+  15:42:00.216  Stack End  -  Studio
+  15:42:00.229  Attempted to call require with invalid argument(s).  -  Edit - SessionManagementUI:4
+  15:42:00.229  Stack Begin  -  Studio
+  15:42:00.229  Script 'user_DataStorePlugin.rbxmx.DataStorePlugin.src.SessionManagementUI', Line 4  -  Studio
+  15:42:00.230  Stack End  -  Studio
+  15:42:00.237  Running module resolver update...  -  Edit - InstallModuleResolver:7
+  15:42:00.238  Could not find init script  -  Edit - InstallModuleResolver:12
+  15:42:00.359  Using dummy implementation of SessionManager.initialize()  -  Edit - ModuleResolver:50
+  15:42:00.359  DataStoreManager initialized with session ID: {4663ba6a-88aa-4657-93cb-e7bc389ac243}  -  Edit - DataStoreManager:284
+  15:42:00.359  Using dummy implementation of MonitoringDashboard.initialize()  -  Edit - src:55
+  15:42:00.359  Using dummy implementation of MonitoringDashboardUI.initialize()  -  Edit - src:55
+  15:42:00.360  Using dummy implementation of DataMigrationTools.initialize()  -  Edit - src:55
+  15:42:00.581  Using dummy implementation of MultiServerCoordinationUI.initialize()  -  Edit - src:55
+  15:42:00.581  Using dummy implementation of PerformanceAnalyzer.initialize()  -  Edit - src:55
+  15:42:00.582  Using dummy implementation of PerformanceAnalyzerUI.initialize()  -  Edit - src:55
+  15:42:00.582  Using dummy implementation of CachingSystemUI.initialize()  -  Edit - src:55
+  15:42:00.582  Using dummy implementation of CodeGenerator.initialize()  -  Edit - src:55
+  15:42:00.583  Using dummy implementation of CodeGeneratorUI.initialize()  -  Edit - src:55
+  15:42:00.583  APIIntegration: Initializing module...  -  Edit - APIIntegration:23
+  15:42:00.583  APIIntegrationUI: Initializing module...  -  Edit - APIIntegrationUI:15
+  15:42:00.583  APIIntegration: Initializing module...  -  Edit - APIIntegration:23
+  15:42:00.584  AccessControl: Initializing module...  -  Edit - AccessControl:23
+  15:42:00.584  Using dummy implementation of AccessControlUI.initialize()  -  Edit - src:55
+  15:42:00.584  MultiServerCoordinationIntegration: Initializing module...  -  Edit - MultiServerCoordinationIntegration:28
+  15:42:00.584  Using dummy implementation of PerformanceAnalyzerIntegration.initialize()  -  Edit - src:55
+  15:42:00.585  DataStore Manager Pro loaded successfully in non-plugin context  -  Edit - src:242
+  15:42:00.585  Plugin Version: 1.0.0  -  Edit - src:243
+  15:42:00.585  Available modules count: 22  -  Edit - src:249
