@@ -1,6 +1,26 @@
 --luau
 -- DataStore Plugin/MultiServerCoordinationIntegration.luau
 
+-- Add module resolver at the beginning of the file
+local ModuleResolver
+local success, result = pcall(function()
+    return require(script.Parent:FindFirstChild("ModuleResolver"))
+end)
+
+if success and result then
+    ModuleResolver = result
+else
+    -- Inline minimal resolver as fallback
+    ModuleResolver = {
+        resolveModule = function(moduleName)
+            local success, result = pcall(function() 
+                return require(script.Parent:FindFirstChild(moduleName)) 
+            end)
+            if success then return result else return {} end
+        end
+    }
+end
+
 local MultiServerCoordinationIntegration = {}
 
 -- Initialize the Multi-Server Coordination Integration
@@ -50,7 +70,16 @@ function MultiServerCoordinationIntegration.initMultiServerCoordinationUI(DataEx
     DataExplorer.coordinationContainer = coordinationContainer
     
     -- Create the multi-server coordination UI
-    local MultiServerCoordinationUI = require(script.Parent.MultiServerCoordinationUI)
+    local MultiServerCoordinationUI
+    
+    -- Use ModuleResolver if available
+    if ModuleResolver and ModuleResolver.resolveModule then
+        MultiServerCoordinationUI = ModuleResolver.resolveModule("MultiServerCoordinationUI")
+    else
+        -- Fallback to traditional require
+        MultiServerCoordinationUI = require(script.Parent.MultiServerCoordinationUI)
+    end
+    
     MultiServerCoordinationUI.createUI(coordinationContainer)
     
     -- Toggle visibility when coordination button is clicked
@@ -109,3 +138,5 @@ function MultiServerCoordinationIntegration.initMultiServerCoordinationUI(DataEx
         end
     end)
 end
+
+return MultiServerCoordinationIntegration

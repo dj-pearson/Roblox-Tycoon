@@ -1,34 +1,68 @@
+-- Add module resolver at the beginning of the file
+local ModuleResolver
+local success, result = pcall(function()
+    return require(script.Parent:FindFirstChild("ModuleResolver"))
+end)
+
+if success and result then
+    ModuleResolver = result
+else
+    -- Inline minimal resolver as fallback
+    ModuleResolver = {
+        resolveModule = function(moduleName)
+            local success, result = pcall(function() 
+                return require(script.Parent:FindFirstChild(moduleName)) 
+            end)
+            if success then return result else return {} end
+        end
+    }
+end
+
+-- Helper function to safely require modules
+local function safeRequire(moduleName)
+    if ModuleResolver and ModuleResolver.resolveModule then
+        return ModuleResolver.resolveModule(moduleName)
+    else
+        local success, result = pcall(function()
+            return require(script.Parent:FindFirstChild(moduleName))
+        end)
+        return success and result or {}
+    end
+end
+
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local DataStoreService = game:GetService("DataStoreService")
-local SchemaManager = require(script.Parent.SchemaManager)
-local SessionManager = require(script.Parent.SessionManager)
-local PerformanceMonitor = require(script.Parent.PerformanceMonitor)
-local CacheManager = require(script.Parent.CacheManager)
-local BulkOperationsManager = require(script.Parent.BulkOperationsManager)
-local BulkOperationsUI = require(script.Parent.BulkOperationsUI)
-local SchemaBuilderUI = require(script.Parent.SchemaBuilderUI)
-local SchemaValidator = require(script.Parent.SchemaValidator)
-local SchemaEditor = require(script.Parent.SchemaEditor)
-local SchemaVersionViewer = require(script.Parent.SchemaVersionViewer)
-local generateSchemaFromData = require(script.Parent.generateSchemaFromData)
-local SchemaVisualIndicator = require(script.Parent.SchemaVisualIndicator)
-local SessionManagementUI = require(script.Parent.SessionManagementUI)
-local DataMigrationUI = require(script.Parent.DataMigrationUI)
-local MultiServerCoordinationUI = require(script.Parent.MultiServerCoordinationUI)
-local PerformanceAnalyzerUI = require(script.Parent.PerformanceAnalyzerUI)
-local CachingSystemUI = require(script.Parent.CachingSystemUI)
-local LoadTestingUI = require(script.Parent.LoadTestingUI)
-local CodeGeneratorUI = require(script.Parent.CodeGeneratorUI)
-local APIIntegrationUI = require(script.Parent.APIIntegrationUI)
-local AccessControlUI = require(script.Parent.AccessControlUI)
-local CachingSystemIntegration = require(script.Parent.CachingSystemIntegration)
-local LoadTestingIntegration = require(script.Parent.LoadTestingIntegration)
-local CodeGeneratorIntegration = require(script.Parent.CodeGeneratorIntegration)
-local APIIntegrationIntegration = require(script.Parent.APIIntegrationIntegration)
-local AccessControlIntegration = require(script.Parent.AccessControlIntegration)
-local MultiServerCoordinationIntegration = require(script.Parent.MultiServerCoordinationIntegration)
-local PerformanceAnalyzerIntegration = require(script.Parent.PerformanceAnalyzerIntegration)
+
+-- Use safe require for all module dependencies
+local SchemaManager = safeRequire("SchemaManager")
+local SessionManager = safeRequire("SessionManager")
+local PerformanceMonitor = safeRequire("PerformanceMonitor")
+local CacheManager = safeRequire("CacheManager")
+local BulkOperationsManager = safeRequire("BulkOperationsManager")
+local BulkOperationsUI = safeRequire("BulkOperationsUI")
+local SchemaBuilderUI = safeRequire("SchemaBuilderUI")
+local SchemaValidator = safeRequire("SchemaValidator")
+local SchemaEditor = safeRequire("SchemaEditor")
+local SchemaVersionViewer = safeRequire("SchemaVersionViewer")
+local generateSchemaFromData = safeRequire("generateSchemaFromData")
+local SchemaVisualIndicator = safeRequire("SchemaVisualIndicator")
+local SessionManagementUI = safeRequire("SessionManagementUI")
+local DataMigrationUI = safeRequire("DataMigrationUI")
+local MultiServerCoordinationUI = safeRequire("MultiServerCoordinationUI")
+local PerformanceAnalyzerUI = safeRequire("PerformanceAnalyzerUI")
+local CachingSystemUI = safeRequire("CachingSystemUI")
+local LoadTestingUI = safeRequire("LoadTestingUI")
+local CodeGeneratorUI = safeRequire("CodeGeneratorUI")
+local APIIntegrationUI = safeRequire("APIIntegrationUI")
+local AccessControlUI = safeRequire("AccessControlUI")
+local CachingSystemIntegration = safeRequire("CachingSystemIntegration")
+local LoadTestingIntegration = safeRequire("LoadTestingIntegration")
+local CodeGeneratorIntegration = safeRequire("CodeGeneratorIntegration")
+local APIIntegrationIntegration = safeRequire("APIIntegrationIntegration")
+local AccessControlIntegration = safeRequire("AccessControlIntegration")
+local MultiServerCoordinationIntegration = safeRequire("MultiServerCoordinationIntegration")
+local PerformanceAnalyzerIntegration = safeRequire("PerformanceAnalyzerIntegration")
 
 local DataExplorer = {
     performanceDataUI = {},

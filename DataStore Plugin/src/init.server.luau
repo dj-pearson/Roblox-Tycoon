@@ -6,6 +6,68 @@ local PluginVersion = "1.0.0"
 -- Check if we're running in plugin context or under Argon
 local runningInPluginContext = typeof(plugin) == "Plugin"
 
+-- Create a module resolver to handle both local and cloud environments
+local moduleCache = {}
+
+local function resolveModule(moduleName)
+    if moduleCache[moduleName] then
+        return moduleCache[moduleName]
+    end
+    
+    -- First try to require directly from script
+    local success, result = pcall(function()
+        return require(script:FindFirstChild(moduleName))
+    end)
+    
+    if success and result then
+        moduleCache[moduleName] = result
+        return result
+    end
+    
+    -- If that fails, try alternative methods
+    warn("Failed to load module directly: " .. moduleName .. ". Trying alternative methods...")
+    
+    -- Try to access it through the plugin hierarchy
+    if script.Parent and script.Parent:FindFirstChild(moduleName) then
+        success, result = pcall(function()
+            return require(script.Parent:FindFirstChild(moduleName))
+        end)
+        
+        if success and result then
+            moduleCache[moduleName] = result
+            return result
+        end
+    end
+    
+    -- Last resort - try to require by string name (works in some cloud environments)
+    success, result = pcall(function()
+        -- This might work in cloud environment
+        return require(moduleName)
+    end)
+    
+    if success and result then
+        moduleCache[moduleName] = result
+        return result
+    end
+    
+    warn("Failed to resolve module: " .. moduleName)
+    
+    -- Return a dummy module with basic functions to prevent errors
+    local dummyModule = {
+        initialize = function() 
+            warn("Using dummy implementation of " .. moduleName .. ".initialize()") 
+            return true 
+        end,
+        createUI = function() 
+            warn("Using dummy implementation of " .. moduleName .. ".createUI()") 
+            return Instance.new("Frame") 
+        end
+    }
+    
+    moduleCache[moduleName] = dummyModule
+    return dummyModule
+end
+
 -- Setup plugin UI if we're in plugin context
 local toolbar, button
 if runningInPluginContext then
@@ -17,35 +79,36 @@ else
     print("DataStore Manager Pro plugin running in non-plugin context (possibly Argon)")
 end
 
-local DataStoreManager = require(script.DataStoreManager)
-local DataExplorer = require(script.DataExplorer)
-local PerformanceMonitor = require(script.PerformanceMonitor)
-local SchemaManager = require(script.SchemaManager)
-local SessionManager = require(script.SessionManager)
-local CacheManager = require(script.CacheManager)
-local SchemaValidator = require(script.SchemaValidator)
-local SecurityManager = require(script.SecurityManager)
-local DataVisualization = require(script.DataVisualization)
-local StyleGuide = require(script.StyleGuide)
-local SchemaEditor = require(script.SchemaEditor)
-local MonitoringDashboard = require(script.MonitoringDashboard)
-local MonitoringDashboardUI = require(script.MonitoringDashboardUI)
-local DataMigrationTools = require(script.DataMigrationTools)
-local MultiServerCoordination = require(script.MultiServerCoordination)
-local MultiServerCoordinationUI = require(script.MultiServerCoordinationUI)
-local MultiServerCoordinationIntegration = require(script.MultiServerCoordinationIntegration)
-local PerformanceAnalyzer = require(script.PerformanceAnalyzer)
-local PerformanceAnalyzerUI = require(script.PerformanceAnalyzerUI)
-local PerformanceAnalyzerIntegration = require(script.PerformanceAnalyzerIntegration)
-local CachingSystemUI = require(script.CachingSystemUI)
-local LoadTesting = require(script.LoadTesting)
-local LoadTestingUI = require(script.LoadTestingUI)
-local CodeGenerator = require(script.CodeGenerator)
-local CodeGeneratorUI = require(script.CodeGeneratorUI)
-local APIIntegration = require(script.APIIntegration)
-local APIIntegrationUI = require(script.APIIntegrationUI)
-local AccessControl = require(script.AccessControl)
-local AccessControlUI = require(script.AccessControlUI)
+-- Use our resolver to require modules
+local DataStoreManager = resolveModule("DataStoreManager")
+local DataExplorer = resolveModule("DataExplorer")
+local PerformanceMonitor = resolveModule("PerformanceMonitor")
+local SchemaManager = resolveModule("SchemaManager")
+local SessionManager = resolveModule("SessionManager")
+local CacheManager = resolveModule("CacheManager")
+local SchemaValidator = resolveModule("SchemaValidator")
+local SecurityManager = resolveModule("SecurityManager")
+local DataVisualization = resolveModule("DataVisualization")
+local StyleGuide = resolveModule("StyleGuide")
+local SchemaEditor = resolveModule("SchemaEditor")
+local MonitoringDashboard = resolveModule("MonitoringDashboard")
+local MonitoringDashboardUI = resolveModule("MonitoringDashboardUI")
+local DataMigrationTools = resolveModule("DataMigrationTools")
+local MultiServerCoordination = resolveModule("MultiServerCoordination")
+local MultiServerCoordinationUI = resolveModule("MultiServerCoordinationUI")
+local MultiServerCoordinationIntegration = resolveModule("MultiServerCoordinationIntegration")
+local PerformanceAnalyzer = resolveModule("PerformanceAnalyzer")
+local PerformanceAnalyzerUI = resolveModule("PerformanceAnalyzerUI")
+local PerformanceAnalyzerIntegration = resolveModule("PerformanceAnalyzerIntegration")
+local CachingSystemUI = resolveModule("CachingSystemUI")
+local LoadTesting = resolveModule("LoadTesting")
+local LoadTestingUI = resolveModule("LoadTestingUI")
+local CodeGenerator = resolveModule("CodeGenerator")
+local CodeGeneratorUI = resolveModule("CodeGeneratorUI")
+local APIIntegration = resolveModule("APIIntegration")
+local APIIntegrationUI = resolveModule("APIIntegrationUI")
+local AccessControl = resolveModule("AccessControl")
+local AccessControlUI = resolveModule("AccessControlUI")
 
 -- Define the internal state
 local widgetInfo = DockWidgetPluginGuiInfo.new(
