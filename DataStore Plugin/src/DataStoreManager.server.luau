@@ -4,13 +4,13 @@
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 
-local CacheManager = require(script.Parent.CacheManager.server)
-local SchemaManager = require(script.Parent.SchemaManager.server)
-local SchemaValidator = require(script.Parent.SchemaValidator.server)
-local SessionManager = require(script.Parent.SessionManager.server)
-local PerformanceMonitor = require(script.Parent.PerformanceMonitor.server)
-local SecurityManager = require(script.Parent.SecurityManager.server)
-local MultiServerCoordination = require(script.Parent.MultiServerCoordination.server)
+local CacheManager = require(script.Parent:FindFirstChild("CacheManager"))
+local SchemaManager = require(script.Parent:FindFirstChild("SchemaManager"))
+local SchemaValidator = require(script.Parent:FindFirstChild("SchemaValidator"))
+local SessionManager = require(script.Parent:FindFirstChild("SessionManager"))
+local PerformanceMonitor = require(script.Parent:FindFirstChild("PerformanceMonitor"))
+local SecurityManager = require(script.Parent:FindFirstChild("SecurityManager"))
+local MultiServerCoordination = require(script.Parent:FindFirstChild("MultiServerCoordination"))
 
 local DataStoreManager = {}
 DataStoreManager.sessionId = HttpService:GenerateGUID()

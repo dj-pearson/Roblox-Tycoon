@@ -7,7 +7,7 @@
         "$path": "src/shared"
       },
       "DataStorePlugin": {
-        "$path": "DataStore Plugin/src"
+        "$path": "DataStore Plugin"
       }
     },
     "ServerScriptService": {

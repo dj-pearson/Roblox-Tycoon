@@ -3,18 +3,24 @@
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
-      "$path": "src/shared"
+      "shared": {
+        "$path": "src/shared"
+      },
+      "DataStorePlugin": {
+        "$path": "DataStore Plugin"
+      }
     },
     "ServerScriptService": {
-      "$path": "src/server"
+      "server": {
+        "$path": "src/server"
+      }
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {
-        "$path": "src/client"
+        "client": {
+          "$path": "src/client"
+        }
       }
-    },
-    "Workspace": {
-      "$className": "Workspace"
     }
   }
 }
