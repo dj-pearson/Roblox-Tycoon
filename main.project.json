@@ -14,13 +14,7 @@
       }
     },
     "Workspace": {
-      "$className": "Workspace",
-      "Plugins": {
-        "$className": "Folder",
-        "DataStore Plugin": {
-          "$path": "DataStore Plugin"
-        }
-      }
+      "$className": "Workspace"
     }
   }
 }
