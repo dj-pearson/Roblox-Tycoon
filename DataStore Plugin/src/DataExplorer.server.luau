@@ -1993,8 +1993,11 @@ function DataExplorer.initDataMigrationUI()
 end
 
 function DataExplorer.initMultiServerCoordinationUI()
-    local mainFrame = DataExplorer.mainFrame
-    if not mainFrame then return end
+    if MultiServerCoordinationIntegration and MultiServerCoordinationIntegration.initMultiServerCoordinationUI then
+        MultiServerCoordinationIntegration.initMultiServerCoordinationUI(DataExplorer)
+    else
+        local mainFrame = DataExplorer.mainFrame
+        if not mainFrame then return end
     
     -- Create a button to open multi-server coordination UI
     local coordinationButton = Instance.new("TextButton")
@@ -2086,8 +2089,11 @@ function DataExplorer.initMultiServerCoordinationUI()
 end
 
 function DataExplorer.initPerformanceAnalyzerUI()
-    local mainFrame = DataExplorer.mainFrame
-    if not mainFrame then return end
+    if PerformanceAnalyzerIntegration and PerformanceAnalyzerIntegration.initPerformanceAnalyzerUI then
+        PerformanceAnalyzerIntegration.initPerformanceAnalyzerUI(DataExplorer)
+    else
+        local mainFrame = DataExplorer.mainFrame
+        if not mainFrame then return end
     
     -- Create a button to open the performance analyzer UI
     local performanceButton = Instance.new("TextButton")

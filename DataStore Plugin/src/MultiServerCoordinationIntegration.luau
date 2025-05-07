@@ -1,9 +1,23 @@
 --luau
 -- DataStore Plugin/MultiServerCoordinationIntegration.luau
 
-local DataExplorer = require(script.Parent.DataExplorer)
+local MultiServerCoordinationIntegration = {}
 
-function DataExplorer.initMultiServerCoordinationUI()
+-- Initialize the Multi-Server Coordination Integration
+function MultiServerCoordinationIntegration.initialize()
+    print("MultiServerCoordinationIntegration: Initializing module...")
+    return true
+end
+
+-- Initialize the Multi-Server Coordination UI in the provided container
+function MultiServerCoordinationIntegration.initMultiServerCoordinationUI(DataExplorer)
+    print("MultiServerCoordinationIntegration: Initializing UI...")
+    
+    if not DataExplorer then
+        warn("MultiServerCoordinationIntegration: DataExplorer not provided for UI initialization")
+        return false
+    end
+    
     local mainFrame = DataExplorer.mainFrame
     if not mainFrame then return end
     

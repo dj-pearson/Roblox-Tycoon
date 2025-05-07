@@ -6,9 +6,23 @@
     to the main DataExplorer interface.
 ]]
 
-local DataExplorer = require(script.Parent.DataExplorer)
+local PerformanceAnalyzerIntegration = {}
 
-function DataExplorer.initPerformanceAnalyzerUI()
+-- Initialize the Performance Analyzer Integration
+function PerformanceAnalyzerIntegration.initialize()
+    print("PerformanceAnalyzerIntegration: Initializing module...")
+    return true
+end
+
+-- Initialize the Performance Analyzer UI in the provided container
+function PerformanceAnalyzerIntegration.initPerformanceAnalyzerUI(DataExplorer)
+    print("PerformanceAnalyzerIntegration: Initializing UI...")
+    
+    if not DataExplorer then
+        warn("PerformanceAnalyzerIntegration: DataExplorer not provided for UI initialization")
+        return false
+    end
+    
     local mainFrame = DataExplorer.mainFrame
     if not mainFrame then return end
     

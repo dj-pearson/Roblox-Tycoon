@@ -1,34 +1,33 @@
-  06:16:20.046  DataStore Manager Pro plugin running in non-plugin context (possibly Argon)  -  Edit - src:17
-  06:16:20.046  server is not a valid member of ModuleScript "user_DataStoreManagerPro.rbxmx.src.DataStoreManager"  -  Edit - src:20
-  06:16:20.047  Script 'user_DataStoreManagerPro.rbxmx.src', Line 20  -  Studio
-  06:16:20.048  Script 'user_DataStoreManagerPro.rbxmx.src.AccessControlUI', Line 14  -  Studio
-  06:16:20.049  Script 'user_DataStoreManagerPro.rbxmx.src.AccessControlIntegration', Line 10  -  Studio
-  06:16:20.051  server is not a valid member of Script "user_DataStoreManagerPro.rbxmx.src.CacheManager"  -  Edit - DataStoreManager:7
-  06:16:20.051  Script 'user_DataStoreManagerPro.rbxmx.src.DataStoreManager', Line 7  -  Studio
-  06:16:20.051  Script 'user_DataStoreManagerPro.rbxmx.src.BulkOperationsManager', Line 7  -  Studio
-  06:16:20.053  Script 'user_DataStoreManagerPro.rbxmx.src.BulkOperationsUI', Line 7  -  Studio
-  06:16:20.055  Script 'user_DataStoreManagerPro.rbxmx.src.CachingSystemUI', Line 9  -  Studio
-  06:16:20.056  Script 'user_DataStoreManagerPro.rbxmx.src.CodeGeneratorUI', Line 9  -  Studio
-  06:16:20.056  Script 'user_DataStoreManagerPro.rbxmx.src.CodeGeneratorIntegration', Line 9  -  Studio
-  06:16:20.058  Script 'user_DataStoreManagerPro.rbxmx.src.DataExplorer', Line 4  -  Studio
-  06:16:20.059  Script 'user_DataStoreManagerPro.rbxmx.src.DataMigrationTools', Line 23  -  Studio
-  06:16:20.060  Script 'user_DataStoreManagerPro.rbxmx.src.DataMigrationUI', Line 15  -  Studio
-  06:16:20.061  server is not a valid member of Script "user_DataStoreManagerPro.rbxmx.src.CacheManager"  -  Edit - DataStoreManager:7
-  06:16:20.061  Script 'user_DataStoreManagerPro.rbxmx.src.DataStoreManager', Line 7  -  Studio
-  06:16:20.062  Script 'user_DataStoreManagerPro.rbxmx.src.MonitoringDashboard', Line 8  -  Studio
-  06:16:20.063  Script 'user_DataStoreManagerPro.rbxmx.src.MonitoringDashboardUI', Line 8  -  Studio
-  06:16:20.064  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordination', Line 8  -  Studio
-  06:16:20.064  server is not a valid member of Script "user_DataStoreManagerPro.rbxmx.src.DataExplorer"  -  Edit - MultiServerCoordinationIntegration:4
-  06:16:20.065  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordinationIntegration', Line 4  -  Studio
-  06:16:20.066  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordination', Line 8  -  Studio
-  06:16:20.066  Script 'user_DataStoreManagerPro.rbxmx.src.MultiServerCoordinationUI', Line 6  -  Studio
-  06:16:20.067  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzer', Line 12  -  Studio
-  06:16:20.067  server is not a valid member of Script "user_DataStoreManagerPro.rbxmx.src.DataExplorer"  -  Edit - PerformanceAnalyzerIntegration:9
-  06:16:20.067  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzerIntegration', Line 9  -  Studio
-  06:16:20.068  Script 'user_DataStoreManagerPro.rbxmx.src.PerformanceAnalyzerUI', Line 12  -  Studio
-  06:16:20.069  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaBuilder', Line 5  -  Studio
-  06:16:20.070  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaBuilderUI', Line 7  -  Studio
-  06:16:20.071  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaEditor', Line 4  -  Studio
-  06:16:20.071  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaManager', Line 5  -  Studio
-  06:16:20.072  Script 'user_DataStoreManagerPro.rbxmx.src.SchemaVersionViewer', Line 5  -  Studio
-  06:16:20.073  Script 'user_DataStoreManagerPro.rbxmx.src.SessionManagementUI', Line 4  -  Studio
+  13:12:10.176  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataStoreManager', Line 7  -  Studio
+  13:12:10.178  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin', Line 8  -  Studio
+  13:12:10.184  user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.APIIntegration:285: Cannot use '...' outside of a vararg function  -  Studio
+  13:12:10.185  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.APIIntegrationUI', Line 9  -  Studio
+  13:12:10.186  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.APIIntegrationIntegration', Line 9  -  Studio
+  13:12:10.191  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.AccessControlUI', Line 14  -  Studio
+  13:12:10.192  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.AccessControlIntegration', Line 10  -  Studio
+  13:12:10.198  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.BulkOperationsManager', Line 7  -  Studio
+  13:12:10.206  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.BulkOperationsUI', Line 7  -  Studio
+  13:12:10.211  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.CachingSystemUI', Line 9  -  Studio
+  13:12:10.215  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.CodeGeneratorUI', Line 9  -  Studio
+  13:12:10.216  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.CodeGeneratorIntegration', Line 9  -  Studio
+  13:12:10.224  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataExplorer', Line 4  -  Studio
+  13:12:10.229  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataMigrationTools', Line 23  -  Studio
+  13:12:10.233  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataMigrationUI', Line 15  -  Studio
+  13:12:10.235  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.DataStoreManager', Line 7  -  Studio
+  13:12:10.244  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MonitoringDashboard', Line 8  -  Studio
+  13:12:10.249  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MonitoringDashboardUI', Line 8  -  Studio
+  13:12:10.254  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordination', Line 8  -  Studio
+  13:12:10.255  user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordinationIntegration:1: attempt to index nil with 'initMultiServerCoordinationUI'  -  Edit
+  13:12:10.256  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordinationIntegration', Line 1  -  Studio
+  13:12:10.262  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordination', Line 8  -  Studio
+  13:12:10.263  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.MultiServerCoordinationUI', Line 6  -  Studio
+  13:12:10.266  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.PerformanceAnalyzer', Line 12  -  Studio
+  13:12:10.267  user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.PerformanceAnalyzerIntegration:9: attempt to index nil with 'initPerformanceAnalyzerUI'  -  Edit
+  13:12:10.267  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.PerformanceAnalyzerIntegration', Line 9  -  Studio
+  13:12:10.272  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.PerformanceAnalyzerUI', Line 12  -  Studio
+  13:12:10.276  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaBuilder', Line 5  -  Studio
+  13:12:10.281  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaBuilderUI', Line 7  -  Studio
+  13:12:10.285  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaEditor', Line 4  -  Studio
+  13:12:10.287  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaManager', Line 5  -  Studio
+  13:12:10.289  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SchemaVersionViewer', Line 5  -  Studio
+  13:12:10.296  Script 'user_DataStorePlugin.rbxmx.DataStore Manager Pro.DataStorePlugin.SessionManagementUI', Line 4  -  Studio
