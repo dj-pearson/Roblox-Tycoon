@@ -2,7 +2,7 @@
 -- DataStore Plugin/SchemaBuilder.luau
 -- DataStore Plugin/SchemaBuilder.luau
 
-local SchemaManager = require(script.Parent:FindFirstChild("SchemaManager"))
+local SchemaManager = require(script.Parent.SchemaManager)
 
 local SchemaBuilder = {}
 
