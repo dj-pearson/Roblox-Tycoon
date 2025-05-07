@@ -5,6 +5,9 @@
     "ReplicatedStorage": {
       "shared": {
         "$path": "src/shared"
+      },
+      "DataStorePlugin": {
+        "$path": "DataStore Plugin/src"
       }
     },
     "ServerScriptService": {

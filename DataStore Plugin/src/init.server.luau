@@ -1,9 +1,21 @@
--- DataStore Plugin/init.luau
+﻿-- DataStore Plugin/init.luau
 
-local plugin = plugin -- Use the global plugin variable
-local toolbar = plugin:CreateToolbar("DataStore Manager Pro")
--- Custom logo for DataStore Manager Pro
-local button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://7634658388")
+-- Plugin version information (helps with testing in Argon)
+local PluginVersion = "1.0.0"
+
+-- Check if we're running in plugin context or under Argon
+local runningInPluginContext = typeof(plugin) == "Plugin"
+
+-- Setup plugin UI if we're in plugin context
+local toolbar, button
+if runningInPluginContext then
+    toolbar = plugin:CreateToolbar("DataStore Manager Pro")
+    -- Custom logo for DataStore Manager Pro
+    button = toolbar:CreateButton("Open DataStore Manager", "Open the DataStore Manager Pro Interface", "rbxassetid://7634658388")
+else
+    -- We're likely running in Argon or another test environment
+    print("DataStore Manager Pro plugin running in non-plugin context (possibly Argon)")
+end
 
 local DataStoreManager = require(script.DataStoreManager)
 local DataExplorer = require(script.DataExplorer)  -- This will use DataExplorer.server.luau
@@ -153,7 +165,17 @@ local DataStoreManagerPlugin = {
     createBarChart = DataVisualization.createBarChart,
     createLineChart = DataVisualization.createLineChart,
     createPieChart = DataVisualization.createPieChart,
-    createTableView = DataVisualization.createTableView
+    createTableView = DataVisualization.createTableView,
+    
+    -- Version information (useful for testing with Argon)
+    Version = PluginVersion or "1.0.0"
 }
+
+-- If we're running in Argon or another test environment, print some debug info
+if not runningInPluginContext then
+    print("DataStore Manager Pro loaded successfully in non-plugin context")
+    print("Plugin Version:", DataStoreManagerPlugin.Version)
+    print("Available modules:", #DataStoreManagerPlugin > 0 and "Yes" or "No")
+end
 
 return DataStoreManagerPlugin
