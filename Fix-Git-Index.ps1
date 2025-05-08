@@ -42,10 +42,12 @@ try {
         Write-Host "You can now commit your changes with the following commands:" -ForegroundColor Cyan
         Write-Host "git add -A" -ForegroundColor Yellow
         Write-Host "git commit -m 'Your commit message'" -ForegroundColor Yellow
-    } else {
+    }
+    else {
         throw "Git index still has issues after reset"
     }
-} catch {
+}
+catch {
     Write-Host "First repair attempt failed, trying more aggressive approach..." -ForegroundColor Yellow
     
     # If resetting didn't work, try to recreate the repository state
@@ -65,7 +67,8 @@ try {
         
         Write-Host "Git repository has been reset to recover from corrupted index" -ForegroundColor Green
         Write-Host "NOTE: You may need to reapply your recent uncommitted changes" -ForegroundColor Yellow
-    } catch {
+    }
+    catch {
         Write-Host "Error during repair process: $_" -ForegroundColor Red
         Write-Host "You may need to try a more advanced repair approach:" -ForegroundColor Yellow
         Write-Host "1. Backup your work (copy files outside the Git repository)" -ForegroundColor Yellow

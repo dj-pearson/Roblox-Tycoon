@@ -1,3 +1,7 @@
+# Simple-Fix.ps1
+# Create clean JSON files directly using Set-Content
+
+$defaultJson = @'
 {
   "name": "RobloxProject",
   "tree": {
@@ -24,3 +28,10 @@
     }
   }
 }
+'@
+
+# Write directly to files with UTF-8 encoding (no BOM)
+$utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText("$PSScriptRoot\default.project.json", $defaultJson, $utf8NoBomEncoding)
+
+Write-Host "Created clean default.project.json" -ForegroundColor Green

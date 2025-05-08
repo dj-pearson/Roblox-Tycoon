@@ -1,10 +1,13 @@
-{
+﻿{
   "name": "RobloxProject",
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
       "shared": {
         "$path": "src/shared"
+      },
+      "DataStorePlugin": {
+        "$path": "DataStore Plugin"
       }
     },
     "ServerScriptService": {
@@ -14,20 +17,9 @@
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {
-        "Client": {
+        "client": {
           "$path": "src/client"
         }
-      }
-    },
-    "Plugins": {
-      "DataStore Plugin": {
-        "$path": "DataStore Plugin",
-        "$ignoreUnknownInstances": true,
-        "$ignoreFiles": [
-          "*.png",
-          "Backups/*",
-          "*.backup*"
-        ]
       }
     }
   }

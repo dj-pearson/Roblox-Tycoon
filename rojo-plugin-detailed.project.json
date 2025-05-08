@@ -1,9 +1,0 @@
-{
-  "name": "DataStore Manager Pro",
-  "tree": {
-    "$className": "Folder",
-    "DataStorePlugin": {
-      "$path": "DataStore Plugin"
-    }
-  }
-}
