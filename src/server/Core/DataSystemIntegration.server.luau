@@ -2,247 +2,306 @@
 --[[
     DataSystemIntegration.server.luau
     
-    Coordinates between DataAccessLayer and other game systems.
-    Ensures proper initialization order and data flow between systems.
+    Unified data system integration module that ensures proper connection
+    between all data-related systems and provides a robust interface for
+    data operations.
     
-    Created: April 30, 2025
-    Updated: April 30, 2025 - Major overhaul for improved reliability
+    Features:
+    - System integration and coordination
+    - Data persistence management
+    - Migration handling
+    - Error recovery
+    - Health monitoring
+    
+    Created: May 3, 2025
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
 
--- Import CoreRegistry
-local CoreRegistry = require(script.Parent.CoreRegistry)
+-- Import required modules
+local CoreRegistry = require(script.Parent:WaitForChild("CoreRegistry_enhanced"))
+local DataAccessLayer = require(script.Parent:WaitForChild("DataAccessLayer"))
+local DataManager = require(script.Parent:WaitForChild("DataManager_enhanced"))
 
 -- Configuration
 local CONFIG = {
     debug = true,
+    integrationTimeout = 10, -- seconds
     maxRetries = 3,
     retryDelay = 1, -- seconds
-    initializationOrder = {
+    healthCheckInterval = 30, -- seconds
+    criticalSystems = {
         "DataAccessLayer",
         "DataManager",
-        "DataPersistenceManager",
         "VersionedDataStore",
         "DataMigrationUtility"
     }
 }
 
--- DataSystemIntegration module
-local DataSystemIntegration = {
-    Version = "2.0.0",
+-- Integration state
+local integration = {
     initialized = false,
+    version = "1.0.0",
     systems = {},
-    systemStatus = {},
-    healthCheckInterval = 30 -- seconds
+    health = {
+        status = "Unknown",
+        lastCheck = 0,
+        errors = {},
+        warnings = {}
+    },
+    stats = {
+        integrationAttempts = 0,
+        successfulIntegrations = 0,
+        failedIntegrations = 0,
+        recoveryAttempts = 0
+    }
 }
 
 -- Debug logging
 local function log(message, level)
-    if CONFIG.debug then
-        local prefix = "[DataSystemIntegration]"
-        if level == "error" then
-            warn(prefix .. " ERROR: " .. message)
-        elseif level == "warn" then
-            warn(prefix .. " WARNING: " .. message)
-        else
-            print(prefix .. " " .. message)
-        end
-    end
+    level = level or "Info"
+    print(string.format("[DataSystemIntegration][%s] %s", level, message))
 end
 
 -- Initialize a system
 local function initializeSystem(systemName, system)
     if not system then
-        log("System not found: " .. systemName, "error")
+        log("System not found: " .. systemName, "Error")
         return false
     end
     
-    -- Check if already initialized
-    if DataSystemIntegration.systemStatus[systemName] == "initialized" then
+    -- Check if system has initialize method
+    if typeof(system.initialize) ~= "function" then
+        log("System has no initialize method: " .. systemName, "Warning")
         return true
     end
     
-    -- Mark as initializing
-    DataSystemIntegration.systemStatus[systemName] = "initializing"
-    
-    -- Initialize the system
+    -- Initialize system
     local success, result = pcall(function()
-        if type(system.initialize) == "function" then
-            return system:initialize()
-        elseif type(system.Initialize) == "function" then
-            return system:Initialize()
-        end
-        return true
+        return system:initialize()
     end)
     
     if not success then
-        log("Failed to initialize system: " .. systemName .. " - " .. tostring(result), "error")
-        DataSystemIntegration.systemStatus[systemName] = "failed"
+        log("Failed to initialize " .. systemName .. ": " .. tostring(result), "Error")
         return false
     end
     
-    -- Mark as initialized
-    DataSystemIntegration.systemStatus[systemName] = "initialized"
     log("Initialized system: " .. systemName)
     return true
 end
 
--- Get a system module
-local function getSystemModule(systemName)
-    -- Try to get from CoreRegistry first
-    local system = CoreRegistry:getSystem(systemName)
-    if system then
-        return system
+-- Check system health
+local function checkSystemHealth(systemName, system)
+    if not system then
+        return {
+            status = "Critical",
+            error = "System not found"
+        }
     end
     
-    -- Try to load from Core folder
+    -- Check if system has health check method
+    if typeof(system.healthCheck) ~= "function" then
+        return {
+            status = "Unknown",
+            warning = "No health check method"
+        }
+    end
+    
+    -- Run health check
     local success, result = pcall(function()
-        return require(ServerScriptService.Core[systemName])
+        return system:healthCheck()
     end)
     
-    if success and result then
-        return result
+    if not success then
+        return {
+            status = "Critical",
+            error = "Health check failed: " .. tostring(result)
+        }
     end
     
-    -- Try to load from Data folder
-    success, result = pcall(function()
-        return require(ServerScriptService.Data[systemName])
-    end)
-    
-    if success and result then
-        return result
-    end
-    
-    return nil
+    return {
+        status = result,
+        lastCheck = os.time()
+    }
 end
 
--- Set up health monitoring
-local function setupHealthMonitoring()
-    task.spawn(function()
-        while true do
-            task.wait(DataSystemIntegration.healthCheckInterval)
-            
-            for systemName, system in pairs(DataSystemIntegration.systems) do
-                -- Check system health
-                local isHealthy = true
-                if type(system.isHealthy) == "function" then
-                    isHealthy = system:isHealthy()
-                elseif type(system.IsHealthy) == "function" then
-                    isHealthy = system:IsHealthy()
-                end
-                
-                -- Update status
-                if not isHealthy then
-                    log("System unhealthy: " .. systemName, "warn")
-                    DataSystemIntegration.systemStatus[systemName] = "unhealthy"
-                    
-                    -- Attempt recovery
-                    if type(system.recover) == "function" then
-                        local success = system:recover()
-                        if success then
-                            log("Recovered system: " .. systemName)
-                            DataSystemIntegration.systemStatus[systemName] = "initialized"
-                        end
-                    elseif type(system.Recover) == "function" then
-                        local success = system:Recover()
-                        if success then
-                            log("Recovered system: " .. systemName)
-                            DataSystemIntegration.systemStatus[systemName] = "initialized"
-                        end
-                    end
-                end
+-- Recover a system
+local function recoverSystem(systemName, system)
+    if not system then
+        log("Cannot recover missing system: " .. systemName, "Error")
+        return false
+    end
+    
+    -- Check if system has recovery method
+    if typeof(system.recover) ~= "function" then
+        log("System has no recovery method: " .. systemName, "Warning")
+        return false
+    end
+    
+    -- Attempt recovery
+    local success, result = pcall(function()
+        return system:recover()
+    end)
+    
+    if not success then
+        log("Recovery failed for " .. systemName .. ": " .. tostring(result), "Error")
+        return false
+    end
+    
+    log("Recovered system: " .. systemName)
+    return true
+end
+
+-- Run health check
+function integration:healthCheck()
+    local currentTime = os.time()
+    if currentTime - self.health.lastCheck < CONFIG.healthCheckInterval then
+        return self.health.status
+    end
+    
+    self.health.lastCheck = currentTime
+    self.health.errors = {}
+    self.health.warnings = {}
+    
+    -- Check each system
+    for _, systemName in ipairs(CONFIG.criticalSystems) do
+        local system = self.systems[systemName]
+        local health = checkSystemHealth(systemName, system)
+        
+        if health.status == "Critical" then
+            table.insert(self.health.errors, {
+                system = systemName,
+                error = health.error
+            })
+        elseif health.status == "Degraded" then
+            table.insert(self.health.warnings, {
+                system = systemName,
+                warning = health.warning
+            })
+        end
+    end
+    
+    -- Update overall health status
+    if #self.health.errors > 0 then
+        self.health.status = "Critical"
+    elseif #self.health.warnings > 0 then
+        self.health.status = "Degraded"
+    else
+        self.health.status = "Healthy"
+    end
+    
+    return self.health.status
+end
+
+-- Attempt recovery
+function integration:recover()
+    if self.health.status == "Healthy" then
+        return true
+    end
+    
+    self.stats.recoveryAttempts += 1
+    log("Attempting recovery (Attempt " .. self.stats.recoveryAttempts .. ")")
+    
+    -- Try to recover each failed system
+    for _, error in ipairs(self.health.errors) do
+        local system = self.systems[error.system]
+        if system then
+            local success = recoverSystem(error.system, system)
+            if not success then
+                log("Failed to recover " .. error.system, "Error")
             end
         end
-    end)
+    end
+    
+    -- Run health check after recovery
+    local status = self:healthCheck()
+    return status == "Healthy"
 end
 
--- Initialize DataSystemIntegration
-function DataSystemIntegration:Initialize()
+-- Initialize integration
+function integration:initialize()
     if self.initialized then
         return true
     end
     
-    log("Initializing DataSystemIntegration v" .. self.Version)
+    log("Initializing DataSystemIntegration v" .. self.version)
+    self.stats.integrationAttempts += 1
     
-    -- Initialize systems in order
-    for _, systemName in ipairs(CONFIG.initializationOrder) do
-        local system = getSystemModule(systemName)
+    -- Get systems from CoreRegistry
+    for _, systemName in ipairs(CONFIG.criticalSystems) do
+        local system = CoreRegistry:getSystem(systemName)
         if system then
             self.systems[systemName] = system
-            if not initializeSystem(systemName, system) then
-                log("Failed to initialize system: " .. systemName, "error")
-            end
+            log("Found system: " .. systemName)
         else
-            log("Could not find system: " .. systemName, "warn")
+            log("System not found in CoreRegistry: " .. systemName, "Warning")
         end
     end
     
-    -- Set up health monitoring
-    setupHealthMonitoring()
+    -- Initialize each system
+    local allInitialized = true
+    for systemName, system in pairs(self.systems) do
+        if not initializeSystem(systemName, system) then
+            allInitialized = false
+            log("Failed to initialize " .. systemName, "Error")
+        end
+    end
     
-    self.initialized = true
-    log("DataSystemIntegration initialized successfully")
-    return true
-end
-
--- Get system status
-function DataSystemIntegration:GetSystemStatus(systemName)
-    return self.systemStatus[systemName]
-end
-
--- Get all system statuses
-function DataSystemIntegration:GetAllSystemStatuses()
-    return deepCopy(self.systemStatus)
-end
-
--- Check if initialized
-function DataSystemIntegration:IsInitialized()
-    return self.initialized
-end
-
--- Check if healthy
-function DataSystemIntegration:IsHealthy()
-    if not self.initialized then
+    -- Set up health check loop
+    task.spawn(function()
+        while true do
+            task.wait(CONFIG.healthCheckInterval)
+            local status = self:healthCheck()
+            if status == "Critical" then
+                self:recover()
+            end
+        end
+    end)
+    
+    -- Initial health check
+    self:healthCheck()
+    
+    if allInitialized then
+        self.stats.successfulIntegrations += 1
+        self.initialized = true
+        log("DataSystemIntegration initialized successfully")
+        return true
+    else
+        self.stats.failedIntegrations += 1
+        log("DataSystemIntegration initialization failed", "Error")
         return false
     end
-    
-    -- Check if all critical systems are healthy
-    for systemName, status in pairs(self.systemStatus) do
-        if status ~= "initialized" then
-            return false
-        end
-    end
-    
-    return true
 end
 
--- Recover from failure
-function DataSystemIntegration:Recover()
-    if not self.initialized then
-        return self:Initialize()
-    end
-    
-    log("Attempting recovery")
-    
-    -- Reinitialize all systems
-    for systemName, system in pairs(self.systems) do
-        if self.systemStatus[systemName] ~= "initialized" then
-            if initializeSystem(systemName, system) then
-                log("Recovered system: " .. systemName)
-            else
-                log("Failed to recover system: " .. systemName, "error")
-            end
-        end
-    end
-    
-    return self:IsHealthy()
+-- Get system
+function integration:getSystem(systemName)
+    return self.systems[systemName]
 end
 
--- Register with CoreRegistry
-if CoreRegistry then
-    CoreRegistry.registerSystem("DataSystemIntegration", DataSystemIntegration)
+-- Get health status
+function integration:getHealthStatus()
+    return {
+        status = self.health.status,
+        lastCheck = self.health.lastCheck,
+        errors = self.health.errors,
+        warnings = self.health.warnings
+    }
 end
 
-return DataSystemIntegration 
+-- Get statistics
+function integration:getStats()
+    return {
+        integrationAttempts = self.stats.integrationAttempts,
+        successfulIntegrations = self.stats.successfulIntegrations,
+        failedIntegrations = self.stats.failedIntegrations,
+        recoveryAttempts = self.stats.recoveryAttempts
+    }
+end
+
+-- Initialize the integration
+integration:initialize()
+
+return integration 

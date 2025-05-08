@@ -205,10 +205,22 @@ local function registerWithCoreRegistry()
         if type(CoreRegistry.registerSystem) == "function" then
             CoreRegistry.registerSystem("EventBridge", EventBridge)
             log("Successfully registered with CoreRegistry using registerSystem")
+            
+            -- Mark as initialized in CoreRegistry
+            if type(CoreRegistry.markInitialized) == "function" then
+                CoreRegistry.markInitialized("EventBridge")
+                log("Marked as initialized in CoreRegistry")
+            end
             return true
         elseif type(CoreRegistry.Register) == "function" then
             CoreRegistry:Register("EventBridge", EventBridge)
             log("Successfully registered with CoreRegistry using Register")
+            
+            -- Mark as initialized in CoreRegistry
+            if type(CoreRegistry.MarkInitialized) == "function" then
+                CoreRegistry:MarkInitialized("EventBridge")
+                log("Marked as initialized in CoreRegistry")
+            end
             return true
         else
             warn("[EventBridge] CoreRegistry found but has no registration method")

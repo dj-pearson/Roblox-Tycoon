@@ -264,7 +264,7 @@ function BuyTileSystem:BuyTile(player, tileId)
     -- Save owned tiles
     success = DataAccessLayer:UpdatePlayerData(player, CONFIG.dataKey, self.playerTiles[userId])
     if not success then
-        -- Try to refund the cost
+        -- Refund the cost if saving fails
         DataAccessLayer:UpdatePlayerData(player, "cash", playerCash)
         return false, "Failed to save owned tiles"
     end
@@ -280,7 +280,7 @@ function BuyTileSystem:BuyTile(player, tileId)
     return true, "Purchase successful"
 end
 
--- Get available tiles for a player
+-- Get all available tiles for a player
 function BuyTileSystem:GetAvailableTiles(player)
     if not player then return {} end
     

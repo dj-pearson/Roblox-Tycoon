@@ -2,7 +2,7 @@
 
 This document outlines the structure of the Gym Tycoon project, highlighting key files and systems. As part of our ongoing consolidation efforts (see `Documentation/ComprehensiveConsolidationPlan.md`), we're working to reduce duplication and improve code organization across the codebase.
 
-## Refactoring Status
+## Refactoring Status -
 
 | System | Status | Notes |
 |--------|--------|-------|

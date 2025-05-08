@@ -1,3 +1,4 @@
+--!strict
 --[[
     ModuleLoader.luau
     
@@ -14,9 +15,10 @@
     - Support for different module naming patterns (.luau, .client.luau, .server.luau)
     - Integration with CoreRegistry
     - Dependency injection support
+    - Health check and recovery system
     
     Created: April 30, 2025
-    Updated: May 3, 2025
+    Updated: May 3, 2025 - Added health check and recovery system
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,10 +28,19 @@ local RunService = game:GetService("RunService")
 
 local ModuleLoader = {}
 ModuleLoader.initialized = false
-ModuleLoader.version = "1.2.0"
+ModuleLoader.version = "1.3.0"
 
--- Debug settings
-ModuleLoader.DEBUG = true
+-- Configuration
+local CONFIG = {
+    debug = true,
+    maxInitAttempts = 3,
+    initTimeout = 10, -- seconds
+    healthCheckInterval = 30, -- seconds
+    recoveryAttempts = 3,
+    recoveryDelay = 2, -- seconds,
+    cacheSizeLimit = 1000,
+    maxCircularDependencyDepth = 10
+}
 
 -- Cache of loaded modules
 local moduleCache = {}
@@ -38,14 +49,93 @@ local moduleCache = {}
 local stats = {
     totalLoaded = 0,
     loadErrors = 0,
-    cacheHits = 0
+    cacheHits = 0,
+    recoveryAttempts = 0,
+    healthCheckFailures = 0
+}
+
+-- Dependency graph for circular dependency detection
+local dependencyGraph = {}
+
+-- Module loading in progress tracker
+local loadingModules = {}
+
+-- Health check state
+local healthState = {
+    lastCheck = 0,
+    status = "Unknown",
+    errors = {},
+    warnings = {},
+    recoveryInProgress = false
 }
 
 -- Log a message to the output
-local function log(message)
-    if ModuleLoader.DEBUG then
-        print("[ModuleLoader] " .. message)
+local function log(message, level)
+    if CONFIG.debug then
+        local prefix = "[ModuleLoader]"
+        if level == "error" then
+            warn(prefix .. " ERROR: " .. message)
+        elseif level == "warn" then
+            warn(prefix .. " WARNING: " .. message)
+        else
+            print(prefix .. " " .. message)
+        end
     end
+end
+
+-- Detect circular dependencies
+local function detectCircularDependency(moduleName, loadingStack)
+    local visited = {}
+    local path = {}
+    
+    local function dfs(current)
+        if visited[current] then
+            return true, path
+        end
+        
+        if #path > CONFIG.maxCircularDependencyDepth then
+            return true, path
+        end
+        
+        visited[current] = true
+        table.insert(path, current)
+        
+        local deps = dependencyGraph[current] or {}
+        for _, dep in ipairs(deps) do
+            if dfs(dep) then
+                return true, path
+            end
+        end
+        
+        table.remove(path)
+        visited[current] = nil
+        return false
+    end
+    
+    return dfs(moduleName)
+end
+
+-- Get all standard search paths
+function ModuleLoader.getSearchPaths()
+    local paths = {}
+    
+    -- Add standard paths
+    if RunService:IsServer() then
+        table.insert(paths, ServerScriptService:FindFirstChild("Core"))
+        table.insert(paths, ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"))
+    end
+    
+    table.insert(paths, ReplicatedStorage:FindFirstChild("shared"))
+    table.insert(paths, ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"))
+    
+    -- Add custom paths
+    if ModuleLoader.customPaths then
+        for _, path in ipairs(ModuleLoader.customPaths) do
+            table.insert(paths, path)
+        end
+    end
+    
+    return paths
 end
 
 -- Safe require function with timeout
@@ -55,7 +145,7 @@ function ModuleLoader.safeRequire(module, fallback)
     end
     
     if not module:IsA("ModuleScript") then
-        warn("[ModuleLoader] Expected ModuleScript but got " .. module.ClassName .. " for " .. module:GetFullName())
+        log("Expected ModuleScript but got " .. module.ClassName .. " for " .. module:GetFullName(), "error")
         return fallback
     end
     
@@ -65,9 +155,26 @@ function ModuleLoader.safeRequire(module, fallback)
         return moduleCache[module]
     end
     
-    -- Safely require the module
+    -- Safely require the module with timeout
     local success, result = pcall(function()
-        return require(module)
+        local completed = false
+        local initResult = nil
+        
+        task.spawn(function()
+            initResult = require(module)
+            completed = true
+        end)
+        
+        local startTime = os.time()
+        while not completed and os.time() - startTime < CONFIG.initTimeout do
+            task.wait(0.1)
+        end
+        
+        if not completed then
+            error("Module load timeout")
+        end
+        
+        return initResult
     end)
     
     if success then
@@ -75,96 +182,16 @@ function ModuleLoader.safeRequire(module, fallback)
         stats.totalLoaded = stats.totalLoaded + 1
         return result
     else
-        warn("[ModuleLoader] Failed to require " .. module:GetFullName() .. " - " .. tostring(result))
+        log("Failed to require " .. module:GetFullName() .. " - " .. tostring(result), "error")
         stats.loadErrors = stats.loadErrors + 1
         return fallback
     end
 end
 
--- Get all standard search paths for a module
-function ModuleLoader.getSearchPaths()
-    local paths = {
-        -- ReplicatedStorage paths (accessible from both client and server)
-        ReplicatedStorage:FindFirstChild("shared"),
-        ReplicatedStorage:FindFirstChild("src"),
-        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared"),
-        ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("replicatedStorage"),
-        ReplicatedStorage:FindFirstChild("ClientModules")
-    }
-    
-    -- Add server-only paths if we're on the server
-    if RunService:IsServer() then
-        table.insert(paths, ServerScriptService:FindFirstChild("src"))
-        table.insert(paths, ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server"))
-        table.insert(paths, ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"))
-        table.insert(paths, ServerScriptService:FindFirstChild("Core"))
-        table.insert(paths, ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Core"))
-        table.insert(paths, ServerScriptService:FindFirstChild("Server") and ServerScriptService.Server:FindFirstChild("Systems"))
-        table.insert(paths, ServerScriptService:FindFirstChild("Systems"))
-        table.insert(paths, ServerScriptService:FindFirstChild("GymAutomation"))
-        
-        table.insert(paths, ServerStorage:FindFirstChild("src"))
-        table.insert(paths, ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server"))
-        table.insert(paths, ServerStorage:FindFirstChild("src") and ServerStorage.src:FindFirstChild("server") and ServerStorage.src.server:FindFirstChild("Core"))
-        table.insert(paths, ServerStorage:FindFirstChild("Core"))
-        table.insert(paths, ServerStorage:FindFirstChild("Systems"))
-    else
-        -- Client-only paths
-        local Players = game:GetService("Players")
-        local player = Players.LocalPlayer
-        if player then
-            table.insert(paths, player.PlayerScripts:FindFirstChild("client"))
-            table.insert(paths, player.PlayerScripts:FindFirstChild("client") and player.PlayerScripts.client:FindFirstChild("Core"))
-            table.insert(paths, player.PlayerScripts:FindFirstChild("client") and player.PlayerScripts.client:FindFirstChild("UI"))
-            
-            table.insert(paths, ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("client"))
-            table.insert(paths, ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("client") and ReplicatedStorage.src.client:FindFirstChild("Core"))
-            table.insert(paths, ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("client") and ReplicatedStorage.src.client:FindFirstChild("UI"))
-        end
-    end
-    
-    -- Additional custom paths registered via registerPath
-    if ModuleLoader.customPaths then
-        for _, path in ipairs(ModuleLoader.customPaths) do
-            table.insert(paths, path)
-        end
-    end
-    
-    -- Filter out nil paths
-    local validPaths = {}
-    for _, path in ipairs(paths) do
-        if path ~= nil then
-            table.insert(validPaths, path)
-        end
-    end
-    
-    return validPaths
-end
-
--- Register a custom path for module searches
-function ModuleLoader.registerPath(path)
-    if not path then return false end
-    
-    if not ModuleLoader.customPaths then
-        ModuleLoader.customPaths = {}
-    end
-    
-    -- Check if path is already registered
-    for _, existingPath in ipairs(ModuleLoader.customPaths) do
-        if existingPath == path then
-            return true -- Already registered
-        end
-    end
-    
-    table.insert(ModuleLoader.customPaths, path)
-    log("Registered custom path: " .. path:GetFullName())
-    return true
-end
-
 -- Find a module in the game hierarchy
 function ModuleLoader.findModule(moduleName, searchPaths)
     if typeof(moduleName) ~= "string" then
-        warn("[ModuleLoader] findModule expects a string moduleName, got " .. typeof(moduleName))
+        log("findModule expects a string moduleName, got " .. typeof(moduleName), "error")
         return nil
     end
     
@@ -192,7 +219,7 @@ function ModuleLoader.findModule(moduleName, searchPaths)
                 return module
             end
             
-            -- Check directories - i.e. if moduleName is "UI/Button", check for UI folder with Button module
+            -- Check directories
             if string.find(moduleName, "/") then
                 local pathParts = string.split(moduleName, "/")
                 local currentPath = path
@@ -238,7 +265,7 @@ function ModuleLoader.loadModule(moduleName, parent, fallback)
     end
     
     if typeof(moduleName) ~= "string" then
-        warn("[ModuleLoader] loadModule expects a string moduleName, got " .. typeof(moduleName))
+        log("loadModule expects a string moduleName, got " .. typeof(moduleName), "error")
         return fallback
     end
     
@@ -255,8 +282,7 @@ function ModuleLoader.loadModule(moduleName, parent, fallback)
         -- Check for circular dependencies
         local isCircular, path = detectCircularDependency(moduleName, loadingModules)
         if isCircular then
-            warn("[ModuleLoader] Circular dependency detected: " .. path)
-            -- Return a stub or throw an error based on your preference
+            log("Circular dependency detected: " .. table.concat(path, " -> "), "error")
             return fallback or {}
         end
     end
@@ -284,139 +310,111 @@ function ModuleLoader.loadModule(moduleName, parent, fallback)
         table.remove(loadingModules, loadingIndex)
     end
     
-    log("Module not found: " .. moduleName)
+    log("Module not found: " .. moduleName, "warn")
     return fallback
 end
 
--- Dependency injection container
-local injectionContainer = {}
-
--- Inject dependencies into a module or function
-function ModuleLoader.injectDependencies(target, dependencies)
-    if typeof(target) ~= "function" and typeof(target) ~= "table" then
-        warn("[ModuleLoader] Cannot inject dependencies into " .. typeof(target))
-        return target
+-- Health check function
+function ModuleLoader.healthCheck()
+    local currentTime = os.time()
+    if currentTime - healthState.lastCheck < CONFIG.healthCheckInterval then
+        return healthState.status
     end
     
-    if typeof(dependencies) ~= "table" then
-        warn("[ModuleLoader] Dependencies must be a table, got " .. typeof(dependencies))
-        return target
+    healthState.lastCheck = currentTime
+    healthState.errors = {}
+    healthState.warnings = {}
+    
+    -- Check module cache size
+    local cacheSize = 0
+    for _ in pairs(moduleCache) do
+        cacheSize += 1
     end
     
-    if typeof(target) == "function" then
-        -- Return a wrapper function that passes dependencies to the original function
-        return function(...)
-            return target(dependencies, ...)
-        end
+    if cacheSize > CONFIG.cacheSizeLimit then
+        table.insert(healthState.warnings, "Module cache size exceeds limit: " .. cacheSize)
+    end
+    
+    -- Check for stuck loading modules
+    if #loadingModules > 0 then
+        table.insert(healthState.errors, "Stuck loading modules: " .. table.concat(loadingModules, ", "))
+    end
+    
+    -- Check error rate
+    local errorRate = stats.loadErrors / (stats.totalLoaded + 1)
+    if errorRate > 0.1 then -- More than 10% error rate
+        table.insert(healthState.warnings, "High module load error rate: " .. string.format("%.1f%%", errorRate * 100))
+    end
+    
+    -- Update health status
+    if #healthState.errors > 0 then
+        healthState.status = "Critical"
+    elseif #healthState.warnings > 0 then
+        healthState.status = "Degraded"
     else
-        -- For module tables, add dependencies directly to the table
-        for name, dep in pairs(dependencies) do
-            if target[name] == nil then
-                target[name] = dep
-            end
-        end
-        return target
-    end
-end
-
--- Register a dependency for injection
-function ModuleLoader.registerDependency(name, value)
-    injectionContainer[name] = value
-    return true
-end
-
--- Get a dependency from the injection container
-function ModuleLoader.getDependency(name)
-    return injectionContainer[name]
-end
-
--- Get all registered dependencies
-function ModuleLoader.getAllDependencies()
-    return table.clone(injectionContainer)
-end
-
--- Load all modules in a folder
-function ModuleLoader.loadModulesInFolder(folder)
-    if not folder then return {} end
-    
-    local loadedModules = {}
-    
-    for _, child in ipairs(folder:GetChildren()) do
-        if child:IsA("ModuleScript") then
-            local name = child.Name:gsub("%.luau$", ""):gsub("%.server$", ""):gsub("%.client$", "")
-            local module = ModuleLoader.safeRequire(child)
-            if module then
-                loadedModules[name] = module
-            end
-        end
+        healthState.status = "Healthy"
     end
     
-    return loadedModules
+    return healthState.status
 end
 
--- Clear the cache for a specific module
-function ModuleLoader.clearCache(module)
-    if module then
-        moduleCache[module] = nil
-        return true
+-- Recovery function
+function ModuleLoader.recover()
+    if healthState.recoveryInProgress then
+        return false
     end
-    return false
-end
-
--- Clear the entire module cache
-function ModuleLoader.clearAllCache()
+    
+    healthState.recoveryInProgress = true
+    stats.recoveryAttempts += 1
+    
+    -- Clear stuck loading modules
+    loadingModules = {}
+    
+    -- Clear module cache
     moduleCache = {}
-    return true
+    
+    -- Reset stats
+    stats.totalLoaded = 0
+    stats.loadErrors = 0
+    stats.cacheHits = 0
+    
+    -- Reset health state
+    healthState.lastCheck = 0
+    healthState.errors = {}
+    healthState.warnings = {}
+    healthState.status = "Recovering"
+    
+    -- Wait for recovery delay
+    task.wait(CONFIG.recoveryDelay)
+    
+    -- Run health check
+    local status = ModuleLoader.healthCheck()
+    
+    healthState.recoveryInProgress = false
+    return status == "Healthy"
 end
 
--- Get stats on module loading
+-- Get module loading stats
 function ModuleLoader.getStats()
     return {
         totalLoaded = stats.totalLoaded,
         loadErrors = stats.loadErrors,
         cacheHits = stats.cacheHits,
-        cacheSize = 0
+        recoveryAttempts = stats.recoveryAttempts,
+        healthCheckFailures = stats.healthCheckFailures,
+        cacheSize = 0,
+        loadingModules = #loadingModules
     }
 end
 
--- Get the CoreRegistry if available
-local function getCoreRegistry()
-    -- Try standard paths
-    local standardPaths = {
-        ReplicatedStorage:FindFirstChild("shared") and ReplicatedStorage.shared:FindFirstChild("CoreRegistry"),
-        ReplicatedStorage:FindFirstChild("src") and ReplicatedStorage.src:FindFirstChild("shared") and ReplicatedStorage.src.shared:FindFirstChild("CoreRegistry"),
-        ServerScriptService:FindFirstChild("Core") and ServerScriptService.Core:FindFirstChild("CoreRegistry"),
-        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core") and ServerScriptService.src.server.Core:FindFirstChild("CoreRegistry")
+-- Get health status
+function ModuleLoader.getHealthStatus()
+    return {
+        status = healthState.status,
+        lastCheck = healthState.lastCheck,
+        errors = healthState.errors,
+        warnings = healthState.warnings
     }
-    
-    for _, path in ipairs(standardPaths) do
-        if path and path:IsA("ModuleScript") then
-            local success, result = pcall(function()
-                return require(path)
-            end)
-            
-            if success and result then
-                return result
-            end
-        end
-    end
-    
-    -- Look for ModuleScriptAccessor
-    local shared = ReplicatedStorage:FindFirstChild("shared")
-    if shared and shared:FindFirstChild("ModuleScriptAccessor") then
-        local success, ModuleScriptAccessor = pcall(function()
-            return require(shared.ModuleScriptAccessor)
-        end)
-        
-        if success and ModuleScriptAccessor and typeof(ModuleScriptAccessor.getCoreRegistry) == "function" then
-            local registry = ModuleScriptAccessor.getCoreRegistry()
-            if registry then
-                return registry
-            end
-        end
-    end
-    
-    return nil
 end
 
 -- Initialize the module
@@ -432,51 +430,25 @@ function ModuleLoader.initialize()
     if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
         CoreRegistry.registerSystem("ModuleLoader", ModuleLoader)
         log("Registered with CoreRegistry")
-        
-        -- Register self as a dependency for injection
-        ModuleLoader.registerDependency("ModuleLoader", ModuleLoader)
-        
-        -- Register CoreRegistry as a dependency for injection
-        ModuleLoader.registerDependency("CoreRegistry", CoreRegistry)
     else
         log("CoreRegistry not found, but ModuleLoader will still function")
     end
     
-    -- Make a copy of this ModuleLoader available in ReplicatedStorage
-    local function ensureSharedModuleLoader()
-        local shared = ReplicatedStorage:FindFirstChild("shared")
-        if not shared then
-            shared = Instance.new("Folder")
-            shared.Name = "shared"
-            shared.Parent = ReplicatedStorage
-        end
-        
-        if not shared:FindFirstChild("ModuleLoader") or not shared.ModuleLoader:IsA("ModuleScript") then
-            if script:IsA("ModuleScript") then
-                -- Clone this ModuleLoader script to shared
-                local clone = script:Clone()
-                clone.Name = "ModuleLoader"
-                clone.Parent = shared
-                log("Created a copy of ModuleLoader in ReplicatedStorage/shared")
-                return true
+    -- Start periodic health checks
+    task.spawn(function()
+        while true do
+            task.wait(CONFIG.healthCheckInterval)
+            local status = ModuleLoader.healthCheck()
+            if status == "Critical" then
+                stats.healthCheckFailures += 1
+                ModuleLoader.recover()
             end
-        else
-            log("ModuleLoader already exists in ReplicatedStorage/shared")
-            return true
         end
-        return false
-    end
+    end)
     
-    if RunService:IsServer() then
-        ensureSharedModuleLoader()
-    end
-    
-    log("ModuleLoader initialized")
     ModuleLoader.initialized = true
+    log("ModuleLoader initialized")
     return true
 end
-
--- Initialize on load
-ModuleLoader.initialize()
 
 return ModuleLoader

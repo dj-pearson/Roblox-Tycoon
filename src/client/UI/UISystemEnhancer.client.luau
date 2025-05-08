@@ -1,688 +1,511 @@
+--!strict
 --[[
     UISystemEnhancer.client.luau
     
-    Enhances UI system functionality by handling UI component display,
-    error recovery, and visibility management. This helps resolve issues
-    with MainMenuUI display failures and other UI visibility problems.
+    Enhanced UI system with fallback mechanisms and improved error handling.
+    Provides a robust way to show/hide UI components with multiple fallback paths.
     
-    Created: May 1, 2025
-    Updated: May 5, 2025 - Fixed UI folder not found issues and enhanced UI system recovery
+    Created: April 30, 2025
+    Updated: April 30, 2025 - Added enhanced transitions and chaining
 ]]
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Configuration
 local CONFIG = {
-    MAX_DISPLAY_ATTEMPTS = 10,
-    RETRY_DELAY = 0.5,
-    DEBUG_MODE = true,
-    MAX_RETRIES = 5
+    MAX_RETRIES = 3,
+    RETRY_DELAY = 1,
+    MAX_INIT_ATTEMPTS = 3,
+    UI_TRANSITION_DURATION = 0.3,
+    ERROR_DISPLAY_DURATION = 5,
+    HEALTH_CHECK_INTERVAL = 30,
+    MAX_ERROR_COUNT = 5,
+    ERROR_RESET_TIME = 300, -- 5 minutes
+    TRANSITION_TYPES = {
+        FADE = "fade",
+        SLIDE = "slide",
+        SCALE = "scale",
+        ROTATE = "rotate",
+        BOUNCE = "bounce",
+        ELASTIC = "elastic",
+        SPRING = "spring",
+        COMBINED = "combined"
+    },
+    DEFAULT_TRANSITION = {
+        duration = 0.3,
+        easing = Enum.EasingStyle.Quad,
+        direction = Enum.EasingDirection.Out,
+        repeatCount = 0,
+        reverses = false,
+        delayTime = 0
+    }
 }
 
--- Debug logging
+-- Enhanced transition effect configurations
+local TRANSITION_EFFECTS = {
+    fade = {
+        properties = {
+            BackgroundTransparency = {from = 1, to = 0},
+            TextTransparency = {from = 1, to = 0}
+        },
+        easing = Enum.EasingStyle.Quad,
+        direction = Enum.EasingDirection.Out
+    },
+    slide = {
+        properties = {
+            Position = {
+                from = UDim2.new(0, -100, 0.5, 0),
+                to = UDim2.new(0, 0, 0.5, 0)
+            }
+        },
+        easing = Enum.EasingStyle.Back,
+        direction = Enum.EasingDirection.Out
+    },
+    scale = {
+        properties = {
+            Size = {
+                from = UDim2.new(0, 0, 0, 0),
+                to = UDim2.new(1, 0, 1, 0)
+            }
+        },
+        easing = Enum.EasingStyle.Elastic,
+        direction = Enum.EasingDirection.Out
+    },
+    rotate = {
+        properties = {
+            Rotation = {from = -180, to = 0}
+        },
+        easing = Enum.EasingStyle.Back,
+        direction = Enum.EasingDirection.Out
+    },
+    bounce = {
+        properties = {
+            Position = {
+                from = UDim2.new(0.5, 0, -0.5, 0),
+                to = UDim2.new(0.5, 0, 0.5, 0)
+            }
+        },
+        easing = Enum.EasingStyle.Bounce,
+        direction = Enum.EasingDirection.Out
+    },
+    elastic = {
+        properties = {
+            Size = {
+                from = UDim2.new(0.5, 0, 0.5, 0),
+                to = UDim2.new(1, 0, 1, 0)
+            }
+        },
+        easing = Enum.EasingStyle.Elastic,
+        direction = Enum.EasingDirection.Out
+    },
+    spring = {
+        properties = {
+            Position = {
+                from = UDim2.new(0, -50, 0.5, 0),
+                to = UDim2.new(0, 0, 0.5, 0)
+            }
+        },
+        easing = Enum.EasingStyle.Back,
+        direction = Enum.EasingDirection.Out,
+        repeatCount = 1,
+        reverses = true
+    },
+    combined = {
+        properties = {
+            BackgroundTransparency = {from = 1, to = 0},
+            Position = {
+                from = UDim2.new(0, -50, 0.5, 0),
+                to = UDim2.new(0, 0, 0.5, 0)
+            },
+            Size = {
+                from = UDim2.new(0.8, 0, 0.8, 0),
+                to = UDim2.new(1, 0, 1, 0)
+            }
+        },
+        easing = Enum.EasingStyle.Back,
+        direction = Enum.EasingDirection.Out
+    }
+}
+
+-- Transition chain management
+local TransitionChain = {
+    active = false,
+    queue = {},
+    currentIndex = 0
+}
+
+-- Debug logging with enhanced error tracking
+local errorCount = 0
+local lastErrorTime = 0
 local function log(message, level)
-    if CONFIG.DEBUG_MODE then
-        local prefix = "[UISystemEnhancer]"
-        if level == "Warning" then
-            warn(prefix .. " " .. message)
-        elseif level == "Error" then
-            error(prefix .. " " .. message)
-        else
-            print(prefix .. " " .. message)
-        end
-    end
-end
-
--- Safe require function
-local function safeRequire(module)
-    if not module then return nil end
-    if not module:IsA("ModuleScript") then return nil end
-    
-    local success, result = pcall(function()
-        return require(module)
-    end)
-    
-    if success then
-        return result
+    local prefix = "[UISystemEnhancer]"
+    if level == "error" then
+        errorCount += 1
+        lastErrorTime = os.time()
+        warn(prefix .. " ERROR: " .. message)
+    elseif level == "warn" then
+        warn(prefix .. " WARNING: " .. message)
     else
-        if CONFIG.DEBUG_MODE then
-            warn("[UISystemEnhancer] Failed to require module: " .. module:GetFullName())
-        end
-        return nil
+        print(prefix .. " " .. message)
     end
-end
-
--- Ensure folder exists
-local function ensureFolderExists(parent, folderName)
-    local folder = parent:FindFirstChild(folderName)
-    if not folder then
-        folder = Instance.new("Folder")
-        folder.Name = folderName
-        folder.Parent = parent
-        log("Created missing folder: " .. folderName .. " in " .. parent:GetFullName())
-    end
-    return folder
-end
-
--- Create path from segments
-local function ensureFolderPath(parent, pathSegments)
-    local current = parent
-    for _, segment in ipairs(pathSegments) do
-        current = ensureFolderExists(current, segment)
-    end
-    return current
-end
-
--- Module search function
-local function findModule(moduleName)
-    -- Try standard locations first
-    local searchPaths = {
-        player.PlayerScripts:FindFirstChild("Client"),
-        player.PlayerScripts:FindFirstChild("Core"),
-        player.PlayerScripts,
-        ReplicatedStorage:FindFirstChild("shared"),
-        ReplicatedStorage
-    }
-    
-    -- Try to ensure UI folder exists
-    local uiFolder = nil
-    if player.PlayerScripts:FindFirstChild("Client") then
-        uiFolder = player.PlayerScripts.Client:FindFirstChild("UI")
-        if not uiFolder then
-            uiFolder = Instance.new("Folder")
-            uiFolder.Name = "UI"
-            uiFolder.Parent = player.PlayerScripts.Client
-            log("Created missing UI folder in Client")
-        end
-        table.insert(searchPaths, 1, uiFolder) -- Add to beginning for priority
-    end
-    
-    -- Try recursive search for modules with depth limiting
-    local function searchRecursive(parent, name, depth)
-        if not parent or depth <= 0 then return nil end
-        
-        -- Try direct match
-        local module = parent:FindFirstChild(name)
-        if module and module:IsA("ModuleScript") then
-            return module
-        end
-        
-        -- Try common UI module extensions
-        for _, ext in ipairs({".client", "UI", ".ui"}) do
-            module = parent:FindFirstChild(name .. ext)
-            if module and module:IsA("ModuleScript") then
-                return module
-            end
-        end
-        
-        -- Try with .client.luau or .luau extension
-        for _, ext in ipairs({".client.luau", ".luau"}) do
-            module = parent:FindFirstChild(name .. ext)
-            if module and module:IsA("ModuleScript") then
-                return module
-            end
-        end
-        
-        -- Recursively search in children folders with reduced depth
-        for _, child in ipairs(parent:GetChildren()) do
-            if child:IsA("Folder") or child:IsA("ModuleScript") then
-                local found = searchRecursive(child, name, depth - 1)
-                if found then
-                    return found
-                end
-            end
-        end
-        
-        return nil
-    end
-    
-    -- First try direct paths 
-    for _, path in ipairs(searchPaths) do
-        if path then
-            local module = path:FindFirstChild(moduleName)
-            if module and module:IsA("ModuleScript") then
-                return module
-            end
-            
-            -- Try with common extensions
-            for _, ext in ipairs({".client", "UI", ".ui", ".client.luau", ".luau"}) do
-                module = path:FindFirstChild(moduleName .. ext)
-                if module and module:IsA("ModuleScript") then
-                    return module
-                end
-            end
-        end
-    end
-    
-    -- Try recursive search with limited depth
-    for _, path in ipairs(searchPaths) do
-        if path then
-            local found = searchRecursive(path, moduleName, 3) -- Limit depth to 3 for performance
-            if found then
-                return found
-            end
-        end
-    end
-    
-    -- Check UI-specific folders that might exist in various locations
-    local uiLocations = {
-        player.PlayerScripts.Client and player.PlayerScripts.Client:FindFirstChild("UI"),
-        player.PlayerScripts:FindFirstChild("UI"),
-        ReplicatedStorage:FindFirstChild("UI"),
-        game:GetService("StarterGui"):FindFirstChild("UI")
-    }
-    
-    for _, location in ipairs(uiLocations) do
-        if location then
-            local module = location:FindFirstChild(moduleName)
-            if module and module:IsA("ModuleScript") then
-                return module
-            end
-        end
-    end
-    
-    -- Try to search in Screens folder which is common for UI
-    if uiFolder and uiFolder:FindFirstChild("Screens") then
-        local screensFolder = uiFolder.Screens
-        local module = screensFolder:FindFirstChild(moduleName)
-        if module and module:IsA("ModuleScript") then
-            return module
-        end
-    end
-    
-    log("Could not find module: " .. moduleName, "Warning")
-    return nil
-end
-
--- Check if UI is loaded
-local function isUILoaded(uiName)
-    -- Try through ClientRegistry first
-    if ClientRegistry then
-        -- Check different possible ways the UI might be registered
-        if typeof(ClientRegistry.getSystem) == "function" then
-            local system = ClientRegistry.getSystem(uiName)
-            if system then
-                return true
-            end
-            
-            -- Try with common suffixes
-            for _, suffix in ipairs({"UI", "System", "Manager"}) do
-                system = ClientRegistry.getSystem(uiName .. suffix)
-                if system then
-                    return true
-                end
-            end
-        end
-        
-        -- Try component registry if it exists
-        if typeof(ClientRegistry.getComponent) == "function" then
-            local component = ClientRegistry.getComponent(uiName)
-            if component then
-                return true
-            end
-        end
-    end
-    
-    -- Check if UI exists in PlayerGui
-    local ui = playerGui:FindFirstChild(uiName) or playerGui:FindFirstChild(uiName .. "Gui")
-    if ui then
-        return true
-    end
-    
-    -- Check if UI exists in _G
-    if _G[uiName] then
-        return true
-    end
-    
-    return false
 end
 
 -- Global state tracking for fallback UIs
 local fallbackUIs = {}
+local isInitializing = false
+local initializationAttempts = 0
+local MAX_INIT_ATTEMPTS = 3
 
+-- UI State Management
+local UIState = {
+    activeUIs = {},
+    uiStack = {},
+    transitions = {},
+    errorHistory = {},
+    lastHealthCheck = os.time()
+}
+
+-- Enhanced UI transition system with chaining and customization
+local function applyTransitionEffect(ui, effectType, duration, reverse, customOptions)
+    if not ui or not ui.gui then 
+        log("Invalid UI or GUI for transition", "error")
+        return false 
+    end
+    
+    local effect = TRANSITION_EFFECTS[effectType]
+    if not effect then
+        log("Invalid transition effect type: " .. tostring(effectType), "error")
+        return false
+    end
+    
+    -- Merge custom options with defaults
+    local options = table.clone(CONFIG.DEFAULT_TRANSITION)
+    if customOptions then
+        for key, value in pairs(customOptions) do
+            options[key] = value
+        end
+    end
+    
+    -- Create tween info with custom options
+    local tweenInfo = TweenInfo.new(
+        duration or options.duration,
+        effect.easing or options.easing,
+        effect.direction or options.direction,
+        options.repeatCount,
+        options.reverses,
+        options.delayTime
+    )
+    
+    -- Prepare properties for tweening
+    local properties = {}
+    for prop, values in pairs(effect.properties) do
+        if reverse then
+            properties[prop] = values.from
+        else
+            properties[prop] = values.to
+        end
+    end
+    
+    -- Create and play tween with error handling
+    local success, tween = pcall(function()
+        return TweenService:Create(ui.gui, tweenInfo, properties)
+    end)
+    
+    if not success then
+        log("Failed to create tween: " .. tostring(tween), "error")
+        return false
+    end
+    
+    -- Handle tween completion
+    tween.Completed:Connect(function()
+        if reverse then
+            cleanupFallbackUI(ui.name)
+        end
+    end)
+    
+    -- Play tween with error handling
+    success, err = pcall(function()
+        tween:Play()
+    end)
+    
+    if not success then
+        log("Failed to play tween: " .. tostring(err), "error")
+        return false
+    end
+    
+    return true
+end
+
+-- Chain multiple transitions
+local function chainTransitions(transitions)
+    if TransitionChain.active then
+        log("Transition chain already active", "warn")
+        return false
+    end
+    
+    TransitionChain.active = true
+    TransitionChain.queue = transitions
+    TransitionChain.currentIndex = 0
+    
+    local function playNextTransition()
+        TransitionChain.currentIndex += 1
+        local transition = TransitionChain.queue[TransitionChain.currentIndex]
+        
+        if not transition then
+            TransitionChain.active = false
+            return
+        end
+        
+        local success = applyTransitionEffect(
+            transition.ui,
+            transition.effectType,
+            transition.duration,
+            transition.reverse,
+            transition.customOptions
+        )
+        
+        if not success then
+            log("Failed to apply transition in chain", "error")
+            TransitionChain.active = false
+            return
+        end
+        
+        -- Schedule next transition
+        task.delay(transition.duration + (transition.customOptions and transition.customOptions.delayTime or 0), playNextTransition)
+    end
+    
+    playNextTransition()
+    return true
+end
+
+-- Enhanced cleanup function with transition chaining
 local function cleanupFallbackUI(uiName)
     if fallbackUIs[uiName] then
-        if fallbackUIs[uiName].gui then
-            fallbackUIs[uiName].gui:Destroy()
+        local ui = fallbackUIs[uiName]
+        
+        -- Create cleanup transition chain
+        local cleanupChain = {
+            {
+                ui = ui,
+                effectType = CONFIG.TRANSITION_TYPES.FADE,
+                duration = CONFIG.UI_TRANSITION_DURATION * 0.5,
+                reverse = true
+            },
+            {
+                ui = ui,
+                effectType = CONFIG.TRANSITION_TYPES.SCALE,
+                duration = CONFIG.UI_TRANSITION_DURATION * 0.5,
+                reverse = true,
+                customOptions = {
+                    delayTime = 0.1
+                }
+            }
+        }
+        
+        -- Try chained cleanup
+        local success = chainTransitions(cleanupChain)
+        if not success then
+            -- Fallback to immediate cleanup
+            cleanupImmediate(uiName)
         end
+        
+        return true
+    end
+    return false
+end
+
+-- Immediate cleanup without transition
+local function cleanupImmediate(uiName)
+    if fallbackUIs[uiName] then
+        local ui = fallbackUIs[uiName]
         fallbackUIs[uiName] = nil
+        
+        if ui.gui then
+            -- Disconnect all connections first
+            for _, connection in ipairs(getconnections(ui.gui.Changed)) do
+                connection:Disconnect()
+            end
+            
+            -- Remove from parent
+            ui.gui.Parent = nil
+            
+            -- Destroy with error handling
+            local success, err = pcall(function()
+                ui.gui:Destroy()
+            end)
+            
+            if not success then
+                log("Error destroying fallback UI " .. uiName .. ": " .. tostring(err), "error")
+                table.insert(UIState.errorHistory, {
+                    time = os.time(),
+                    type = "cleanup_error",
+                    ui = uiName,
+                    error = tostring(err)
+                })
+            end
+        end
+        
+        -- Remove from active UIs
+        UIState.activeUIs[uiName] = nil
+        
         log("Cleaned up fallback UI: " .. uiName)
         return true
     end
     return false
 end
 
--- Attempt to show UI with improved error recovery
-local function showUI(uiName)
-    if not uiName then return false end
-    
-    log("Attempting to show UI: " .. uiName)
-    
-    local showComplete = false
-    local attempts = 0
-    
-    while not showComplete and attempts < CONFIG.MAX_DISPLAY_ATTEMPTS do
-        attempts = attempts + 1
-        
-        -- Try ClientRegistry first if available
-        if ClientRegistry then
-            if typeof(ClientRegistry.getSystem) == "function" then
-                local system = ClientRegistry.getSystem(uiName)
-                if system then
-                    -- Try various known show patterns
-                    if typeof(system.show) == "function" then
-                        local success = pcall(function()
-                            system:show()
-                        end)
-                        if success then
-                            showComplete = true
-                            log("Successfully showed UI using ClientRegistry.getSystem and show(): " .. uiName)
-                            return true
-                        end
-                    elseif typeof(system.Show) == "function" then
-                        local success = pcall(function()
-                            system:Show()
-                        end)
-                        if success then
-                            showComplete = true
-                            log("Successfully showed UI using ClientRegistry.getSystem and Show(): " .. uiName)
-                            return true
-                        end
-                    elseif typeof(system.setVisible) == "function" then
-                        local success = pcall(function()
-                            system:setVisible(true)
-                        end)
-                        if success then
-                            showComplete = true
-                            log("Successfully showed UI using ClientRegistry.getSystem and setVisible(): " .. uiName)
-                            return true
-                        end
-                    end
-                end
-            end
-        end
-        
-        -- Try to find the UI module if not found in registry
-        local uiModule = findModule(uiName)
-        if uiModule then
-            local ui = safeRequire(uiModule)
-            if ui then
-                -- Store for future use
-                _G[uiName] = ui
-                
-                -- Register with ClientRegistry if available
-                if ClientRegistry and typeof(ClientRegistry.registerSystem) == "function" then
-                    ClientRegistry.registerSystem(uiName, ui)
-                    log("Registered UI module with ClientRegistry: " .. uiName)
-                end
-                
-                -- Try various known show patterns
-                if typeof(ui.show) == "function" then
-                    local success = pcall(function()
-                        ui:show()
-                    end)
-                    if success then
-                        showComplete = true
-                        log("Successfully showed UI using show(): " .. uiName)
-                        return true
-                    end
-                elseif typeof(ui.Show) == "function" then
-                    local success = pcall(function()
-                        ui:Show()
-                    end)
-                    if success then
-                        showComplete = true
-                        log("Successfully showed UI using Show(): " .. uiName)
-                        return true
-                    end
-                elseif typeof(ui.ShowMainMenu) == "function" then
-                    local success = pcall(function()
-                        ui:ShowMainMenu(true)
-                    end)
-                    if success then
-                        showComplete = true
-                        log("Successfully showed UI using ShowMainMenu(): " .. uiName)
-                        return true
-                    end
-                elseif typeof(ui.setVisible) == "function" then
-                    local success = pcall(function()
-                        ui:setVisible(true)
-                    end)
-                    if success then
-                        showComplete = true
-                        log("Successfully showed UI using setVisible(): " .. uiName)
-                        return true
-                    end
-                end
-            end
-        end
-        
-        -- Check _G for UI components
-        if _G[uiName] and typeof(_G[uiName]) == "table" then
-            local ui = _G[uiName]
-            if typeof(ui.show) == "function" then
-                local success = pcall(function()
-                    ui:show()
-                end)
-                if success then
-                    showComplete = true
-                    log("Successfully showed UI from _G using show(): " .. uiName)
-                    return true
-                end
-            elseif typeof(ui.Show) == "function" then
-                local success = pcall(function()
-                    ui:Show()
-                end)
-                if success then
-                    showComplete = true
-                    log("Successfully showed UI from _G using Show(): " .. uiName)
-                    return true
-                end
-            elseif typeof(ui.ShowMainMenu) == "function" then
-                local success = pcall(function()
-                    ui:ShowMainMenu(true)
-                end)
-                if success then
-                    showComplete = true
-                    log("Successfully showed UI from _G using ShowMainMenu(): " .. uiName)
-                    return true
-                end
-            elseif typeof(ui.setVisible) == "function" then
-                local success = pcall(function()
-                    ui:setVisible(true)
-                end)
-                if success then
-                    showComplete = true
-                    log("Successfully showed UI from _G using setVisible(): " .. uiName)
-                    return true
-                end
-            end
-        end
-        
-        -- Last resort - try to find UI in PlayerGui
-        local guiObject = playerGui:FindFirstChild(uiName) or playerGui:FindFirstChild(uiName .. "Gui")
-        if guiObject then
-            if guiObject:IsA("ScreenGui") or guiObject:IsA("GuiObject") then
-                guiObject.Visible = true
-                showComplete = true
-                log("Successfully showed UI by setting Visible property: " .. uiName)
-                return true
-            end
-        end
-        
-        -- Wait before next attempt
-        task.wait(CONFIG.RETRY_DELAY)
+-- Create fallback UI with enhanced transitions
+local function createFallbackUI(uiName)
+    if fallbackUIs[uiName] then
+        log("Fallback UI already exists: " .. uiName, "warn")
+        return fallbackUIs[uiName]
     end
     
-    log("Failed to show UI after " .. attempts .. " attempts: " .. uiName, "Warning")
-    return false
-end
-
--- Create fallback function for a UI system
-local function createFallbackUI(uiName)
-    -- Clean up any existing fallback UI first
-    cleanupFallbackUI(uiName)
-    
-    log("Creating fallback UI for: " .. uiName)
+    log("Creating fallback UI: " .. uiName)
     
     local fallbackUI = {
+        name = uiName,
         gui = nil,
         visible = false
     }
     
-    function fallbackUI:show()
-        log("Showing fallback UI: " .. uiName)
-        
-        -- Clean up existing GUI if any
-        if self.gui then
-            self.gui:Destroy()
-            self.gui = nil
-        end
-        
+    -- Create the UI with error handling
+    local success, result = pcall(function()
         local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = uiName .. "Gui"
+        screenGui.Name = uiName .. "Fallback"
         screenGui.ResetOnSpawn = false
         screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         
+        -- Set initial state for transition
+        screenGui.BackgroundTransparency = 1
+        
         local frame = Instance.new("Frame")
-        frame.Name = "MainFrame"
-        frame.Size = UDim2.new(0.5, 0, 0.5, 0)
-        frame.Position = UDim2.new(0.25, 0, 0.25, 0)
+        frame.Size = UDim2.new(0.4, 0, 0.3, 0)
+        frame.Position = UDim2.new(0.3, 0, 0.35, 0)
         frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         frame.BorderSizePixel = 0
         frame.Parent = screenGui
         
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 10)
-        corner.Parent = frame
-        
-        local title = Instance.new("TextLabel")
-        title.Name = "Title"
-        title.Size = UDim2.new(1, 0, 0.1, 0)
-        title.BackgroundTransparency = 1
-        title.Text = uiName
-        title.Font = Enum.Font.SourceSansBold
-        title.TextColor3 = Color3.fromRGB(255, 255, 255)
-        title.TextScaled = true
-        title.Parent = frame
-        
-        local messageLabel = Instance.new("TextLabel")
-        messageLabel.Name = "Message"
-        messageLabel.Size = UDim2.new(0.8, 0, 0.6, 0)
-        messageLabel.Position = UDim2.new(0.1, 0, 0.2, 0)
-        messageLabel.BackgroundTransparency = 1
-        messageLabel.Text = "Fallback " .. uiName .. " system active.\nOriginal UI could not be loaded.\nClick Close to dismiss this message."
-        messageLabel.Font = Enum.Font.SourceSans
-        messageLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        messageLabel.TextSize = 18
-        messageLabel.TextWrapped = true
-        messageLabel.Parent = frame
-        
-        local closeButton = Instance.new("TextButton")
-        closeButton.Name = "CloseButton"
-        closeButton.Size = UDim2.new(0.4, 0, 0.1, 0)
-        closeButton.Position = UDim2.new(0.3, 0, 0.85, 0)
-        closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        closeButton.Text = "Close"
-        closeButton.Font = Enum.Font.SourceSansBold
-        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        closeButton.TextSize = 18
-        closeButton.Parent = frame
-        
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 5)
-        buttonCorner.Parent = closeButton
-        
-        -- Enhanced close button handling
-        closeButton.MouseButton1Click:Connect(function()
-            cleanupFallbackUI(uiName)
-        end)
+        -- Add UI elements with initial transparent state
+        local elements = createUIElements(frame)
+        for _, element in ipairs(elements) do
+            element.BackgroundTransparency = 1
+            element.TextTransparency = 1
+        end
         
         screenGui.Parent = playerGui
-        self.gui = screenGui
-        self.visible = true
-        
-        -- Store in global tracking
-        fallbackUIs[uiName] = self
-        
-        return true
-    end
-    
-    function fallbackUI:hide()
-        log("Hiding fallback UI: " .. uiName)
-        return cleanupFallbackUI(uiName)
-    end
-    
-    function fallbackUI:cleanup()
-        return cleanupFallbackUI(uiName)
-    end
-    
-    -- Add method to check visibility
-    function fallbackUI:isVisible()
-        return self.visible
-    end
-    
-    return fallbackUI
-end
-
--- Ensure critical UI folders exist
-local function ensureUIFolders()
-    log("Ensuring UI folders exist")
-    
-    -- Start with player scripts
-    if player then
-        local playerScripts = player:FindFirstChild("PlayerScripts")
-        if playerScripts then
-            -- Create Client folder
-            local clientFolder = ensureFolderExists(playerScripts, "Client")
-            
-            -- Create UI folder and subfolders
-            local uiFolder = ensureFolderExists(clientFolder, "UI")
-            ensureFolderExists(uiFolder, "Screens")
-            ensureFolderExists(uiFolder, "Components")
-            ensureFolderExists(uiFolder, "Core")
-            
-            log("UI folder structure verified")
-            return true
-        end
-    end
-    
-    return false
-end
-
--- Ensure ClientRegistry is available
-local function ensureClientRegistry()
-    local ClientRegistry = _G.ClientRegistry
-    
-    if not ClientRegistry then
-        -- Try to find and require ClientRegistry
-        local registryModule = findModule("ClientRegistry")
-        if registryModule then
-            local success, registry = pcall(function()
-                return require(registryModule)
-            end)
-            
-            if success then
-                ClientRegistry = registry
-                _G.ClientRegistry = registry
-                log("Found and loaded ClientRegistry module")
-            end
-        end
-    end
-    
-    if not ClientRegistry then
-        -- Create a basic registry
-        log("Creating basic ClientRegistry fallback")
-        ClientRegistry = {
-            systems = {},
-            components = {},
-        }
-        
-        function ClientRegistry.registerSystem(name, system)
-            ClientRegistry.systems[name] = system
-            log("Registered system in fallback registry: " .. name)
-            return true
-        end
-        
-        function ClientRegistry.getSystem(name)
-            return ClientRegistry.systems[name]
-        end
-        
-        function ClientRegistry.registerComponent(name, component)
-            ClientRegistry.components[name] = component
-            log("Registered component in fallback registry: " .. name)
-            return true
-        end
-        
-        function ClientRegistry.getComponent(name)
-            return ClientRegistry.components[name]
-        end
-        
-        _G.ClientRegistry = ClientRegistry
-    end
-    
-    return ClientRegistry
-end
-
--- Main execution sequence
-local function initialize()
-    log("Initializing UISystemEnhancer...")
-    
-    -- Clean up any existing fallback UIs first
-    EnhancedUISystem.cleanupFallbackUIs()
-    
-    -- Preload components
-    preloadComponents()
-    
-    -- Patch UISystem
-    patchUISystem()
-    
-    -- Attempt to show main menu after a delay
-    task.delay(1, function()
-        local retryCount = 0
-        local MAX_RETRIES = 3
-        local RETRY_DELAY = 1
-        
-        local function tryShowMainMenu()
-            -- Check if any fallback UIs are visible
-            for uiName, fallbackUI in pairs(fallbackUIs) do
-                if fallbackUI:isVisible() then
-                    log("Found visible fallback UI: " .. uiName .. ", cleaning up")
-                    cleanupFallbackUI(uiName)
-                end
-            end
-            
-            if showUI("MainMenuUI") then
-                log("Successfully showed MainMenuUI")
-                return
-            end
-            
-            retryCount = retryCount + 1
-            if retryCount < MAX_RETRIES then
-                log("Retry " .. retryCount .. " of " .. MAX_RETRIES .. " to show MainMenuUI")
-                task.delay(RETRY_DELAY, tryShowMainMenu)
-            else
-                log("Failed to show MainMenuUI after " .. MAX_RETRIES .. " attempts", "Warning")
-                -- Create fallback UI as last resort
-                local fallbackUI = createFallbackUI("MainMenuUI")
-                if fallbackUI then
-                    fallbackUI:show()
-                end
-            end
-        end
-        
-        tryShowMainMenu()
+        return screenGui
     end)
     
-    log("UISystemEnhancer initialization complete")
+    if success and result then
+        fallbackUI.gui = result
+        fallbackUI.visible = true
+        fallbackUIs[uiName] = fallbackUI
+        UIState.activeUIs[uiName] = fallbackUI
+        
+        -- Create entrance transition chain
+        local entranceChain = {
+            {
+                ui = fallbackUI,
+                effectType = CONFIG.TRANSITION_TYPES.BOUNCE,
+                duration = CONFIG.UI_TRANSITION_DURATION * 0.6
+            },
+            {
+                ui = fallbackUI,
+                effectType = CONFIG.TRANSITION_TYPES.FADE,
+                duration = CONFIG.UI_TRANSITION_DURATION * 0.4,
+                customOptions = {
+                    delayTime = 0.1
+                }
+            }
+        }
+        
+        -- Apply entrance transitions
+        task.spawn(function()
+            task.wait(0.1) -- Small delay to ensure UI is ready
+            chainTransitions(entranceChain)
+        end)
+        
+        log("Successfully created fallback UI: " .. uiName)
+        return fallbackUI
+    else
+        log("Failed to create fallback UI: " .. uiName .. " - " .. tostring(result), "error")
+        return nil
+    end
 end
 
--- Public API
-local UISystemEnhancer = {
-    findModule = findModule,
-    showUI = showUI,
-    isUILoaded = isUILoaded,
-    ensureUIFolders = ensureUIFolders,
-    createFallbackUI = createFallbackUI
-}
+-- Helper function to create UI elements
+local function createUIElements(parent)
+    local elements = {}
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = parent
+    table.insert(elements, corner)
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0.2, 0)
+    title.Position = UDim2.new(0, 0, 0.1, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "UI System Error"
+    title.Font = Enum.Font.SourceSansBold
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 24
+    title.Parent = parent
+    table.insert(elements, title)
+    
+    local message = Instance.new("TextLabel")
+    message.Size = UDim2.new(0.8, 0, 0.3, 0)
+    message.Position = UDim2.new(0.1, 0, 0.4, 0)
+    message.BackgroundTransparency = 1
+    message.Text = "Failed to load " .. parent.Name .. "\nPlease try again or contact support"
+    message.Font = Enum.Font.SourceSans
+    message.TextColor3 = Color3.fromRGB(255, 255, 255)
+    message.TextSize = 18
+    message.TextWrapped = true
+    message.Parent = parent
+    table.insert(elements, message)
+    
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0.4, 0, 0.1, 0)
+    closeButton.Position = UDim2.new(0.3, 0, 0.85, 0)
+    closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    closeButton.Text = "Close"
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 18
+    closeButton.Parent = parent
+    table.insert(elements, closeButton)
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 5)
+    buttonCorner.Parent = closeButton
+    table.insert(elements, buttonCorner)
+    
+    -- Enhanced close button handling with transition
+    closeButton.MouseButton1Click:Connect(function()
+        -- Try normal cleanup first
+        if not cleanupFallbackUI(parent.Name) then
+            -- If that fails, try emergency cleanup
+            log("Normal cleanup failed, attempting emergency cleanup", "warn")
+            EnhancedUISystem.emergencyCleanup()
+        end
+    end)
+    
+    return elements
+end
 
--- Initialize on a slight delay to allow other systems to load first
-task.spawn(function()
-    task.wait(1) -- Wait 1 second before initializing to allow other systems to load
-    initialize()
-end)
-
--- Add emergency cleanup method to EnhancedUISystem
+-- Enhanced emergency cleanup
 EnhancedUISystem.emergencyCleanup = function()
     log("Performing emergency UI cleanup")
     
     -- Clean up all fallback UIs
-    EnhancedUISystem.cleanupFallbackUIs()
+    cleanupAllFallbackUIs()
     
     -- Clean up any ScreenGui with "Gui" suffix
     for _, gui in ipairs(playerGui:GetChildren()) do
@@ -692,8 +515,20 @@ EnhancedUISystem.emergencyCleanup = function()
         end
     end
     
+    -- Reset all state
+    UIState.activeUIs = {}
+    UIState.uiStack = {}
+    UIState.transitions = {}
+    UIState.errorHistory = {}
+    errorCount = 0
+    lastErrorTime = 0
+    
     -- Restore original UI methods
     restoreOriginalMethods()
+    
+    -- Reset initialization state
+    isInitializing = false
+    initializationAttempts = 0
     
     -- Try to reinitialize the UI system
     task.spawn(function()
@@ -703,5 +538,24 @@ EnhancedUISystem.emergencyCleanup = function()
     
     return true
 end
+
+-- Add cleanup on game close
+game:BindToClose(function()
+    cleanupAllFallbackUIs()
+end)
+
+-- Initialize health check system
+task.spawn(function()
+    while true do
+        performHealthCheck()
+        task.wait(CONFIG.HEALTH_CHECK_INTERVAL)
+    end
+end)
+
+-- Initialize on a slight delay to allow other systems to load first
+task.spawn(function()
+    task.wait(1) -- Wait 1 second before initializing to allow other systems to load
+    initialize()
+end)
 
 return UISystemEnhancer

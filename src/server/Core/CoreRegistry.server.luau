@@ -18,6 +18,8 @@ local CONFIG = {
     maxInitAttempts = 3,
     initTimeout = 10, -- seconds
     healthCheckInterval = 30, -- seconds
+    recoveryAttempts = 3,
+    recoveryDelay = 2, -- seconds
     criticalSystems = {
         "ModuleLoader",
         "DataManager",
@@ -47,7 +49,10 @@ local registry = {
     initAttempts = {},     -- Number of initialization attempts per system
     status = "Initializing", -- Current registry status
     lastHealthCheck = 0,    -- Timestamp of last health check
-    healthCheckInterval = CONFIG.healthCheckInterval
+    healthCheckInterval = CONFIG.healthCheckInterval,
+    recoveryAttempts = {}, -- Number of recovery attempts per system
+    errorHistory = {},     -- History of initialization errors
+    systemHealth = {}      -- Health status of each system
 }
 
 -- Debug logging
@@ -88,7 +93,9 @@ function CoreRegistry.registerSystem(name, system, dependencies)
         module = system,
         dependencies = systemDependencies,
         lastHealthCheck = 0,
-        healthStatus = "Unknown"
+        healthStatus = "Unknown",
+        errorCount = 0,
+        lastError = nil
     }
     
     -- Track dependencies
@@ -98,7 +105,7 @@ function CoreRegistry.registerSystem(name, system, dependencies)
     return true
 end
 
--- Initialize a single system
+-- Initialize a single system with enhanced error handling
 function CoreRegistry.initializeSystem(name)
     -- Check if already initialized
     if registry.initialized[name] then
@@ -138,18 +145,43 @@ function CoreRegistry.initializeSystem(name)
         end
     end
     
-    -- Initialize the system
+    -- Initialize the system with timeout
     local system = registry.systems[name].module
     if type(system.initialize) == "function" then
         log("Initializing system: " .. name)
         
         local success, result = pcall(function()
-            return system:initialize()
+            -- Set up timeout
+            local completed = false
+            local initResult = nil
+            
+            -- Run initialization in a separate thread
+            task.spawn(function()
+                initResult = system:initialize()
+                completed = true
+            end)
+            
+            -- Wait for completion or timeout
+            local startTime = os.time()
+            while not completed and os.time() - startTime < CONFIG.initTimeout do
+                task.wait(0.1)
+            end
+            
+            if not completed then
+                error("Initialization timeout")
+            end
+            
+            return initResult
         end)
         
         if not success then
             log("Error initializing system '" .. name .. "': " .. tostring(result), "error")
             registry.loading[name] = nil
+            registry.errorHistory[name] = registry.errorHistory[name] or {}
+            table.insert(registry.errorHistory[name], {
+                time = os.time(),
+                error = tostring(result)
+            })
             return false
         end
         
@@ -164,73 +196,92 @@ function CoreRegistry.initializeSystem(name)
     registry.initialized[name] = system
     registry.loading[name] = nil
     registry.failed[name] = nil
+    registry.systemHealth[name] = "Healthy"
     
     log("Successfully initialized system: " .. name)
     return true
 end
 
--- Initialize all systems
-function CoreRegistry.initializeAll()
-    log("Starting system initialization...")
+-- Attempt to recover a failed system
+function CoreRegistry.recoverSystem(name)
+    if not registry.failed[name] then
+        return true
+    end
     
-    -- Initialize critical systems first
-    for _, systemName in ipairs(CONFIG.criticalSystems) do
-        if not CoreRegistry.initializeSystem(systemName) then
-            log("Failed to initialize critical system: " .. systemName, "error")
+    -- Check recovery attempts
+    registry.recoveryAttempts[name] = (registry.recoveryAttempts[name] or 0) + 1
+    if registry.recoveryAttempts[name] > CONFIG.recoveryAttempts then
+        log("Max recovery attempts reached for system: " .. name, "error")
+        return false
+    end
+    
+    log("Attempting to recover system: " .. name)
+    
+    -- Get the system
+    local system = registry.systems[name].module
+    if not system then
+        return false
+    end
+    
+    -- Try to recover
+    if type(system.recover) == "function" then
+        local success, result = pcall(function()
+            return system:recover()
+        end)
+        
+        if success and result then
+            log("Successfully recovered system: " .. name)
+            registry.failed[name] = nil
+            registry.recoveryAttempts[name] = 0
+            return true
+        else
+            log("Failed to recover system: " .. name .. " - " .. tostring(result), "error")
+            return false
         end
     end
     
-    -- Initialize remaining systems
-    for name, _ in pairs(registry.systems) do
-        if not table.find(CONFIG.criticalSystems, name) then
-            if not CoreRegistry.initializeSystem(name) then
-                log("Failed to initialize system: " .. name, "warn")
-            end
-        end
-    end
-    
-    -- Run health check
-    CoreRegistry.runHealthCheck()
-    
-    return registry.status ~= "Critical"
+    -- If no recovery function, try reinitializing
+    return CoreRegistry.initializeSystem(name)
 end
 
 -- Run health check
 function CoreRegistry.runHealthCheck()
-    local now = os.time()
-    if now - registry.lastHealthCheck < registry.healthCheckInterval then
-        return
-    end
-    
     log("Running health check...")
-    registry.lastHealthCheck = now
     
     local criticalCount = 0
     local totalCritical = #CONFIG.criticalSystems
     local failedSystems = {}
     
-    -- Check critical systems
+    -- Check each critical system
     for _, systemName in ipairs(CONFIG.criticalSystems) do
         local system = registry.systems[systemName]
-        if system then
-            if registry.initialized[systemName] then
-                -- Check system health if available
-                if type(system.module.isHealthy) == "function" then
-                    local isHealthy = system.module:isHealthy()
-                    if not isHealthy then
-                        log("System unhealthy: " .. systemName, "warn")
-                        failedSystems[systemName] = "Unhealthy"
-                    end
-                end
-                criticalCount += 1
-            else
-                log("Critical system not initialized: " .. systemName, "error")
-                failedSystems[systemName] = "Not Initialized"
-            end
-        else
+        if not system then
             log("Critical system not found: " .. systemName, "error")
-            failedSystems[systemName] = "Not Found"
+            failedSystems[systemName] = "Not registered"
+            continue
         end
+        
+        -- Check if system is initialized
+        if not registry.initialized[systemName] then
+            log("Critical system not initialized: " .. systemName, "error")
+            failedSystems[systemName] = "Not initialized"
+            continue
+        end
+        
+        -- Check system health
+        if type(system.module.healthCheck) == "function" then
+            local success, result = pcall(function()
+                return system.module:healthCheck()
+            end)
+            
+            if not success or not result then
+                log("Critical system health check failed: " .. systemName, "error")
+                failedSystems[systemName] = "Health check failed"
+                continue
+            end
+        end
+        
+        criticalCount += 1
     end
     
     -- Update registry status
@@ -245,16 +296,7 @@ function CoreRegistry.runHealthCheck()
     -- Attempt recovery for failed systems
     for systemName, reason in pairs(failedSystems) do
         log("Attempting recovery for system: " .. systemName .. " (Reason: " .. reason .. ")")
-        local system = registry.systems[systemName]
-        if system and type(system.module.recover) == "function" then
-            local success = system.module:recover()
-            if success then
-                log("Successfully recovered system: " .. systemName)
-                failedSystems[systemName] = nil
-            else
-                log("Failed to recover system: " .. systemName, "error")
-            end
-        end
+        CoreRegistry.recoverSystem(systemName)
     end
     
     return criticalCount, totalCritical

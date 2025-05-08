@@ -1,682 +1,425 @@
+--!strict
 --[[
     BuyTileProgressionManager.server.luau
     
-    Manages the progression sequence for BuyTile purchases based on the physical gym structure.
-    This system ensures logical build order based on floors, rooms, and structure types.
+    Manages the progression and unlocking of buyable tiles in the tycoon.
+    Integrates with BuyTileSystem to handle tile prerequisites and progression.
     
-    Features:
-    - Analyzes gym structure to determine logical purchase sequence
-    - Creates dependencies between areas (walls before equipment)
-    - Enforces floor progression (complete one floor before the next)
-    - Provides intelligent prerequisites for tiles based on location
-    - Automatic integrated into the existing BuyTileSystem
-    
-    Author: Created May 2025
+    Created: April 30, 2025
+    Updated: April 30, 2025 - Added client notification system and enhanced progression features
 ]]
 
--- local ServerStorage = game:GetService("ServerStorage") -- Commented out as it's unused
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local Players = game:GetService("Players")
 
--- Find CoreRegistry
-local CoreRegistry = nil
-local systemFolder = ServerScriptService:FindFirstChild("Systems") or ServerScriptService
+-- Import dependencies
+local CoreRegistry = require(script.Parent.CoreRegistry)
+local BuyTileSystem = require(script.Parent.BuyTileSystem)
+local DataAccessLayer = require(script.Parent.DataAccessLayer)
 
-for _, folder in pairs(systemFolder:GetDescendants()) do
-    if folder:IsA("ModuleScript") and folder.Name == "CoreRegistry" then
-        CoreRegistry = require(folder)
-        break
-    end
-end
-
--- Get system references
-local BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
--- local FloorAttributeSetup = CoreRegistry and CoreRegistry:GetSystem("FloorAttributeSetup") -- Commented out as it's unused
-
--- Progression order constants
-local STRUCTURE_BUILD_ORDER = {
-    "FrontDesk", -- Front Desk first (ID attribute 1)
-    "Walls", -- Walls next
-    "Room", -- Then room-specific items
-    "Equipment", -- Then equipment
-    "Amenity", -- Then amenities
-    "Ceiling", -- Then ceilings
-    "Stairs" -- Stairs last (to next floor)
+-- Configuration
+local CONFIG = {
+    debug = true,
+    maxTilesPerFloor = 20,
+    floorProgressionMultiplier = 1.5,
+    requiredTilePercentage = 0.3, -- 30% of tiles must be required
+    buildOrderIncrement = 10,
+    maxFloors = 5,
+    notificationDuration = 5, -- seconds
+    notificationSound = "rbxassetid://1234567890", -- Replace with actual sound ID
+    progressionMilestones = {
+        { tiles = 5, reward = 1000 },
+        { tiles = 10, reward = 2500 },
+        { tiles = 25, reward = 5000 },
+        { tiles = 50, reward = 10000 }
+    }
 }
 
-local ROOM_PRIORITY = {
-    "FrontDesk", -- Front desk first
-    "Entrance", -- Entrance next
-    "Main", -- Main areas
-    "Cardio", -- Cardio zones
-    "Strength", -- Strength training
-    "Specialty", -- Specialty areas
-    "Locker", -- Locker rooms
-    "Staff", -- Staff areas
-    "Amenities" -- Amenities last
-}
-
--- BuyTileProgressionManager singleton
+-- BuyTileProgressionManager module
 local BuyTileProgressionManager = {
-    Debug = false -- Set to true for detailed logging
+    Version = "2.0.0",
+    initialized = false,
+    buildOrder = {},
+    floorPrerequisites = {},
+    requiredTiles = {},
+    stats = {
+        tilesProcessed = 0,
+        errors = 0,
+        warnings = 0
+    }
 }
 
--- Log messages if debug is enabled
-function BuyTileProgressionManager:Log(message)
-    if self.Debug then
-        print("[BuyTileProgressionManager] " .. message)
+-- Debug logging
+local function log(message, level)
+    if CONFIG.debug then
+        local prefix = "[BuyTileProgressionManager]"
+        if level == "error" then
+            warn(prefix .. " ERROR: " .. message)
+        elseif level == "warn" then
+            warn(prefix .. " WARNING: " .. message)
+        else
+            print(prefix .. " " .. message)
+        end
     end
 end
 
--- Generate build order for tiles based on structure
+-- Generate build order for tiles
 function BuyTileProgressionManager:GenerateBuildOrder()
-    if not BuyTileSystem or not BuyTileSystem.tileData then
-        warn("BuyTileSystem not found, cannot generate build order")
-        return false
-    end
+    log("Generating build order")
     
-    self:Log("Generating intelligent build order based on gym structure...")
-    
-    -- Sort by floor first, then structure type, then room priority
-    local tilesInfo = {}
-    
-    for tileType, tileData in pairs(BuyTileSystem.tileData) do
-        table.insert(tilesInfo, {
-            tileType = tileType,
-            tileData = tileData,
-            floor = tileData.floor or 1,
-            structureType = self:DetermineStructureType(tileData),
-            roomPriority = self:DetermineRoomPriority(tileData)
+    -- Get all registered tiles
+    local tiles = {}
+    for tileId, tile in pairs(BuyTileSystem.tiles) do
+        table.insert(tiles, {
+            id = tileId,
+            data = tile
         })
     end
     
-    -- Sort tiles
-    table.sort(tilesInfo, function(a, b)
-        -- Sort by floor first
-        if a.floor ~= b.floor then
-            return a.floor < b.floor
+    -- Sort tiles by floor and build order
+    table.sort(tiles, function(a, b)
+        if a.data.floor ~= b.data.floor then
+            return a.data.floor < b.data.floor
         end
-        
-        -- Then by structure type priority
-        local aTypeIndex = self:GetStructurePriorityIndex(a.structureType)
-        local bTypeIndex = self:GetStructurePriorityIndex(b.structureType)
-        if aTypeIndex ~= bTypeIndex then
-            return aTypeIndex < bTypeIndex
-        end
-        
-        -- Then by room priority
-        if a.roomPriority ~= b.roomPriority then
-            return a.roomPriority < b.roomPriority
-        end
-        
-        -- Finally by existing build order if it exists
-        return (a.tileData.buildOrder or 9999) < (b.tileData.buildOrder or 9999)
+        return a.data.buildOrder < b.data.buildOrder
     end)
     
-    -- Assign new build orders
-    local buildOrderSpacing = 10 -- Leave gaps for future insertions
-    local currentBuildOrder = 1
-    
-    for _, tileInfo in ipairs(tilesInfo) do
-        -- Update build order in tile data
-        BuyTileSystem.tileData[tileInfo.tileType].buildOrder = currentBuildOrder
-        
-        -- Generate prerequisites based on structure
-        self:GeneratePrerequisites(tileInfo.tileType, tilesInfo)
-        
-        currentBuildOrder += buildOrderSpacing
+    -- Create build order
+    self.buildOrder = {}
+    for i, tile in ipairs(tiles) do
+        self.buildOrder[i] = tile.id
     end
     
-    self:Log("Successfully generated build order for " .. #tilesInfo .. " tiles")
-    return true
+    log("Generated build order with " .. #self.buildOrder .. " tiles")
 end
 
--- Generate prerequisites for a tile based on structure
-function BuyTileProgressionManager:GeneratePrerequisites(tileType, tilesInfo)
-    if not BuyTileSystem or not BuyTileSystem.tileData then return end
-    
-    local tileData = BuyTileSystem.tileData[tileType]
-    if not tileData then return end
-    
-    -- Start with empty prerequisites unless they already exist
-    local prerequisites = tileData.prerequisites or {}
-    
-    -- Find structure dependencies
-    local currentStructureType = self:DetermineStructureType(tileData)
-    local floor = tileData.floor or 1
-    
-    -- If this is not a wall and not on the first floor, require previous floor
-    if floor > 1 and currentStructureType ~= "Walls" and currentStructureType ~= "Stairs" then
-        -- Find the stairs/elevator from previous floor
-        for _, tileInfo in ipairs(tilesInfo) do
-            if tileInfo.floor == floor - 1 and tileInfo.structureType == "Stairs" then
-                -- Add stair prerequisite if not already in the list
-                local found = false
-                for _, prereq in ipairs(prerequisites) do
-                    if prereq == tileInfo.tileType then
-                        found = true
-                        break
-                    end
-                end
-                
-                if not found then
-                    table.insert(prerequisites, tileInfo.tileType)
-                end
-                
-                break
-            end
-        end
-    end
-      -- If this is equipment/amenity and floor > 1, require a "Floor" tile on this floor
-    if floor > 1 and (currentStructureType == "Equipment" or currentStructureType == "Amenity") then
-        for _, tileInfo in ipairs(tilesInfo) do
-            if tileInfo.floor == floor and tileInfo.structureType == "Floor" then
-                local found = false
-                for _, prereq in ipairs(prerequisites) do
-                    if prereq == tileInfo.tileType then
-                        found = true
-                        break
-                    end
-                end
-                if not found and #prerequisites < 3 then -- Limit to 3 prerequisites
-                    table.insert(prerequisites, tileInfo.tileType)
-                    break
-                end
-            end
-        end
-    end-- If this is equipment/amenity, require walls on this floor
-    if currentStructureType == "Equipment" or currentStructureType == "Amenity" then
-        -- Find Walls tiles on this floor
-        for _, tileInfo in ipairs(tilesInfo) do
-            if tileInfo.floor == floor and tileInfo.structureType == "Walls" then
-                -- Add wall prerequisite if not already in list
-                local found = false
-                for _, prereq in ipairs(prerequisites) do
-                    if prereq == tileInfo.tileType then
-                        found = true
-                        break
-                    end
-                end
-                
-                if not found and #prerequisites < 3 then -- Limit to 3 prerequisites max
-                    table.insert(prerequisites, tileInfo.tileType)
-                    break
-                end
-            end
-        end
-    end
-    
-    -- Update prerequisites in tile data
-    BuyTileSystem.tileData[tileType].prerequisites = prerequisites
-end
-
--- Determine structure type from tile data
-function BuyTileProgressionManager:DetermineStructureType(tileData)
-    if not tileData then return "Equipment" end
-    
-    -- Use existing structure type if available
-    if tileData.structureType then
-        return tileData.structureType
-    end
-    
-    -- Check category first
-    if tileData.category then
-        local category = tileData.category:lower()
-        if category:find("structure") then
-            local description = tileData.description and tileData.description:lower() or ""
-            if description:find("wall") then
-                return "Walls"
-            elseif description:find("floor") then
-                return "Floor"
-            elseif description:find("ceiling") then
-                return "Ceiling"
-            elseif description:find("stair") or description:find("elevator") then
-                return "Stairs"
-            end
-            return "Structure"
-        elseif category:find("amenity") or category:find("amenities") then
-            return "Amenity"
-        end
-    end
-    
-    -- Check description for structure hints
-    if tileData.description then
-        local description = tileData.description:lower()
-        if description:find("wall") then
-            return "Walls"
-        elseif description:find("floor") then
-            return "Floor"
-        elseif description:find("ceiling") then
-            return "Ceiling"
-        elseif description:find("stair") or description:find("elevator") then
-            return "Stairs"
-        end
-    end
-    
-    -- Check tile type for structure hints
-    local tileTypeLower = tileData.tileType and string.lower(tileData.tileType) or ""
-    if tileTypeLower:find("wall") then
-        return "Walls"
-    elseif tileTypeLower:find("floor") then
-        return "Floor"
-    elseif tileTypeLower:find("ceiling") then
-        return "Ceiling"
-    elseif tileTypeLower:find("stair") or tileTypeLower:find("elevator") then
-        return "Stairs"
-    end
-    
-    -- Check model name if available
-    if tileData.modelName then
-        local modelName = string.lower(tileData.modelName)
-        if modelName:find("wall") then
-            return "Walls"
-        elseif modelName:find("floor") then
-            return "Floor"
-        elseif modelName:find("ceiling") then
-            return "Ceiling"
-        elseif modelName:find("stair") or modelName:find("elevator") then
-            return "Stairs"
-        end
-    end
-    
-    -- Default to equipment
-    return "Equipment"
-end
-
--- Determine room priority based on tile data and name
-function BuyTileProgressionManager:DetermineRoomPriority(tileData)
-    if not tileData then return 5 end
-    
-    -- Check room attribute first
-    if tileData.room then
-        local roomName = string.lower(tileData.room)
-        
-        for i, priority in ipairs(ROOM_PRIORITY) do
-            if roomName:find(string.lower(priority)) then
-                return i
-            end
-        end
-    end
-    
-    -- Check description for room hints
-    if tileData.description then
-        local description = string.lower(tileData.description)
-        
-        for i, priority in ipairs(ROOM_PRIORITY) do
-            if description:find(string.lower(priority)) then
-                return i
-            end
-        end
-    end
-    
-    -- Check tile type for room hints
-    if tileData.tileType then
-        local tileType = string.lower(tileData.tileType)
-        
-        for i, priority in ipairs(ROOM_PRIORITY) do
-            if tileType:find(string.lower(priority)) then
-                return i
-            end
-        end
-    end
-    
-    -- Default to middle priority
-    return 5
-end
-
--- Helper to get structure priority index
-function BuyTileProgressionManager:GetStructurePriorityIndex(structureType)
-    for i, structure in ipairs(STRUCTURE_BUILD_ORDER) do
-        if structure == structureType then
-            return i
-        end
-    end
-    
-    -- Default to middle priority
-    return 4 -- Equipment
-end
-
--- Generate basic build order without complex structure analysis
-function BuyTileProgressionManager:GenerateBasicBuildOrder()
-    if not BuyTileSystem or not BuyTileSystem.tileData then
-        warn("BuyTileSystem not found, cannot generate build order")
-        return false
-    end
-    
-    self:Log("Generating basic build order...")
-    
-    -- Sort by floor first, then predefined order
-    local orderedTiles = {}
-    
-    for tileType, tileData in pairs(BuyTileSystem.tileData) do
-        table.insert(orderedTiles, {
-            tileType = tileType,
-            data = tileData,
-            floor = tileData.floor or 1,
-            buildOrder = tileData.buildOrder or 9999
-        })
-    end
-    
-    -- Sort by floor then by existing build order
-    table.sort(orderedTiles, function(a, b)
-        if a.floor ~= b.floor then
-            return a.floor < b.floor
-        end
-        return a.buildOrder < b.buildOrder
-    end)
-    
-    -- Assign new sequential build orders
-    local currentBuildOrder = 1
-    local buildOrderSpacing = 10
-    
-    for _, tile in ipairs(orderedTiles) do
-        BuyTileSystem.tileData[tile.tileType].buildOrder = currentBuildOrder
-        currentBuildOrder += buildOrderSpacing
-    end
-    
-    self:Log("Assigned basic build order to " .. #orderedTiles .. " tiles")
-    return true
-end
-
--- Create floor prerequisites - each floor requires completion of previous floor
+-- Set up floor prerequisites
 function BuyTileProgressionManager:SetupFloorPrerequisites()
-    if not BuyTileSystem or not BuyTileSystem.tileData then
-        warn("BuyTileSystem not found, cannot set up floor prerequisites")
-        return false
+    log("Setting up floor prerequisites")
+    
+    -- Clear existing prerequisites
+    self.floorPrerequisites = {}
+    
+    -- Get all tiles
+    local tiles = {}
+    for tileId, tile in pairs(BuyTileSystem.tiles) do
+        if tile.floor then
+            tiles[tile.floor] = tiles[tile.floor] or {}
+            table.insert(tiles[tile.floor], {
+                id = tileId,
+                data = tile
+            })
+        end
     end
     
-    self:Log("Setting up floor prerequisites...")
-    
-    -- Find key tile for each floor
-    local floorGateways = {}
-    
-    -- First pass to categorize tiles by floor
-    local tilesByFloor = {}
-    for tileType, tileData in pairs(BuyTileSystem.tileData) do
-        local floor = tileData.floor or 1
-        
-        if not tilesByFloor[floor] then
-            tilesByFloor[floor] = {}
+    -- Set up prerequisites for each floor
+    for floor = 2, CONFIG.maxFloors do
+        if tiles[floor] then
+            for _, tile in ipairs(tiles[floor]) do
+                -- Find a prerequisite from the previous floor
+                if tiles[floor - 1] and #tiles[floor - 1] > 0 then
+                    local prereq = tiles[floor - 1][1]
+                    tile.data.requiredTiles = tile.data.requiredTiles or {}
+                    table.insert(tile.data.requiredTiles, prereq.id)
+                    
+                    -- Update the tile in BuyTileSystem
+                    BuyTileSystem:RegisterTile(tile.data)
+                end
+            end
         end
-        
-        table.insert(tilesByFloor[floor], {
-            tileType = tileType,
-            data = tileData
+    end
+    
+    log("Set up floor prerequisites")
+end
+
+-- Identify required tiles
+function BuyTileProgressionManager:IdentifyRequiredTiles()
+    log("Identifying required tiles")
+    
+    -- Clear existing required tiles
+    self.requiredTiles = {}
+    
+    -- Get all tiles
+    local tiles = {}
+    for tileId, tile in pairs(BuyTileSystem.tiles) do
+        table.insert(tiles, {
+            id = tileId,
+            data = tile
         })
-        
-        -- Look for stair/elevator tiles that lead to next floor
-        local structureType = self:DetermineStructureType(tileData)
-        if structureType == "Stairs" then
-            floorGateways[floor] = tileType
-            tileData.isFloorGateway = true
-            tileData.unlockNextFloor = true
-            tileData.isRequired = true
+    end
+    
+    -- Calculate how many tiles should be required
+    local requiredCount = math.ceil(#tiles * CONFIG.requiredTilePercentage)
+    
+    -- Sort tiles by importance (you can define your own importance criteria)
+    table.sort(tiles, function(a, b)
+        -- Prioritize tiles with more prerequisites
+        local aPrereqs = a.data.requiredTiles and #a.data.requiredTiles or 0
+        local bPrereqs = b.data.requiredTiles and #b.data.requiredTiles or 0
+        if aPrereqs ~= bPrereqs then
+            return aPrereqs > bPrereqs
+        end
+        -- Then by floor
+        if a.data.floor ~= b.data.floor then
+            return a.data.floor < b.data.floor
+        end
+        -- Then by build order
+        return a.data.buildOrder < b.data.buildOrder
+    end)
+    
+    -- Mark the top N tiles as required
+    for i = 1, requiredCount do
+        if tiles[i] then
+            tiles[i].data.isRequired = true
+            self.requiredTiles[tiles[i].id] = true
             
-            self:Log("Floor " .. floor .. " gateway: " .. tileType)
+            -- Update the tile in BuyTileSystem
+            BuyTileSystem:RegisterTile(tiles[i].data)
         end
     end
     
-    -- If gateway tiles are not found, use last tile of each floor by build order
-    for floor, tiles in pairs(tilesByFloor) do
-        if not floorGateways[floor] and #tiles > 0 then
-            -- Sort tiles by build order
-            table.sort(tiles, function(a, b)
-                return (a.data.buildOrder or 9999) < (b.data.buildOrder or 9999)
-            end)
+    log("Identified " .. #self.requiredTiles .. " required tiles")
+end
+
+-- Integrate with BuyTileSystem
+function BuyTileProgressionManager:IntegrateWithBuyTileSystem()
+    log("Integrating with BuyTileSystem")
+    
+    -- Register with BuyTileSystem
+    if BuyTileSystem then
+        -- Set up event handlers
+        BuyTileSystem.OnTilePurchased = function(player, tileId)
+            self:HandleTilePurchased(player, tileId)
+        end
+        
+        -- Register our tiles
+        for tileId, tile in pairs(self.buildOrder) do
+            BuyTileSystem:RegisterTile(tile)
+        end
+        
+        log("Successfully integrated with BuyTileSystem")
+    else
+        log("BuyTileSystem not found", "error")
+    end
+end
+
+-- Handle tile purchased event
+function BuyTileProgressionManager:HandleTilePurchased(player, tileId)
+    if not player or not tileId then return end
+    
+    -- Get the purchased tile
+    local tile = BuyTileSystem:GetTile(tileId)
+    if not tile then return end
+    
+    -- Check if this unlocks any new tiles
+    for _, potentialTile in pairs(BuyTileSystem.tiles) do
+        if potentialTile.requiredTiles then
+            local allPrereqsMet = true
+            for _, prereqId in ipairs(potentialTile.requiredTiles) do
+                if not BuyTileSystem:IsTileOwned(player, prereqId) then
+                    allPrereqsMet = false
+                    break
+                end
+            end
             
-            -- Use the last tile as gateway
-            local lastTile = tiles[#tiles]
-            floorGateways[floor] = lastTile.tileType
-            lastTile.data.isFloorGateway = true
-            lastTile.data.unlockNextFloor = true
-            
-            self:Log("No stair found - Using " .. lastTile.tileType .. " as floor " .. floor .. " gateway")
+            if allPrereqsMet then
+                -- Notify the player
+                self:NotifyTileUnlocked(player, potentialTile.id)
+            end
         end
     end
+end
+
+-- Create RemoteEvent for client notifications
+local function setupRemotes()
+    local remotes = ReplicatedStorage:FindFirstChild("BuyTileRemotes")
+    if not remotes then
+        remotes = Instance.new("Folder")
+        remotes.Name = "BuyTileRemotes"
+        remotes.Parent = ReplicatedStorage
+    end
     
-    -- Now set up prerequisites for each floor
-    for floor = 2, 6 do -- Process floors 2-6 (assuming floor 1 is available from start)
-        if not tilesByFloor[floor] then continue end
-        
-        local previousFloorGateway = floorGateways[floor - 1]
-        if not previousFloorGateway then continue end
-        
-        for _, tile in ipairs(tilesByFloor[floor]) do
-            -- Only add prerequisite to the "first" tile of each type on this floor
-            local isFirstTileOfItsType = true -- Simple for now, could be expanded
+    local notificationRemote = remotes:FindFirstChild("TileNotification")
+    if not notificationRemote then
+        notificationRemote = Instance.new("RemoteEvent")
+        notificationRemote.Name = "TileNotification"
+        notificationRemote.Parent = remotes
+    end
+    
+    return notificationRemote
+end
+
+-- Notify player of unlocked tile
+function BuyTileProgressionManager:NotifyTileUnlocked(player, tileId)
+    if not player or not tileId then return end
+    
+    -- Get the tile
+    local tile = BuyTileSystem:GetTile(tileId)
+    if not tile then return end
+    
+    -- Create notification
+    local notification = {
+        type = "tileUnlocked",
+        tileId = tileId,
+        tileName = tile.name,
+        cost = tile.cost,
+        floor = tile.floor,
+        isRequired = tile.isRequired,
+        duration = CONFIG.notificationDuration,
+        sound = CONFIG.notificationSound
+    }
+    
+    -- Send to client
+    local notificationRemote = setupRemotes()
+    notificationRemote:FireClient(player, notification)
+    
+    -- Check for progression milestones
+    self:CheckProgressionMilestones(player)
+end
+
+-- Check for progression milestones
+function BuyTileProgressionManager:CheckProgressionMilestones(player)
+    if not player then return end
+    
+    -- Get owned tiles count
+    local ownedTiles = BuyTileSystem:GetOwnedTiles(player)
+    local tileCount = #ownedTiles
+    
+    -- Check each milestone
+    for _, milestone in ipairs(CONFIG.progressionMilestones) do
+        if tileCount >= milestone.tiles then
+            -- Check if milestone was already awarded
+            local playerData = DataAccessLayer:GetPlayerData(player)
+            local awardedMilestones = playerData.awardedMilestones or {}
             
-            if isFirstTileOfItsType then
-                local prerequisites = tile.data.prerequisites or {}
+            if not awardedMilestones[milestone.tiles] then
+                -- Award milestone
+                local currentCash = playerData.cash or 0
+                DataAccessLayer:UpdatePlayerData(player, "cash", currentCash + milestone.reward)
                 
-                -- Add gateway from previous floor as prerequisite if not present
-                local alreadyInList = false
-                for _, prereq in ipairs(prerequisites) do
-                    if prereq == previousFloorGateway then
-                        alreadyInList = true
+                -- Mark milestone as awarded
+                awardedMilestones[milestone.tiles] = true
+                DataAccessLayer:UpdatePlayerData(player, "awardedMilestones", awardedMilestones)
+                
+                -- Notify player
+                local notification = {
+                    type = "milestoneReached",
+                    milestone = milestone.tiles,
+                    reward = milestone.reward,
+                    duration = CONFIG.notificationDuration,
+                    sound = CONFIG.notificationSound
+                }
+                
+                local notificationRemote = setupRemotes()
+                notificationRemote:FireClient(player, notification)
+            end
+        end
+    end
+end
+
+-- Get player progression stats
+function BuyTileProgressionManager:GetPlayerProgression(player)
+    if not player then return nil end
+    
+    local ownedTiles = BuyTileSystem:GetOwnedTiles(player)
+    local availableTiles = self:GetNextAvailableTiles(player)
+    
+    -- Calculate floor progress
+    local floorProgress = {}
+    for floor = 1, CONFIG.maxFloors do
+        local floorTiles = 0
+        local totalFloorTiles = 0
+        
+        for _, tile in pairs(BuyTileSystem.tiles) do
+            if tile.floor == floor then
+                totalFloorTiles += 1
+                if BuyTileSystem:IsTileOwned(player, tile.id) then
+                    floorTiles += 1
+                end
+            end
+        end
+        
+        floorProgress[floor] = {
+            owned = floorTiles,
+            total = totalFloorTiles,
+            percentage = totalFloorTiles > 0 and (floorTiles / totalFloorTiles) * 100 or 0
+        }
+    end
+    
+    -- Calculate next milestone
+    local nextMilestone = nil
+    local ownedCount = #ownedTiles
+    
+    for _, milestone in ipairs(CONFIG.progressionMilestones) do
+        if ownedCount < milestone.tiles then
+            nextMilestone = {
+                tiles = milestone.tiles,
+                reward = milestone.reward,
+                progress = (ownedCount / milestone.tiles) * 100
+            }
+            break
+        end
+    end
+    
+    return {
+        ownedTiles = ownedTiles,
+        availableTiles = availableTiles,
+        floorProgress = floorProgress,
+        nextMilestone = nextMilestone,
+        totalTiles = #ownedTiles + #availableTiles
+    }
+end
+
+-- Get next available tiles for a player
+function BuyTileProgressionManager:GetNextAvailableTiles(player, limit)
+    if not player then return {} end
+    
+    local availableTiles = {}
+    local count = 0
+    
+    -- Get all tiles
+    for tileId, tile in pairs(BuyTileSystem.tiles) do
+        if not BuyTileSystem:IsTileOwned(player, tileId) then
+            -- Check prerequisites
+            local meetsPrerequisites = true
+            if tile.requiredTiles then
+                for _, prereqId in ipairs(tile.requiredTiles) do
+                    if not BuyTileSystem:IsTileOwned(player, prereqId) then
+                        meetsPrerequisites = false
                         break
                     end
                 end
-                
-                if not alreadyInList then
-                    table.insert(prerequisites, previousFloorGateway)
-                    tile.data.prerequisites = prerequisites
-                    self:Log("Added prerequisite " .. previousFloorGateway .. " to " .. tile.tileType)
-                end
-            end
-        end
-    end
-    
-    self:Log("Floor prerequisites setup complete")
-    return true
-end
-
--- Detect required tiles for floor progression
-function BuyTileProgressionManager:IdentifyRequiredTiles()
-    if not BuyTileSystem or not BuyTileSystem.tileData then
-        warn("BuyTileSystem not found, cannot identify required tiles")
-        return false
-    end
-    
-    self:Log("Identifying required tiles...")
-    
-    -- Initialize required items table if not exists
-    if not BuyTileSystem.requiredItems then
-        BuyTileSystem.requiredItems = {}
-    end
-    
-    -- Reset required tiles by floor
-    for i = 1, 6 do
-        BuyTileSystem.requiredItems[i] = {}
-    end
-    
-    -- Go through all tiles
-    for tileType, tileData in pairs(BuyTileSystem.tileData) do
-        local floor = tileData.floor or 1
-        
-        -- Mark essential structure tiles as required
-        local structureType = self:DetermineStructureType(tileData)
-        if structureType == "Walls" or structureType == "Floor" or structureType == "Ceiling" or
-           structureType == "Stairs" or tileData.isRequired == true then
-            
-            -- Add to required items for this floor
-            table.insert(BuyTileSystem.requiredItems[floor], tileType)
-            tileData.isRequired = true
-            
-            self:Log("Marked " .. tileType .. " as required for floor " .. floor)
-        end
-    end
-    
-    -- Ensure at least one required item per floor
-    for floor, requiredItems in pairs(BuyTileSystem.requiredItems) do
-        if #requiredItems == 0 and BuyTileSystem.tileData then
-            -- Find any tile on this floor
-            for tileType, tileData in pairs(BuyTileSystem.tileData) do
-                if (tileData.floor or 1) == floor then
-                    table.insert(BuyTileSystem.requiredItems[floor], tileType)
-                    tileData.isRequired = true
-                    self:Log("Added " .. tileType .. " as required item for floor " .. floor .. " (no required items found)")
-                    break
-                end
-            end
-        end
-    end
-    
-    self:Log("Required tiles identification complete")
-    return true
-end
-
--- Hook BuyTileSystem to use floor-based progression
-function BuyTileProgressionManager:IntegrateWithBuyTileSystem()
-    if not BuyTileSystem then
-        warn("BuyTileSystem not found, cannot integrate")
-        return false
-    end
-    
-    self:Log("Integrating with BuyTileSystem...")
-      -- Add method to check if floor is completed
-    BuyTileSystem.IsFloorCompleted = function(system, player, floorNumber)
-        local playerData = system:GetPlayerData(player)
-        if not playerData or not system.requiredItems then
-            return false
-        end
-        
-        -- Check if all required items for this floor are owned
-        local requiredItems = system.requiredItems[floorNumber] or {}
-        for _, tileType in ipairs(requiredItems) do
-            if not playerData.ownedTiles[tileType] then
-                return false
-            end
-        end
-        
-        return true
-    end
-      -- Add method to check if floor is available for purchase
-    BuyTileSystem.IsFloorAvailable = function(system, player, floorNumber)
-        if floorNumber == 1 then
-            return true -- First floor always available
-        end
-        
-        -- Check if previous floor is completed
-        return system:IsFloorCompleted(player, floorNumber - 1)
-    end
-      -- Add method to get next available tiles
-    BuyTileSystem.GetNextAvailableTiles = function(system, player, maxCount)
-        maxCount = maxCount or 5
-        local availableTiles = {}
-        local playerData = system:GetPlayerData(player)
-        
-        if not playerData then
-            return availableTiles
-        end
-        
-        -- Make sure ordered tiles is up-to-date
-        if not system.orderedTiles or #system.orderedTiles == 0 then
-            if system.SortTilesByBuildOrder then
-                system:SortTilesByBuildOrder()
-            end
-        end
-        
-        -- Go through all sorted tiles
-        for _, tileInfo in ipairs(system.orderedTiles) do
-            local tileType = tileInfo.tileType
-            local data = system.tileData[tileType]
-            
-            -- Skip if already owned
-            if playerData.ownedTiles[tileType] then
-                continue
             end
             
-            -- Check if floor is available
-            local floor = data.floor or 1
-            if not system:IsFloorAvailable(player, floor) then
-                continue
-            end
-            
-            -- Check prerequisites
-            if system:AreRequirementsMet(player, tileType) then
+            if meetsPrerequisites then
                 table.insert(availableTiles, {
-                    tileType = tileType,
-                    data = data
+                    tileId = tileId,
+                    data = tile
                 })
-                
-                -- Return when we have enough
-                if #availableTiles >= maxCount then
+                count = count + 1
+                if limit and count >= limit then
                     break
                 end
             end
         end
-        
-        return availableTiles
-    end
-      -- Hook into BuyTile to update floor unlocks
-    if BuyTileSystem.BuyTile then
-        local originalBuyTile = BuyTileSystem.BuyTile
-        BuyTileSystem.BuyTile = function(system, player, tileType, ...)
-            local result = originalBuyTile(system, player, tileType, ...)
-            
-            -- If purchase successful, check if this unlocks the next floor
-            if result and system.tileData and system.tileData[tileType] then
-                local tileData = system.tileData[tileType]
-                
-                -- Check if this tile unlocks next floor
-                if tileData.unlockNextFloor and tileData.floor then
-                    local currentFloor = tileData.floor
-                    local nextFloor = currentFloor + 1
-                    
-                    -- Unlock next floor in player data
-                    local playerData = system:GetPlayerData(player)
-                    if playerData then
-                        if not playerData.unlockedFloors then
-                            playerData.unlockedFloors = {}
-                        end
-                          playerData.unlockedFloors[nextFloor] = true
-                        
-                        -- Fire event for floor unlock
-                        if system.Events and system.Events.FloorUnlocked then
-                            system.Events.FloorUnlocked:Fire(player, nextFloor)
-                        end
-                        
-                        system:Log("Player " .. player.Name .. " unlocked floor " .. nextFloor)
-                    end
-                end
-            end
-            
-            return result
-        end
     end
     
-    self:Log("BuyTileSystem integration complete")
-    return true
+    return availableTiles
 end
 
--- Setup progression commands
+-- Add progression command
 function BuyTileProgressionManager:CreateCommands()
-    local CommandService = CoreRegistry and CoreRegistry:GetSystem("CommandService")
+    log("Creating commands")
     
+    -- Register with CommandService if available
+    local CommandService = CoreRegistry:getSystem("CommandService")
     if not CommandService then
-        warn("CommandService not found, progression commands won't be available")
-        return false
+        log("CommandService not found", "warn")
+        return
     end
     
-    -- Register a command to generate build order
-    CommandService:RegisterCommand("generateBuildOrder", {
-        description = "Generates intelligent build order for BuyTiles",
-        parameters = {},
-        handler = function(player)
-            -- Check if player is authorized to run admin commands
-            local AdminService = CoreRegistry:GetSystem("AdminService")
-            if AdminService and not AdminService:IsAdmin(player) then
-                return "You don't have permission to use this command"
-            end
-            
-            self:GenerateBuildOrder()
-            self:SetupFloorPrerequisites()
-            self:IdentifyRequiredTiles()
-            
-            return "Generated build order and progression requirements"
-        end
-    })
-    
-    -- Register a command to test progression
+    -- Register commands
     CommandService:RegisterCommand("checkProgression", {
         description = "Shows available tiles for player",
         parameters = {},
@@ -685,34 +428,57 @@ function BuyTileProgressionManager:CreateCommands()
                 return "BuyTileSystem not found"
             end
             
-            local result = "=== Available Tiles ===\n"
-            local availableTiles = BuyTileSystem:GetNextAvailableTiles(player, 10)
-            
-            for i, tileInfo in ipairs(availableTiles) do
-                result = result .. i .. ". " .. tileInfo.tileType
-                if tileInfo.data.floor then
-                    result = result .. " (Floor " .. tileInfo.data.floor .. ")"
-                end
-                if tileInfo.data.isRequired then
-                    result = result .. " [REQUIRED]"
-                end
-                result = result .. "\n"
+            local progression = self:GetPlayerProgression(player)
+            if not progression then
+                return "Failed to get progression data"
             end
             
-            if #availableTiles == 0 then
+            local result = "=== Progression Stats ===\n"
+            
+            -- Show floor progress
+            result = result .. "\nFloor Progress:\n"
+            for floor, progress in pairs(progression.floorProgress) do
+                result = result .. string.format("Floor %d: %d/%d tiles (%.1f%%)\n",
+                    floor, progress.owned, progress.total, progress.percentage)
+            end
+            
+            -- Show next milestone
+            if progression.nextMilestone then
+                result = result .. string.format("\nNext Milestone: %d tiles (%.1f%%)\nReward: %d cash\n",
+                    progression.nextMilestone.tiles,
+                    progression.nextMilestone.progress,
+                    progression.nextMilestone.reward)
+            end
+            
+            -- Show available tiles
+            result = result .. "\nAvailable Tiles:\n"
+            for i, tileInfo in ipairs(progression.availableTiles) do
+                if i <= 10 then
+                    result = result .. string.format("%d. %s (Floor %d) - %d cash\n",
+                        i, tileInfo.data.name, tileInfo.data.floor, tileInfo.data.cost)
+                end
+            end
+            
+            if #progression.availableTiles == 0 then
                 result = result .. "No available tiles found"
+            elseif #progression.availableTiles > 10 then
+                result = result .. "... and " .. (#progression.availableTiles - 10) .. " more"
             end
             
             return result
         end
     })
     
-    return true
+    log("Created commands")
 end
 
--- Complete system initialization
+-- Initialize the system
 function BuyTileProgressionManager:Initialize()
-    self:Log("Initializing...")
+    if self.initialized then
+        return true
+    end
+    
+    log("Initializing BuyTileProgressionManager v" .. self.Version)
     
     -- Set up build order
     self:GenerateBuildOrder()
@@ -729,14 +495,31 @@ function BuyTileProgressionManager:Initialize()
     -- Create commands
     self:CreateCommands()
     
-    -- Register with CoreRegistry if available
-    if CoreRegistry and CoreRegistry.RegisterSystem then
-        CoreRegistry:RegisterSystem("BuyTileProgressionManager", self)
-        self:Log("Registered with CoreRegistry")
+    -- Register with CoreRegistry
+    if CoreRegistry then
+        CoreRegistry:registerSystem("BuyTileProgressionManager", self)
+        log("Registered with CoreRegistry")
     end
     
-    self:Log("Initialization complete")
-    return self
+    self.initialized = true
+    log("BuyTileProgressionManager initialized successfully")
+    return true
 end
 
-return BuyTileProgressionManager:Initialize()
+-- Get system health
+function BuyTileProgressionManager:IsHealthy()
+    return self.initialized
+end
+
+-- Recover from failure
+function BuyTileProgressionManager:Recover()
+    if not self.initialized then
+        return self:Initialize()
+    end
+    return true
+end
+
+-- Initialize the BuyTileProgressionManager
+BuyTileProgressionManager:Initialize()
+
+return BuyTileProgressionManager
