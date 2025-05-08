@@ -2,69 +2,74 @@
 
 ## Critical Issues (Must Fix Immediately)
 
-1. **UI System Enhancer Fallback Menu**
-   - Description: A menu from UI System enhancer is stuck displaying a message and cannot be dismissed
-   - Impact: Blocks user interaction and prevents normal gameplay
-   - Location: Likely in UI System enhancer scripts
+1. **Data Persistence System Failures**
+   - Description: Multiple data systems failing to properly save and restore player data
+   - Impact: Player data may be lost or corrupted
+   - Specific issues:
+     - `[DataManager] Failed to restore tile X for Xdjpearsonx` (multiple occurrences)
+     - `[DataPersistenceManager]` and `[DataPersistenceFix]` issues
+     - `Could not find gym part with ID` errors
+   - Location: GymTycoonDataManager, DataPersistenceManager, DataPersistenceFix scripts
    - Priority: HIGHEST
 
 2. **Core System Initialization Failures**
    - Description: Multiple critical systems failed to initialize properly
    - Impact: Affects core game functionality
    - Systems affected:
-     - DataManager
-     - UIComponents
-     - AssetValidator
-     - BuyTileSystem
-     - TycoonSystem
-     - EventBridge
+     - CoreRegistry consistently reported as "UNAVAILABLE"
+     - ClientRegistry issues with missing systems
+     - UIRegistry and UISystem failures
+     - ModuleResolver failures
    - Priority: HIGH
 
-3. **Data System Integration Issues**
-   - Description: Data persistence and management systems are not properly connected
-   - Impact: Player data may not save or load correctly
+3. **UI System Problems**
+   - Description: UI system fix sequence failing and UI components not loading properly
+   - Impact: Players may experience broken or missing UI elements
    - Specific issues:
-     - DataAccessLayer initialization issues
-     - Data persistence integration failures
-     - Data migration utility errors
+     - `[FixUISystem] Fix sequence summary: ClientRegistryFixer: FAILED`
+     - `[FixUISystem] UISystemFixer: FAILED`
+     - `[FixUISystem] UISystemFixVerifier: FAILED`
+     - `[ClientUI_FixTest] Pass Rate: 18%`
+   - Location: FixUISystem, UISystemFixer, ClientUI_FixTest scripts
    - Priority: HIGH
 
 ## High Priority Issues
 
-4. **BuyTile System Problems**
-   - Description: Issues with the tile purchasing system
-   - Impact: Players may not be able to purchase or upgrade gym parts
+4. **GymAutomation System Failures**
+   - Description: GymAutomation system failing to load
+   - Impact: Gym automation features won't work for players
    - Specific issues:
-     - BuyTileSystem initialization errors
-     - BuyTileFixes script errors
-     - Gym part ID mapping issues
+     - `[GymAutomationLoader] Failed to load GymAutomation after 5 attempts. Giving up.`
+     - `[GymAutomationLoader] Could not find GymAutomationManager in any search path`
+   - Location: GymAutomationLoader script
    - Priority: HIGH
 
-5. **Core Registry Degradation**
-   - Description: CoreRegistry is running in degraded mode
-   - Impact: System communication and coordination issues
+5. **Module Loading Issues**
+   - Description: Multiple modules failing to load or resolve
+   - Impact: Features dependent on these modules won't function
    - Specific issues:
-     - Missing critical systems
-     - Registry status set to "Degraded"
+     - `ModuleResolver: Failed to resolve module: X` (multiple occurrences)
+     - `Module code did not return exactly one value`
+     - Missing modules in UI components
    - Priority: HIGH
 
 ## Medium Priority Issues
 
-6. **Asset Loading Failures**
-   - Description: Various assets failing to load
-   - Impact: Visual and functional elements may be missing
+6. **MenuButton Functionality Issues**
+   - Description: Menu buttons not working properly
+   - Impact: Players cannot access key game features through menu
    - Specific issues:
-     - Fish mesh loading failures
-     - Animation loading failures
+     - `[MenuButtonCreator] Falling back to direct lookup for module: X` (for ShopMenuUI, LeaderboardMenuUI, etc.)
+     - `[MainMenuUILoader] Clicked on X - This is a fallback button with no functionality`
+   - Location: MenuButtonCreator, MainMenuUILoader scripts
    - Priority: MEDIUM
 
-7. **Script Integration Errors**
-   - Description: Various script integration and connection issues
-   - Impact: Some game features may not work as intended
+7. **Asset Loading and Validation Issues**
+   - Description: Issues with asset loading and validation
+   - Impact: Visual elements may be missing or incorrectly displayed
    - Specific issues:
-     - GymTycoonConnector errors
-     - ConfigurationIntegration failures
-     - EquipmentUpgradeSystem errors
+     - `The experience doesn't have access permission to use asset id 8093763464`
+     - `[AssetValidator]` initialization issues
    - Priority: MEDIUM
 
 ## Low Priority Issues
@@ -73,13 +78,22 @@
    - Description: Various non-critical script errors
    - Impact: Minor functionality issues
    - Specific issues:
-     - DebugService errors
-     - LabelGUIRemovalCommand errors
-     - SafeRequire module errors
+     - `attempt to index nil with X` errors
+     - `attempt to modify a readonly table` in LabelGUIPrevention
+     - Infinite yield warnings
+   - Priority: LOW
+
+9. **Debug and Console Output Issues**
+   - Description: Excessive debug output and warnings in console
+   - Impact: Console clutter, performance impact from logging
+   - Specific issues:
+     - Numerous diagnostic messages without actionable information
+     - Redundant warnings and errors from tests
    - Priority: LOW
 
 ## Notes
 - The issues are prioritized based on their impact on core gameplay functionality
 - Critical issues should be addressed first as they directly affect player experience
 - Some issues may be interconnected and fixing one may resolve others
-- Regular testing should be done after each fix to ensure no new issues are introduced 
+- Regular testing should be done after each fix to ensure no new issues are introduced
+- The DataManager system appears to be the most critical point of failure, with cascading effects on other systems
