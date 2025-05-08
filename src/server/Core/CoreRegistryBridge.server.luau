@@ -1,88 +1,164 @@
 --!strict
 --[[
     CoreRegistryBridge.server.luau
+    Facilitates reliable CoreRegistry integration and system coordination
     
-    Bridge module for ensuring backward compatibility with existing systems
-    while providing access to enhanced CoreRegistry features.
-    
-    Created: May 3, 2025
+    Updated: May 3, 2025
 ]]
 
-local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
--- Bridge module
-local CoreRegistryBridge = {}
+-- Configuration
+local CONFIG = {
+    MAX_RETRIES = 3,
+    RETRY_DELAY = 1,
+    LOG_LEVEL = "INFO" -- "DEBUG", "INFO", "WARNING", "ERROR"
+}
 
--- Private state
-local bridgeInitialized = false
-local enhancedRegistry = nil
+-- State tracking
+local state = {
+    initialized = false,
+    coreRegistry = nil,
+    registeredSystems = {},
+    stats = {
+        totalRegistrations = 0,
+        successfulRegistrations = 0,
+        failedRegistrations = 0
+    }
+}
 
--- Debug logging
+-- Helper functions
 local function log(message, level)
-    local prefix = "[CoreRegistryBridge]"
-    if level == "error" then
-        warn(prefix .. " ERROR: " .. message)
-    elseif level == "warn" then
-        warn(prefix .. " WARNING: " .. message)
-    else
-        print(prefix .. " " .. message)
+    level = level or CONFIG.LOG_LEVEL
+    if level == "DEBUG" and CONFIG.LOG_LEVEL ~= "DEBUG" then return end
+    print("[CoreRegistryBridge]", message)
+end
+
+local function findCoreRegistry()
+    -- Try direct reference first
+    if ReplicatedStorage:FindFirstChild("CoreRegistry") then
+        local success, registry = pcall(function()
+            return require(ReplicatedStorage.CoreRegistry)
+        end)
+        
+        if success and registry then
+            log("Found CoreRegistry in ReplicatedStorage", "DEBUG")
+            return registry
+        end
     end
+    
+    -- Try path-based search
+    local searchPaths = {
+        ServerScriptService:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("Systems"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Systems")
+    }
+    
+    for _, path in ipairs(searchPaths) do
+        if path and path:FindFirstChild("CoreRegistry") then
+            local success, registry = pcall(function()
+                return require(path.CoreRegistry)
+            end)
+            
+            if success and registry then
+                log("Found CoreRegistry at: " .. path.CoreRegistry:GetFullName(), "DEBUG")
+                return registry
+            end
+        end
+    end
+    
+    -- Create a new CoreRegistry if none found
+    log("No CoreRegistry found, creating new one", "WARNING")
+    local newRegistry = {
+        systems = {},
+        registerSystem = function(self, name, system)
+            self.systems[name] = system
+            return true
+        end,
+        getSystem = function(self, name)
+            return self.systems[name]
+        end
+    }
+    
+    return newRegistry
+end
+
+-- Register a system with CoreRegistry
+local function registerSystem(name, system)
+    if not state.coreRegistry then
+        log("No CoreRegistry available", "ERROR")
+        return false
+    end
+    
+    state.stats.totalRegistrations = state.stats.totalRegistrations + 1
+    
+    local success = pcall(function()
+        state.coreRegistry:registerSystem(name, system)
+    end)
+    
+    if success then
+        state.registeredSystems[name] = system
+        state.stats.successfulRegistrations = state.stats.successfulRegistrations + 1
+        log("Successfully registered system: " .. name, "INFO")
+        return true
+    else
+        state.stats.failedRegistrations = state.stats.failedRegistrations + 1
+        log("Failed to register system: " .. name, "ERROR")
+        return false
+    end
+end
+
+-- Get a system from CoreRegistry
+local function getSystem(name)
+    if not state.coreRegistry then
+        log("No CoreRegistry available", "ERROR")
+        return nil
+    end
+    
+    return state.coreRegistry:getSystem(name)
 end
 
 -- Initialize the bridge
-function CoreRegistryBridge.initialize()
-    if bridgeInitialized then
-        return true
-    end
+local function initialize()
+    if state.initialized then return true end
     
-    log("Initializing CoreRegistryBridge...")
+    log("Initializing CoreRegistryBridge...", "INFO")
     
-    -- Try to load enhanced registry
-    local success, result = pcall(function()
-        return require(script.Parent.CoreRegistry_enhanced)
-    end)
-    
-    if not success then
-        log("Failed to load enhanced CoreRegistry: " .. tostring(result), "error")
+    -- Find CoreRegistry
+    state.coreRegistry = findCoreRegistry()
+    if not state.coreRegistry then
+        log("Failed to find or create CoreRegistry", "ERROR")
         return false
     end
     
-    enhancedRegistry = result
+    -- Register core systems
+    local systemsToRegister = {
+        "BuyTileSystem",
+        "DataManager",
+        "UIComponents",
+        "AssetValidator",
+        "BuyTileSystemFixer",
+        "TileBuyProgressRestorer"
+    }
     
-    -- Initialize enhanced registry
-    success, result = pcall(function()
-        return enhancedRegistry:initialize()
-    end)
-    
-    if not success then
-        log("Failed to initialize enhanced CoreRegistry: " .. tostring(result), "error")
-        return false
+    for _, systemName in ipairs(systemsToRegister) do
+        local system = getSystem(systemName)
+        if system then
+            registerSystem(systemName, system)
+        end
     end
     
-    bridgeInitialized = true
-    log("CoreRegistryBridge initialized")
+    state.initialized = true
+    log("CoreRegistryBridge initialized successfully", "INFO")
     return true
 end
 
--- Forward method calls to enhanced registry
-setmetatable(CoreRegistryBridge, {
-    __index = function(_, key)
-        if not bridgeInitialized then
-            CoreRegistryBridge.initialize()
-        end
-        
-        if enhancedRegistry and typeof(enhancedRegistry[key]) == "function" then
-            return function(_, ...)
-                return enhancedRegistry[key](enhancedRegistry, ...)
-            end
-        end
-        
-        return nil
-    end
-})
-
--- Initialize bridge
-CoreRegistryBridge.initialize()
-
-return CoreRegistryBridge 
+-- Public API
+return {
+    initialize = initialize,
+    registerSystem = registerSystem,
+    getSystem = getSystem,
+    getStats = function() return state.stats end
+} 

@@ -1,314 +1,274 @@
+--!strict
 --[[
     TileBuyProgressRestorer.server.luau
+    Handles buy tile progression state and restoration
     
-    This module specifically handles restoring the buy tile progress state when a player rejoins.
-    It ensures that previously purchased tiles are loaded correctly and that the next buyable
-    tile is properly positioned, instead of restarting from tile #1.
-    
-    Created: May 2, 2025
+    Created: May 3, 2025
 ]]
 
-local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
+local Players = game:GetService("Players")
 
 -- Configuration
 local CONFIG = {
-    DEBUG = true,
-    RETRY_TILE_PLACEMENT = true,
-    TILE_PLACEMENT_ATTEMPTS = 3
+    MAX_RETRIES = 3,
+    RETRY_DELAY = 1,
+    SPAWN_DELAY = 0.5,
+    LOG_LEVEL = "INFO" -- "DEBUG", "INFO", "WARNING", "ERROR"
 }
 
--- Debug function
-local function log(message)
-    if CONFIG.DEBUG then
-        print("[TileBuyProgressRestorer] " .. message)
-    end
+-- State tracking
+local state = {
+    initialized = false,
+    buyTileSystem = nil,
+    dataManager = nil,
+    stats = {
+        totalRestorations = 0,
+        successfulRestorations = 0,
+        failedRestorations = 0
+    }
+}
+
+-- Helper functions
+local function log(message, level)
+    level = level or CONFIG.LOG_LEVEL
+    if level == "DEBUG" and CONFIG.LOG_LEVEL ~= "DEBUG" then return end
+    print("[TileBuyProgressRestorer]", message)
 end
 
--- Find a module
-local function findModule(moduleName)
+local function findBuyTileSystem()
+    -- Try using CoreRegistryBridge first if available
+    local CoreRegistryBridge = require(script.Parent:FindFirstChild("CoreRegistryBridge"))
+    if CoreRegistryBridge then
+        local system = CoreRegistryBridge.getSystem("BuyTileSystem")
+        if system then
+            log("Found BuyTileSystem through CoreRegistryBridge", "DEBUG")
+            return system
+        end
+    end
+    
+    -- If not found through CoreRegistryBridge, search directly
     local searchPaths = {
         ServerScriptService:FindFirstChild("Core"),
-        ServerScriptService:FindFirstChild("Server"),
-        ServerScriptService,
-        ReplicatedStorage:FindFirstChild("shared"),
-        ReplicatedStorage
+        ServerScriptService:FindFirstChild("Systems"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Systems")
     }
     
     for _, path in ipairs(searchPaths) do
-        if path then
-            local module = path:FindFirstChild(moduleName)
-            if module and module:IsA("ModuleScript") then
+        if path and path:FindFirstChild("BuyTileSystem") then
+            local success, module = pcall(function()
+                return require(path.BuyTileSystem)
+            end)
+            
+            if success and typeof(module) == "table" then
+                log("Found BuyTileSystem at: " .. path.BuyTileSystem:GetFullName(), "DEBUG")
                 return module
             end
         end
     end
     
+    log("Could not find BuyTileSystem module", "ERROR")
     return nil
 end
 
--- Safely require a module
-local function safeRequire(moduleInstance, fallback)
-    if not moduleInstance then
-        return fallback
+local function findDataManager()
+    -- Try using CoreRegistryBridge first if available
+    local CoreRegistryBridge = require(script.Parent:FindFirstChild("CoreRegistryBridge"))
+    if CoreRegistryBridge then
+        local system = CoreRegistryBridge.getSystem("DataManager")
+        if system then
+            log("Found DataManager through CoreRegistryBridge", "DEBUG")
+            return system
+        end
     end
     
-    local success, result = pcall(function()
-        return require(moduleInstance)
-    end)
+    -- If not found through CoreRegistryBridge, search directly
+    local searchPaths = {
+        ServerScriptService:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("Systems"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Core"),
+        ServerScriptService:FindFirstChild("src") and ServerScriptService.src:FindFirstChild("server") and ServerScriptService.src.server:FindFirstChild("Systems")
+    }
     
-    if success then
-        return result
-    else
-        warn("TileBuyProgressRestorer: Failed to require " .. moduleInstance:GetFullName() .. " - " .. tostring(result))
-        return fallback
-    end
-end
-
--- Try to load dependencies
-local CoreRegistryModule = findModule("CoreRegistry")
-local CoreRegistry = safeRequire(CoreRegistryModule)
-
-local EventBridgeModule = findModule("EventBridge")
-local EventBridge = safeRequire(EventBridgeModule, { fireEvent = function() end, registerEvent = function() end })
-
-local DataManagerModule = findModule("DataManager")
-local DataManager = safeRequire(DataManagerModule)
-
-local BuyTileSystemModule = findModule("BuyTileSystem")
-local BuyTileSystem = safeRequire(BuyTileSystemModule)
-
--- Backup methods to find systems if not directly available
-if not CoreRegistry then
-    log("CoreRegistry not found, looking for alternative ways to access systems")
-    
-    -- Try to find systems directly
-    if not BuyTileSystem then
-        local buyTileSystemPaths = {
-            ServerScriptService.Core.BuyTileSystem,
-            ServerScriptService.server.Core.BuyTileSystem,
-            ServerScriptService.Server.Core.BuyTileSystem,
-            ServerScriptService.src.server.Core.BuyTileSystem,
-            ServerScriptService.BuyTileSystem
-        }
-        
-        for _, path in ipairs(buyTileSystemPaths) do
-            if path then
-                BuyTileSystem = safeRequire(path)
-                if BuyTileSystem then
-                    log("Found BuyTileSystem via direct path")
-                    break
-                end
+    for _, path in ipairs(searchPaths) do
+        if path and path:FindFirstChild("DataManager") then
+            local success, module = pcall(function()
+                return require(path.DataManager)
+            end)
+            
+            if success and typeof(module) == "table" then
+                log("Found DataManager at: " .. path.DataManager:GetFullName(), "DEBUG")
+                return module
             end
         end
     end
     
-    if not DataManager then
-        local dataManagerPaths = {
-            ServerScriptService.Core.DataManager,
-            ServerScriptService.server.Core.DataManager,
-            ServerScriptService.Server.Core.DataManager,
-            ServerScriptService.src.server.Core.DataManager,
-            ServerScriptService.Data.GymTycoonDataManager,
-            ServerScriptService.DataManager
-        }
-        
-        for _, path in ipairs(dataManagerPaths) do
-            if path then
-                DataManager = safeRequire(path)
-                if DataManager then
-                    log("Found DataManager via direct path")
-                    break
-                end
-            end
-        end
-    end
+    log("Could not find DataManager module", "WARNING")
+    return nil
 end
 
--- Ensure we have necessary systems
-if not BuyTileSystem then
-    warn("TileBuyProgressRestorer: BuyTileSystem not found, module will not function correctly")
-end
-
-if not DataManager then
-    warn("TileBuyProgressRestorer: DataManager not found, module will not function correctly")
-end
-
--- Create module
-local TileBuyProgressRestorer = {
-    Version = "1.0.0",
-    Initialized = false
-}
-
--- Get the highest tile ID purchased by a player
-function TileBuyProgressRestorer.getHighestTileId(player)
+-- Get highest tile ID for a player
+local function getHighestTileId(player)
     if not player then return 0 end
     
-    local userId = player.UserId
-    local highestTileId = 0
+    local highestId = 0
     
-    -- Try to get from DataManager
-    if DataManager and typeof(DataManager.getPlayerData) == "function" then
-        local playerData = DataManager.getPlayerData(player)
-        
-        if playerData and playerData.tiles then
-            for tileId, tileInfo in pairs(playerData.tiles) do
-                if tileInfo.purchased then
-                    -- Convert string IDs to numbers where possible
-                    local numId = tonumber(tileId) or tonumber(string.match(tileId, "%d+")) or 0
-                    if numId > highestTileId then
-                        highestTileId = numId
-                    end
-                end
-            end
-        end
-        
-        if highestTileId > 0 then
-            log("Found highest tile ID for " .. player.Name .. " from DataManager: " .. highestTileId)
-            return highestTileId
-        end
-    end
-    
-    -- Check tycoon folder if DataManager didn't provide results
-    local tycoon = player:FindFirstChild("Tycoon")
-    if tycoon and tycoon.Value then
-        -- Check in purchases folder
-        local purchasesFolder = tycoon.Value:FindFirstChild("Purchases")
-        if purchasesFolder then
-            for _, value in ipairs(purchasesFolder:GetChildren()) do
-                if value:IsA("BoolValue") and value.Value then
-                    local numId = tonumber(value.Name) or tonumber(string.match(value.Name, "%d+")) or 0
-                    if numId > highestTileId then
-                        highestTileId = numId
-                    end
-                end
-            end
-        end
-        
-        -- Check models in tycoon
-        for _, model in ipairs(tycoon.Value:GetDescendants()) do
-            if model:GetAttribute("ID") or model:GetAttribute("TileID") then
-                local numId = model:GetAttribute("ID") or model:GetAttribute("TileID") or 0
-                -- Handle string IDs
-                if typeof(numId) == "string" then
-                    numId = tonumber(numId) or tonumber(string.match(numId, "%d+")) or 0
-                end
-                
-                if numId > highestTileId then
-                    highestTileId = numId
+    -- Try to get from DataManager first
+    if state.dataManager and typeof(state.dataManager.getPlayerData) == "function" then
+        local playerData = state.dataManager.getPlayerData(player)
+        if playerData and playerData.equipmentPurchased then
+            for tileId, _ in pairs(playerData.equipmentPurchased) do
+                local numericId = tonumber(tileId) or tonumber(string.match(tileId, "%d+"))
+                if numericId and numericId > highestId then
+                    highestId = numericId
                 end
             end
         end
     end
     
-    log("Found highest tile ID for " .. player.Name .. " from tycoon folder: " .. highestTileId)
-    return highestTileId
+    -- If no data found, check tycoon
+    if highestId == 0 then
+        local tycoon = player:FindFirstChild("Tycoon")
+        if tycoon and tycoon.Value then
+            for _, item in pairs(tycoon.Value:GetDescendants()) do
+                local id = item:GetAttribute("ID")
+                if id and tonumber(id) and tonumber(id) > highestId then
+                    highestId = tonumber(id)
+                end
+            end
+        end
+    end
+    
+    return highestId
 end
 
--- Spawn the next buy tile after the player's highest purchased tile
-function TileBuyProgressRestorer.spawnNextBuyTile(player)
-    if not player or not BuyTileSystem then
+-- Spawn next buy tile for a player
+local function spawnNextBuyTile(player)
+    if not player or not state.buyTileSystem then
         return false
     end
     
     -- Get highest tile ID
-    local highestTileId = TileBuyProgressRestorer.getHighestTileId(player)
+    local highestTileId = getHighestTileId(player)
     local nextTileId = highestTileId + 1
     
-    log("Spawning next buy tile (" .. nextTileId .. ") for " .. player.Name)
+    log("Spawning next buy tile (" .. nextTileId .. ") for " .. player.Name, "INFO")
     
     -- Try to spawn the next tile
     local success = false
     
     -- Use BuyTileSystem to spawn the next tile if available
-    if typeof(BuyTileSystem.spawnBuyTile) == "function" then
+    if typeof(state.buyTileSystem.spawnBuyTile) == "function" then
         success = pcall(function()
-            BuyTileSystem.spawnBuyTile(nextTileId)
+            state.buyTileSystem.spawnBuyTile(nextTileId)
         end)
     end
     
-    -- Fallback to original BuyTile in case BuyTileSystem doesn't have the function
-    if not success then
-        local originalBuyTile = safeRequire(ServerScriptService:FindFirstChild("BuyTile"))
-        if originalBuyTile and typeof(originalBuyTile.spawnBuyTile) == "function" then
-            success = pcall(function()
-                originalBuyTile.spawnBuyTile(nextTileId)
-            end)
-        end
-    end
-    
     if success then
-        log("Successfully spawned next buy tile " .. nextTileId .. " for " .. player.Name)
+        log("Successfully spawned next buy tile " .. nextTileId .. " for " .. player.Name, "INFO")
+        state.stats.successfulRestorations = state.stats.successfulRestorations + 1
         return true
     else
-        warn("Failed to spawn next buy tile " .. nextTileId .. " for " .. player.Name)
+        log("Failed to spawn next buy tile " .. nextTileId .. " for " .. player.Name, "WARNING")
+        state.stats.failedRestorations = state.stats.failedRestorations + 1
         return false
     end
 end
 
--- Fix a player's buy tile progression when they join
-function TileBuyProgressRestorer.fixPlayerProgression(player)
+-- Fix a player's buy tile progression
+local function fixPlayerProgression(player)
     if not player then return false end
     
-    log("Fixing buy tile progression for " .. player.Name)
+    log("Fixing buy tile progression for " .. player.Name, "INFO")
+    state.stats.totalRestorations = state.stats.totalRestorations + 1
     
-    -- First, ensure all purchased tiles are properly restored
-    if BuyTileSystem and typeof(BuyTileSystem.initializePlayer) == "function" then
-        pcall(function()
-            BuyTileSystem.initializePlayer(player)
-        end)
+    -- Get the tycoon
+    local tycoon = player:FindFirstChild("Tycoon")
+    if not tycoon or not tycoon.Value then
+        log("No valid tycoon found for " .. player.Name, "WARNING")
+        return false
     end
     
-    -- Then spawn the next available buy tile
-    local spawnSuccess = TileBuyProgressRestorer.spawnNextBuyTile(player)
+    -- Get highest tile ID
+    local highestId = getHighestTileId(player)
     
-    -- Return whether the restoration was successful
-    return spawnSuccess
-end
-
--- Handle player joining
-local function onPlayerAdded(player)
-    log("Player joined: " .. player.Name)
-    
-    -- Wait a short time for data to load and tycoon to be created
-    task.delay(3, function()
-        TileBuyProgressRestorer.fixPlayerProgression(player)
-    end)
-end
-
--- Initialize the module
-function TileBuyProgressRestorer.initialize()
-    if TileBuyProgressRestorer.Initialized then
-        return
+    -- If this is a new player (no purchases), make sure first buy tile is visible
+    if highestId == 0 then
+        -- Check if tile 1 already exists in tycoon
+        local existingTile1 = false
+        for _, obj in pairs(tycoon.Value:GetDescendants()) do
+            if (obj.Name:match("BuyTile") or obj.Name:match("Buy Tile")) and obj:GetAttribute("ID") == 1 then
+                existingTile1 = true
+                break
+            end
+        end
+        
+        -- If not, spawn tile 1
+        if not existingTile1 then
+            log("First-time player, ensuring BuyTile 1 is available", "INFO")
+            return spawnNextBuyTile(player)
+        end
+    else
+        -- Existing player, make sure the next buy tile is available
+        local nextId = highestId + 1
+        
+        -- Check if next tile already exists in tycoon
+        local existingNextTile = false
+        for _, obj in pairs(tycoon.Value:GetDescendants()) do
+            if (obj.Name:match("BuyTile") or obj.Name:match("Buy Tile")) and obj:GetAttribute("ID") == nextId then
+                existingNextTile = true
+                break
+            end
+        end
+        
+        -- If not, spawn next tile
+        if not existingNextTile then
+            log("Ensuring next BuyTile " .. nextId .. " is available", "INFO")
+            return spawnNextBuyTile(player)
+        end
     end
-    
-    log("Initializing TileBuyProgressRestorer module")
-    
-    -- Register with CoreRegistry if available
-    if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
-        CoreRegistry.registerSystem("TileBuyProgressRestorer", TileBuyProgressRestorer)
-        log("Registered with CoreRegistry")
-    end
-    
-    -- Set up player connections
-    Players.PlayerAdded:Connect(onPlayerAdded)
-    
-    -- Process existing players
-    for _, player in ipairs(Players:GetPlayers()) do
-        task.spawn(function()
-            onPlayerAdded(player)
-        end)
-    end
-    
-    TileBuyProgressRestorer.Initialized = true
-    log("Initialization complete")
     
     return true
 end
 
--- Start initialization
-TileBuyProgressRestorer.initialize()
+-- Initialize the restorer
+local function initialize()
+    if state.initialized then return true end
+    
+    log("Initializing TileBuyProgressRestorer...", "INFO")
+    
+    -- Find required systems
+    state.buyTileSystem = findBuyTileSystem()
+    state.dataManager = findDataManager()
+    
+    if not state.buyTileSystem then
+        log("Failed to find BuyTileSystem", "ERROR")
+        return false
+    end
+    
+    -- Set up player joining handler
+    Players.PlayerAdded:Connect(function(player)
+        task.delay(CONFIG.SPAWN_DELAY, function()
+            fixPlayerProgression(player)
+        end)
+    end)
+    
+    -- Fix progression for existing players
+    for _, player in ipairs(Players:GetPlayers()) do
+        task.spawn(function()
+            fixPlayerProgression(player)
+        end)
+    end
+    
+    state.initialized = true
+    log("TileBuyProgressRestorer initialized successfully", "INFO")
+    return true
+end
 
-return TileBuyProgressRestorer
+-- Public API
+return {
+    initialize = initialize,
+    fixPlayerProgression = fixPlayerProgression,
+    getStats = function() return state.stats end
+}

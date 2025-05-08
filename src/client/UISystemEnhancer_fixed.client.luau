@@ -1,34 +1,67 @@
--- UISystemEnhancer_fixed.client.luau
--- This script enhances the existing UISystem to better handle UI components
--- Fixed version created April 30, 2025
+--!strict
+--[[
+    UISystemEnhancer_fixed.client.luau
+    
+    Enhanced UI system with fallback mechanisms and improved error handling.
+    Provides a robust way to show/hide UI components with multiple fallback paths.
+    
+    Created: May 3, 2025
+]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-print("UISystemEnhancer_fixed: Starting...")
+-- Configuration
+local CONFIG = {
+    MAX_RETRIES = 3,
+    RETRY_DELAY = 1,
+    MAX_INIT_ATTEMPTS = 3,
+    UI_TRANSITION_DURATION = 0.3,
+    ERROR_DISPLAY_DURATION = 5,
+    HEALTH_CHECK_INTERVAL = 30,
+    MAX_ERROR_COUNT = 5,
+    ERROR_RESET_TIME = 300, -- 5 minutes
+    FALLBACK_CLEANUP_DELAY = 10, -- 10 seconds before auto-cleaning fallback UIs
+    TRANSITION_TYPES = {
+        FADE = "fade",
+        SLIDE = "slide",
+        SCALE = "scale",
+        ROTATE = "rotate",
+        BOUNCE = "bounce",
+        ELASTIC = "elastic",
+        SPRING = "spring",
+        COMBINED = "combined"
+    },
+    DEFAULT_TRANSITION = {
+        duration = 0.3,
+        easing = Enum.EasingStyle.Quad,
+        direction = Enum.EasingDirection.Out,
+        repeatCount = 0,
+        reverses = false,
+        delayTime = 0
+    }
+}
 
--- Constants
-local DEBUG = true
-local RETRY_DELAY = 0.5
-local MAX_RETRIES = 10
-
--- Store loaded components
-local loadedComponents = {}
-
--- Store original method references if patching required
-local originalMethods = {}
+-- State tracking
+local state = {
+    initialized = false,
+    initializationAttempts = 0,
+    isInitializing = false,
+    loadedComponents = {},
+    fallbackUIs = {},
+    errorCount = 0,
+    lastErrorTime = 0,
+    originalMethods = {}
+}
 
 -- Helper function to log messages
 local function log(message, level)
     level = level or "Info"
-    
-    if not DEBUG and level == "Debug" then
-        return
-    end
-    
-    local prefix = "[UISystemEnhancer_fixed] "
+    local prefix = "[UISystemEnhancer] "
     
     if level == "Info" then
         print(prefix .. message)
@@ -41,259 +74,156 @@ local function log(message, level)
     end
 end
 
--- Helper function to safely get system from registry
-local function getSystem(name)
-    -- Try to get the registry from the environment
-    local ClientRegistry = nil
+-- Clean up fallback UI
+local function cleanupFallbackUI(uiName)
+    if not state.fallbackUIs[uiName] then
+        return
+    end
     
-    -- Use shared registry if available
-    local success, result = pcall(function()
-        return ReplicatedStorage:FindFirstChild("ClientRegistry")
+    local fallbackUI = state.fallbackUIs[uiName]
+    if fallbackUI and fallbackUI:isVisible() then
+        log("Cleaning up fallback UI: " .. uiName)
+        fallbackUI:hide()
+        state.fallbackUIs[uiName] = nil
+    end
+end
+
+-- Clean up all fallback UIs
+local function cleanupAllFallbackUIs()
+    for uiName, _ in pairs(state.fallbackUIs) do
+        cleanupFallbackUI(uiName)
+    end
+end
+
+-- Create fallback UI
+local function createFallbackUI(uiName)
+    if state.fallbackUIs[uiName] then
+        cleanupFallbackUI(uiName)
+    end
+    
+    local fallbackUI = Instance.new("ScreenGui")
+    fallbackUI.Name = uiName .. "Fallback"
+    fallbackUI.ResetOnSpawn = false
+    
+    local frame = Instance.new("Frame")
+    frame.Name = "MainFrame"
+    frame.Size = UDim2.new(0.4, 0, 0.3, 0)
+    frame.Position = UDim2.new(0.3, 0, 0.35, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    frame.BorderSizePixel = 0
+    frame.Parent = fallbackUI
+    
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, 0, 0.2, 0)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    title.BorderSizePixel = 0
+    title.Text = "UI System Error"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 18
+    title.Font = Enum.Font.GothamBold
+    title.Parent = frame
+    
+    local message = Instance.new("TextLabel")
+    message.Name = "Message"
+    message.Size = UDim2.new(1, 0, 0.4, 0)
+    message.Position = UDim2.new(0, 0, 0.2, 0)
+    message.BackgroundTransparency = 1
+    message.Text = "Failed to load " .. uiName .. "\nAttempting to recover..."
+    message.TextColor3 = Color3.fromRGB(255, 255, 255)
+    message.TextSize = 14
+    message.Font = Enum.Font.Gotham
+    message.TextWrapped = true
+    message.Parent = frame
+    
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+    closeButton.Position = UDim2.new(0.3, 0, 0.7, 0)
+    closeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    closeButton.BorderSizePixel = 0
+    closeButton.Text = "Close"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 14
+    closeButton.Font = Enum.Font.Gotham
+    closeButton.Parent = frame
+    
+    -- Set up close button functionality
+    closeButton.MouseButton1Click:Connect(function()
+        cleanupFallbackUI(uiName)
     end)
     
-    if success and result then
-        ClientRegistry = require(result)
-    else
-        -- Try to find it in the player's scripts
-        success, result = pcall(function()
-            return LocalPlayer.PlayerScripts:FindFirstChild("ClientRegistry")
-        end)
-        
-        if success and result then
-            ClientRegistry = require(result)
-        end
-    end
+    -- Auto-cleanup after delay
+    task.delay(CONFIG.FALLBACK_CLEANUP_DELAY, function()
+        cleanupFallbackUI(uiName)
+    end)
     
-    -- If registry found, use it to get the system
-    if ClientRegistry and ClientRegistry.getSystem then
-        local system = ClientRegistry:getSystem(name)
-        if system then
-            return system
+    state.fallbackUIs[uiName] = {
+        gui = fallbackUI,
+        show = function()
+            fallbackUI.Parent = playerGui
+        end,
+        hide = function()
+            fallbackUI.Parent = nil
+        end,
+        isVisible = function()
+            return fallbackUI.Parent ~= nil
         end
-    end
-    
-    -- If still not found, try direct path to common locations
-    local paths = {
-        LocalPlayer.PlayerScripts:FindFirstChild(name),
-        ReplicatedStorage:FindFirstChild(name),
-        game:FindFirstChild(name)
     }
     
-    for _, path in ipairs(paths) do
-        if path and path:IsA("ModuleScript") then
-            success, result = pcall(function()
-                return require(path)
-            end)
-            
-            if success then
-                return result
-            end
-        end
-    end
-    
-    -- Still not found, try to search more thoroughly
-    log("Searching for " .. name .. " module...", "Debug")
-    
-    -- Try player scripts folder
-    local scripts = LocalPlayer.PlayerScripts:GetDescendants()
-    for _, script in ipairs(scripts) do
-        if script:IsA("ModuleScript") and script.Name == name then
-            success, result = pcall(function()
-                return require(script)
-            end)
-            
-            if success then
-                return result
-            end
-        end
-    end
-    
-    -- Not found
-    log("System not found: " .. name, "Debug")
-    return nil
+    return state.fallbackUIs[uiName]
 end
 
--- Find UI component modules in the workspace
-local function findUIComponentModules()
-    local components = {}
-    
-    -- Try to find components in client/UI/Screens folder (new structure)
-    local uiScreensFolder = nil
-    
-    -- Path 1: PlayerScripts/src/client/UI/Screens
-    local src = LocalPlayer.PlayerScripts:FindFirstChild("src")
-    if src then
-        local client = src:FindFirstChild("client")
-        if client then
-            local ui = client:FindFirstChild("UI")
-            if ui then
-                uiScreensFolder = ui:FindFirstChild("Screens")
-            end
-        end
-    end
-    
-    -- Path 2: PlayerScripts/UI/Screens
-    if not uiScreensFolder then
-        local ui = LocalPlayer.PlayerScripts:FindFirstChild("UI")
-        if ui then
-            uiScreensFolder = ui:FindFirstChild("Screens")
-        end
-    end
-    
-    -- If found UI Screens folder, load components
-    if uiScreensFolder then
-        for _, moduleScript in ipairs(uiScreensFolder:GetChildren()) do
-            if moduleScript:IsA("ModuleScript") then
-                components[moduleScript.Name] = moduleScript
-                log("Found UI component module: " .. moduleScript.Name)
-            end
-        end
-    end
-    
-    -- Also check StarterGui for legacy UI scripts
-    local starterGui = game:GetService("StarterGui")
-    for _, child in ipairs(starterGui:GetChildren()) do
-        if child:IsA("ModuleScript") then
-            components[child.Name] = child
-            log("Found legacy UI component module in StarterGui: " .. child.Name)
-        end
-    end
-    
-    return components
-end
-
--- Load a UI component by name and module reference
-local function loadUIComponent(name, moduleScript)
-    if loadedComponents[name] then
-        log("Component " .. name .. " already loaded")
-        return loadedComponents[name]
-    end
-    
-    if not moduleScript then
-        log("Module script for " .. name .. " not provided", "Warning")
-        return nil
-    end
-    
-    log("Loading UI component: " .. name)
-    
-    local success, component = pcall(function()
-        return require(moduleScript)
-    end)
-    
-    if not success then
-        log("Failed to load component " .. name .. ": " .. tostring(component), "Warning")
-        return nil
-    end
-    
-    -- Initialize the component if it has an initialize method
-    if component.initialize and type(component.initialize) == "function" then
-        local initSuccess, result = pcall(function()
-            return component:initialize()
-        end)
-        
-        if not initSuccess then
-            log("Failed to initialize component " .. name .. ": " .. tostring(result), "Warning")
-        end
-    end
-    
-    -- Store the component
-    loadedComponents[name] = component
-    log("Successfully loaded component: " .. name)
-    
-    return component
-end
-
--- Enhanced showUI function with multiple fallback paths
-local function showUI(name, ...)
-    local args = {...}
+-- Show UI with fallback
+local function showUI(name: string, args: {any}?)
     log("Attempting to show UI: " .. name)
     
     -- First try: Use UISystem
     local uiSystem = getSystem("UISystem")
     if uiSystem and uiSystem.showUI then
         local success, result = pcall(function()
-            return uiSystem:showUI(name, unpack(args))
+            if args then
+                return uiSystem:showUI(name, table.unpack(args))
+            else
+                return uiSystem:showUI(name)
+            end
         end)
         
-        if success and result ~= false then
+        if success and result then
             log("Successfully showed UI via UISystem: " .. name)
             return true
         end
     end
     
     -- Second try: Direct component access
-    local component = nil
-    local uiRegistry = getSystem("UIRegistry")
-    
-    if uiRegistry and uiRegistry.getComponent then
-        component = uiRegistry:getComponent(name)
-    end
-    
-    if not component then
-        component = loadedComponents[name]
-    end
-    
+    local component = state.loadedComponents[name]
     if component and component.show then
         local success, result = pcall(function()
-            if #args > 0 then
-                return component:show(unpack(args))
+            if args then
+                return component:show(table.unpack(args))
             else
                 return component:show()
             end
         end)
         
-        if success and result ~= false then
+        if success and result then
             log("Successfully showed UI via direct component access: " .. name)
             return true
         end
     end
     
-    -- Third try: Try to load component first
-    if not component then
-        log("Component " .. name .. " not loaded, attempting to find and load it", "Debug")
-        
-        local componentModules = findUIComponentModules()
-        if componentModules[name] then
-            component = loadUIComponent(name, componentModules[name])
-            
-            if component and component.show then
-                local success, result = pcall(function()
-                    if #args > 0 then
-                        return component:show(unpack(args))
-                    else
-                        return component:show()
-                    end
-                end)
-                
-                if success and result ~= false then
-                    log("Successfully showed UI after loading component: " .. name)
-                    return true
-                end
-            end
-        end
+    -- Create fallback UI as last resort
+    log("All attempts to show UI failed: " .. name .. ", creating fallback", "Warning")
+    local fallbackUI = createFallbackUI(name)
+    if fallbackUI then
+        fallbackUI:show()
     end
     
-    -- Last try: Look for a global reference
-    if _G[name] and _G[name].show then
-        local success, result = pcall(function()
-            if #args > 0 then
-                return _G[name]:show(unpack(args))
-            else
-                return _G[name]:show()
-            end
-        end)
-        
-        if success and result ~= false then
-            log("Successfully showed UI via global reference: " .. name)
-            return true
-        end
-    end
-    
-    log("Failed to show UI: " .. name, "Warning")
     return false
 end
 
--- Enhanced hideUI function with multiple fallback paths
+-- Hide UI
 local function hideUI(name)
     log("Attempting to hide UI: " .. name)
     
@@ -311,174 +241,93 @@ local function hideUI(name)
     end
     
     -- Second try: Direct component access
-    local component = nil
-    local uiRegistry = getSystem("UIRegistry")
-    
-    if uiRegistry and uiRegistry.getComponent then
-        component = uiRegistry:getComponent(name)
-    end
-    
-    if not component then
-        component = loadedComponents[name]
-    end
-    
+    local component = state.loadedComponents[name]
     if component and component.hide then
         local success, result = pcall(function()
             return component:hide()
         end)
         
-        if success and result ~= false then
+        if success and result then
             log("Successfully hid UI via direct component access: " .. name)
             return true
         end
     end
     
-    log("Failed to hide UI: " .. name, "Warning")
+    -- Clean up fallback UI if it exists
+    cleanupFallbackUI(name)
+    
     return false
 end
 
--- Helper function to restore original methods if needed
-local function restoreOriginalMethods()
-    local uiSystem = getSystem("UISystem")
-    if not uiSystem then
-        return false
-    end
-    
-    local restored = false
-    
-    -- Restore original showUI if we have it
-    if originalMethods.showUI and uiSystem.showUI then
-        uiSystem.showUI = originalMethods.showUI
-        restored = true
-    end
-    
-    -- Restore original hideUI if we have it
-    if originalMethods.hideUI and uiSystem.hideUI then
-        uiSystem.hideUI = originalMethods.hideUI
-        restored = true
-    end
-    
-    return restored
-end
-
--- Create module API for other scripts to use
-local EnhancedUISystem = {
-    showUI = showUI,
-    hideUI = hideUI,
-    loadUIComponent = loadUIComponent,
-    findUIComponentModules = findUIComponentModules,
-    getLoadedComponents = function() return loadedComponents end,
-    restoreOriginalMethods = restoreOriginalMethods
-}
-
--- Pre-load critical UI components
-local function preloadComponents()
-    log("Preloading UI components...")
-    local componentModules = findUIComponentModules()
-      -- Priority components to load first
-    local priorityComponents = {
-        "MainMenuUI",
-        "SettingsUI"
-    }
-    -- Note: "RebirthUI" has been removed because rebirth functionality is no longer needed
-    
-    -- Load priority components first
-    for _, name in ipairs(priorityComponents) do
-        if componentModules[name] then
-            loadUIComponent(name, componentModules[name])
-        end
-    end
-    
-    -- Load remaining components
-    local componentCount = 0
-    for name, moduleScript in pairs(componentModules) do
-        if not loadedComponents[name] then
-            loadUIComponent(name, moduleScript)
-            componentCount = componentCount + 1
-        end
-    end
-    
-    log("Preloaded " .. componentCount .. " UI components")
-end
-
--- Patch existing UISystem methods if needed
-local function patchUISystem()
-    local uiSystem = getSystem("UISystem")
-    if not uiSystem then
-        log("UISystem not found, cannot patch", "Warning")
+-- Initialize UI system
+local function initialize()
+    if state.isInitializing then
+        log("Initialization already in progress", "Warning")
         return
     end
     
-    -- Store original methods before patching
-    if uiSystem.showUI then
-        originalMethods.showUI = uiSystem.showUI
-        -- Replace with our enhanced version
-        uiSystem.showUI = function(_, name, ...)
-            return showUI(name, ...)
-        end
-        
-        log("Patched UISystem.showUI with enhanced version")
-    end
+    state.isInitializing = true
+    state.initializationAttempts += 1
     
-    if uiSystem.hideUI then
-        originalMethods.hideUI = uiSystem.hideUI
-        
-        -- Replace with our enhanced version
-        uiSystem.hideUI = function(_, name)
-            return hideUI(name)
-        end
-        
-        log("Patched UISystem.hideUI with enhanced version")
-    end
+    log("Initializing UISystemEnhancer (Attempt " .. state.initializationAttempts .. ")")
     
-    -- Add method to show main menu if missing
-    if not uiSystem.showMainMenu then
-        uiSystem.showMainMenu = function(_)
-            return showUI("MainMenuUI")
-        end
-        
-        log("Added showMainMenu method to UISystem")
-    end
-end
-
--- Main execution sequence
-local function initialize()
-    log("Initializing UISystemEnhancer_fixed...")
+    -- Clean up any existing fallback UIs first
+    cleanupAllFallbackUIs()
     
     -- Preload components
     preloadComponents()
     
-    -- Try to patch UISystem methods
+    -- Patch UISystem
     patchUISystem()
     
-    -- Try to show main menu if no UI visible yet
-    local function tryShowMainMenu()
-        -- Check if any UI is already visible
-        local anyUIVisible = false
-        for name, component in pairs(loadedComponents) do
-            if component and component.isVisible and component.isVisible == true then
-                anyUIVisible = true
-                break
+    -- Attempt to show main menu after a delay
+    task.delay(1, function()
+        local retryCount = 0
+        local MAX_RETRIES = CONFIG.MAX_RETRIES
+        local RETRY_DELAY = CONFIG.RETRY_DELAY
+        
+        local function tryShowMainMenu()
+            -- Check if any fallback UIs are visible
+            for uiName, fallbackUI in pairs(state.fallbackUIs) do
+                if fallbackUI:isVisible() then
+                    log("Found visible fallback UI: " .. uiName .. ", cleaning up")
+                    cleanupFallbackUI(uiName)
+                end
+            end
+            
+            if showUI("MainMenuUI") then
+                log("Successfully showed MainMenuUI")
+                state.isInitializing = false
+                state.initialized = true
+                return
+            end
+            
+            retryCount = retryCount + 1
+            if retryCount < MAX_RETRIES then
+                log("Retry " .. retryCount .. " of " .. MAX_RETRIES .. " to show MainMenuUI")
+                task.delay(RETRY_DELAY, tryShowMainMenu)
+            else
+                log("Failed to show MainMenuUI after " .. MAX_RETRIES .. " attempts", "Warning")
+                -- Create fallback UI as last resort
+                local fallbackUI = createFallbackUI("MainMenuUI")
+                if fallbackUI then
+                    fallbackUI:show()
+                end
+                state.isInitializing = false
             end
         end
         
-        if not anyUIVisible then
-            showUI("MainMenuUI")
-        end
-    end
-    
-    -- Delay slightly to allow game to initialize fully
-    task.delay(1, function()
         tryShowMainMenu()
     end)
-    
-    -- Emergency UI Access has been removed to avoid exposing development-only features to players
-    
-    log("UISystemEnhancer_fixed initialization complete")
 end
 
 -- Run initialization
 initialize()
 
--- Return the module API for other scripts to use
-return EnhancedUISystem
+-- Return the module API
+return {
+    showUI = showUI,
+    hideUI = hideUI,
+    cleanupFallbackUI = cleanupFallbackUI,
+    cleanupAllFallbackUIs = cleanupAllFallbackUIs
+}
