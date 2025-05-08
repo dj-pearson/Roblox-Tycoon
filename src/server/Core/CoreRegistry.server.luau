@@ -5,7 +5,8 @@
     Central registry for managing and coordinating all game systems.
     Handles system initialization, dependency management, and system communication.
     
-    Created: April 26, 2025
+    Created: April 30, 2025
+    Updated: April 30, 2025 - Major overhaul for improved reliability
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -16,22 +17,25 @@ local CONFIG = {
     debug = true,
     maxInitAttempts = 3,
     initTimeout = 10, -- seconds
+    healthCheckInterval = 30, -- seconds
     criticalSystems = {
+        "ModuleLoader",
         "DataManager",
         "UIComponents",
         "AssetValidator",
         "BuyTileSystem",
         "TycoonSystem",
         "EventBridge"
+    },
+    systemDependencies = {
+        DataManager = {"ModuleLoader"},
+        UIComponents = {"ModuleLoader", "DataManager"},
+        AssetValidator = {"ModuleLoader", "DataManager"},
+        BuyTileSystem = {"ModuleLoader", "DataManager", "AssetValidator"},
+        TycoonSystem = {"ModuleLoader", "DataManager", "BuyTileSystem"},
+        EventBridge = {"ModuleLoader"}
     }
 }
-
--- Debug logging
-local function log(message)
-    if CONFIG.debug then
-        print("[CoreRegistry] " .. message)
-    end
-end
 
 -- Registry state
 local registry = {
@@ -41,8 +45,24 @@ local registry = {
     failed = {},           -- Failed initialization attempts
     loading = {},          -- Systems currently being initialized
     initAttempts = {},     -- Number of initialization attempts per system
-    status = "Initializing" -- Current registry status
+    status = "Initializing", -- Current registry status
+    lastHealthCheck = 0,    -- Timestamp of last health check
+    healthCheckInterval = CONFIG.healthCheckInterval
 }
+
+-- Debug logging
+local function log(message, level)
+    if CONFIG.debug then
+        local prefix = "[CoreRegistry]"
+        if level == "error" then
+            warn(prefix .. " ERROR: " .. message)
+        elseif level == "warn" then
+            warn(prefix .. " WARNING: " .. message)
+        else
+            print(prefix .. " " .. message)
+        end
+    end
+end
 
 -- CoreRegistry module
 local CoreRegistry = {}
@@ -50,51 +70,59 @@ local CoreRegistry = {}
 -- Register a system
 function CoreRegistry.registerSystem(name, system, dependencies)
     if not name or not system then
-        warn("Invalid system registration: name and system required")
+        log("Invalid system registration: name and system required", "error")
         return false
     end
     
     -- Check if already registered
     if registry.systems[name] then
-        log("System already registered: " .. name)
+        log("System already registered: " .. name, "warn")
         return false
     end
+    
+    -- Get dependencies from config or parameter
+    local systemDependencies = CONFIG.systemDependencies[name] or dependencies or {}
     
     -- Register system
     registry.systems[name] = {
         module = system,
-        dependencies = dependencies or {}
+        dependencies = systemDependencies,
+        lastHealthCheck = 0,
+        healthStatus = "Unknown"
     }
     
     -- Track dependencies
-    registry.dependencies[name] = dependencies or {}
+    registry.dependencies[name] = systemDependencies
     
     log("Registered system: " .. name)
     return true
 end
 
--- Check if a system is registered
-function CoreRegistry.hasSystem(name)
-    return registry.systems[name] ~= nil
-end
-
--- Get a system
-function CoreRegistry.getSystem(name)
-    -- Return already initialized system
+-- Initialize a single system
+function CoreRegistry.initializeSystem(name)
+    -- Check if already initialized
     if registry.initialized[name] then
-        return registry.initialized[name]
+        return true
     end
     
     -- Check if system exists
     if not registry.systems[name] then
-        log("Error: System not found: " .. name)
-        return nil
+        log("System not found: " .. name, "error")
+        return false
+    end
+    
+    -- Check initialization attempts
+    registry.initAttempts[name] = (registry.initAttempts[name] or 0) + 1
+    if registry.initAttempts[name] > CONFIG.maxInitAttempts then
+        log("Max initialization attempts reached for system: " .. name, "error")
+        registry.failed[name] = true
+        return false
     end
     
     -- Detect circular dependencies
     if registry.loading[name] then
-        log("Error: Circular dependency detected for system: " .. name)
-        return nil
+        log("Circular dependency detected for system: " .. name, "error")
+        return false
     end
     
     -- Mark as loading
@@ -102,12 +130,11 @@ function CoreRegistry.getSystem(name)
     
     -- Initialize dependencies first
     local dependencies = registry.dependencies[name] or {}
-    for _, dependencyName in ipairs(dependencies) do
-        local dependency = CoreRegistry.getSystem(dependencyName)
-        if not dependency then
-            log("Error: Failed to initialize dependency: " .. dependencyName)
+    for _, depName in ipairs(dependencies) do
+        if not CoreRegistry.initializeSystem(depName) then
+            log("Failed to initialize dependency: " .. depName .. " for system: " .. name, "error")
             registry.loading[name] = nil
-            return nil
+            return false
         end
     end
     
@@ -116,57 +143,146 @@ function CoreRegistry.getSystem(name)
     if type(system.initialize) == "function" then
         log("Initializing system: " .. name)
         
-        -- Check initialization attempts
-        registry.initAttempts[name] = (registry.initAttempts[name] or 0) + 1
-        if registry.initAttempts[name] > CONFIG.maxInitAttempts then
-            log("Error: Max initialization attempts exceeded for: " .. name)
-            registry.failed[name] = true
-            registry.loading[name] = nil
-            return nil
-        end
-        
-        -- Attempt initialization with timeout
-        local initSuccess = false
-        local initError = nil
-        
-        local initThread = task.spawn(function()
-            local success, error = pcall(function()
-                return system:initialize()
-            end)
-            
-            if success then
-                initSuccess = error ~= false
-            else
-                initError = error
-            end
+        local success, result = pcall(function()
+            return system:initialize()
         end)
         
-        -- Wait for initialization with timeout
-        local startTime = os.clock()
-        while task.status(initThread) == "running" do
-            if os.clock() - startTime > CONFIG.initTimeout then
-                log("Error: Initialization timed out for: " .. name)
-                registry.failed[name] = true
-                registry.loading[name] = nil
-                return nil
-            end
-            task.wait(0.1)
+        if not success then
+            log("Error initializing system '" .. name .. "': " .. tostring(result), "error")
+            registry.loading[name] = nil
+            return false
         end
         
-        if not initSuccess then
-            log("Error initializing system '" .. name .. "': " .. tostring(initError))
-            registry.failed[name] = true
+        if result == false then
+            log("System initialization returned false: " .. name, "error")
             registry.loading[name] = nil
-            return nil
+            return false
         end
     end
     
     -- Mark as initialized and no longer loading
     registry.initialized[name] = system
     registry.loading[name] = nil
-    log("Successfully initialized system: " .. name)
+    registry.failed[name] = nil
     
-    return system
+    log("Successfully initialized system: " .. name)
+    return true
+end
+
+-- Initialize all systems
+function CoreRegistry.initializeAll()
+    log("Starting system initialization...")
+    
+    -- Initialize critical systems first
+    for _, systemName in ipairs(CONFIG.criticalSystems) do
+        if not CoreRegistry.initializeSystem(systemName) then
+            log("Failed to initialize critical system: " .. systemName, "error")
+        end
+    end
+    
+    -- Initialize remaining systems
+    for name, _ in pairs(registry.systems) do
+        if not table.find(CONFIG.criticalSystems, name) then
+            if not CoreRegistry.initializeSystem(name) then
+                log("Failed to initialize system: " .. name, "warn")
+            end
+        end
+    end
+    
+    -- Run health check
+    CoreRegistry.runHealthCheck()
+    
+    return registry.status ~= "Critical"
+end
+
+-- Run health check
+function CoreRegistry.runHealthCheck()
+    local now = os.time()
+    if now - registry.lastHealthCheck < registry.healthCheckInterval then
+        return
+    end
+    
+    log("Running health check...")
+    registry.lastHealthCheck = now
+    
+    local criticalCount = 0
+    local totalCritical = #CONFIG.criticalSystems
+    local failedSystems = {}
+    
+    -- Check critical systems
+    for _, systemName in ipairs(CONFIG.criticalSystems) do
+        local system = registry.systems[systemName]
+        if system then
+            if registry.initialized[systemName] then
+                -- Check system health if available
+                if type(system.module.isHealthy) == "function" then
+                    local isHealthy = system.module:isHealthy()
+                    if not isHealthy then
+                        log("System unhealthy: " .. systemName, "warn")
+                        failedSystems[systemName] = "Unhealthy"
+                    end
+                end
+                criticalCount += 1
+            else
+                log("Critical system not initialized: " .. systemName, "error")
+                failedSystems[systemName] = "Not Initialized"
+            end
+        else
+            log("Critical system not found: " .. systemName, "error")
+            failedSystems[systemName] = "Not Found"
+        end
+    end
+    
+    -- Update registry status
+    if criticalCount == totalCritical then
+        registry.status = "Ready"
+    elseif criticalCount > 0 then
+        registry.status = "Degraded"
+    else
+        registry.status = "Critical"
+    end
+    
+    -- Attempt recovery for failed systems
+    for systemName, reason in pairs(failedSystems) do
+        log("Attempting recovery for system: " .. systemName .. " (Reason: " .. reason .. ")")
+        local system = registry.systems[systemName]
+        if system and type(system.module.recover) == "function" then
+            local success = system.module:recover()
+            if success then
+                log("Successfully recovered system: " .. systemName)
+                failedSystems[systemName] = nil
+            else
+                log("Failed to recover system: " .. systemName, "error")
+            end
+        end
+    end
+    
+    return criticalCount, totalCritical
+end
+
+-- Get registry status
+function CoreRegistry.getStatus()
+    return registry.status
+end
+
+-- Get a system
+function CoreRegistry.getSystem(name)
+    if not registry.systems[name] then
+        log("System not found: " .. name, "warn")
+        return nil
+    end
+    
+    -- Try to initialize if not already initialized
+    if not registry.initialized[name] then
+        CoreRegistry.initializeSystem(name)
+    end
+    
+    return registry.initialized[name]
+end
+
+-- Check if a system exists
+function CoreRegistry.hasSystem(name)
+    return registry.systems[name] ~= nil
 end
 
 -- Get initialization status
@@ -193,66 +309,28 @@ function CoreRegistry.getInitStatus()
     return status
 end
 
--- Run health check
-function CoreRegistry.runHealthCheck()
-    log("Running health check...")
+-- Initialize the registry
+function CoreRegistry.initialize()
+    if CoreRegistry.initialized then
+        return true
+    end
     
-    -- Check critical systems
-    local missingCritical = false
-    local failedCritical = false
+    log("Initializing CoreRegistry...")
     
-    for _, systemName in ipairs(CONFIG.criticalSystems) do
-        if not CoreRegistry.hasSystem(systemName) then
-            log("Critical system missing: " .. systemName)
-            missingCritical = true
-        elseif registry.failed[systemName] then
-            log("Critical system failed: " .. systemName)
-            failedCritical = true
+    -- Self-register
+    CoreRegistry.registerSystem("CoreRegistry", CoreRegistry)
+    CoreRegistry.initialized = true
+    
+    -- Start periodic health checks
+    task.spawn(function()
+        while true do
+            task.wait(registry.healthCheckInterval)
+            CoreRegistry.runHealthCheck()
         end
-    end
+    end)
     
-    -- Update status
-    if missingCritical then
-        registry.status = "Critical"
-    elseif failedCritical then
-        registry.status = "Degraded"
-    else
-        registry.status = "Available"
-    end
-    
-    -- Log status
-    log("Registry status: " .. registry.status)
-    
-    return registry.status
-end
-
--- Get registry status
-function CoreRegistry.getStatus()
-    return registry.status
-end
-
--- Initialize all systems
-function CoreRegistry.initializeAll()
-    log("Initializing all systems...")
-    
-    -- Initialize critical systems first
-    for _, systemName in ipairs(CONFIG.criticalSystems) do
-        if not CoreRegistry.getSystem(systemName) then
-            log("Failed to initialize critical system: " .. systemName)
-        end
-    end
-    
-    -- Initialize remaining systems
-    for name, _ in pairs(registry.systems) do
-        if not CoreRegistry.getSystem(name) then
-            log("Failed to initialize system: " .. name)
-        end
-    end
-    
-    -- Run health check
-    CoreRegistry.runHealthCheck()
-    
-    return registry.status ~= "Critical"
+    log("CoreRegistry initialized")
+    return true
 end
 
 return CoreRegistry

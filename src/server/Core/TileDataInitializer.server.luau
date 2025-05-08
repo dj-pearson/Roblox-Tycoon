@@ -1,3 +1,4 @@
+--!strict
 --[[
     TileDataInitializer.server.luau
     
@@ -11,468 +12,280 @@
     5. Stairs to next floor
     
     Created April 28, 2025
+    Updated May 2025 - Simplified integration with CoreRegistry
 ]]
 
 local ServerStorage = game:GetService("ServerStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Find a module
-local function findModule(moduleName)
-    local searchPaths = {
-        ServerScriptService:FindFirstChild("Core"),
-        ServerScriptService,
-        ReplicatedStorage:FindFirstChild("shared"),
-        ReplicatedStorage
-    }
-    
-    for _, path in ipairs(searchPaths) do
-        if path then
-            local module = path:FindFirstChild(moduleName)
-            if module and module:IsA("ModuleScript") then
-                return module
-            end
-        end
-    end
-    
-    return nil
-end
+-- Direct imports from Core
+local CoreRegistry = require(script.Parent.CoreRegistry)
+local BuyTileSystem = require(script.Parent.BuyTileSystem)
+local EventBridge = require(script.Parent.EventBridge)
 
--- Safely require a module
-local function safeRequire(moduleInstance, fallback)
-    if not moduleInstance then
-        return fallback
-    end
-    
-    local success, result = pcall(function()
-        return require(moduleInstance)
-    end)
-    
-    if success then
-        return result
-    else
-        warn("TileDataInitializer: Failed to require " .. moduleInstance:GetFullName() .. " - " .. tostring(result))
-        return fallback
-    end
-end
-
--- Find CoreRegistry and key systems
-local CoreRegistry = safeRequire(findModule("CoreRegistry"))
-local BuyTileSystem = CoreRegistry and CoreRegistry:GetSystem("BuyTileSystem")
-local EventBridge = CoreRegistry and CoreRegistry:GetSystem("EventBridge") or {
-    fireEvent = function() end,
-    registerEvent = function() end
+-- Module definition
+local TileDataInitializer = {
+    Version = "2.0.0",
+    Debug = false
 }
 
--- Constants
-local ROOM_FOLDER_NAME = "Rooms"
-local GYM_PARTS_FOLDER_NAME = "GymParts"
-local FLOOR_ATTRIBUTES = {"1st_Floor", "2nd_Floor", "3rd_Floor", "4th_Floor", "5th_Floor"}
+-- Configuration
+local CONFIG = {
+    ROOM_FOLDER_NAME = "Rooms",
+    GYM_PARTS_FOLDER_NAME = "GymParts",
+    FLOOR_ATTRIBUTES = {"1st_Floor", "2nd_Floor", "3rd_Floor", "4th_Floor", "5th_Floor"},
+    COSTS = {
+        FRONT_DESK = 500,
+        WALL_BASE = 1000,
+        EQUIPMENT_BASE = 2000,
+        CEILING_BASE = 1500,
+        STAIRS_BASE = 5000
+    }
+}
+
+-- Debug logging
+local function log(message, level)
+    if not TileDataInitializer.Debug and level == "DEBUG" then
+        return
+    end
+    
+    level = level or "INFO"
+    local timestamp = os.date("%H:%M:%S")
+    print(string.format("[TileDataInitializer %s %s] %s", timestamp, level, message))
+end
 
 -- Initialize tile data from gym structure
-local function initializeTileData()
+function TileDataInitializer:InitializeTileData()
     if not BuyTileSystem then
-        warn("TileDataInitializer: BuyTileSystem not found, cannot initialize tile data")
+        log("BuyTileSystem not found", "ERROR")
         return false
     end
     
-    print("TileDataInitializer: Initializing tile data from gym structure")
-    
-    -- Initialize tile data table if not exists
-    local tileData = {}
+    log("Initializing tile data from gym structure")
     
     -- Get gym structure folder
     local gymStructure = ServerStorage:FindFirstChild("GymStructure")
     if not gymStructure then
-        warn("TileDataInitializer: GymStructure folder not found in ServerStorage")
+        log("GymStructure folder not found in ServerStorage", "ERROR")
         return false
     end
     
-    -- Process front desk first (ID attribute 1)
+    -- Process front desk first
     local frontDesk = gymStructure:FindFirstChild("FrontDesk")
     if frontDesk then
-        tileData["FrontDesk"] = {
-            idAttribute = 1,
-            cost = 500, -- Starting cost
+        local tileInfo = {
+            id = "FrontDesk",
+            name = "Front Desk",
+            cost = CONFIG.COSTS.FRONT_DESK,
             requiredLevel = 1,
-            gymPartId = "FrontDesk",
-            category = "Structure",
-            structureType = "FrontDesk",
-            description = "Start your gym business with a front desk",
-            unlockMessage = "Welcome to your gym!",
-            floor = 1,
-            isRequired = true,
-            prerequisites = {}
+            equipmentId = "FrontDesk",
+            priority = 1,
+            metadata = {
+                floorNumber = 1,
+                floorName = "1st Floor",
+                roomType = "FrontDesk",
+                equipmentType = "FrontDesk",
+                path = "FrontDesk"
+            }
         }
+        
+        if not BuyTileSystem:RegisterTile(tileInfo) then
+            log("Failed to register front desk tile", "ERROR")
+            return false
+        end
     end
     
-    local tileIdCounter = 1000 -- Starting ID for other tiles
-    
     -- Process each floor
-    for floorIndex, floorAttr in ipairs(FLOOR_ATTRIBUTES) do
+    for floorIndex, floorAttr in ipairs(CONFIG.FLOOR_ATTRIBUTES) do
         local floorFolder = gymStructure:FindFirstChild(floorAttr)
         if not floorFolder then continue end
         
+        local floorName = string.format("%s Floor", floorAttr)
+        
         -- Process walls first
-        local wallsFolder = floorFolder:FindFirstChild("Walls")
-        if wallsFolder then
-            for _, wall in ipairs(wallsFolder:GetChildren()) do
-                local tileId = "Wall_" .. floorIndex .. "_" .. tileIdCounter
-                tileIdCounter = tileIdCounter + 1
-                
-                -- Create wall tile data
-                tileData[tileId] = {
-                    idAttribute = tileIdCounter,
-                    cost = 1000 * floorIndex, -- Increases by floor
-                    requiredLevel = math.max(1, floorIndex - 1), -- Higher floors need higher level
-                    gymPartId = wall.Name,
-                    category = "Structure",
-                    structureType = "Walls",
-                    description = "Wall section for Floor " .. floorIndex,
-                    unlockMessage = "Building your gym structure",
-                    floor = floorIndex,
-                    isRequired = true,
-                    prerequisites = floorIndex > 1 and {"Stairs_" .. (floorIndex-1)} or {}
-                }
-            end
-        end
-        
-        -- Process room contents
-        local roomsFolder = floorFolder:FindFirstChild(ROOM_FOLDER_NAME)
-        if roomsFolder then
-            for _, room in ipairs(roomsFolder:GetChildren()) do
-                local roomName = room.Name
-                
-                -- Process each equipment in the room
-                for _, equipment in ipairs(room:GetChildren()) do
-                    local tileId = roomName .. "_" .. equipment.Name .. "_" .. tileIdCounter
-                    tileIdCounter = tileIdCounter + 1
-                    
-                    -- Find any wall tile for this floor as prerequisite
-                    local wallPrereq = nil
-                    for id, data in pairs(tileData) do
-                        if data.floor == floorIndex and data.structureType == "Walls" then
-                            wallPrereq = id
-                            break
-                        end
-                    end
-                    
-                    -- Create equipment tile data
-                    tileData[tileId] = {
-                        idAttribute = tileIdCounter,
-                        cost = 2000 * floorIndex, -- Increases by floor
-                        requiredLevel = math.max(1, floorIndex),
-                        gymPartId = equipment.Name,
-                        category = roomName,
-                        structureType = "Equipment",
-                        room = roomName,
-                        folder = equipment.Parent.Name, -- Store parent folder name
-                        description = equipment.Name .. " for your " .. roomName,
-                        unlockMessage = "New equipment for your " .. roomName,
-                        floor = floorIndex,
-                        isRequired = false,
-                        prerequisites = wallPrereq and {wallPrereq} or {}
-                    }
-                end
-            end
-        end
-        
-        -- Process ceiling
-        local ceilingFolder = floorFolder:FindFirstChild("Ceiling")
-        if ceilingFolder then
-            for _, ceiling in ipairs(ceilingFolder:GetChildren()) do
-                local tileId = "Ceiling_" .. floorIndex .. "_" .. tileIdCounter
-                tileIdCounter = tileIdCounter + 1
-                
-                -- Create ceiling tile data - requires walls to be completed
-                tileData[tileId] = {
-                    idAttribute = tileIdCounter,
-                    cost = 1500 * floorIndex, -- Increases by floor
-                    requiredLevel = math.max(1, floorIndex),
-                    gymPartId = ceiling.Name,
-                    category = "Structure",
-                    structureType = "Ceiling",
-                    description = "Ceiling section for Floor " .. floorIndex,
-                    unlockMessage = "Finishing the structure of your gym",
-                    floor = floorIndex,
-                    isRequired = true,
-                    prerequisites = {} -- Will be filled based on build order
-                }
-            end
-        end
-        
-        -- Process stairs last (if not last floor)
-        if floorIndex < #FLOOR_ATTRIBUTES then
-            local stairsFolder = floorFolder:FindFirstChild("Stairs")
-            if stairsFolder then
-                for _, stairs in ipairs(stairsFolder:GetChildren()) do
-                    local tileId = "Stairs_" .. floorIndex
-                    
-                    -- Create stairs tile data - requires ceiling to be completed
-                    tileData[tileId] = {
-                        idAttribute = tileIdCounter + 500, -- Higher ID to ensure last
-                        cost = 5000 * floorIndex, -- Increases by floor
-                        requiredLevel = math.max(1, floorIndex),
-                        gymPartId = stairs.Name,
-                        category = "Structure",
-                        structureType = "Stairs",
-                        description = "Stairs to Floor " .. (floorIndex + 1),
-                        unlockMessage = "You've unlocked access to Floor " .. (floorIndex + 1) .. "!",
-                        floor = floorIndex,
-                        isRequired = true,
-                        unlockNextFloor = true,
-                        prerequisites = {} -- Will be filled based on build order
-                    }
-                    
-                    tileIdCounter = tileIdCounter + 1
-                end
-            end
-        end
-    end
-    
-    -- Set tile data in BuyTileSystem
-    if BuyTileSystem.setTileData then
-        BuyTileSystem.setTileData(tileData)
-        print("TileDataInitializer: Successfully set tile data with " .. table.maxn(tileData) .. " tiles")
-        
-        -- Ensure the progression ordering is applied
-        if BuyTileSystem.refreshOrderedTiles then
-            BuyTileSystem.refreshOrderedTiles()
-            
-            -- Generate prerequisites based on the order
-            generatePrerequisitesFromOrder()
-        end
-        
-        return true
-    else
-        warn("TileDataInitializer: BuyTileSystem.setTileData not found")
-        return false
-    end
-end
-
--- Generate prerequisites based on ordered tiles
-local function generatePrerequisitesFromOrder()
-    if not BuyTileSystem or not BuyTileSystem.orderedTiles then return false end
-    
-    print("TileDataInitializer: Generating prerequisites from build order")
-    
-    local orderedTiles = BuyTileSystem.orderedTiles
-    local tileData = BuyTileSystem.getTileData and BuyTileSystem.getAllTileData()
-    
-    if not tileData then
-        warn("TileDataInitializer: No tile data available for prerequisite generation")
-        return false
-    end
-    
-    -- Track last tile by floor and room
-    local lastTileByFloor = {}
-    local lastTileByRoom = {}
-    
-    for i, tile in ipairs(orderedTiles) do
-        local tileId = tile.tileId
-        local tileInfo = tileData[tileId]
-        
-        if not tileInfo then continue end
-        
-        local floor = tileInfo.floor or 1
-        local room = tileInfo.room or "Main"
-        local structureType = tileInfo.structureType or "Equipment"
-        
-        -- Initialize prerequisites if not exists
-        tileInfo.prerequisites = tileInfo.prerequisites or {}
-        
-        -- Special case for front desk - no prerequisites
-        if tileInfo.idAttribute == 1 or i == 1 then
-            tileInfo.prerequisites = {}
-            lastTileByFloor[floor] = tileId
-            lastTileByRoom[room] = tileId
+        if not self:ProcessWalls(floorFolder, floorIndex, floorName) then
+            log("Failed to process walls for " .. floorName, "ERROR")
             continue
         end
         
-        -- Add prerequisite based on structure type and floor
-        if structureType == "Walls" then
-            -- Walls only depend on previous floor's stairs or front desk
-            if floor > 1 and lastTileByFloor[floor-1] then
-                table.insert(tileInfo.prerequisites, lastTileByFloor[floor-1])
-            end
-        elseif structureType == "Equipment" then
-            -- Equipment depends on walls of the same floor
-            if lastTileByRoom[room] then
-                table.insert(tileInfo.prerequisites, lastTileByRoom[room])
-            end
-        elseif structureType == "Ceiling" then
-            -- Ceiling depends on completing all rooms
-            local roomsOnThisFloor = {}
-            
-            for _, otherTile in ipairs(orderedTiles) do
-                local otherInfo = tileData[otherTile.tileId]
-                if otherInfo and otherInfo.floor == floor and 
-                   otherInfo.structureType ~= "Ceiling" and
-                   otherInfo.structureType ~= "Stairs" then
-                    if otherInfo.room and not roomsOnThisFloor[otherInfo.room] then
-                        roomsOnThisFloor[otherInfo.room] = otherTile.tileId
-                    end
-                end
-            end
-            
-            -- Add one prerequisite from each room if available
-            for _, roomTileId in pairs(roomsOnThisFloor) do
-                if #tileInfo.prerequisites < 3 then -- Limit to 3 prerequisites
-                    table.insert(tileInfo.prerequisites, roomTileId)
-                end
-            end
-        elseif structureType == "Stairs" then
-            -- Stairs depend on ceiling
-            for _, otherTile in ipairs(orderedTiles) do
-                local otherInfo = tileData[otherTile.tileId]
-                if otherInfo and otherInfo.floor == floor and 
-                   otherInfo.structureType == "Ceiling" then
-                    table.insert(tileInfo.prerequisites, otherTile.tileId)
-                    break
-                end
-            end
+        -- Process room contents
+        if not self:ProcessRooms(floorFolder, floorIndex, floorName) then
+            log("Failed to process rooms for " .. floorName, "ERROR")
+            continue
         end
         
-        -- Update tracker
-        lastTileByFloor[floor] = tileId
-        lastTileByRoom[room] = tileId
+        -- Process ceiling
+        if not self:ProcessCeiling(floorFolder, floorIndex, floorName) then
+            log("Failed to process ceiling for " .. floorName, "ERROR")
+            continue
+        end
+        
+        -- Process stairs (if not last floor)
+        if floorIndex < #CONFIG.FLOOR_ATTRIBUTES then
+            if not self:ProcessStairs(floorFolder, floorIndex, floorName) then
+                log("Failed to process stairs for " .. floorName, "ERROR")
+                continue
+            end
+        end
     end
     
-    -- Update tile data with new prerequisites
-    if BuyTileSystem.setTileData then
-        BuyTileSystem.setTileData(tileData)
-    end
+    log("Tile data initialization complete")
     
-    print("TileDataInitializer: Prerequisites generation completed")
+    -- Notify of completion
+    EventBridge:FireEvent("TileDataInitializer_Complete", {
+        success = true,
+        timestamp = os.time()
+    })
+    
     return true
 end
 
--- Create a function to scan ServerStorage for gym parts
-local function scanGymParts()
-    local gymPartsFolder = ServerStorage:FindFirstChild(GYM_PARTS_FOLDER_NAME)
-    if not gymPartsFolder then
-        gymPartsFolder = Instance.new("Folder")
-        gymPartsFolder.Name = GYM_PARTS_FOLDER_NAME
-        gymPartsFolder.Parent = ServerStorage
-    end
+-- Process walls for a floor
+function TileDataInitializer:ProcessWalls(floorFolder, floorIndex, floorName)
+    local wallsFolder = floorFolder:FindFirstChild("Walls")
+    if not wallsFolder then return true end
     
-    print("TileDataInitializer: Scanning gym parts in ServerStorage")
-    
-    -- Count the number of parts found
-    local partCount = 0
-    
-    -- Scan each subfolder
-    for _, folder in ipairs(gymPartsFolder:GetChildren()) do
-        if folder:IsA("Folder") then
-            for _, part in ipairs(folder:GetChildren()) do
-                partCount = partCount + 1
-            end
-        else
-            partCount = partCount + 1
+    for i, wall in ipairs(wallsFolder:GetChildren()) do
+        if not wall:IsA("Model") and not wall:IsA("Part") then continue end
+        
+        local tileInfo = {
+            id = string.format("Wall_%d_%d", floorIndex, i),
+            name = string.format("Wall Section %d - %s", i, floorName),
+            cost = CONFIG.COSTS.WALL_BASE * floorIndex,
+            requiredLevel = math.max(1, floorIndex - 1),
+            equipmentId = wall.Name,
+            priority = 2,
+            metadata = {
+                floorNumber = floorIndex,
+                floorName = floorName,
+                roomType = "Walls",
+                equipmentType = "Wall",
+                path = string.format("%s/Walls/%s", floorName, wall.Name)
+            }
+        }
+        
+        if not BuyTileSystem:RegisterTile(tileInfo) then
+            log("Failed to register wall tile: " .. tileInfo.id, "ERROR")
+            return false
         end
     end
     
-    print("TileDataInitializer: Found " .. partCount .. " gym parts in ServerStorage")
-    return partCount > 0
+    return true
 end
 
--- Register commands if CommandService is available
-local function registerCommands()
-    local CommandService = CoreRegistry and CoreRegistry:GetSystem("CommandService")
-    if not CommandService then return end
+-- Process rooms for a floor
+function TileDataInitializer:ProcessRooms(floorFolder, floorIndex, floorName)
+    local roomsFolder = floorFolder:FindFirstChild(CONFIG.ROOM_FOLDER_NAME)
+    if not roomsFolder then return true end
     
-    -- Register command to regenerate tile data
-    CommandService:RegisterCommand("generateTileData", {
-        description = "Regenerates tile data from gym structure",
-        handler = function(player)
-            -- Check if player is admin
-            local AdminService = CoreRegistry:GetSystem("AdminService")
-            if AdminService and not AdminService:IsAdmin(player) then
-                return "You don't have permission to use this command"
-            end
+    for _, room in ipairs(roomsFolder:GetChildren()) do
+        local roomName = room.Name
+        
+        for _, equipment in ipairs(room:GetChildren()) do
+            if not equipment:IsA("Model") and not equipment:IsA("Part") then continue end
             
-            local success = initializeTileData()
-            return success 
-                and "Successfully regenerated tile data from gym structure" 
-                or "Failed to regenerate tile data"
+            local tileInfo = {
+                id = string.format("%s_%s_%d", roomName, equipment.Name, floorIndex),
+                name = string.format("%s - %s (%s)", equipment.Name, roomName, floorName),
+                cost = CONFIG.COSTS.EQUIPMENT_BASE * floorIndex,
+                requiredLevel = math.max(1, floorIndex),
+                equipmentId = equipment.Name,
+                priority = 3,
+                metadata = {
+                    floorNumber = floorIndex,
+                    floorName = floorName,
+                    roomType = roomName,
+                    equipmentType = equipment.Name,
+                    path = string.format("%s/%s/%s/%s", 
+                        floorName, 
+                        CONFIG.ROOM_FOLDER_NAME,
+                        roomName,
+                        equipment.Name
+                    )
+                }
+            }
+            
+            if not BuyTileSystem:RegisterTile(tileInfo) then
+                log("Failed to register equipment tile: " .. tileInfo.id, "ERROR")
+                return false
+            end
         end
-    })
+    end
     
-    -- Register command to show tile progression
-    CommandService:RegisterCommand("showTileProgression", {
-        description = "Shows the current tile progression order",
-        handler = function(player)
-            if not BuyTileSystem or not BuyTileSystem.orderedTiles then
-                return "Tile progression not available"
-            end
-            
-            local result = "=== Tile Progression Order ===\n"
-            for i, tile in ipairs(BuyTileSystem.orderedTiles) do
-                if i > 20 then
-                    result = result .. "... and " .. (#BuyTileSystem.orderedTiles - 20) .. " more tiles"
-                    break
-                end
-                
-                local tileData = BuyTileSystem.getTileData(tile.tileId)
-                result = result .. i .. ". " .. tile.tileId
-                
-                if tileData then
-                    result = result .. " (Floor: " .. (tileData.floor or 1)
-                    if tileData.room then
-                        result = result .. ", Room: " .. tileData.room
-                    end
-                    result = result .. ")\n"
-                else
-                    result = result .. "\n"
-                end
-            end
-            
-            return result
+    return true
+end
+
+-- Process ceiling for a floor
+function TileDataInitializer:ProcessCeiling(floorFolder, floorIndex, floorName)
+    local ceilingFolder = floorFolder:FindFirstChild("Ceiling")
+    if not ceilingFolder then return true end
+    
+    for i, ceiling in ipairs(ceilingFolder:GetChildren()) do
+        if not ceiling:IsA("Model") and not ceiling:IsA("Part") then continue end
+        
+        local tileInfo = {
+            id = string.format("Ceiling_%d_%d", floorIndex, i),
+            name = string.format("Ceiling Section %d - %s", i, floorName),
+            cost = CONFIG.COSTS.CEILING_BASE * floorIndex,
+            requiredLevel = math.max(1, floorIndex),
+            equipmentId = ceiling.Name,
+            priority = 4,
+            metadata = {
+                floorNumber = floorIndex,
+                floorName = floorName,
+                roomType = "Ceiling",
+                equipmentType = "Ceiling",
+                path = string.format("%s/Ceiling/%s", floorName, ceiling.Name)
+            }
+        }
+        
+        if not BuyTileSystem:RegisterTile(tileInfo) then
+            log("Failed to register ceiling tile: " .. tileInfo.id, "ERROR")
+            return false
         end
-    })
+    end
+    
+    return true
 end
 
--- Initialize when the script runs
-local function initialize()
-    print("TileDataInitializer: Initializing...")
+-- Process stairs for a floor
+function TileDataInitializer:ProcessStairs(floorFolder, floorIndex, floorName)
+    local stairsFolder = floorFolder:FindFirstChild("Stairs")
+    if not stairsFolder then return true end
     
-    -- Scan for gym parts first
-    scanGymParts()
-    
-    -- Initialize tile data
-    local success = initializeTileData()
-    
-    -- Register commands
-    registerCommands()
-    
-    -- Register with EventBridge
-    if EventBridge.registerEvent then
-        EventBridge.registerEvent("TileData_Initialized")
-        EventBridge.registerEvent("TileData_Regenerated")
+    for _, stairs in ipairs(stairsFolder:GetChildren()) do
+        if not stairs:IsA("Model") and not stairs:IsA("Part") then continue end
+        
+        local tileInfo = {
+            id = string.format("Stairs_%d", floorIndex),
+            name = string.format("Stairs to Floor %d", floorIndex + 1),
+            cost = CONFIG.COSTS.STAIRS_BASE * floorIndex,
+            requiredLevel = math.max(1, floorIndex),
+            equipmentId = stairs.Name,
+            priority = 5,
+            metadata = {
+                floorNumber = floorIndex,
+                floorName = floorName,
+                roomType = "Stairs",
+                equipmentType = "Stairs",
+                path = string.format("%s/Stairs/%s", floorName, stairs.Name),
+                unlockNextFloor = true
+            }
+        }
+        
+        if not BuyTileSystem:RegisterTile(tileInfo) then
+            log("Failed to register stairs tile: " .. tileInfo.id, "ERROR")
+            return false
+        end
     end
     
-    -- Fire event to notify systems of initialization
-    if EventBridge.fireEvent then
-        EventBridge.fireEvent("TileData_Initialized", {success = success})
-    end
-    
-    print("TileDataInitializer: Initialization " .. (success and "successful" or "failed"))
-    
-    -- Create global function for use in Command Bar
-    _G.GenerateBuyTileConfig = function()
-        local result = initializeTileData()
-        print("GenerateBuyTileConfig: " .. (result and "Success" or "Failed"))
-        return result
-    end
-    
-    _G.AutoSetupBuyTiles = function()
-        local result = initializeTileData()
-        print("AutoSetupBuyTiles: " .. (result and "Success" or "Failed"))
-        return result
-    end
-    
-    return success
+    return true
 end
 
--- Run initialization
-initialize()
+-- Register with CoreRegistry
+if CoreRegistry then
+    CoreRegistry:RegisterSystem("TileDataInitializer", TileDataInitializer)
+end
+
+return TileDataInitializer

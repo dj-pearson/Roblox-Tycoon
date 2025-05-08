@@ -2,10 +2,11 @@
 --[[
     SystemBootstrap.server.luau
     
-    Handles the initialization of all game systems in the correct order.
-    Works with CoreRegistry to ensure proper system initialization and dependency management.
+    Handles the initialization of all game systems using CoreRegistry.
+    Manages system dependencies and initialization order.
     
-    Created: April 26, 2025
+    Created: April 30, 2025
+    Updated: April 30, 2025 - Updated to use improved CoreRegistry
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -14,57 +15,69 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Import CoreRegistry
 local CoreRegistry = require(script.Parent.CoreRegistry)
 
--- System dependencies
-local SYSTEM_DEPENDENCIES = {
-    -- Core Systems
-    EventBridge = {},
-    DataPersistence = {},
-    DataAccessLayer = {"DataPersistence"},
-    DataManager = {"DataAccessLayer", "EventBridge"},
-    
-    -- UI Systems
-    UIComponents = {"EventBridge"},
-    
-    -- Game Systems
-    AssetValidator = {"DataManager"},
-    BuyTileSystem = {"DataManager", "EventBridge"},
-    TycoonSystem = {"DataManager", "BuyTileSystem", "EventBridge"}
-}
-
--- System initialization order
-local INITIALIZATION_ORDER = {
-    "EventBridge",
-    "DataPersistence",
-    "DataAccessLayer",
-    "DataManager",
-    "UIComponents",
-    "AssetValidator",
-    "BuyTileSystem",
-    "TycoonSystem"
+-- Configuration
+local CONFIG = {
+    debug = true,
+    maxRetries = 3,
+    retryDelay = 1, -- seconds
+    initializationOrder = {
+        "ModuleLoader",
+        "DataManager",
+        "UIComponents",
+        "AssetValidator",
+        "BuyTileSystem",
+        "TycoonSystem",
+        "EventBridge"
+    }
 }
 
 -- Debug logging
-local function log(message)
-    print("[SystemBootstrap] " .. message)
+local function log(message, level)
+    if CONFIG.debug then
+        local prefix = "[SystemBootstrap]"
+        if level == "error" then
+            warn(prefix .. " ERROR: " .. message)
+        elseif level == "warn" then
+            warn(prefix .. " WARNING: " .. message)
+        else
+            print(prefix .. " " .. message)
+        end
+    end
 end
 
 -- Load a system module
 local function loadSystem(systemName)
-    local systemPath = ServerScriptService:FindFirstChild("Systems")
-    if not systemPath then
-        warn("Systems folder not found")
-        return nil
+    -- Try to find the system module
+    local systemModule = nil
+    
+    -- Check ServerScriptService/Core
+    local coreFolder = ServerScriptService:FindFirstChild("Core")
+    if coreFolder then
+        systemModule = coreFolder:FindFirstChild(systemName)
     end
     
-    local systemModule = systemPath:FindFirstChild(systemName)
+    -- Check ServerScriptService
     if not systemModule then
-        warn("System module not found: " .. systemName)
+        systemModule = ServerScriptService:FindFirstChild(systemName)
+    end
+    
+    -- Check ReplicatedStorage
+    if not systemModule then
+        systemModule = ReplicatedStorage:FindFirstChild(systemName)
+    end
+    
+    if not systemModule then
+        log("Could not find system module: " .. systemName, "error")
         return nil
     end
     
-    local success, system = pcall(require, systemModule)
+    -- Require the module
+    local success, system = pcall(function()
+        return require(systemModule)
+    end)
+    
     if not success then
-        warn("Failed to require system module: " .. systemName)
+        log("Failed to require system module: " .. systemName .. " - " .. tostring(system), "error")
         return nil
     end
     
@@ -74,12 +87,21 @@ end
 -- Register a system with CoreRegistry
 local function registerSystem(systemName, system)
     if not system then
-        warn("Cannot register nil system: " .. systemName)
+        log("Cannot register nil system: " .. systemName, "error")
         return false
     end
     
-    local dependencies = SYSTEM_DEPENDENCIES[systemName] or {}
-    return CoreRegistry.registerSystem(systemName, system, dependencies)
+    -- Get dependencies from CoreRegistry config
+    local dependencies = CoreRegistry.CONFIG.systemDependencies[systemName] or {}
+    
+    -- Register with CoreRegistry
+    if not CoreRegistry.registerSystem(systemName, system, dependencies) then
+        log("Failed to register system: " .. systemName, "error")
+        return false
+    end
+    
+    log("Registered system: " .. systemName)
+    return true
 end
 
 -- Initialize all systems
@@ -87,12 +109,14 @@ local function initializeSystems()
     log("Starting system initialization...")
     
     -- Register all systems first
-    for _, systemName in ipairs(INITIALIZATION_ORDER) do
+    for _, systemName in ipairs(CONFIG.initializationOrder) do
         local system = loadSystem(systemName)
         if system then
             if not registerSystem(systemName, system) then
-                warn("Failed to register system: " .. systemName)
+                log("Failed to register system: " .. systemName, "error")
             end
+        else
+            log("Failed to load system: " .. systemName, "error")
         end
     end
     
@@ -110,9 +134,9 @@ local function initializeSystems()
     log("Pending systems: " .. #status.pending)
     
     if #status.failed > 0 then
-        log("Failed systems:")
+        log("Failed systems:", "warn")
         for _, systemName in ipairs(status.failed) do
-            log("  - " .. systemName)
+            log("  - " .. systemName, "warn")
         end
     end
     
@@ -126,5 +150,7 @@ local success = initializeSystems()
 return {
     success = success,
     status = CoreRegistry.getStatus(),
-    getInitStatus = CoreRegistry.getInitStatus
+    getInitStatus = CoreRegistry.getInitStatus,
+    getSystemStatus = CoreRegistry.getSystemStatus,
+    getAllSystemStatuses = CoreRegistry.getAllSystemStatuses
 }

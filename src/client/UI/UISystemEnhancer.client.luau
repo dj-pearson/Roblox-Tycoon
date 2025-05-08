@@ -242,6 +242,21 @@ local function isUILoaded(uiName)
     return false
 end
 
+-- Global state tracking for fallback UIs
+local fallbackUIs = {}
+
+local function cleanupFallbackUI(uiName)
+    if fallbackUIs[uiName] then
+        if fallbackUIs[uiName].gui then
+            fallbackUIs[uiName].gui:Destroy()
+        end
+        fallbackUIs[uiName] = nil
+        log("Cleaned up fallback UI: " .. uiName)
+        return true
+    end
+    return false
+end
+
 -- Attempt to show UI with improved error recovery
 local function showUI(uiName)
     if not uiName then return false end
@@ -410,141 +425,106 @@ end
 
 -- Create fallback function for a UI system
 local function createFallbackUI(uiName)
+    -- Clean up any existing fallback UI first
+    cleanupFallbackUI(uiName)
+    
     log("Creating fallback UI for: " .. uiName)
     
-    local fallbackUI = {}
+    local fallbackUI = {
+        gui = nil,
+        visible = false
+    }
     
     function fallbackUI:show()
-        log("Fallback UI show() called for: " .. uiName)
+        log("Showing fallback UI: " .. uiName)
         
-        -- Create a basic UI if none exists
-        local existingGui = playerGui:FindFirstChild(uiName) or playerGui:FindFirstChild(uiName .. "Gui")
-        if not existingGui then
-            local screenGui = Instance.new("ScreenGui")
-            screenGui.Name = uiName .. "Gui"
-            screenGui.ResetOnSpawn = false
-            screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-            
-            local frame = Instance.new("Frame")
-            frame.Name = "MainFrame"
-            frame.Size = UDim2.new(0.5, 0, 0.5, 0)
-            frame.Position = UDim2.new(0.25, 0, 0.25, 0)
-            frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            frame.BorderSizePixel = 0
-            frame.Parent = screenGui
-            
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 10)
-            corner.Parent = frame
-            
-            local title = Instance.new("TextLabel")
-            title.Name = "Title"
-            title.Size = UDim2.new(1, 0, 0.1, 0)
-            title.BackgroundTransparency = 1
-            title.Text = uiName
-            title.Font = Enum.Font.SourceSansBold
-            title.TextColor3 = Color3.fromRGB(255, 255, 255)
-            title.TextScaled = true
-            title.Parent = frame
-            
-            local messageLabel = Instance.new("TextLabel")
-            messageLabel.Name = "Message"
-            messageLabel.Size = UDim2.new(0.8, 0, 0.6, 0)
-            messageLabel.Position = UDim2.new(0.1, 0, 0.2, 0)
-            messageLabel.BackgroundTransparency = 1
-            messageLabel.Text = "Fallback " .. uiName .. " system active.\nOriginal UI could not be loaded."
-            messageLabel.Font = Enum.Font.SourceSans
-            messageLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-            messageLabel.TextSize = 18
-            messageLabel.TextWrapped = true
-            messageLabel.Parent = frame
-            
-            local closeButton = Instance.new("TextButton")
-            closeButton.Name = "CloseButton"
-            closeButton.Size = UDim2.new(0.4, 0, 0.1, 0)
-            closeButton.Position = UDim2.new(0.3, 0, 0.85, 0)
-            closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            closeButton.Text = "Close"
-            closeButton.Font = Enum.Font.SourceSansBold
-            closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            closeButton.TextSize = 18
-            closeButton.Parent = frame
-            
-            local buttonCorner = Instance.new("UICorner")
-            buttonCorner.CornerRadius = UDim.new(0, 5)
-            buttonCorner.Parent = closeButton
-            
-            closeButton.MouseButton1Click:Connect(function()
-                if fallbackUI.gui then
-                    fallbackUI.gui:Destroy()  -- Destroy the GUI instead of just hiding it
-                    fallbackUI.gui = nil
-                end
-            end)
-            
-            screenGui.Parent = playerGui
-            fallbackUI.gui = screenGui
-        else
-            existingGui.Enabled = true
-            fallbackUI.gui = existingGui
+        -- Clean up existing GUI if any
+        if self.gui then
+            self.gui:Destroy()
+            self.gui = nil
         end
         
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = uiName .. "Gui"
+        screenGui.ResetOnSpawn = false
+        screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        
+        local frame = Instance.new("Frame")
+        frame.Name = "MainFrame"
+        frame.Size = UDim2.new(0.5, 0, 0.5, 0)
+        frame.Position = UDim2.new(0.25, 0, 0.25, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        frame.BorderSizePixel = 0
+        frame.Parent = screenGui
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 10)
+        corner.Parent = frame
+        
+        local title = Instance.new("TextLabel")
+        title.Name = "Title"
+        title.Size = UDim2.new(1, 0, 0.1, 0)
+        title.BackgroundTransparency = 1
+        title.Text = uiName
+        title.Font = Enum.Font.SourceSansBold
+        title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        title.TextScaled = true
+        title.Parent = frame
+        
+        local messageLabel = Instance.new("TextLabel")
+        messageLabel.Name = "Message"
+        messageLabel.Size = UDim2.new(0.8, 0, 0.6, 0)
+        messageLabel.Position = UDim2.new(0.1, 0, 0.2, 0)
+        messageLabel.BackgroundTransparency = 1
+        messageLabel.Text = "Fallback " .. uiName .. " system active.\nOriginal UI could not be loaded.\nClick Close to dismiss this message."
+        messageLabel.Font = Enum.Font.SourceSans
+        messageLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        messageLabel.TextSize = 18
+        messageLabel.TextWrapped = true
+        messageLabel.Parent = frame
+        
+        local closeButton = Instance.new("TextButton")
+        closeButton.Name = "CloseButton"
+        closeButton.Size = UDim2.new(0.4, 0, 0.1, 0)
+        closeButton.Position = UDim2.new(0.3, 0, 0.85, 0)
+        closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        closeButton.Text = "Close"
+        closeButton.Font = Enum.Font.SourceSansBold
+        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeButton.TextSize = 18
+        closeButton.Parent = frame
+        
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 5)
+        buttonCorner.Parent = closeButton
+        
+        -- Enhanced close button handling
+        closeButton.MouseButton1Click:Connect(function()
+            cleanupFallbackUI(uiName)
+        end)
+        
+        screenGui.Parent = playerGui
+        self.gui = screenGui
+        self.visible = true
+        
+        -- Store in global tracking
+        fallbackUIs[uiName] = self
+        
         return true
-    end
-    
-    function fallbackUI:Show()
-        return self:show()
     end
     
     function fallbackUI:hide()
-        log("Fallback UI hide() called for: " .. uiName)
-        if fallbackUI.gui then
-            fallbackUI.gui:Destroy()  -- Destroy the GUI instead of just hiding it
-            fallbackUI.gui = nil
-        end
-        return true
+        log("Hiding fallback UI: " .. uiName)
+        return cleanupFallbackUI(uiName)
     end
     
-    function fallbackUI:Hide()
-        return self:hide()
-    end
-    
-    function fallbackUI:setVisible(visible)
-        if visible then
-            return self:show()
-        else
-            return self:hide()
-        end
-    end
-    
-    -- Add a new method to properly clean up the fallback UI
     function fallbackUI:cleanup()
-        if fallbackUI.gui then
-            fallbackUI.gui:Destroy()
-            fallbackUI.gui = nil
-        end
-        return true
+        return cleanupFallbackUI(uiName)
     end
     
-    function fallbackUI:Cleanup()
-        return self:cleanup()
-    end
-    
-    function fallbackUI:initialize()
-        log("Fallback UI initialize() called for: " .. uiName)
-        return true
-    end
-    
-    function fallbackUI:Initialize()
-        return self:initialize()
-    end
-    
-    -- Register the fallback UI
-    _G[uiName] = fallbackUI
-    
-    -- Register with ClientRegistry if available
-    if ClientRegistry and typeof(ClientRegistry.registerSystem) == "function" then
-        ClientRegistry.registerSystem(uiName, fallbackUI)
-        log("Registered fallback UI with ClientRegistry: " .. uiName)
+    -- Add method to check visibility
+    function fallbackUI:isVisible()
+        return self.visible
     end
     
     return fallbackUI
@@ -629,78 +609,55 @@ local function ensureClientRegistry()
     return ClientRegistry
 end
 
--- Initialize enhancer system
+-- Main execution sequence
 local function initialize()
-    log("Initializing UISystemEnhancer")
+    log("Initializing UISystemEnhancer...")
     
-    -- Ensure UI folders exist
-    ensureUIFolders()
+    -- Clean up any existing fallback UIs first
+    EnhancedUISystem.cleanupFallbackUIs()
     
-    -- Ensure ClientRegistry is available
-    if not ClientRegistry then
-        ClientRegistry = ensureClientRegistry()
-    end
+    -- Preload components
+    preloadComponents()
     
-    -- Check if MainMenuUI is loaded and show it
-    if not isUILoaded("MainMenuUI") then
-        log("MainMenuUI not loaded, attempting to load and show it")
+    -- Patch UISystem
+    patchUISystem()
+    
+    -- Attempt to show main menu after a delay
+    task.delay(1, function()
+        local retryCount = 0
+        local MAX_RETRIES = 3
+        local RETRY_DELAY = 1
         
-        -- Try to find and require MainMenuUI
-        local mainMenuModule = findModule("MainMenuUI")
-        if mainMenuModule then
-            local MainMenuUI = safeRequire(mainMenuModule)
-            if MainMenuUI then
-                -- Initialize if needed
-                if typeof(MainMenuUI.Initialize) == "function" or typeof(MainMenuUI.initialize) == "function" then
-                    pcall(function()
-                        if typeof(MainMenuUI.Initialize) == "function" then
-                            MainMenuUI:Initialize()
-                        elseif typeof(MainMenuUI.initialize) == "function" then
-                            MainMenuUI:initialize()
-                        end
-                        log("MainMenuUI initialized")
-                    end)
+        local function tryShowMainMenu()
+            -- Check if any fallback UIs are visible
+            for uiName, fallbackUI in pairs(fallbackUIs) do
+                if fallbackUI:isVisible() then
+                    log("Found visible fallback UI: " .. uiName .. ", cleaning up")
+                    cleanupFallbackUI(uiName)
                 end
-                
-                -- Register with ClientRegistry if available
-                if ClientRegistry then
-                    if typeof(ClientRegistry.registerSystem) == "function" then
-                        ClientRegistry.registerSystem("MainMenuUI", MainMenuUI)
-                        log("Registered MainMenuUI with ClientRegistry")
-                    elseif typeof(ClientRegistry.registerComponent) == "function" then
-                        ClientRegistry.registerComponent("MainMenuUI", MainMenuUI)
-                        log("Registered MainMenuUI with ClientRegistry")
-                    end
-                end
-                
-                -- Try to show the UI
-                showUI("MainMenuUI")
-            else
-                -- Create fallback UI if module couldn't be loaded
-                local fallbackUI = createFallbackUI("MainMenuUI")
-                fallbackUI:show()
             end
-        else
-            -- Create fallback UI if module couldn't be found
-            local fallbackUI = createFallbackUI("MainMenuUI")
-            fallbackUI:show()
+            
+            if showUI("MainMenuUI") then
+                log("Successfully showed MainMenuUI")
+                return
+            end
+            
+            retryCount = retryCount + 1
+            if retryCount < MAX_RETRIES then
+                log("Retry " .. retryCount .. " of " .. MAX_RETRIES .. " to show MainMenuUI")
+                task.delay(RETRY_DELAY, tryShowMainMenu)
+            else
+                log("Failed to show MainMenuUI after " .. MAX_RETRIES .. " attempts", "Warning")
+                -- Create fallback UI as last resort
+                local fallbackUI = createFallbackUI("MainMenuUI")
+                if fallbackUI then
+                    fallbackUI:show()
+                end
+            end
         end
-    end
-    
-    -- Set up critical UI systems that should always be available
-    local criticalUISystems = {
-        "UISystem", 
-        "MainMenuUI", 
-        "NotificationUI", 
-        "PopupUI"
-    }
-    
-    for _, systemName in ipairs(criticalUISystems) do
-        if not isUILoaded(systemName) then
-            log("Critical UI system not found: " .. systemName .. ", creating fallback")
-            createFallbackUI(systemName)
-        end
-    end
+        
+        tryShowMainMenu()
+    end)
     
     log("UISystemEnhancer initialization complete")
 end
@@ -719,5 +676,32 @@ task.spawn(function()
     task.wait(1) -- Wait 1 second before initializing to allow other systems to load
     initialize()
 end)
+
+-- Add emergency cleanup method to EnhancedUISystem
+EnhancedUISystem.emergencyCleanup = function()
+    log("Performing emergency UI cleanup")
+    
+    -- Clean up all fallback UIs
+    EnhancedUISystem.cleanupFallbackUIs()
+    
+    -- Clean up any ScreenGui with "Gui" suffix
+    for _, gui in ipairs(playerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") and string.match(gui.Name, "Gui$") then
+            log("Emergency cleanup: Removing " .. gui.Name)
+            gui:Destroy()
+        end
+    end
+    
+    -- Restore original UI methods
+    restoreOriginalMethods()
+    
+    -- Try to reinitialize the UI system
+    task.spawn(function()
+        task.wait(1)
+        initialize()
+    end)
+    
+    return true
+end
 
 return UISystemEnhancer

@@ -1,115 +1,91 @@
+--!strict
 --[[
     TycoonSystem.server.luau
     
-    Unified system for tycoon management.
-    Handles tycoon creation, ownership, and maintenance.
+    Core system for managing tycoons in the game.
+    This module handles tycoon creation, player ownership, and interactions.
     
     Created: April 30, 2025
-    Updated: April 30, 2025 - Fixed initialization and CoreRegistry integration
+    Updated: April 30, 2025 - Unified implementation with DataAccessLayer integration
 ]]
 
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
--- Get the CoreRegistry and dependencies
-local CoreRegistry
-local EventBridge
-
-local success, result = pcall(function()
-    return require(script.Parent.CoreRegistry)
-end)
-if success then
-    CoreRegistry = result
-    EventBridge = CoreRegistry.getSystem("EventBridge")
-end
+-- Import CoreRegistry and DataAccessLayer
+local CoreRegistry = require(script.Parent.CoreRegistry)
+local DataAccessLayer = require(script.Parent.DataAccessLayer)
 
 -- Configuration
 local CONFIG = {
-    debugEnabled = true,           -- Enable debug logging
-    
-    -- Tycoon creation
-    tycoonFolder = "Tycoons",      -- Name of the folder in workspace where tycoons are stored
-    tycoonTemplate = "GymTemplate", -- Name of the tycoon template in ReplicatedStorage
-    baseOffset = Vector3.new(0, 0, 100), -- Base offset for the first tycoon
-    tycoonSpacing = 200,           -- Distance between tycoons
-    maxTycoonsPerRow = 5,          -- How many tycoons per row before starting new row
-    
-    -- Tycoon features
-    enableAutomaticRevenue = true, -- Whether tycoons generate revenue passively
-    revenueInterval = 60,          -- How often to generate revenue (seconds)
-    baseRevenueAmount = 5,         -- Base revenue amount per interval
-    gymTierMultiplier = 1.2,       -- Revenue multiplier per gym tier
-    equipmentRevenueMultiplier = 0.1, -- Revenue multiplier per equipment piece
-    
-    -- Performance
-    checkInterval = 10,            -- How often to check tycoon states (seconds)
-    enablePartCulling = true,      -- Whether to enable part culling for distant tycoons
-    cullingDistance = 500          -- Distance at which to stop rendering tycoon parts
+    debug = true,
+    maxRetries = 3,
+    retryDelay = 1, -- seconds
+    dataKey = "tycoonData",
+    tycoonFolder = "Tycoons",
+    tycoonTemplate = "GymTemplate",
+    baseOffset = Vector3.new(0, 0, 100),
+    tycoonSpacing = 200,
+    maxTycoonsPerRow = 5,
+    enableAutomaticRevenue = true,
+    revenueInterval = 60,
+    baseRevenueAmount = 5,
+    gymTierMultiplier = 1.2,
+    equipmentRevenueMultiplier = 0.1,
+    checkInterval = 10,
+    enablePartCulling = true,
+    cullingDistance = 500,
+    autoCleanupAbandoned = true,
+    abandonedTimeout = 300 -- 5 minutes
 }
 
--- Create the TycoonSystem
+-- TycoonSystem module
 local TycoonSystem = {
-    -- Internal state
-    tycoonInstances = {},
-    tycoonOwners = {},
+    Version = "2.0.0",
+    initialized = false,
+    tycoons = {},
     playerTycoons = {},
-    nextTycoonPosition = 0,
-    initialized = false
+    stats = {
+        created = 0,
+        removed = 0,
+        errors = 0
+    }
 }
 
--- Debug function
-local function log(...)
-    if CONFIG.debugEnabled then
-        print("[TycoonSystem]", ...)
+-- Debug logging
+local function log(message, level)
+    if CONFIG.debug then
+        local prefix = "[TycoonSystem]"
+        if level == "error" then
+            warn(prefix .. " ERROR: " .. message)
+        elseif level == "warn" then
+            warn(prefix .. " WARNING: " .. message)
+        else
+            print(prefix .. " " .. message)
+        end
     end
 end
 
--- Initialize the module
-function TycoonSystem:initialize()
+-- Initialize the TycoonSystem
+function TycoonSystem:Initialize()
     if self.initialized then
         return true
     end
     
-    log("Initializing TycoonSystem...")
-    
-    -- Create tycoon folder if it doesn't exist
-    self:ensureTycoonFolder()
-    
-    -- Build owner lookup table
-    self:buildOwnershipTable()
-    
-    -- Start passive revenue generation
-    if CONFIG.enableAutomaticRevenue then
-        self:startRevenueGeneration()
-    end
-    
-    -- Set up tycoon maintenance
-    self:startTycoonMaintenance()
+    log("Initializing TycoonSystem v" .. self.Version)
     
     -- Register with CoreRegistry
-    if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
-        CoreRegistry:registerSystem("TycoonSystem", self)
+    if CoreRegistry then
+        CoreRegistry.registerSystem("TycoonSystem", self)
         log("Registered with CoreRegistry")
-        
-        -- Mark as initialized in CoreRegistry
-        if typeof(CoreRegistry.markInitialized) == "function" then
-            CoreRegistry:markInitialized("TycoonSystem")
-            log("Marked as initialized in CoreRegistry")
-        end
-    else
-        log("WARNING: CoreRegistry not found, using standalone mode")
     end
     
-    self.initialized = true
-    log("TycoonSystem initialized successfully")
-    return true
-end
-
--- Ensure the tycoons folder exists in workspace
-function TycoonSystem:ensureTycoonFolder()
+    -- Create tycoon folder if it doesn't exist
     local tycoonsFolder = Workspace:FindFirstChild(CONFIG.tycoonFolder)
-    
     if not tycoonsFolder then
         tycoonsFolder = Instance.new("Folder")
         tycoonsFolder.Name = CONFIG.tycoonFolder
@@ -117,384 +93,385 @@ function TycoonSystem:ensureTycoonFolder()
         log("Created tycoons folder in workspace")
     end
     
-    return tycoonsFolder
+    -- Set up player events
+    Players.PlayerAdded:Connect(function(player)
+        self:InitializePlayer(player)
+    end)
+    
+    Players.PlayerRemoving:Connect(function(player)
+        self:CleanupPlayer(player)
+    end)
+    
+    -- Set up game shutdown handler
+    game:BindToClose(function()
+        self:HandleShutdown()
+    end)
+    
+    -- Start maintenance tasks
+    if CONFIG.enableAutomaticRevenue then
+        self:StartRevenueGeneration()
+    end
+    
+    if CONFIG.autoCleanupAbandoned then
+        self:StartAbandonedCheck()
+    end
+    
+    self.initialized = true
+    log("TycoonSystem initialized successfully")
+    return true
 end
 
--- Build a lookup table for tycoon ownership
-function TycoonSystem:buildOwnershipTable()
-    local tycoonsFolder = self:ensureTycoonFolder()
+-- Initialize a player
+function TycoonSystem:InitializePlayer(player)
+    if not player then return false end
     
-    -- Clear existing tables
-    self.tycoonInstances = {}
-    self.tycoonOwners = {}
-    self.playerTycoons = {}
+    local userId = player.UserId
     
-    -- Scan for existing tycoons
-    for _, tycoon in ipairs(tycoonsFolder:GetChildren()) do
-        if tycoon:IsA("Model") then
-            local ownerName = tycoon.Name:match("(.+)'s Gym")
+    -- Load tycoon data from DataAccessLayer
+    local tycoonData = DataAccessLayer:GetPlayerData(player, CONFIG.dataKey)
+    if tycoonData then
+        -- Create tycoon from saved data
+        local tycoonId = self:CreateTycoon({
+            ownerId = userId,
+            ownerName = player.Name,
+            template = tycoonData.template or CONFIG.tycoonTemplate,
+            name = tycoonData.name or player.Name .. "'s Tycoon",
+            data = tycoonData.data or {}
+        })
+        
+        if tycoonId then
+            self.playerTycoons[userId] = tycoonId
+            log("Created tycoon for " .. player.Name .. " from saved data: " .. tycoonId)
             
-            if ownerName then
-                -- Find the owner
-                local ownerPlayer
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player.Name == ownerName then
-                        ownerPlayer = player
-                        break
-                    end
-                end
-                
-                if ownerPlayer then
-                    -- Register the tycoon
-                    self.tycoonInstances[tycoon.Name] = tycoon
-                    self.tycoonOwners[tycoon.Name] = ownerPlayer
-                    self.playerTycoons[ownerPlayer.UserId] = tycoon
-                    
-                    -- Update player's Tycoon ObjectValue
-                    local tycoonValue = ownerPlayer:FindFirstChild("Tycoon")
-                    if tycoonValue then
-                        tycoonValue.Value = tycoon
-                    else
-                        tycoonValue = Instance.new("ObjectValue")
-                        tycoonValue.Name = "Tycoon"
-                        tycoonValue.Value = tycoon
-                        tycoonValue.Parent = ownerPlayer
-                    end
-                    
-                    log("Registered existing tycoon: " .. tycoon.Name)
-                else
-                    log("Found tycoon without owner: " .. tycoon.Name)
-                end
-            end
+            -- Teleport player to tycoon
+            task.delay(1, function()
+                self:TeleportToTycoon(player, tycoonId)
+            end)
+            
+            return true
         end
     end
     
-    -- Calculate next position
-    self.nextTycoonPosition = #tycoonsFolder:GetChildren()
+    -- Create new tycoon if no saved data or creation failed
+    local tycoonId = self:CreateTycoon({
+        ownerId = userId,
+        ownerName = player.Name,
+        template = CONFIG.tycoonTemplate,
+        name = player.Name .. "'s Tycoon"
+    })
     
-    log("Built ownership table with " .. #self.tycoonInstances .. " tycoons")
-end
-
--- Find the position for a new tycoon
-function TycoonSystem:getNextTycoonPosition()
-    local position = self.nextTycoonPosition
-    self.nextTycoonPosition = position + 1
-    
-    -- Calculate grid position
-    local rowIndex = math.floor(position / CONFIG.maxTycoonsPerRow)
-    local colIndex = position % CONFIG.maxTycoonsPerRow
-    
-    local xOffset = colIndex * CONFIG.tycoonSpacing
-    local zOffset = rowIndex * CONFIG.tycoonSpacing
-    
-    return CONFIG.baseOffset + Vector3.new(xOffset, 0, zOffset)
-end
-
--- Create a new tycoon for a player
-function TycoonSystem:createNewTycoon(player)
-    if not player then return nil end
-    
-    log("Creating new tycoon for " .. player.Name)
-    
-    -- Check if player already has a tycoon
-    if self.playerTycoons[player.UserId] then
-        log(player.Name .. " already has a tycoon")
-        return self.playerTycoons[player.UserId]
+    if tycoonId then
+        self.playerTycoons[userId] = tycoonId
+        log("Created new tycoon for " .. player.Name .. ": " .. tycoonId)
+        
+        -- Teleport player to tycoon
+        task.delay(1, function()
+            self:TeleportToTycoon(player, tycoonId)
+        end)
+        
+        return true
     end
     
-    -- Get the template
-    local template = ReplicatedStorage:FindFirstChild(CONFIG.tycoonTemplate)
-    if not template then
-        log("Tycoon template not found")
+    log("Failed to create tycoon for " .. player.Name, "error")
+    return false
+end
+
+-- Clean up player data
+function TycoonSystem:CleanupPlayer(player)
+    if not player then return false end
+    
+    local userId = player.UserId
+    local tycoonId = self.playerTycoons[userId]
+    
+    if tycoonId then
+        -- Save tycoon data
+        self:SaveTycoonData(tycoonId)
+        
+        -- Clean up
+        self.playerTycoons[userId] = nil
+        log("Cleaned up tycoon data for " .. player.Name)
+    end
+    
+    return true
+end
+
+-- Create a new tycoon
+function TycoonSystem:CreateTycoon(options)
+    if not options or not options.ownerId then
+        log("Invalid tycoon options", "error")
         return nil
     end
     
-    -- Clone the template
-    local newTycoon = template:Clone()
-    newTycoon.Name = player.Name .. "'s Gym"
+    -- Generate unique ID
+    local tycoonId = "Tycoon_" .. options.ownerId .. "_" .. os.time()
     
-    -- Position the tycoon
-    local position = self:getNextTycoonPosition()
-    newTycoon:SetPrimaryPartCFrame(CFrame.new(position))
-    
-    -- Parent the tycoon
-    local tycoonsFolder = self:ensureTycoonFolder()
-    newTycoon.Parent = tycoonsFolder
-    
-    -- Register the tycoon
-    self.tycoonInstances[newTycoon.Name] = newTycoon
-    self.tycoonOwners[newTycoon.Name] = player
-    self.playerTycoons[player.UserId] = newTycoon
-    
-    -- Set up initial tycoon properties
-    newTycoon:SetAttribute("OwnerUserId", player.UserId)
-    newTycoon:SetAttribute("GymTier", 1)
-    newTycoon:SetAttribute("EquipmentCount", 0)
-    newTycoon:SetAttribute("TycoonStarted", false)
-    newTycoon:SetAttribute("DateCreated", os.time())
-    newTycoon:SetAttribute("AccruedDues", 0)
-    
-    -- Create NPCs folder
-    local npcsFolder = Instance.new("Folder")
-    npcsFolder.Name = "NPCs"
-    npcsFolder.Parent = newTycoon
-    
-    -- Create equipment folder
-    local equipmentFolder = Instance.new("Folder")
-    equipmentFolder.Name = "Equipment"
-    equipmentFolder.Parent = newTycoon
-    
-    -- Create spawn location
-    local spawnLocation = Instance.new("SpawnLocation")
-    spawnLocation.Name = "SpawnLocation"
-    spawnLocation.Neutral = false
-    spawnLocation.TeamColor = player.TeamColor
-    spawnLocation.CanCollide = false
-    spawnLocation.Anchored = true
-    spawnLocation.Transparency = 1
-    
-    -- Find spawn point in tycoon
-    local spawnPoint = newTycoon:FindFirstChild("SpawnPoint") or newTycoon:FindFirstChild("SpawnLocation")
-    if spawnPoint then
-        spawnLocation.CFrame = spawnPoint.CFrame
-        if spawnPoint:IsA("BasePart") then
-            spawnPoint.Transparency = 1
-            spawnPoint.CanCollide = false
-        end
-    else
-        local primaryPart = newTycoon.PrimaryPart
-        if primaryPart then
-            spawnLocation.CFrame = primaryPart.CFrame * CFrame.new(0, 5, 0)
-        else
-            spawnLocation.CFrame = CFrame.new(position + Vector3.new(0, 5, 0))
-        end
+    -- Get template
+    local template = ServerStorage:FindFirstChild(options.template)
+    if not template then
+        log("Tycoon template not found: " .. options.template, "error")
+        return nil
     end
     
-    spawnLocation.Parent = newTycoon
+    -- Clone template
+    local tycoonInstance = template:Clone()
     
-    -- Fire event
-    if EventBridge then
-        EventBridge:fireEvent("TycoonCreated", player, newTycoon)
+    -- Set up tycoon
+    tycoonInstance.Name = tycoonId
+    
+    -- Calculate position
+    local position = self:GetNextTycoonPosition()
+    tycoonInstance:PivotTo(CFrame.new(position))
+    
+    -- Set parent
+    local tycoonsFolder = Workspace:FindFirstChild(CONFIG.tycoonFolder)
+    tycoonInstance.Parent = tycoonsFolder
+    
+    -- Store tycoon data
+    self.tycoons[tycoonId] = {
+        instance = tycoonInstance,
+        ownerId = options.ownerId,
+        ownerName = options.ownerName,
+        template = options.template,
+        name = options.name,
+        data = options.data or {},
+        created = os.time()
+    }
+    
+    -- Run initialization script if it exists
+    local initScript = tycoonInstance:FindFirstChild("TycoonInit")
+    if initScript and initScript:IsA("Script") then
+        task.spawn(function()
+            initScript.Disabled = false
+        end)
     end
     
-    log("Created new tycoon for " .. player.Name)
-    return newTycoon
+    self.stats.created += 1
+    log("Created tycoon: " .. tycoonId .. " for player " .. options.ownerName)
+    
+    return tycoonId
 end
 
--- Ensure a player has a tycoon
-function TycoonSystem:ensurePlayerTycoon(player)
-    if not player then return nil end
-    
-    -- Check if player already has a tycoon reference
-    local tycoonValue = player:FindFirstChild("Tycoon")
-    if tycoonValue and tycoonValue.Value and tycoonValue.Value:IsA("Model") and Workspace:IsAncestorOf(tycoonValue.Value) then
-        -- Tycoon reference exists and is valid
-        return tycoonValue.Value
+-- Remove a tycoon
+function TycoonSystem:RemoveTycoon(tycoonId)
+    if not tycoonId or not self.tycoons[tycoonId] then
+        return false
     end
     
-    -- Check if tycoon exists in our registry
-    local existingTycoon = self.playerTycoons[player.UserId]
-    if existingTycoon and existingTycoon:IsA("Model") and Workspace:IsAncestorOf(existingTycoon) then
-        -- Create or update Tycoon value
-        if not tycoonValue then
-            tycoonValue = Instance.new("ObjectValue")
-            tycoonValue.Name = "Tycoon"
-            tycoonValue.Parent = player
-        end
-        tycoonValue.Value = existingTycoon
-        
-        log("Found existing tycoon for " .. player.Name)
-        return existingTycoon
+    local tycoon = self.tycoons[tycoonId]
+    
+    -- Save data before removing
+    self:SaveTycoonData(tycoonId)
+    
+    -- Clean up
+    if tycoon.instance then
+        tycoon.instance:Destroy()
     end
     
-    -- Create a new tycoon
-    local newTycoon = self:createNewTycoon(player)
-    
-    -- Update player's Tycoon value
-    if newTycoon then
-        if not tycoonValue then
-            tycoonValue = Instance.new("ObjectValue")
-            tycoonValue.Name = "Tycoon"
-            tycoonValue.Parent = player
-        end
-        tycoonValue.Value = newTycoon
+    -- Remove from player mapping
+    if tycoon.ownerId then
+        self.playerTycoons[tycoon.ownerId] = nil
     end
     
-    return newTycoon
+    -- Remove from tycoons table
+    self.tycoons[tycoonId] = nil
+    
+    self.stats.removed += 1
+    log("Removed tycoon: " .. tycoonId)
+    
+    return true
 end
 
--- Fix tycoon reference if it's pointing to character
-function TycoonSystem:fixTycoonReference(player)
-    if not player then return false end
-    
-    local tycoon = player:FindFirstChild("Tycoon")
-    if not tycoon then
-        tycoon = Instance.new("ObjectValue")
-        tycoon.Name = "Tycoon"
-        tycoon.Parent = player
-        log("Created Tycoon value for " .. player.Name)
+-- Save tycoon data
+function TycoonSystem:SaveTycoonData(tycoonId)
+    if not tycoonId or not self.tycoons[tycoonId] then
+        return false
     end
     
-    -- Check if tycoon is incorrectly set to character
-    if tycoon.Value == player.Character then
-        log("Fixing incorrect tycoon reference for " .. player.Name)
-        
-        -- Try to find correct tycoon
-        local correctTycoon = self.playerTycoons[player.UserId]
-        
-        -- If not found in registry, search for it
-        if not correctTycoon then
-            local tycoonsFolder = Workspace:FindFirstChild(CONFIG.tycoonFolder)
-            if tycoonsFolder then
-                correctTycoon = tycoonsFolder:FindFirstChild(player.Name .. "'s Gym")
+    local tycoon = self.tycoons[tycoonId]
+    local ownerId = tycoon.ownerId
+    
+    if not ownerId then
+        return false
+    end
+    
+    -- Get the player if they're still online
+    local player = Players:GetPlayerByUserId(ownerId)
+    if not player then
+        return false
+    end
+    
+    -- Gather tycoon data to save
+    local saveData = {
+        template = tycoon.template,
+        name = tycoon.name,
+        data = tycoon.data or {}
+    }
+    
+    -- Try to run save hooks in the tycoon instance
+    if tycoon.instance then
+        local saveScript = tycoon.instance:FindFirstChild("TycoonSave")
+        if saveScript and saveScript:IsA("ModuleScript") then
+            local success, result = pcall(function()
+                return require(saveScript)
+            end)
+            
+            if success and result and typeof(result.onSave) == "function" then
+                local additionalData = result.onSave(tycoon.instance)
+                if additionalData and type(additionalData) == "table" then
+                    for key, value in pairs(additionalData) do
+                        saveData.data[key] = value
+                    end
+                end
             end
         end
-        
-        if correctTycoon then
-            tycoon.Value = correctTycoon
-            log("Fixed tycoon reference for " .. player.Name)
-            return true
-        else
-            log("Could not find tycoon for " .. player.Name)
-            return false
-        end
     end
     
-    return tycoon.Value ~= nil
+    -- Save using DataAccessLayer
+    local success = DataAccessLayer:UpdatePlayerData(player, CONFIG.dataKey, saveData)
+    if success then
+        log("Saved tycoon data for " .. tycoonId)
+        return true
+    end
+    
+    log("Failed to save tycoon data for " .. tycoonId, "error")
+    return false
 end
 
--- Start the revenue generation loop
-function TycoonSystem:startRevenueGeneration()
-    if not CONFIG.enableAutomaticRevenue then return end
+-- Get next tycoon position
+function TycoonSystem:GetNextTycoonPosition()
+    local row = math.floor(self.stats.created / CONFIG.maxTycoonsPerRow)
+    local col = self.stats.created % CONFIG.maxTycoonsPerRow
     
-    log("Starting revenue generation loop...")
+    return CONFIG.baseOffset + Vector3.new(
+        col * CONFIG.tycoonSpacing,
+        0,
+        row * CONFIG.tycoonSpacing
+    )
+end
+
+-- Teleport player to tycoon
+function TycoonSystem:TeleportToTycoon(player, tycoonId)
+    if not player or not tycoonId or not self.tycoons[tycoonId] then
+        return false
+    end
+    
+    local tycoon = self.tycoons[tycoonId]
+    if not tycoon.instance then
+        return false
+    end
+    
+    -- Find spawn point
+    local spawnPoint = tycoon.instance:FindFirstChild("SpawnPoint")
+    if not spawnPoint then
+        spawnPoint = tycoon.instance:FindFirstChild("HumanoidRootPart")
+    end
+    
+    if spawnPoint then
+        player.Character:SetPrimaryPartCFrame(spawnPoint.CFrame)
+        log("Teleported " .. player.Name .. " to tycoon: " .. tycoonId)
+        return true
+    end
+    
+    log("No spawn point found in tycoon: " .. tycoonId, "error")
+    return false
+end
+
+-- Start revenue generation
+function TycoonSystem:StartRevenueGeneration()
+    if not CONFIG.enableAutomaticRevenue then
+        return
+    end
     
     task.spawn(function()
         while true do
             task.wait(CONFIG.revenueInterval)
             
-            for _, player in pairs(Players:GetPlayers()) do
-                task.spawn(function()
-                    self:generateRevenue(player)
-                end)
+            for tycoonId, tycoon in pairs(self.tycoons) do
+                if tycoon.instance then
+                    local ownerId = tycoon.ownerId
+                    local player = Players:GetPlayerByUserId(ownerId)
+                    
+                    if player then
+                        -- Calculate revenue
+                        local baseRevenue = CONFIG.baseRevenueAmount
+                        local tierMultiplier = tycoon.data.tier or 1
+                        local equipmentCount = #tycoon.instance:GetChildren()
+                        
+                        local revenue = baseRevenue * 
+                            (CONFIG.gymTierMultiplier ^ (tierMultiplier - 1)) * 
+                            (1 + (equipmentCount * CONFIG.equipmentRevenueMultiplier))
+                        
+                        -- Add revenue to player
+                        local playerData = DataAccessLayer:GetPlayerData(player)
+                        if playerData then
+                            local newCash = (playerData.cash or 0) + revenue
+                            DataAccessLayer:UpdatePlayerData(player, "cash", newCash)
+                        end
+                    end
+                end
             end
         end
     end)
 end
 
--- Generate revenue for a player's tycoon
-function TycoonSystem:generateRevenue(player)
-    if not player then return 0 end
-    
-    local tycoonValue = player:FindFirstChild("Tycoon")
-    if not tycoonValue or not tycoonValue.Value then return 0 end
-    
-    local tycoon = tycoonValue.Value
-    
-    -- Skip if tycoon hasn't been started
-    if not tycoon:GetAttribute("TycoonStarted") then
-        return 0
+-- Start abandoned tycoon check
+function TycoonSystem:StartAbandonedCheck()
+    if not CONFIG.autoCleanupAbandoned then
+        return
     end
-    
-    -- Calculate base revenue
-    local gymTier = tycoon:GetAttribute("GymTier") or 1
-    local equipmentCount = tycoon:GetAttribute("EquipmentCount") or 0
-    
-    local baseRevenue = CONFIG.baseRevenueAmount
-    local tierBonus = baseRevenue * (gymTier - 1) * CONFIG.gymTierMultiplier
-    local equipmentBonus = baseRevenue * equipmentCount * CONFIG.equipmentRevenueMultiplier
-    
-    local totalRevenue = math.floor(baseRevenue + tierBonus + equipmentBonus)
-    
-    -- Add to accrued dues
-    local currentDues = tycoon:GetAttribute("AccruedDues") or 0
-    tycoon:SetAttribute("AccruedDues", currentDues + totalRevenue)
-    
-    log(player.Name .. " generated " .. totalRevenue .. " revenue")
-    
-    -- Update front desk if available
-    local GymTycoonConnector = CoreRegistry.getSystem("GymTycoonConnector")
-    if GymTycoonConnector and GymTycoonConnector.updateFrontDesk then
-        GymTycoonConnector.updateFrontDesk(player)
-    end
-    
-    return totalRevenue
-end
-
--- Start the tycoon maintenance loop
-function TycoonSystem:startTycoonMaintenance()
-    log("Starting tycoon maintenance loop...")
     
     task.spawn(function()
         while true do
-            task.wait(CONFIG.checkInterval)
+            task.wait(30) -- Check every 30 seconds
             
-            -- Check all tycoons
-            for _, tycoon in pairs(self.tycoonInstances) do
-                task.spawn(function()
-                    self:performTycoonMaintenance(tycoon)
-                end)
+            local currentTime = os.time()
+            
+            for tycoonId, tycoon in pairs(self.tycoons) do
+                if tycoon.instance then
+                    local ownerId = tycoon.ownerId
+                    local player = Players:GetPlayerByUserId(ownerId)
+                    
+                    if not player then
+                        -- Check if tycoon has been abandoned
+                        local lastSeen = tycoon.data.lastSeen or tycoon.created
+                        if currentTime - lastSeen > CONFIG.abandonedTimeout then
+                            log("Removing abandoned tycoon: " .. tycoonId)
+                            self:RemoveTycoon(tycoonId)
+                        end
+                    else
+                        -- Update last seen time
+                        tycoon.data.lastSeen = currentTime
+                    end
+                end
             end
-            
-            -- Rebuild ownership table occasionally to catch any issues
-            task.wait(CONFIG.checkInterval * 10) -- Less frequent rebuilds
-            self:buildOwnershipTable()
         end
     end)
 end
 
--- Perform maintenance on a tycoon
-function TycoonSystem:performTycoonMaintenance(tycoon)
-    if not tycoon or not tycoon:IsA("Model") then return end
+-- Handle game shutdown
+function TycoonSystem:HandleShutdown()
+    log("Handling game shutdown")
     
-    -- Find owner
-    local owner = self.tycoonOwners[tycoon.Name]
-    
-    -- Skip if no owner found
-    if not owner then return end
-    
-    -- Check if owner is still in game
-    if not Players:FindFirstChild(owner.Name) then
-        -- Player left but this runs after PlayerRemoving event
-        -- Don't remove tycoon as they might rejoin
-        return
-    end
-    
-    -- Apply part culling if enabled
-    if CONFIG.enablePartCulling then
-        self:applyCulling(tycoon, owner)
-    end
-    
-    -- Any other maintenance tasks
-end
-
--- Apply culling to distant tycoons for performance
-function TycoonSystem:applyCulling(tycoon, owner)
-    if not CONFIG.enablePartCulling then return end
-    
-    -- Skip if no character
-    if not owner.Character or not owner.Character:FindFirstChild("HumanoidRootPart") then
-        return
-    end
-    
-    local playerPosition = owner.Character.HumanoidRootPart.Position
-    local tycoonPosition = tycoon:GetPivot().Position
-    local distance = (playerPosition - tycoonPosition).Magnitude
-    
-    -- Determine if parts should be culled
-    local shouldCull = distance > CONFIG.cullingDistance
-    
-    -- Apply culling only to decorative parts
-    for _, part in pairs(tycoon:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name:lower():find("decorative") then
-            part.LocalTransparencyModifier = shouldCull and 1 or 0
-        end
+    -- Save all tycoon data
+    for tycoonId, _ in pairs(self.tycoons) do
+        self:SaveTycoonData(tycoonId)
     end
 end
 
--- Check if initialized
-function TycoonSystem:isInitialized()
+-- Get system health
+function TycoonSystem:IsHealthy()
     return self.initialized
 end
+
+-- Recover from failure
+function TycoonSystem:Recover()
+    if not self.initialized then
+        return self:Initialize()
+    end
+    return true
+end
+
+-- Initialize the TycoonSystem
+TycoonSystem:Initialize()
 
 return TycoonSystem
