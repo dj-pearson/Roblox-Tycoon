@@ -19,12 +19,12 @@ local function resolveModule(moduleName)
     
     -- If not found, try in server
     if not moduleScript then
-        moduleScript = script.Parent.server:FindFirstChild(moduleName .. ".server")
+        moduleScript = script.Parent.server:FindFirstChild(moduleName .. ".server.luau")
     end
     
     -- If not found, try in clientScripts (for UI modules)
     if not moduleScript and moduleName:match("UI$") then
-        moduleScript = script.Parent.clientScripts:FindFirstChild(moduleName .. ".client")
+        moduleScript = script.Parent.clientScripts:FindFirstChild(moduleName .. ".client.luau")
     end
     
     if moduleScript then

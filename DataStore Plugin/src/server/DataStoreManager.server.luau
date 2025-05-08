@@ -35,7 +35,8 @@ local function _get_MultiServerCoordination()
         _lazy_MultiServerCoordination = resolveModule("MultiServerCoordination")
     end
     return _lazy_MultiServerCoordination
-end)
+end
+
 
 local DataStoreManager = {}
 DataStoreManager.sessionId = HttpService:GenerateGUID()

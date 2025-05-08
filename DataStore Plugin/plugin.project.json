@@ -1,0 +1,30 @@
+{
+  "name": "DataStoreManagerPro",
+  "tree": {
+    "$className": "Folder",
+    "Packages": {
+      "$path": "src/shared"
+    },
+    "Plugin": {
+      "$className": "Plugin",
+      "Main": {
+        "$path": "plugin.luau"
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "DataStoreManagerPro": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "DataStoreManagerPro": {
+          "$path": "src/clientScripts"
+        }
+      }
+    }
+  }
+}

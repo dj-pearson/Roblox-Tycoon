@@ -30,7 +30,8 @@ local function _get_DataStoreManager()
         _lazy_DataStoreManager = resolveModule("DataStoreManager")
     end
     return _lazy_DataStoreManager
-end)
+end
+
 local SessionManager = resolveModule('SessionManager')
 local DataVisualization = resolveModule('DataVisualization')
 local StyleGuide = resolveModule('StyleGuide')
