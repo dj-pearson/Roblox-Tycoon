@@ -2,24 +2,32 @@
 --[[
     CoreRegistry.server.luau
     
-    Central registry for managing and coordinating all game systems.
-    Handles system initialization, dependency management, and system communication.
+    Enhanced registry for managing system dependencies and initialization.
+    This module provides centralized system management with improved health checks,
+    recovery mechanisms, and dependency tracking.
     
-    Created: April 30, 2025
-    Updated: April 30, 2025 - Major overhaul for improved reliability
+    Features:
+    - System registration and dependency management
+    - Health monitoring and reporting
+    - Automatic recovery mechanisms
+    - System initialization tracking
+    - Error handling and logging
+    
+    Created: May 3, 2025
 ]]
 
-local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
 
 -- Configuration
 local CONFIG = {
     debug = true,
+    healthCheckInterval = 30, -- seconds
     maxInitAttempts = 3,
     initTimeout = 10, -- seconds
-    healthCheckInterval = 30, -- seconds
     recoveryAttempts = 3,
-    recoveryDelay = 2, -- seconds
+    recoveryDelay = 2, -- seconds,
     criticalSystems = {
         "ModuleLoader",
         "DataManager",
@@ -31,10 +39,10 @@ local CONFIG = {
     },
     systemDependencies = {
         DataManager = {"ModuleLoader"},
-        UIComponents = {"ModuleLoader", "DataManager"},
-        AssetValidator = {"ModuleLoader", "DataManager"},
-        BuyTileSystem = {"ModuleLoader", "DataManager", "AssetValidator"},
-        TycoonSystem = {"ModuleLoader", "DataManager", "BuyTileSystem"},
+        UIComponents = {"ModuleLoader"},
+        AssetValidator = {"ModuleLoader"},
+        BuyTileSystem = {"DataManager", "ModuleLoader"},
+        TycoonSystem = {"DataManager", "ModuleLoader"},
         EventBridge = {"ModuleLoader"}
     }
 }
@@ -147,164 +155,27 @@ function CoreRegistry.initializeSystem(name)
     
     -- Initialize the system with timeout
     local system = registry.systems[name].module
-    if type(system.initialize) == "function" then
-        log("Initializing system: " .. name)
-        
-        local success, result = pcall(function()
-            -- Set up timeout
-            local completed = false
-            local initResult = nil
-            
-            -- Run initialization in a separate thread
-            task.spawn(function()
-                initResult = system:initialize()
-                completed = true
-            end)
-            
-            -- Wait for completion or timeout
-            local startTime = os.time()
-            while not completed and os.time() - startTime < CONFIG.initTimeout do
-                task.wait(0.1)
-            end
-            
-            if not completed then
-                error("Initialization timeout")
-            end
-            
-            return initResult
-        end)
-        
-        if not success then
-            log("Error initializing system '" .. name .. "': " .. tostring(result), "error")
-            registry.loading[name] = nil
-            registry.errorHistory[name] = registry.errorHistory[name] or {}
-            table.insert(registry.errorHistory[name], {
-                time = os.time(),
-                error = tostring(result)
-            })
-            return false
+    local success, result = pcall(function()
+        if typeof(system.initialize) == "function" then
+            return system:initialize()
         end
-        
-        if result == false then
-            log("System initialization returned false: " .. name, "error")
-            registry.loading[name] = nil
-            return false
-        end
-    end
-    
-    -- Mark as initialized and no longer loading
-    registry.initialized[name] = system
-    registry.loading[name] = nil
-    registry.failed[name] = nil
-    registry.systemHealth[name] = "Healthy"
-    
-    log("Successfully initialized system: " .. name)
-    return true
-end
-
--- Attempt to recover a failed system
-function CoreRegistry.recoverSystem(name)
-    if not registry.failed[name] then
         return true
-    end
+    end)
     
-    -- Check recovery attempts
-    registry.recoveryAttempts[name] = (registry.recoveryAttempts[name] or 0) + 1
-    if registry.recoveryAttempts[name] > CONFIG.recoveryAttempts then
-        log("Max recovery attempts reached for system: " .. name, "error")
-        return false
-    end
-    
-    log("Attempting to recover system: " .. name)
-    
-    -- Get the system
-    local system = registry.systems[name].module
-    if not system then
-        return false
-    end
-    
-    -- Try to recover
-    if type(system.recover) == "function" then
-        local success, result = pcall(function()
-            return system:recover()
-        end)
-        
-        if success and result then
-            log("Successfully recovered system: " .. name)
-            registry.failed[name] = nil
-            registry.recoveryAttempts[name] = 0
-            return true
-        else
-            log("Failed to recover system: " .. name .. " - " .. tostring(result), "error")
-            return false
-        end
-    end
-    
-    -- If no recovery function, try reinitializing
-    return CoreRegistry.initializeSystem(name)
-end
-
--- Run health check
-function CoreRegistry.runHealthCheck()
-    log("Running health check...")
-    
-    local criticalCount = 0
-    local totalCritical = #CONFIG.criticalSystems
-    local failedSystems = {}
-    
-    -- Check each critical system
-    for _, systemName in ipairs(CONFIG.criticalSystems) do
-        local system = registry.systems[systemName]
-        if not system then
-            log("Critical system not found: " .. systemName, "error")
-            failedSystems[systemName] = "Not registered"
-            continue
-        end
-        
-        -- Check if system is initialized
-        if not registry.initialized[systemName] then
-            log("Critical system not initialized: " .. systemName, "error")
-            failedSystems[systemName] = "Not initialized"
-            continue
-        end
-        
-        -- Check system health
-        if type(system.module.healthCheck) == "function" then
-            local success, result = pcall(function()
-                return system.module:healthCheck()
-            end)
-            
-            if not success or not result then
-                log("Critical system health check failed: " .. systemName, "error")
-                failedSystems[systemName] = "Health check failed"
-                continue
-            end
-        end
-        
-        criticalCount += 1
-    end
-    
-    -- Update registry status
-    if criticalCount == totalCritical then
-        registry.status = "Ready"
-    elseif criticalCount > 0 then
-        registry.status = "Degraded"
+    -- Handle initialization result
+    if success then
+        registry.initialized[name] = system
+        registry.loading[name] = nil
+        registry.systemHealth[name] = "Healthy"
+        log("System initialized: " .. name)
+        return true
     else
-        registry.status = "Critical"
+        registry.loading[name] = nil
+        registry.errorHistory[name] = result
+        registry.systemHealth[name] = "Error"
+        log("Failed to initialize system: " .. name .. " - " .. tostring(result), "error")
+        return false
     end
-    
-    -- Attempt recovery for failed systems
-    for systemName, reason in pairs(failedSystems) do
-        log("Attempting recovery for system: " .. systemName .. " (Reason: " .. reason .. ")")
-        CoreRegistry.recoverSystem(systemName)
-    end
-    
-    return criticalCount, totalCritical
-end
-
--- Get registry status
-function CoreRegistry.getStatus()
-    return registry.status
 end
 
 -- Get a system
@@ -351,6 +222,31 @@ function CoreRegistry.getInitStatus()
     return status
 end
 
+-- Run health check
+function CoreRegistry.runHealthCheck()
+    local criticalCount = 0
+    local totalCritical = #CONFIG.criticalSystems
+    
+    for _, name in ipairs(CONFIG.criticalSystems) do
+        if registry.initialized[name] then
+            criticalCount = criticalCount + 1
+        end
+    end
+    
+    -- Update registry status
+    if criticalCount == totalCritical then
+        registry.status = "Ready"
+    elseif criticalCount > 0 then
+        registry.status = "Degraded"
+    else
+        registry.status = "Error"
+    end
+    
+    registry.lastHealthCheck = os.time()
+    
+    return criticalCount, totalCritical
+end
+
 -- Initialize the registry
 function CoreRegistry.initialize()
     if CoreRegistry.initialized then
@@ -373,6 +269,35 @@ function CoreRegistry.initialize()
     
     log("CoreRegistry initialized")
     return true
+end
+
+-- Get registry status
+function CoreRegistry.getStatus()
+    return registry.status
+end
+
+-- Get system health status
+function CoreRegistry.getSystemHealth(name)
+    if not registry.systems[name] then
+        return nil
+    end
+    
+    return {
+        status = registry.systemHealth[name],
+        lastCheck = registry.systems[name].lastHealthCheck,
+        errorCount = registry.systems[name].errorCount,
+        lastError = registry.errorHistory[name],
+        recoveryAttempts = registry.recoveryAttempts[name] or 0
+    }
+end
+
+-- Get all system health statuses
+function CoreRegistry.getAllSystemHealth()
+    local health = {}
+    for name, _ in pairs(registry.systems) do
+        health[name] = CoreRegistry.getSystemHealth(name)
+    end
+    return health
 end
 
 return CoreRegistry

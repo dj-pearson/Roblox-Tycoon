@@ -139,132 +139,56 @@ local function updateStatus(status)
     timestampValue.Value = os.time()
 end
 
--- Run initial checks
-task.delay(CONFIG.initialDelay, function()
-    log("Starting CoreRegistry monitoring")
+-- Monitor health
+local function monitorHealth()
+    local attempts = 0
     
-    -- Initial status check
-    local status = checkRegistryHealth()
-    log("Initial status:", status)
-    updateStatus(status)
-    
-    -- Check multiple times if needed
-    if status == "UNAVAILABLE" or status == "DEGRADED" then
-        for attempt = 1, CONFIG.maxAttempts do
-            log("CoreRegistry check failed (" .. attempt .. "/" .. CONFIG.maxAttempts .. ")")
+    while attempts < CONFIG.maxAttempts do
+        local status = checkRegistryHealth()
+        updateStatus(status)
+        
+        if status == "Ready" then
+            log("CoreRegistry is healthy")
+            break
+        end
+        
+        attempts += 1
+        if attempts < CONFIG.maxAttempts then
+            log("Waiting before next check...")
             task.wait(CONFIG.checkDelay)
-            
-            status = checkRegistryHealth()
-            updateStatus(status)
-            
-            if status ~= "UNAVAILABLE" and status ~= "DEGRADED" then
-                log("CoreRegistry now available:", status)
-                break
-            end
-            
-            if attempt == CONFIG.maxAttempts then
-                warn("CoreRegistry unavailable after " .. CONFIG.maxAttempts .. " attempts")
-                
-                -- Attempt to create a fallback registry
-                task.spawn(function()
-                    log("Attempting to create fallback registry")
-                    
-                    -- Try to fix CoreRegistry
-                    local CoreRegistryPath = ServerScriptService:FindFirstChild("Core")
-                    if CoreRegistryPath then
-                        local existingModule = CoreRegistryPath:FindFirstChild("CoreRegistry")
-                        
-                        -- Check if it's a ModuleScript
-                        if existingModule and not existingModule:IsA("ModuleScript") then
-                            log("Removing non-ModuleScript CoreRegistry")
-                            existingModule:Destroy()
-                            existingModule = nil
-                        end
-                        
-                        if not existingModule then
-                            -- Create a new CoreRegistry module
-                            local newRegistry = Instance.new("ModuleScript")
-                            newRegistry.Name = "CoreRegistry"
-                            newRegistry.Source = [[
-                                local CoreRegistry = {}
-                                CoreRegistry.VERSION = "1.0.0"
-                                CoreRegistry.isLoaded = true
-                                
-                                -- Registry storage
-                                local registry = {
-                                    systems = {},
-                                    status = "Fallback"
-                                }
-                                
-                                -- Register a system
-                                function CoreRegistry.registerSystem(name, system)
-                                    registry.systems[name] = system
-                                    return true
-                                end
-                                
-                                -- Get a system
-                                function CoreRegistry.getSystem(name)
-                                    return registry.systems[name]
-                                end
-                                
-                                -- Check if a system exists
-                                function CoreRegistry.hasSystem(name)
-                                    return registry.systems[name] ~= nil
-                                end
-                                
-                                -- Get registry status
-                                function CoreRegistry.getStatus()
-                                    return registry.status
-                                end
-                                
-                                return CoreRegistry
-                            ]]
-                            newRegistry.Parent = CoreRegistryPath
-                            log("Created fallback CoreRegistry module")
-                            
-                            -- Check again after creating fallback
-                            task.wait(1)
-                            status = checkRegistryHealth()
-                            updateStatus(status)
-                        end
-                    end
-                end)
-            end
         end
     end
     
-    -- Start continuous monitoring
-    while true do
-        task.wait(CONFIG.checkInterval)
-        
-        status = checkRegistryHealth()
-        updateStatus(status)
+    if attempts >= CONFIG.maxAttempts then
+        log("Failed to get healthy CoreRegistry after", CONFIG.maxAttempts, "attempts")
     end
-end)
+end
 
--- Expose monitoring controls
-local monitorControls = {
-    checkNow = function()
-        local status = checkRegistryHealth()
-        updateStatus(status)
-        return status
-    end,
+-- Initialize
+local function initialize()
+    log("Initializing CoreRegistryMonitor...")
     
-    getStatus = function()
-        return statusValue.Value
-    end,
+    -- Wait initial delay
+    task.wait(CONFIG.initialDelay)
     
-    getLastChecked = function()
-        return timestampValue.Value
-    end
+    -- Start monitoring
+    monitorHealth()
+    
+    -- Set up periodic checks
+    RunService.Heartbeat:Connect(function()
+        if os.time() - timestampValue.Value >= CONFIG.checkInterval then
+            monitorHealth()
+        end
+    end)
+    
+    log("CoreRegistryMonitor initialized")
+end
+
+-- Start monitoring
+initialize()
+
+return {
+    getStatus = function() return statusValue.Value end,
+    getLastChecked = function() return timestampValue.Value end,
+    forceCheck = monitorHealth
 }
-
--- Create a BindableFunction for manual checks
-local checkFunction = Instance.new("BindableFunction")
-checkFunction.Name = "CheckRegistryHealth"
-checkFunction.Parent = statusFolder
-
--- Connect the function
-checkFunction.OnInvoke = monitorControls.checkNow
-
-return monitorControls

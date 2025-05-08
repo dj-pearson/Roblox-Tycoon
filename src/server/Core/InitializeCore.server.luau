@@ -1,72 +1,133 @@
--- InitializeCore.luau
--- Entry point for the core system initialization
--- Place in ServerScriptService/Core
+--[[
+    InitializeCore.server.luau
+    
+    Initializes the core systems of the game, starting with CoreRegistry.
+    This script should be the first thing to run when the game starts.
+    
+    Created: May 3, 2025
+]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Load core systems in the correct order
-local CorePath = ServerScriptService:FindFirstChild("Core")
-
-if not CorePath then
-    error("Core folder not found in ServerScriptService!")
-    return
-end
-
-print("=== Initializing Gym Tycoon Core Systems ===")
-print("Loading order: CoreRegistry -> EventBridge -> DataManager -> GymTycoonConnector")
-
--- First, require the CoreRegistry
-local CoreRegistry = require(CorePath:FindFirstChild("CoreRegistry"))
-print("CoreRegistry loaded")
-
--- Then, require and initialize EventBridge
-local EventBridge = require(CorePath:FindFirstChild("EventBridge"))
-print("EventBridge loaded")
-
--- Then, require DataManager
-local DataManager = require(CorePath:FindFirstChild("DataManager"))
-print("DataManager loaded")
-
--- Finally, load the main connector
-local GymTycoonConnector = require(CorePath:FindFirstChild("GymTycoonConnector"))
-print("GymTycoonConnector loaded")
-
--- Make global reference for backward compatibility
-_G.InitializedSystems = {
-    CoreRegistry = CoreRegistry,
-    EventBridge = EventBridge,
-    DataManager = DataManager,
-    GymTycoonConnector = GymTycoonConnector
+-- Configuration
+local CONFIG = {
+    debug = true,
+    initTimeout = 30, -- seconds
+    retryDelay = 2,   -- seconds
+    maxRetries = 3
 }
 
-print("=== Core Systems Initialized Successfully ===")
-print("Total systems registered:", #CoreRegistry.getSystemNames())
-
--- Create diagnostic functions
-local diagnostics = {}
-
--- Log environment information
-diagnostics.environment = {
-    isStudio = RunService:IsStudio(),
-    isServer = RunService:IsServer(),
-    isRunning = RunService:IsRunning()
-}
-
--- Log system status
-diagnostics.systemStatus = {}
-for _, name in ipairs(CoreRegistry.getSystemNames()) do
-    diagnostics.systemStatus[name] = CoreRegistry.initialized[name] ~= nil
+-- Debug logger
+local function log(...)
+    if CONFIG.debug then
+        print("[InitializeCore]", ...)
+    end
 end
 
--- Print diagnostic information
-print("\n=== Diagnostic Information ===")
-print("Environment:", "Studio = " .. tostring(diagnostics.environment.isStudio), 
-      "| Server = " .. tostring(diagnostics.environment.isServer),
-      "| Running = " .. tostring(diagnostics.environment.isRunning))
-
-print("System Status:")
-for name, initialized in pairs(diagnostics.systemStatus) do
-    print("  - " .. name .. ": " .. (initialized and "Initialized" or "Not Initialized"))
+-- Initialize CoreRegistry
+local function initializeCoreRegistry()
+    log("Initializing CoreRegistry...")
+    
+    -- Get CoreRegistry module
+    local coreRegistryModule = ServerScriptService.Core:FindFirstChild("CoreRegistry")
+    if not coreRegistryModule then
+        warn("CoreRegistry module not found!")
+        return false
+    end
+    
+    -- Require CoreRegistry
+    local success, CoreRegistry = pcall(function()
+        return require(coreRegistryModule)
+    end)
+    
+    if not success or not CoreRegistry then
+        warn("Failed to require CoreRegistry:", CoreRegistry)
+        return false
+    end
+    
+    -- Initialize CoreRegistry
+    success = pcall(function()
+        return CoreRegistry.initialize()
+    end)
+    
+    if not success then
+        warn("Failed to initialize CoreRegistry")
+        return false
+    end
+    
+    -- Store in _G for global access
+    _G.CoreRegistry = CoreRegistry
+    
+    log("CoreRegistry initialized successfully")
+    return true
 end
-print("===============================")
+
+-- Initialize CoreRegistryMonitor
+local function initializeMonitor()
+    log("Initializing CoreRegistryMonitor...")
+    
+    -- Get monitor module
+    local monitorModule = ServerScriptService.Core:FindFirstChild("CoreRegistryMonitor")
+    if not monitorModule then
+        warn("CoreRegistryMonitor module not found!")
+        return false
+    end
+    
+    -- Require monitor
+    local success, monitor = pcall(function()
+        return require(monitorModule)
+    end)
+    
+    if not success or not monitor then
+        warn("Failed to require CoreRegistryMonitor:", monitor)
+        return false
+    end
+    
+    -- Store in _G for global access
+    _G.CoreRegistryMonitor = monitor
+    
+    log("CoreRegistryMonitor initialized successfully")
+    return true
+end
+
+-- Main initialization function
+local function initialize()
+    log("Starting core initialization...")
+    
+    -- Initialize CoreRegistry
+    local retries = 0
+    while retries < CONFIG.maxRetries do
+        if initializeCoreRegistry() then
+            break
+        end
+        
+        retries += 1
+        if retries < CONFIG.maxRetries then
+            log("Retrying CoreRegistry initialization...")
+            task.wait(CONFIG.retryDelay)
+        end
+    end
+    
+    if retries >= CONFIG.maxRetries then
+        warn("Failed to initialize CoreRegistry after", CONFIG.maxRetries, "attempts")
+        return false
+    end
+    
+    -- Initialize monitor
+    if not initializeMonitor() then
+        warn("Failed to initialize CoreRegistryMonitor")
+        return false
+    end
+    
+    log("Core initialization completed successfully")
+    return true
+end
+
+-- Run initialization
+local success = initialize()
+if not success then
+    warn("Core initialization failed!")
+end
+
+return success
