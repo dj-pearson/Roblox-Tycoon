@@ -28,14 +28,7 @@ local SchemaValidator = resolveModule('SchemaValidator')
 local SessionManager = resolveModule('SessionManager')
 local PerformanceMonitor = resolveModule('PerformanceMonitor')
 local SecurityManager = resolveModule('SecurityManager')
--- Lazy load MultiServerCoordination to avoid circular dependency
-local _lazy_MultiServerCoordination = nil
-local function _get_MultiServerCoordination()
-    if not _lazy_MultiServerCoordination then
-        _lazy_MultiServerCoordination = resolveModule("MultiServerCoordination")
-    end
-    return _lazy_MultiServerCoordination
-end)
+local MultiServerCoordination = resolveModule('MultiServerCoordination')
 
 local DataStoreManager = {}
 DataStoreManager.sessionId = HttpService:GenerateGUID()
@@ -81,7 +74,7 @@ function DataStoreManager.getData(dataStoreName, keyName, userId)
     )
     
     -- Notify multi-server coordination about this data access
-    _get_MultiServerCoordination().notifyDataAccess(dataStoreName, keyName, "read")
+    MultiServerCoordination.notifyDataAccess(dataStoreName, keyName, "read")
     
     -- Release the lock if we only acquired it for reading
     SessionManager.releaseLock(dataStoreName, keyName, DataStoreManager.sessionId)
@@ -151,7 +144,7 @@ function DataStoreManager.setData(dataStoreName, keyName, data, userId)
     CacheManager.set(dataStoreName, keyName, data, 300) -- Cache for 5 minutes
     
     -- Notify multi-server coordination about this data access
-    _get_MultiServerCoordination().notifyDataAccess(dataStoreName, keyName, "write")
+    MultiServerCoordination.notifyDataAccess(dataStoreName, keyName, "write")
     
     return true
 end
@@ -205,7 +198,7 @@ function DataStoreManager.updateData(dataStoreName, keyName, updateFunction, use
         CacheManager.set(dataStoreName, keyName, result, 300) -- Cache for 5 minutes
         
         -- Notify multi-server coordination about this data access
-        _get_MultiServerCoordination().notifyDataAccess(dataStoreName, keyName, "write")
+        MultiServerCoordination.notifyDataAccess(dataStoreName, keyName, "write")
         
         return result
     else
@@ -243,7 +236,7 @@ function DataStoreManager.removeData(dataStoreName, keyName, userId)
     CacheManager.invalidate(dataStoreName, keyName)
     
     -- Notify multi-server coordination about this data removal
-    _get_MultiServerCoordination().notifyDataAccess(dataStoreName, keyName, "delete")
+    MultiServerCoordination.notifyDataAccess(dataStoreName, keyName, "delete")
     
     return success, result
 end
@@ -292,4 +285,3 @@ function DataStoreManager.initialize()
 end
 
 return DataStoreManager
-

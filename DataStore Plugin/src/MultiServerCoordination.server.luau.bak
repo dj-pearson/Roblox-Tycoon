@@ -23,14 +23,7 @@ local resolveModule = resolver and require(resolver).resolveModule or function(n
     }
 end
 
--- Lazy load DataStoreManager to avoid circular dependency
-local _lazy_DataStoreManager = nil
-local function _get_DataStoreManager()
-    if not _lazy_DataStoreManager then
-        _lazy_DataStoreManager = resolveModule("DataStoreManager")
-    end
-    return _lazy_DataStoreManager
-end)
+local DataStoreManager = resolveModule('DataStoreManager')
 local SessionManager = resolveModule('SessionManager')
 local DataVisualization = resolveModule('DataVisualization')
 local StyleGuide = resolveModule('StyleGuide')
@@ -472,4 +465,3 @@ function MultiServerCoordination.getActiveLocks()
 end
 
 return MultiServerCoordination
-
