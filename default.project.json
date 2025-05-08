@@ -1,17 +1,27 @@
-﻿{
-  "name": "RobloxProject",
-  "tree": {
-    "$className": "DataModel",
-    "ReplicatedStorage": {
-      "$path": "src/shared"
-    },
-    "ServerScriptService": {
-      "$path": "src/server"
-    },
-    "StarterPlayer": {
-      "StarterPlayerScripts": {
-        "$path": "src/client"
-      }
+{
+    "name": "RobloxProject",
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "$className": "ReplicatedStorage",
+            "shared": {
+                "$path": "src/shared"
+            }
+        },
+        "ServerScriptService": {
+            "$className": "ServerScriptService",
+            "server": {
+                "$path": "src/server"
+            }
+        },
+        "StarterPlayer": {
+            "$className": "StarterPlayer",
+            "StarterPlayerScripts": {
+                "$className": "StarterPlayerScripts",
+                "client": {
+                    "$path": "src/client"
+                }
+            }
+        }
     }
-  }
 }

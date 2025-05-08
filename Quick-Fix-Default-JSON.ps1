@@ -8,20 +8,21 @@ $jsonContent = @'
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
       "shared": {
         "$path": "src/shared"
-      },
-      "DataStorePlugin": {
-        "$path": "DataStore Plugin"
       }
     },
     "ServerScriptService": {
+      "$className": "ServerScriptService",
       "server": {
         "$path": "src/server"
       }
     },
     "StarterPlayer": {
+      "$className": "StarterPlayer",
       "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
         "client": {
           "$path": "src/client"
         }
