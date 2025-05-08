@@ -3,13 +3,18 @@
     MainMenu.luau
     
     Main menu screen implementation.
-    Demonstrates usage of UIComponent base class.
+    Demonstrates usage of UIComponent base class and UIUtils.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Get the base UI component
-local UIComponent = require(script.Parent.Parent.Core.UIComponent)
+-- Get the module loader
+local ModuleLoader = require(script.Parent.Parent.Core.ModuleLoader)
+
+-- Load required modules
+local UIComponent = ModuleLoader.loadCore("UIComponent")
+local UITransitions = ModuleLoader.loadCore("UITransitions")
+local UIUtils = ModuleLoader.loadCore("UIUtils")
 
 -- Create MainMenu class
 local MainMenu = setmetatable({}, {__index = UIComponent})
@@ -39,143 +44,124 @@ end
 
 -- Create background
 function MainMenu:createBackground()
-    -- Create background frame
-    local background = self:createFrame({
+    -- Create background frame with gradient
+    local background = UIUtils.createFrame(self.instance, {
         Name = "Background",
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(30, 30, 35),
+        BackgroundColor3 = UIUtils.Colors.Background,
         BackgroundTransparency = 0
     })
     
     -- Add gradient
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 45)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 35))
+    local gradient = UIUtils.createGradient(background, {
+        Colors = {
+            ColorSequenceKeypoint.new(0, UIUtils.Colors.Background:Lerp(UIUtils.Colors.Primary, 0.1)),
+            ColorSequenceKeypoint.new(1, UIUtils.Colors.Background)
+        },
+        Rotation = 45
     })
-    gradient.Rotation = 45
-    gradient.Parent = background
 end
 
 -- Create title
 function MainMenu:createTitle()
-    -- Create title container
-    local titleContainer = self:createFrame({
-        Name = "TitleContainer",
-        Size = UDim2.new(1, 0, 0, 120),
-        Position = UDim2.new(0, 0, 0.1, 0),
-        BackgroundTransparency = 1
+    local title = UIUtils.createLabel(self.instance, {
+        Name = "Title",
+        Size = UDim2.new(0, 400, 0, 80),
+        Position = UDim2.new(0.5, 0, 0.2, 0),
+        Text = "Main Menu",
+        TextColor3 = UIUtils.Colors.Text,
+        Font = UIUtils.Fonts.Title,
+        TextSize = UIUtils.TextSizes.Title,
+        TextXAlignment = Enum.TextXAlignment.Center
     })
     
-    -- Create game title
-    local gameTitle = self:createLabel({
-        Name = "GameTitle",
-        Size = UDim2.new(1, 0, 0, 60),
-        Position = UDim2.new(0, 0, 0, 0),
-        Text = "My Awesome Game",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        Font = Enum.Font.GothamBold,
-        TextSize = 48
-    })
-    
-    -- Create subtitle
-    local subtitle = self:createLabel({
-        Name = "Subtitle",
-        Size = UDim2.new(1, 0, 0, 30),
-        Position = UDim2.new(0, 0, 0, 70),
-        Text = "Welcome to the adventure!",
-        TextColor3 = Color3.fromRGB(200, 200, 200),
-        Font = Enum.Font.Gotham,
-        TextSize = 24
-    })
+    -- Add hover effect
+    UIUtils.setupButtonHover(title, UIUtils.Colors.Text, UIUtils.Colors.Primary)
 end
 
 -- Create buttons
 function MainMenu:createButtons()
-    -- Create button container
-    local buttonContainer = self:createFrame({
+    -- Create button container with vertical layout
+    local buttonContainer = UIUtils.createFrame(self.instance, {
         Name = "ButtonContainer",
         Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
-        BackgroundTransparency = 1
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        BackgroundTransparency = 1,
+        Layout = UIUtils.Layouts.Vertical
     })
     
     -- Create play button
-    local playButton = self:createButton({
+    local playButton = UIUtils.createButton(buttonContainer, {
         Name = "PlayButton",
-        Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.8, 0, 0, 50),
         Text = "Play",
-        BackgroundColor3 = Color3.fromRGB(114, 137, 218),
-        TextSize = 24
+        BackgroundColor3 = UIUtils.Colors.Primary
     })
+    
+    -- Add hover effect
+    UIUtils.setupButtonHover(playButton, UIUtils.Colors.Primary, UIUtils.Colors.Primary:Lerp(UIUtils.Colors.Hover, 0.3))
+    
+    -- Add click handler
+    playButton.MouseButton1Click:Connect(function()
+        -- TODO: Start game
+    end)
     
     -- Create settings button
-    local settingsButton = self:createButton({
+    local settingsButton = UIUtils.createButton(buttonContainer, {
         Name = "SettingsButton",
-        Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 70),
+        Size = UDim2.new(0.8, 0, 0, 50),
         Text = "Settings",
-        BackgroundColor3 = Color3.fromRGB(50, 53, 59),
-        TextSize = 24
+        BackgroundColor3 = UIUtils.Colors.Secondary
     })
     
-    -- Create credits button
-    local creditsButton = self:createButton({
-        Name = "CreditsButton",
-        Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 140),
-        Text = "Credits",
-        BackgroundColor3 = Color3.fromRGB(50, 53, 59),
-        TextSize = 24
-    })
+    -- Add hover effect
+    UIUtils.setupButtonHover(settingsButton, UIUtils.Colors.Secondary, UIUtils.Colors.Secondary:Lerp(UIUtils.Colors.Hover, 0.3))
+    
+    -- Add click handler
+    settingsButton.MouseButton1Click:Connect(function()
+        -- TODO: Show settings
+    end)
     
     -- Create quit button
-    local quitButton = self:createButton({
+    local quitButton = UIUtils.createButton(buttonContainer, {
         Name = "QuitButton",
-        Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 210),
+        Size = UDim2.new(0.8, 0, 0, 50),
         Text = "Quit",
-        BackgroundColor3 = Color3.fromRGB(231, 76, 60),
-        TextSize = 24
+        BackgroundColor3 = UIUtils.Colors.Error
     })
     
-    -- Add button hover effects
-    local function setupButtonHover(button, hoverColor)
-        button.MouseEnter:Connect(function()
-            button.BackgroundColor3 = hoverColor:Lerp(Color3.new(1, 1, 1), 0.2)
-        end)
-        
-        button.MouseLeave:Connect(function()
-            button.BackgroundColor3 = hoverColor
-        end)
+    -- Add hover effect
+    UIUtils.setupButtonHover(quitButton, UIUtils.Colors.Error, UIUtils.Colors.Error:Lerp(UIUtils.Colors.Hover, 0.3))
+    
+    -- Add click handler
+    quitButton.MouseButton1Click:Connect(function()
+        -- TODO: Quit game
+    end)
+end
+
+-- Override show method
+function MainMenu:show()
+    -- Call base show method
+    local success = UIComponent.show(self)
+    if not success then
+        return false
     end
     
-    setupButtonHover(playButton, Color3.fromRGB(114, 137, 218))
-    setupButtonHover(settingsButton, Color3.fromRGB(50, 53, 59))
-    setupButtonHover(creditsButton, Color3.fromRGB(50, 53, 59))
-    setupButtonHover(quitButton, Color3.fromRGB(231, 76, 60))
+    -- Show with animation
+    UITransitions.fadeAndSlideIn(self.instance, UIUtils.Animations.Default.Time)
     
-    -- Add button click handlers
-    playButton.MouseButton1Click:Connect(function()
-        -- TODO: Implement play functionality
-        print("Play button clicked")
+    return true
+end
+
+-- Override hide method
+function MainMenu:hide()
+    -- Hide with animation
+    UITransitions.fadeAndSlideOut(self.instance, UIUtils.Animations.Default.Time, function()
+        -- Call base hide method
+        UIComponent.hide(self)
     end)
     
-    settingsButton.MouseButton1Click:Connect(function()
-        -- TODO: Implement settings functionality
-        print("Settings button clicked")
-    end)
-    
-    creditsButton.MouseButton1Click:Connect(function()
-        -- TODO: Implement credits functionality
-        print("Credits button clicked")
-    end)
-    
-    quitButton.MouseButton1Click:Connect(function()
-        -- TODO: Implement quit functionality
-        print("Quit button clicked")
-    end)
+    return true
 end
 
 -- Override update method
@@ -185,9 +171,6 @@ function MainMenu:update()
     if not success then
         return false
     end
-    
-    -- Update UI elements based on state
-    -- TODO: Implement state-based updates
     
     return true
 end

@@ -66,7 +66,8 @@ function LoadingScreen:createBackground()
     local background, gradient = UIUtils.createGradient(self.instance, {
         Name = "Background",
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 0
+        BackgroundTransparency = 0,
+        Rotation = 45
     })
     
     -- Add animated gradient
@@ -85,14 +86,14 @@ function LoadingScreen:createLoadingElements()
         Name = "LoadingContainer",
         Size = UDim2.new(0.6, 0, 0.2, 0),
         Position = UDim2.new(0.2, 0, 0.4, 0),
-        BackgroundTransparency = 1
+        BackgroundTransparency = 1,
+        Layout = UIUtils.Layouts.Vertical
     })
     
     -- Create loading text
     local loadingText = UIUtils.createLabel(container, {
         Name = "LoadingText",
         Size = UDim2.new(1, 0, 0, 40),
-        Position = UDim2.new(0, 0, 0, 0),
         Text = "Loading...",
         TextColor3 = UIUtils.Colors.Text,
         Font = UIUtils.Fonts.Title,
@@ -104,7 +105,6 @@ function LoadingScreen:createLoadingElements()
     local progressBarBg = UIUtils.createFrame(container, {
         Name = "ProgressBarBg",
         Size = UDim2.new(1, 0, 0, 8),
-        Position = UDim2.new(0, 0, 0, 60),
         BackgroundColor3 = UIUtils.Colors.Secondary,
         BorderSizePixel = 0,
         CornerRadius = 4
@@ -124,7 +124,6 @@ function LoadingScreen:createLoadingElements()
     local progressText = UIUtils.createLabel(container, {
         Name = "ProgressText",
         Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0, 80),
         Text = "0%",
         TextColor3 = UIUtils.Colors.Text,
         Font = UIUtils.Fonts.Body,
@@ -144,17 +143,17 @@ function LoadingScreen:createTips()
         Name = "TipsContainer",
         Size = UDim2.new(0.6, 0, 0, 60),
         Position = UDim2.new(0.2, 0, 0.65, 0),
-        BackgroundTransparency = 1
+        BackgroundTransparency = 1,
+        Layout = UIUtils.Layouts.Vertical
     })
     
     -- Create tips label
     local tipsLabel = UIUtils.createLabel(container, {
         Name = "TipsLabel",
         Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0, 0),
         Text = "Tip:",
         TextColor3 = UIUtils.Colors.Primary,
-        Font = UIUtils.Fonts.Title,
+        Font = UIUtils.Fonts.Subtitle,
         TextSize = UIUtils.TextSizes.Subtitle,
         TextXAlignment = Enum.TextXAlignment.Left
     })
@@ -163,7 +162,6 @@ function LoadingScreen:createTips()
     local tipText = UIUtils.createLabel(container, {
         Name = "TipText",
         Size = UDim2.new(1, 0, 0, 40),
-        Position = UDim2.new(0, 0, 0, 20),
         Text = LOADING_TIPS[1],
         TextColor3 = UIUtils.Colors.Text,
         Font = UIUtils.Fonts.Body,
@@ -181,15 +179,15 @@ function LoadingScreen:startTipRotation()
     task.spawn(function()
         while self.instance and self.instance.Parent do
             -- Fade out current tip
-            UITransitions.fadeOut(self.tipText, 0.5)
-            task.wait(0.5)
+            UITransitions.fadeOut(self.tipText, UIUtils.Animations.Default.Time)
+            task.wait(UIUtils.Animations.Default.Time)
             
             -- Update tip
             self.currentTip = (self.currentTip % #LOADING_TIPS) + 1
             self.tipText.Text = LOADING_TIPS[self.currentTip]
             
             -- Fade in new tip
-            UITransitions.fadeIn(self.tipText, 0.5)
+            UITransitions.fadeIn(self.tipText, UIUtils.Animations.Default.Time)
             
             -- Wait before next tip
             task.wait(self.tipDuration)
@@ -204,8 +202,7 @@ function LoadingScreen:updateProgress(progress)
     self.progress = math.clamp(progress, 0, 1)
     
     -- Update progress bar
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(self.progressBarFill, tweenInfo, {
+    local tween = TweenService:Create(self.progressBarFill, UIUtils.Animations.Default, {
         Size = UDim2.new(self.progress, 0, 1, 0)
     })
     tween:Play()
@@ -222,7 +219,7 @@ function LoadingScreen:show()
     self:updateProgress(0)
     
     -- Show with animation
-    UITransitions.fadeAndSlideIn(self.instance, 0.5)
+    UITransitions.fadeAndSlideIn(self.instance, UIUtils.Animations.Default.Time)
 end
 
 -- Hide loading screen
@@ -230,7 +227,7 @@ function LoadingScreen:hide()
     if not self.instance then return end
     
     -- Hide with animation
-    UITransitions.fadeAndSlideOut(self.instance, 0.5, function()
+    UITransitions.fadeAndSlideOut(self.instance, UIUtils.Animations.Default.Time, function()
         self.instance:Destroy()
     end)
 end
