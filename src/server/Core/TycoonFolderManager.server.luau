@@ -1,59 +1,68 @@
 --[[
     TycoonFolderManager.server.luau
     
-    Enhanced tycoon folder management system that ensures reliable folder structure
-    and initialization for player tycoons.
+    Core system for managing tycoon folder structure and initialization.
+    This system ensures proper folder creation, value initialization,
+    and error recovery for player tycoons.
     
     Features:
-    - Reliable folder structure creation and validation
-    - Default value initialization
-    - Error recovery and repair
+    - Folder structure management
+    - Value initialization
+    - Error recovery
+    - Health monitoring
     - Integration with CoreRegistry
-    - Health monitoring and status reporting
     
     Created: May 3, 2025
 ]]
 
-local ServerScriptService = game:GetService("ServerScriptService")
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 -- Configuration
 local CONFIG = {
     debug = true,
     checkInterval = 30, -- seconds
+    maxErrors = 50,
+    errorRetentionTime = 3600, -- 1 hour
     maxRetries = 3,
-    retryDelay = 1, -- seconds,
+    retryDelay = 1, -- seconds
     requiredFolders = {
         "Equipment",
+        "Staff",
         "Stats",
         "Settings",
-        "Data",
         "Upgrades"
     },
-    defaultValues = {
+    requiredValues = {
         Stats = {
-            Money = 0,
-            Experience = 0,
-            Level = 1
+            "TotalVisitors",
+            "TotalIncome",
+            "TotalExpenses",
+            "LastUpdated"
         },
         Settings = {
-            AutoSave = true,
-            Notifications = true
-        },
-        Data = {
-            LastSave = 0,
-            Created = 0
+            "AutoMaintenance",
+            "StaffRotation",
+            "EquipmentUpgrades"
         }
+    },
+    defaultValues = {
+        TotalVisitors = 0,
+        TotalIncome = 0,
+        TotalExpenses = 0,
+        LastUpdated = 0,
+        AutoMaintenance = false,
+        StaffRotation = false,
+        EquipmentUpgrades = false
     }
 }
 
 -- Module state
 local TycoonFolderManager = {
     initialized = false,
-    tycoons = {},      -- Active tycoon folders
-    errors = {},       -- Error history
-    lastCheck = 0      -- Last health check time
+    errors = {},
+    lastCheck = 0,
+    playerFolders = {}
 }
 
 -- Debug logger
@@ -63,22 +72,22 @@ local function log(...)
     end
 end
 
--- Get ModuleResolver
-local function getModuleResolver()
+-- Get ErrorHandler
+local function getErrorHandler()
     -- Try to get from CoreRegistry first
     local coreRegistry = _G.CoreRegistry
     if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
-        local resolver = coreRegistry:getSystem("ModuleResolver")
-        if resolver then
-            return resolver
+        local handler = coreRegistry:getSystem("ErrorHandler")
+        if handler then
+            return handler
         end
     end
     
-    -- Try to find in ServerScriptService
-    local core = ServerScriptService:FindFirstChild("Core")
-    if core and core:FindFirstChild("ModuleResolver") then
+    -- Try to find in ReplicatedStorage
+    local core = ReplicatedStorage:FindFirstChild("Core")
+    if core and core:FindFirstChild("ErrorHandler") then
         local success, result = pcall(function()
-            return require(core.ModuleResolver)
+            return require(core.ErrorHandler)
         end)
         if success and result then
             return result
@@ -88,208 +97,83 @@ local function getModuleResolver()
     return nil
 end
 
--- Create a folder
-local function createFolder(name, parent)
-    local folder = Instance.new("Folder")
-    folder.Name = name
-    folder.Parent = parent
-    return folder
-end
-
--- Create a value
-local function createValue(name, value, parent)
-    local valueInstance
+-- Create folder structure
+local function createFolderStructure(player)
+    if not player then return false end
     
-    if typeof(value) == "number" then
-        valueInstance = Instance.new("NumberValue")
-    elseif typeof(value) == "string" then
-        valueInstance = Instance.new("StringValue")
-    elseif typeof(value) == "boolean" then
-        valueInstance = Instance.new("BoolValue")
-    else
-        valueInstance = Instance.new("ObjectValue")
+    local success = true
+    local createdFolders = {}
+    
+    -- Create main tycoon folder
+    local tycoonFolder = player:FindFirstChild("Tycoon")
+    if not tycoonFolder then
+        tycoonFolder = Instance.new("Folder")
+        tycoonFolder.Name = "Tycoon"
+        tycoonFolder.Parent = player
     end
-    
-    valueInstance.Name = name
-    valueInstance.Value = value
-    valueInstance.Parent = parent
-    
-    return valueInstance
-end
-
--- Initialize TycoonFolderManager
-function TycoonFolderManager.initialize()
-    if TycoonFolderManager.initialized then return true end
-    
-    log("Initializing TycoonFolderManager...")
-    
-    -- Get ModuleResolver
-    local resolver = getModuleResolver()
-    if not resolver then
-        log("ModuleResolver not found, folder creation may be limited", true)
-    end
-    
-    -- Start health monitoring
-    task.spawn(function()
-        while true do
-            task.wait(CONFIG.checkInterval)
-            TycoonFolderManager.checkHealth()
-        end
-    end)
-    
-    TycoonFolderManager.initialized = true
-    log("TycoonFolderManager initialized")
-    return true
-end
-
--- Create tycoon folder structure
-function TycoonFolderManager.createTycoonFolder(player)
-    if not TycoonFolderManager.initialized then
-        TycoonFolderManager.initialize()
-    end
-    
-    local playerName = player.Name
-    log("Creating tycoon folder for: " .. playerName)
-    
-    -- Check if tycoon already exists
-    if TycoonFolderManager.tycoons[playerName] then
-        log("Tycoon folder already exists for: " .. playerName)
-        return TycoonFolderManager.tycoons[playerName]
-    end
-    
-    -- Create root folder
-    local rootFolder = createFolder(playerName, ServerStorage)
     
     -- Create required folders
     for _, folderName in ipairs(CONFIG.requiredFolders) do
-        local folder = createFolder(folderName, rootFolder)
-        
-        -- Initialize default values
-        if CONFIG.defaultValues[folderName] then
-            for name, value in pairs(CONFIG.defaultValues[folderName]) do
-                createValue(name, value, folder)
-            end
+        local folder = tycoonFolder:FindFirstChild(folderName)
+        if not folder then
+            folder = Instance.new("Folder")
+            folder.Name = folderName
+            folder.Parent = tycoonFolder
+            table.insert(createdFolders, folderName)
         end
     end
     
-    -- Set creation time
-    local dataFolder = rootFolder:FindFirstChild("Data")
-    if dataFolder then
-        local createdValue = dataFolder:FindFirstChild("Created")
-        if createdValue then
-            createdValue.Value = os.time()
-        end
-    end
-    
-    -- Store tycoon folder
-    TycoonFolderManager.tycoons[playerName] = rootFolder
-    
-    return rootFolder
-end
-
--- Get tycoon folder
-function TycoonFolderManager.getTycoonFolder(player)
-    local playerName = player.Name
-    return TycoonFolderManager.tycoons[playerName]
-end
-
--- Remove tycoon folder
-function TycoonFolderManager.removeTycoonFolder(player)
-    local playerName = player.Name
-    local folder = TycoonFolderManager.tycoons[playerName]
-    if folder then
-        folder:Destroy()
-        TycoonFolderManager.tycoons[playerName] = nil
-    end
-end
-
--- Validate tycoon folder
-function TycoonFolderManager.validateTycoonFolder(player)
-    local playerName = player.Name
-    local folder = TycoonFolderManager.tycoons[playerName]
-    if not folder then
-        return false, "Tycoon folder not found"
-    end
-    
-    -- Check required folders
-    for _, folderName in ipairs(CONFIG.requiredFolders) do
-        local requiredFolder = folder:FindFirstChild(folderName)
-        if not requiredFolder then
-            return false, "Missing required folder: " .. folderName
-        end
-        
-        -- Check default values
-        if CONFIG.defaultValues[folderName] then
-            for name, value in pairs(CONFIG.defaultValues[folderName]) do
-                local valueInstance = requiredFolder:FindFirstChild(name)
-                if not valueInstance then
-                    return false, "Missing required value: " .. name .. " in " .. folderName
+    -- Create required values
+    for folderName, values in pairs(CONFIG.requiredValues) do
+        local folder = tycoonFolder:FindFirstChild(folderName)
+        if folder then
+            for _, valueName in ipairs(values) do
+                local value = folder:FindFirstChild(valueName)
+                if not value then
+                    value = Instance.new("NumberValue")
+                    value.Name = valueName
+                    value.Value = CONFIG.defaultValues[valueName] or 0
+                    value.Parent = folder
                 end
             end
+        else
+            success = false
+            log("Missing required folder: " .. folderName .. " for " .. player.Name)
         end
     end
     
-    return true, "Valid"
+    -- Store reference
+    TycoonFolderManager.playerFolders[player.UserId] = tycoonFolder
+    
+    if #createdFolders > 0 then
+        log("Created folders for " .. player.Name .. ": " .. table.concat(createdFolders, ", "))
+    end
+    
+    return success
 end
 
--- Repair tycoon folder
-function TycoonFolderManager.repairTycoonFolder(player)
-    local playerName = player.Name
-    local folder = TycoonFolderManager.tycoons[playerName]
-    if not folder then
-        return false, "Tycoon folder not found"
-    end
+-- Fix folder structure
+local function fixFolderStructure(player)
+    if not player then return false end
     
-    log("Repairing tycoon folder for: " .. playerName)
+    log("Fixing folder structure for " .. player.Name)
     
-    -- Check and create required folders
-    for _, folderName in ipairs(CONFIG.requiredFolders) do
-        local requiredFolder = folder:FindFirstChild(folderName)
-        if not requiredFolder then
-            requiredFolder = createFolder(folderName, folder)
-            log("Created missing folder: " .. folderName)
-        end
-        
-        -- Check and create default values
-        if CONFIG.defaultValues[folderName] then
-            for name, value in pairs(CONFIG.defaultValues[folderName]) do
-                local valueInstance = requiredFolder:FindFirstChild(name)
-                if not valueInstance then
-                    createValue(name, value, requiredFolder)
-                    log("Created missing value: " .. name .. " in " .. folderName)
-                end
+    -- Remove invalid folders
+    local tycoonFolder = player:FindFirstChild("Tycoon")
+    if tycoonFolder then
+        for _, child in ipairs(tycoonFolder:GetChildren()) do
+            if child:IsA("Folder") and not table.find(CONFIG.requiredFolders, child.Name) then
+                child:Destroy()
             end
         end
     end
     
-    return true, "Repaired"
-end
-
--- Check system health
-function TycoonFolderManager.checkHealth()
-    local now = os.time()
-    TycoonFolderManager.lastCheck = now
-    
-    -- Check tycoon count
-    local tycoonCount = 0
-    for _ in pairs(TycoonFolderManager.tycoons) do
-        tycoonCount = tycoonCount + 1
-    end
-    
-    if tycoonCount > 100 then
-        TycoonFolderManager.recordError("Too many tycoons: " .. tycoonCount)
-    end
-    
-    -- Check error count
-    if #TycoonFolderManager.errors > 50 then
-        TycoonFolderManager.recordError("Too many errors: " .. #TycoonFolderManager.errors)
-    end
-    
-    return true
+    -- Create proper structure
+    return createFolderStructure(player)
 end
 
 -- Record an error
-function TycoonFolderManager.recordError(message)
+local function recordError(message)
     local timestamp = os.time()
     
     -- Add new error
@@ -299,11 +183,120 @@ function TycoonFolderManager.recordError(message)
     })
     
     -- Remove old errors
-    while #TycoonFolderManager.errors > 50 do
+    while #TycoonFolderManager.errors > CONFIG.maxErrors do
         table.remove(TycoonFolderManager.errors, 1)
     end
     
+    -- Remove errors older than retention time
+    local cutoff = timestamp - CONFIG.errorRetentionTime
+    for i = #TycoonFolderManager.errors, 1, -1 do
+        if TycoonFolderManager.errors[i].timestamp < cutoff then
+            table.remove(TycoonFolderManager.errors, i)
+        end
+    end
+    
+    -- Report to ErrorHandler
+    local errorHandler = getErrorHandler()
+    if errorHandler then
+        errorHandler:recordError(message, "tycoon_folder_manager", {
+            timestamp = timestamp
+        })
+    end
+    
     log("Error recorded: " .. message)
+end
+
+-- Check system health
+local function checkHealth()
+    local now = os.time()
+    TycoonFolderManager.lastCheck = now
+    
+    -- Check all player folders
+    for userId, folder in pairs(TycoonFolderManager.playerFolders) do
+        if not folder.Parent then
+            -- Folder was removed, try to fix
+            local player = game.Players:GetPlayerByUserId(userId)
+            if player then
+                fixFolderStructure(player)
+            else
+                -- Player left, remove from tracking
+                TycoonFolderManager.playerFolders[userId] = nil
+            end
+        end
+    end
+    
+    return true
+end
+
+-- Initialize TycoonFolderManager
+function TycoonFolderManager.initialize()
+    if TycoonFolderManager.initialized then return true end
+    
+    log("Initializing TycoonFolderManager...")
+    
+    -- Get required systems
+    local errorHandler = getErrorHandler()
+    if not errorHandler then
+        log("ErrorHandler not found, error reporting may be limited")
+    end
+    
+    -- Start health monitoring
+    task.spawn(function()
+        while true do
+            task.wait(CONFIG.checkInterval)
+            checkHealth()
+        end
+    end)
+    
+    -- Handle player joining
+    game.Players.PlayerAdded:Connect(function(player)
+        task.spawn(function()
+            local success = createFolderStructure(player)
+            if not success then
+                recordError("Failed to create folder structure for " .. player.Name)
+            end
+        end)
+    end)
+    
+    -- Handle player leaving
+    game.Players.PlayerRemoving:Connect(function(player)
+        TycoonFolderManager.playerFolders[player.UserId] = nil
+    end)
+    
+    -- Initialize existing players
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        task.spawn(function()
+            local success = createFolderStructure(player)
+            if not success then
+                recordError("Failed to create folder structure for " .. player.Name)
+            end
+        end)
+    end
+    
+    TycoonFolderManager.initialized = true
+    log("TycoonFolderManager initialized")
+    return true
+end
+
+-- Get player's tycoon folder
+function TycoonFolderManager.getTycoonFolder(player)
+    if not player then return nil end
+    
+    local folder = TycoonFolderManager.playerFolders[player.UserId]
+    if not folder then
+        -- Try to create if missing
+        if createFolderStructure(player) then
+            folder = TycoonFolderManager.playerFolders[player.UserId]
+        end
+    end
+    
+    return folder
+end
+
+-- Fix player's folder structure
+function TycoonFolderManager.fixPlayerFolders(player)
+    if not player then return false end
+    return fixFolderStructure(player)
 end
 
 -- Get error count
@@ -318,7 +311,7 @@ end
 
 -- Force a health check
 function TycoonFolderManager.forceCheck()
-    return TycoonFolderManager.checkHealth()
+    return checkHealth()
 end
 
 return TycoonFolderManager 
