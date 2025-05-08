@@ -1,12 +1,12 @@
 --[[
-    UISystemMonitor.client.luau
+    TycoonFolderMonitor.server.luau
     
-    Monitor for the UISystem that tracks its health and status.
-    This monitor ensures the UISystem is functioning correctly
+    Monitor for the TycoonFolderManager that tracks its health and status.
+    This monitor ensures the TycoonFolderManager is functioning correctly
     and provides real-time status updates.
     
     Features:
-    - Health monitoring of UISystem
+    - Health monitoring of TycoonFolderManager
     - Error tracking and reporting
     - Integration with CoreRegistry
     - Status updates in ReplicatedStorage
@@ -14,6 +14,7 @@
     Created: May 3, 2025
 ]]
 
+local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -26,7 +27,7 @@ local CONFIG = {
 }
 
 -- Module state
-local UISystemMonitor = {
+local TycoonFolderMonitor = {
     status = "unknown",
     lastCheck = 0,
     errors = {},
@@ -36,26 +37,26 @@ local UISystemMonitor = {
 -- Debug logger
 local function log(...)
     if CONFIG.debug then
-        print("[UISystemMonitor]", ...)
+        print("[TycoonFolderMonitor]", ...)
     end
 end
 
--- Get UISystem
-local function getUISystem()
+-- Get TycoonFolderManager
+local function getTycoonFolderManager()
     -- Try to get from CoreRegistry first
     local coreRegistry = _G.CoreRegistry
     if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
-        local system = coreRegistry:getSystem("UISystem")
-        if system then
-            return system
+        local manager = coreRegistry:getSystem("TycoonFolderManager")
+        if manager then
+            return manager
         end
     end
     
-    -- Try to find in ReplicatedStorage
-    local core = ReplicatedStorage:FindFirstChild("Core")
-    if core and core:FindFirstChild("UISystem") then
+    -- Try to find in ServerScriptService
+    local core = ServerScriptService:FindFirstChild("Core")
+    if core and core:FindFirstChild("TycoonFolderManager") then
         local success, result = pcall(function()
-            return require(core.UISystem)
+            return require(core.TycoonFolderManager)
         end)
         if success and result then
             return result
@@ -65,30 +66,41 @@ local function getUISystem()
     return nil
 end
 
--- Check UISystem health
-local function checkUISystemHealth()
-    local system = getUISystem()
-    if not system then
-        return false, "UISystem not found"
+-- Check TycoonFolderManager health
+local function checkTycoonFolderManagerHealth()
+    local manager = getTycoonFolderManager()
+    if not manager then
+        return false, "TycoonFolderManager not found"
     end
     
     -- Check if initialized
-    if not system.initialized then
-        return false, "UISystem not initialized"
+    if not manager.initialized then
+        return false, "TycoonFolderManager not initialized"
     end
     
     -- Check error count
-    local errorCount = system.getErrorCount()
+    local errorCount = manager.getErrorCount()
     if errorCount > 0 then
-        return false, "UISystem has " .. errorCount .. " errors"
+        return false, "TycoonFolderManager has " .. errorCount .. " errors"
     end
     
-    -- Check loaded components
-    for name, instance in pairs(system.loaded) do
-        if not instance.Parent then
-            return false, "Component instance missing: " .. name
-        end
+    -- Test folder creation
+    local testPlayer = {
+        Name = "TestPlayer"
+    }
+    local testFolder = manager.createTycoonFolder(testPlayer)
+    if not testFolder then
+        return false, "Failed to create test folder"
     end
+    
+    -- Validate test folder
+    local valid, message = manager.validateTycoonFolder(testPlayer)
+    if not valid then
+        return false, "Test folder validation failed: " .. message
+    end
+    
+    -- Clean up test folder
+    manager.removeTycoonFolder(testPlayer)
     
     return true, "Healthy"
 end
@@ -98,21 +110,21 @@ local function recordError(message)
     local timestamp = os.time()
     
     -- Add new error
-    table.insert(UISystemMonitor.errors, {
+    table.insert(TycoonFolderMonitor.errors, {
         message = message,
         timestamp = timestamp
     })
     
     -- Remove old errors
-    while #UISystemMonitor.errors > CONFIG.maxErrors do
-        table.remove(UISystemMonitor.errors, 1)
+    while #TycoonFolderMonitor.errors > CONFIG.maxErrors do
+        table.remove(TycoonFolderMonitor.errors, 1)
     end
     
     -- Remove errors older than retention time
     local cutoff = timestamp - CONFIG.errorRetentionTime
-    for i = #UISystemMonitor.errors, 1, -1 do
-        if UISystemMonitor.errors[i].timestamp < cutoff then
-            table.remove(UISystemMonitor.errors, i)
+    for i = #TycoonFolderMonitor.errors, 1, -1 do
+        if TycoonFolderMonitor.errors[i].timestamp < cutoff then
+            table.remove(TycoonFolderMonitor.errors, i)
         end
     end
     
@@ -121,14 +133,14 @@ end
 
 -- Update status
 local function updateStatus(status, message)
-    UISystemMonitor.status = status
-    UISystemMonitor.lastCheck = os.time()
+    TycoonFolderMonitor.status = status
+    TycoonFolderMonitor.lastCheck = os.time()
     
     -- Create status folder if it doesn't exist
-    local statusFolder = ReplicatedStorage:FindFirstChild("UISystemStatus")
+    local statusFolder = ReplicatedStorage:FindFirstChild("TycoonFolderStatus")
     if not statusFolder then
         statusFolder = Instance.new("Folder")
-        statusFolder.Name = "UISystemStatus"
+        statusFolder.Name = "TycoonFolderStatus"
         statusFolder.Parent = ReplicatedStorage
     end
     
@@ -157,7 +169,7 @@ local function updateStatus(status, message)
         lastCheckValue.Name = "LastCheck"
         lastCheckValue.Parent = statusFolder
     end
-    lastCheckValue.Value = UISystemMonitor.lastCheck
+    lastCheckValue.Value = TycoonFolderMonitor.lastCheck
     
     log("Status updated: " .. status .. " - " .. message)
 end
@@ -165,7 +177,7 @@ end
 -- Monitor health
 local function monitorHealth()
     while true do
-        local success, message = checkUISystemHealth()
+        local success, message = checkTycoonFolderManagerHealth()
         
         if success then
             updateStatus("healthy", message)
@@ -179,50 +191,50 @@ local function monitorHealth()
 end
 
 -- Initialize monitor
-function UISystemMonitor.initialize()
-    if UISystemMonitor.initialized then return true end
+function TycoonFolderMonitor.initialize()
+    if TycoonFolderMonitor.initialized then return true end
     
-    log("Initializing UISystemMonitor...")
+    log("Initializing TycoonFolderMonitor...")
     
-    -- Check for UISystem
-    local system = getUISystem()
-    if not system then
-        log("UISystem not found, monitoring may be limited")
+    -- Check for CoreRegistry
+    local coreRegistry = _G.CoreRegistry
+    if not coreRegistry then
+        log("CoreRegistry not found, monitoring may be limited")
     end
     
     -- Start monitoring
     task.spawn(monitorHealth)
     
-    UISystemMonitor.initialized = true
-    log("UISystemMonitor initialized")
+    TycoonFolderMonitor.initialized = true
+    log("TycoonFolderMonitor initialized")
     return true
 end
 
 -- Get current status
-function UISystemMonitor.getStatus()
-    return UISystemMonitor.status
+function TycoonFolderMonitor.getStatus()
+    return TycoonFolderMonitor.status
 end
 
 -- Get last check time
-function UISystemMonitor.getLastCheck()
-    return UISystemMonitor.lastCheck
+function TycoonFolderMonitor.getLastCheck()
+    return TycoonFolderMonitor.lastCheck
 end
 
 -- Get error count
-function UISystemMonitor.getErrorCount()
-    return #UISystemMonitor.errors
+function TycoonFolderMonitor.getErrorCount()
+    return #TycoonFolderMonitor.errors
 end
 
 -- Get recent errors
-function UISystemMonitor.getRecentErrors()
-    return UISystemMonitor.errors
+function TycoonFolderMonitor.getRecentErrors()
+    return TycoonFolderMonitor.errors
 end
 
 -- Force a health check
-function UISystemMonitor.forceCheck()
-    local success, message = checkUISystemHealth()
+function TycoonFolderMonitor.forceCheck()
+    local success, message = checkTycoonFolderManagerHealth()
     updateStatus(success and "healthy" or "error", message)
     return success
 end
 
-return UISystemMonitor 
+return TycoonFolderMonitor 

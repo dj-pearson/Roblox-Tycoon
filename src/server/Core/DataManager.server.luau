@@ -2,347 +2,408 @@
 --[[
     DataManager.server.luau
     
-    Core system for managing data persistence and access.
-    This module handles data storage, retrieval, and caching.
+    Manages data persistence and recovery for the gym tycoon system.
+    This system ensures reliable data storage and retrieval with proper
+    validation and error recovery.
     
-    Created: April 30, 2025
-    Updated: April 30, 2025 - Unified implementation with CoreRegistry integration
+    Features:
+    - Data persistence and recovery
+    - Data validation and repair
+    - Error tracking and reporting
+    - Integration with CoreRegistry
+    - Health monitoring
+    
+    Created: May 3, 2025
 ]]
 
-local DataStoreService = game:GetService("DataStoreService")
+local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-
--- Import CoreRegistry
-local CoreRegistry = require(script.Parent.CoreRegistry)
+local DataStoreService = game:GetService("DataStoreService")
 
 -- Configuration
 local CONFIG = {
-    -- Data store configuration
-    DATA_STORE_NAME = "GymTycoonData_v2",
-    BACKUP_DATA_STORE_NAME = "GymTycoonBackup_v2",
-    DATA_VERSION = 2,
-    
-    -- Timing configuration
-    AUTO_SAVE_INTERVAL = 60, -- seconds
-    PLAYER_LEAVING_RETRY_COUNT = 5,
-    PLAYER_LEAVING_RETRY_DELAY = 1, -- seconds
-    SESSION_LOCK_TIME = 600, -- seconds
-    
-    -- Cache configuration
-    CACHE_TTL = 300, -- seconds
-    MAX_CACHE_SIZE = 1000, -- entries
-    
-    -- Default data structure
-    DEFAULT_DATA = {
-        version = 2,
-        cash = 100,
-        experience = 0,
-        level = 1,
-        ownedItems = {},
-        stats = {
-            totalPlayTime = 0,
-            totalVisitors = 0,
-            tilesUnlocked = 0
+    debug = true,
+    checkInterval = 30, -- seconds
+    maxRetries = 3,
+    retryDelay = 1, -- seconds,
+    maxErrors = 50,
+    errorRetentionTime = 3600, -- 1 hour
+    dataStoreName = "GymTycoonData",
+    dataStoreScope = "v1",
+    defaultData = {
+        gymLayout = {},
+        progress = {
+            level = 1,
+            experience = 0,
+            currency = 0
         },
         settings = {
             musicVolume = 0.5,
-            sfxVolume = 0.5,
-            notifications = true
-        },
-        achievements = {},
-        lastLogin = 0
+            sfxVolume = 0.5
+        }
+    },
+    fallbackAssets = {
+        -- Map of asset IDs to fallback IDs
+        [8093763464] = 1234567890 -- Example fallback
     }
 }
 
--- DataManager module
+-- Module state
 local DataManager = {
     initialized = false,
     dataStore = nil,
-    backupDataStore = nil,
-    playerData = {},
-    saveInProgress = {},
-    sessionLocks = {},
-    dataCache = {},
-    cacheTimestamps = {},
-    saveQueue = {},
-    stats = {
-        loads = 0,
-        saves = 0,
-        errors = 0,
-        cacheHits = 0
-    }
+    loadedData = {},      -- Cache of loaded data
+    errors = {},         -- Error history
+    lastCheck = 0,       -- Last health check time
+    recoveryQueue = {}   -- Queue of data to recover
 }
 
--- Debug logging
-local function log(message, level)
-    level = level or "Info"
-    print(string.format("[DataManager][%s] %s", level, message))
+-- Debug logger
+local function log(...)
+    if CONFIG.debug then
+        print("[DataManager]", ...)
+    end
 end
 
--- Safe data store operation with retries
-local function safeDataStoreOperation(operation, retries)
-    retries = retries or CONFIG.PLAYER_LEAVING_RETRY_COUNT
-    
-    local success, result
-    for attempt = 1, retries do
-        success, result = pcall(operation)
-        if success then
-            return success, result
-        else
-            log("Data store operation failed (Attempt " .. attempt .. "/" .. retries .. "): " .. tostring(result), "Warning")
-            if attempt < retries then
-                task.wait(CONFIG.PLAYER_LEAVING_RETRY_DELAY)
-            end
+-- Get ErrorHandler
+local function getErrorHandler()
+    -- Try to get from CoreRegistry first
+    local coreRegistry = _G.CoreRegistry
+    if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
+        local handler = coreRegistry:getSystem("ErrorHandler")
+        if handler then
+            return handler
         end
     end
     
-    return success, result
+    -- Try to find in ServerScriptService
+    local core = ServerScriptService:FindFirstChild("Core")
+    if core and core:FindFirstChild("ErrorHandler") then
+        local success, result = pcall(function()
+            return require(core.ErrorHandler)
+        end)
+        if success and result then
+            return result
+        end
+    end
+    
+    return nil
 end
 
--- Validate and fix data structure
+-- Validate data structure
 local function validateData(data)
-    if not data then
-        return table.clone(CONFIG.DEFAULT_DATA)
+    if not data then return false, "No data provided" end
+    
+    -- Check required fields
+    if not data.gymLayout then
+        return false, "Missing gymLayout"
+    end
+    if not data.progress then
+        return false, "Missing progress"
+    end
+    if not data.settings then
+        return false, "Missing settings"
     end
     
-    -- Check version
-    if not data.version or data.version < CONFIG.DATA_VERSION then
-        log("Data version mismatch, upgrading from " .. tostring(data.version) .. " to " .. tostring(CONFIG.DATA_VERSION))
-        data = table.clone(CONFIG.DEFAULT_DATA)
+    -- Validate progress
+    if typeof(data.progress.level) ~= "number" then
+        return false, "Invalid progress.level"
+    end
+    if typeof(data.progress.experience) ~= "number" then
+        return false, "Invalid progress.experience"
+    end
+    if typeof(data.progress.currency) ~= "number" then
+        return false, "Invalid progress.currency"
     end
     
-    -- Ensure all required fields exist
-    for key, defaultValue in pairs(CONFIG.DEFAULT_DATA) do
-        if data[key] == nil then
-            data[key] = defaultValue
-        elseif type(defaultValue) == "table" and type(data[key]) == "table" then
-            -- Recursively validate nested tables
-            data[key] = validateData(data[key])
-        end
+    -- Validate settings
+    if typeof(data.settings.musicVolume) ~= "number" then
+        return false, "Invalid settings.musicVolume"
+    end
+    if typeof(data.settings.sfxVolume) ~= "number" then
+        return false, "Invalid settings.sfxVolume"
     end
     
-    -- Update version
-    data.version = CONFIG.DATA_VERSION
-    
-    return data
-end
-
--- Initialize the DataManager
-function DataManager:initialize()
-    if self.initialized then
-        return true
-    end
-    
-    log("Initializing DataManager...")
-    
-    -- Create data stores
-    local success, mainDataStore = safeDataStoreOperation(function()
-        return DataStoreService:GetDataStore(CONFIG.DATA_STORE_NAME)
-    end)
-    
-    if not success then
-        log("Failed to initialize main data store", "Error")
-        return false
-    end
-    
-    self.dataStore = mainDataStore
-    log("Main data store initialized")
-    
-    -- Set up backup data store
-    local _, backupDataStore = safeDataStoreOperation(function()
-        return DataStoreService:GetDataStore(CONFIG.BACKUP_DATA_STORE_NAME)
-    end)
-    
-    if backupDataStore then
-        self.backupDataStore = backupDataStore
-        log("Backup data store initialized")
-    end
-    
-    -- Set up auto-saving
-    task.spawn(function()
-        while true do
-            task.wait(CONFIG.AUTO_SAVE_INTERVAL)
-            self:saveAllPlayerData(false)
-        end
-    end)
-    
-    -- Set up player events
-    Players.PlayerAdded:Connect(function(player)
-        self:onPlayerJoin(player)
-    end)
-    
-    Players.PlayerRemoving:Connect(function(player)
-        self:onPlayerLeave(player)
-    end)
-    
-    -- Handle server shutdown
-    game:BindToClose(function()
-        self:onServerShutdown()
-    end)
-    
-    self.initialized = true
-    log("DataManager initialized successfully")
     return true
 end
 
--- Load player data
-function DataManager:loadPlayerData(player)
-    if not self.dataStore then
-        log("Data store not initialized", "Error")
-        return false
-    end
+-- Repair data structure
+local function repairData(data)
+    local repaired = table.clone(CONFIG.defaultData)
     
-    -- Check cache first
-    if self.dataCache[player.UserId] then
-        local cacheTime = self.cacheTimestamps[player.UserId]
-        if cacheTime and os.time() - cacheTime < CONFIG.CACHE_TTL then
-            self.stats.cacheHits += 1
-            return true
+    -- Merge existing data with defaults
+    for key, value in pairs(data) do
+        if typeof(value) == "table" then
+            repaired[key] = repairData(value)
+        else
+            repaired[key] = value
         end
     end
     
-    -- Load from data store
-    local success, result = safeDataStoreOperation(function()
-        return self.dataStore:GetAsync(tostring(player.UserId))
-    end)
-    
-    if success then
-        -- Validate and store data
-        self.playerData[player.UserId] = validateData(result)
-        self.dataCache[player.UserId] = true
-        self.cacheTimestamps[player.UserId] = os.time()
-        self.stats.loads += 1
-        log("Successfully loaded data for " .. player.Name)
-        return true
-    else
-        log("Failed to load data for " .. player.Name .. ": " .. tostring(result), "Error")
-        self.stats.errors += 1
-        return false
-    end
+    return repaired
 end
 
--- Save player data
-function DataManager:savePlayerData(player, immediate)
-    if not self.dataStore then
-        log("Data store not initialized", "Error")
-        return false
+-- Load data for a player
+function DataManager.loadData(player)
+    if not DataManager.initialized then
+        DataManager.initialize()
     end
     
-    if not self.playerData[player.UserId] then
-        log("No data to save for " .. player.Name, "Warning")
-        return false
+    local userId = player.UserId
+    if DataManager.loadedData[userId] then
+        return DataManager.loadedData[userId]
     end
     
-    if self.saveInProgress[player.UserId] then
-        log("Save already in progress for " .. player.Name, "Warning")
-        return false
-    end
-    
-    self.saveInProgress[player.UserId] = true
-    
-    local success, result = safeDataStoreOperation(function()
-        return self.dataStore:SetAsync(tostring(player.UserId), self.playerData[player.UserId])
+    local success, data = pcall(function()
+        return DataManager.dataStore:GetAsync(tostring(userId))
     end)
     
-    self.saveInProgress[player.UserId] = nil
-    
-    if success then
-        self.stats.saves += 1
-        log("Successfully saved data for " .. player.Name)
-        return true
-    else
-        log("Failed to save data for " .. player.Name .. ": " .. tostring(result), "Error")
-        self.stats.errors += 1
-        return false
-    end
-end
-
--- Save all player data
-function DataManager:saveAllPlayerData(immediate)
-    log("Saving all player data...")
-    local savedCount = 0
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if self.playerData[player.UserId] and not self.saveInProgress[player.UserId] then
-            if self:savePlayerData(player, immediate) then
-                savedCount += 1
-            end
+    if not success then
+        local errorHandler = getErrorHandler()
+        if errorHandler then
+            errorHandler.recordError("Failed to load data for " .. userId, "data_load", {
+                error = data,
+                userId = userId
+            })
         end
+        return CONFIG.defaultData
     end
     
-    log("Saved data for " .. savedCount .. " players")
-    return savedCount
+    -- Validate and repair data
+    local isValid, error = validateData(data)
+    if not isValid then
+        log("Invalid data for " .. userId .. ": " .. error)
+        data = repairData(data)
+    end
+    
+    DataManager.loadedData[userId] = data
+    return data
 end
 
--- Get player data
-function DataManager:getPlayerData(player)
-    return self.playerData[player.UserId]
-end
-
--- Update player data
-function DataManager:updatePlayerData(player, updateFunction)
-    if not self.playerData[player.UserId] then
-        return false
+-- Save data for a player
+function DataManager.saveData(player)
+    if not DataManager.initialized then
+        DataManager.initialize()
+    end
+    
+    local userId = player.UserId
+    local data = DataManager.loadedData[userId]
+    if not data then
+        return false, "No data to save"
     end
     
     local success, result = pcall(function()
-        return updateFunction(self.playerData[player.UserId])
+        return DataManager.dataStore:SetAsync(tostring(userId), data)
     end)
     
-    if success then
-        return true
-    else
-        log("Failed to update data for " .. player.Name .. ": " .. tostring(result), "Error")
-        self.stats.errors += 1
-        return false
+    if not success then
+        local errorHandler = getErrorHandler()
+        if errorHandler then
+            errorHandler.recordError("Failed to save data for " .. userId, "data_save", {
+                error = result,
+                userId = userId
+            })
+        end
+        return false, result
+    end
+    
+    return true
+end
+
+-- Update gym layout
+function DataManager.updateGymLayout(player, layout)
+    if not DataManager.initialized then
+        DataManager.initialize()
+    end
+    
+    local userId = player.UserId
+    local data = DataManager.loadedData[userId]
+    if not data then
+        data = DataManager.loadData(player)
+    end
+    
+    data.gymLayout = layout
+    DataManager.loadedData[userId] = data
+    
+    -- Queue save
+    table.insert(DataManager.recoveryQueue, {
+        type = "save",
+        userId = userId,
+        timestamp = os.time()
+    })
+    
+    return true
+end
+
+-- Update progress
+function DataManager.updateProgress(player, progress)
+    if not DataManager.initialized then
+        DataManager.initialize()
+    end
+    
+    local userId = player.UserId
+    local data = DataManager.loadedData[userId]
+    if not data then
+        data = DataManager.loadData(player)
+    end
+    
+    -- Merge progress
+    for key, value in pairs(progress) do
+        data.progress[key] = value
+    end
+    
+    DataManager.loadedData[userId] = data
+    
+    -- Queue save
+    table.insert(DataManager.recoveryQueue, {
+        type = "save",
+        userId = userId,
+        timestamp = os.time()
+    })
+    
+    return true
+end
+
+-- Update settings
+function DataManager.updateSettings(player, settings)
+    if not DataManager.initialized then
+        DataManager.initialize()
+    end
+    
+    local userId = player.UserId
+    local data = DataManager.loadedData[userId]
+    if not data then
+        data = DataManager.loadData(player)
+    end
+    
+    -- Merge settings
+    for key, value in pairs(settings) do
+        data.settings[key] = value
+    end
+    
+    DataManager.loadedData[userId] = data
+    
+    -- Queue save
+    table.insert(DataManager.recoveryQueue, {
+        type = "save",
+        userId = userId,
+        timestamp = os.time()
+    })
+    
+    return true
+end
+
+-- Process recovery queue
+local function processRecoveryQueue()
+    while true do
+        if #DataManager.recoveryQueue > 0 then
+            local item = table.remove(DataManager.recoveryQueue, 1)
+            
+            if item.type == "save" then
+                local player = game.Players:GetPlayerByUserId(item.userId)
+                if player then
+                    DataManager.saveData(player)
+                end
+            end
+        end
+        
+        task.wait(CONFIG.retryDelay)
     end
 end
 
--- Player join handler
-function DataManager:onPlayerJoin(player)
-    log("Player joined: " .. player.Name)
-    self:loadPlayerData(player)
-end
-
--- Player leave handler
-function DataManager:onPlayerLeave(player)
-    log("Player leaving: " .. player.Name)
-    self:savePlayerData(player, true)
+-- Initialize DataManager
+function DataManager.initialize()
+    if DataManager.initialized then return true end
     
-    -- Clean up
-    self.playerData[player.UserId] = nil
-    self.dataCache[player.UserId] = nil
-    self.cacheTimestamps[player.UserId] = nil
-    self.saveInProgress[player.UserId] = nil
+    log("Initializing DataManager...")
+    
+    -- Initialize DataStore
+    DataManager.dataStore = DataStoreService:GetDataStore(
+        CONFIG.dataStoreName,
+        CONFIG.dataStoreScope
+    )
+    
+    -- Start recovery queue processing
+    task.spawn(processRecoveryQueue)
+    
+    -- Start health monitoring
+    task.spawn(function()
+        while true do
+            task.wait(CONFIG.checkInterval)
+            DataManager.checkHealth()
+        end
+    end)
+    
+    DataManager.initialized = true
+    log("DataManager initialized")
+    return true
 end
 
--- Server shutdown handler
-function DataManager:onServerShutdown()
-    log("Server shutting down, saving all player data...")
-    self:saveAllPlayerData(true)
+-- Check system health
+function DataManager.checkHealth()
+    local now = os.time()
+    DataManager.lastCheck = now
+    
+    -- Check error count
+    if #DataManager.errors > CONFIG.maxErrors then
+        local errorHandler = getErrorHandler()
+        if errorHandler then
+            errorHandler.recordError("Too many errors: " .. #DataManager.errors, "health_check")
+        end
+    end
+    
+    -- Check recovery queue
+    if #DataManager.recoveryQueue > 100 then
+        local errorHandler = getErrorHandler()
+        if errorHandler then
+            errorHandler.recordError("Recovery queue too large: " .. #DataManager.recoveryQueue, "health_check")
+        end
+    end
+    
+    return true
 end
 
--- Get statistics
-function DataManager:getStats()
-    return {
-        loads = self.stats.loads,
-        saves = self.stats.saves,
-        errors = self.stats.errors,
-        cacheHits = self.stats.cacheHits,
-        playerCount = #Players:GetPlayers(),
-        cacheSize = #self.dataCache
-    }
+-- Record an error
+function DataManager.recordError(message, errorType, context)
+    local timestamp = os.time()
+    
+    -- Add new error
+    table.insert(DataManager.errors, {
+        message = message,
+        type = errorType,
+        context = context,
+        timestamp = timestamp
+    })
+    
+    -- Remove old errors
+    while #DataManager.errors > CONFIG.maxErrors do
+        table.remove(DataManager.errors, 1)
+    end
+    
+    -- Remove errors older than retention time
+    local cutoff = timestamp - CONFIG.errorRetentionTime
+    for i = #DataManager.errors, 1, -1 do
+        if DataManager.errors[i].timestamp < cutoff then
+            table.remove(DataManager.errors, i)
+        end
+    end
+    
+    log("Error recorded: " .. message)
 end
 
--- Initialize the DataManager
-DataManager:initialize()
+-- Get error count
+function DataManager.getErrorCount()
+    return #DataManager.errors
+end
 
--- Register with CoreRegistry
-if CoreRegistry then
-    CoreRegistry.registerSystem("DataManager", DataManager)
-    log("Registered with CoreRegistry")
+-- Get recent errors
+function DataManager.getRecentErrors()
+    return DataManager.errors
+end
+
+-- Force a health check
+function DataManager.forceCheck()
+    return DataManager.checkHealth()
 end
 
 return DataManager

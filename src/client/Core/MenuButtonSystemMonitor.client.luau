@@ -1,12 +1,12 @@
 --[[
-    UISystemMonitor.client.luau
+    MenuButtonSystemMonitor.client.luau
     
-    Monitor for the UISystem that tracks its health and status.
-    This monitor ensures the UISystem is functioning correctly
+    Monitor for the MenuButtonSystem that tracks its health and status.
+    This monitor ensures the MenuButtonSystem is functioning correctly
     and provides real-time status updates.
     
     Features:
-    - Health monitoring of UISystem
+    - Health monitoring of MenuButtonSystem
     - Error tracking and reporting
     - Integration with CoreRegistry
     - Status updates in ReplicatedStorage
@@ -15,7 +15,6 @@
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 -- Configuration
 local CONFIG = {
@@ -26,7 +25,7 @@ local CONFIG = {
 }
 
 -- Module state
-local UISystemMonitor = {
+local MenuButtonSystemMonitor = {
     status = "unknown",
     lastCheck = 0,
     errors = {},
@@ -36,16 +35,16 @@ local UISystemMonitor = {
 -- Debug logger
 local function log(...)
     if CONFIG.debug then
-        print("[UISystemMonitor]", ...)
+        print("[MenuButtonSystemMonitor]", ...)
     end
 end
 
--- Get UISystem
-local function getUISystem()
+-- Get MenuButtonSystem
+local function getMenuButtonSystem()
     -- Try to get from CoreRegistry first
     local coreRegistry = _G.CoreRegistry
     if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
-        local system = coreRegistry:getSystem("UISystem")
+        local system = coreRegistry:getSystem("MenuButtonSystem")
         if system then
             return system
         end
@@ -53,9 +52,9 @@ local function getUISystem()
     
     -- Try to find in ReplicatedStorage
     local core = ReplicatedStorage:FindFirstChild("Core")
-    if core and core:FindFirstChild("UISystem") then
+    if core and core:FindFirstChild("MenuButtonSystem") then
         local success, result = pcall(function()
-            return require(core.UISystem)
+            return require(core.MenuButtonSystem)
         end)
         if success and result then
             return result
@@ -65,29 +64,34 @@ local function getUISystem()
     return nil
 end
 
--- Check UISystem health
-local function checkUISystemHealth()
-    local system = getUISystem()
+-- Check MenuButtonSystem health
+local function checkMenuButtonSystemHealth()
+    local system = getMenuButtonSystem()
     if not system then
-        return false, "UISystem not found"
+        return false, "MenuButtonSystem not found"
     end
     
     -- Check if initialized
     if not system.initialized then
-        return false, "UISystem not initialized"
+        return false, "MenuButtonSystem not initialized"
     end
     
     -- Check error count
     local errorCount = system.getErrorCount()
     if errorCount > 0 then
-        return false, "UISystem has " .. errorCount .. " errors"
+        return false, "MenuButtonSystem has " .. errorCount .. " errors"
     end
     
-    -- Check loaded components
-    for name, instance in pairs(system.loaded) do
-        if not instance.Parent then
-            return false, "Component instance missing: " .. name
-        end
+    -- Check button states
+    local buttons = system.buttons
+    if not buttons then
+        return false, "Button list not found"
+    end
+    
+    -- Check button callbacks
+    local callbacks = system.buttonCallbacks
+    if not callbacks then
+        return false, "Button callbacks not found"
     end
     
     return true, "Healthy"
@@ -98,21 +102,21 @@ local function recordError(message)
     local timestamp = os.time()
     
     -- Add new error
-    table.insert(UISystemMonitor.errors, {
+    table.insert(MenuButtonSystemMonitor.errors, {
         message = message,
         timestamp = timestamp
     })
     
     -- Remove old errors
-    while #UISystemMonitor.errors > CONFIG.maxErrors do
-        table.remove(UISystemMonitor.errors, 1)
+    while #MenuButtonSystemMonitor.errors > CONFIG.maxErrors do
+        table.remove(MenuButtonSystemMonitor.errors, 1)
     end
     
     -- Remove errors older than retention time
     local cutoff = timestamp - CONFIG.errorRetentionTime
-    for i = #UISystemMonitor.errors, 1, -1 do
-        if UISystemMonitor.errors[i].timestamp < cutoff then
-            table.remove(UISystemMonitor.errors, i)
+    for i = #MenuButtonSystemMonitor.errors, 1, -1 do
+        if MenuButtonSystemMonitor.errors[i].timestamp < cutoff then
+            table.remove(MenuButtonSystemMonitor.errors, i)
         end
     end
     
@@ -121,14 +125,14 @@ end
 
 -- Update status
 local function updateStatus(status, message)
-    UISystemMonitor.status = status
-    UISystemMonitor.lastCheck = os.time()
+    MenuButtonSystemMonitor.status = status
+    MenuButtonSystemMonitor.lastCheck = os.time()
     
     -- Create status folder if it doesn't exist
-    local statusFolder = ReplicatedStorage:FindFirstChild("UISystemStatus")
+    local statusFolder = ReplicatedStorage:FindFirstChild("MenuButtonSystemStatus")
     if not statusFolder then
         statusFolder = Instance.new("Folder")
-        statusFolder.Name = "UISystemStatus"
+        statusFolder.Name = "MenuButtonSystemStatus"
         statusFolder.Parent = ReplicatedStorage
     end
     
@@ -157,7 +161,7 @@ local function updateStatus(status, message)
         lastCheckValue.Name = "LastCheck"
         lastCheckValue.Parent = statusFolder
     end
-    lastCheckValue.Value = UISystemMonitor.lastCheck
+    lastCheckValue.Value = MenuButtonSystemMonitor.lastCheck
     
     log("Status updated: " .. status .. " - " .. message)
 end
@@ -165,7 +169,7 @@ end
 -- Monitor health
 local function monitorHealth()
     while true do
-        local success, message = checkUISystemHealth()
+        local success, message = checkMenuButtonSystemHealth()
         
         if success then
             updateStatus("healthy", message)
@@ -179,50 +183,50 @@ local function monitorHealth()
 end
 
 -- Initialize monitor
-function UISystemMonitor.initialize()
-    if UISystemMonitor.initialized then return true end
+function MenuButtonSystemMonitor.initialize()
+    if MenuButtonSystemMonitor.initialized then return true end
     
-    log("Initializing UISystemMonitor...")
+    log("Initializing MenuButtonSystemMonitor...")
     
-    -- Check for UISystem
-    local system = getUISystem()
+    -- Check for MenuButtonSystem
+    local system = getMenuButtonSystem()
     if not system then
-        log("UISystem not found, monitoring may be limited")
+        log("MenuButtonSystem not found, monitoring may be limited")
     end
     
     -- Start monitoring
     task.spawn(monitorHealth)
     
-    UISystemMonitor.initialized = true
-    log("UISystemMonitor initialized")
+    MenuButtonSystemMonitor.initialized = true
+    log("MenuButtonSystemMonitor initialized")
     return true
 end
 
 -- Get current status
-function UISystemMonitor.getStatus()
-    return UISystemMonitor.status
+function MenuButtonSystemMonitor.getStatus()
+    return MenuButtonSystemMonitor.status
 end
 
 -- Get last check time
-function UISystemMonitor.getLastCheck()
-    return UISystemMonitor.lastCheck
+function MenuButtonSystemMonitor.getLastCheck()
+    return MenuButtonSystemMonitor.lastCheck
 end
 
 -- Get error count
-function UISystemMonitor.getErrorCount()
-    return #UISystemMonitor.errors
+function MenuButtonSystemMonitor.getErrorCount()
+    return #MenuButtonSystemMonitor.errors
 end
 
 -- Get recent errors
-function UISystemMonitor.getRecentErrors()
-    return UISystemMonitor.errors
+function MenuButtonSystemMonitor.getRecentErrors()
+    return MenuButtonSystemMonitor.errors
 end
 
 -- Force a health check
-function UISystemMonitor.forceCheck()
-    local success, message = checkUISystemHealth()
+function MenuButtonSystemMonitor.forceCheck()
+    local success, message = checkMenuButtonSystemHealth()
     updateStatus(success and "healthy" or "error", message)
     return success
 end
 
-return UISystemMonitor 
+return MenuButtonSystemMonitor 

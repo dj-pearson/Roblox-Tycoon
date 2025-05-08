@@ -1,6 +1,161 @@
 --[[
     UISystem.client.luau
     
+    Core system for managing UI components and their lifecycle.
+    This system ensures proper UI initialization, registration,
+    and state management.
+    
+    Features:
+    - UI component registration and discovery
+    - Component lifecycle management
+    - State persistence
+    - Error tracking and reporting
+    - Integration with CoreRegistry
+    
+    Created: May 3, 2025
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Configuration
+local CONFIG = {
+    debug = true,
+    checkInterval = 30, -- seconds
+    maxErrors = 50,
+    errorRetentionTime = 3600, -- 1 hour
+    defaultComponents = {
+        MainMenu = {
+            path = "UI/MainMenu",
+            priority = 1,
+            autoLoad = true
+        },
+        ShopMenu = {
+            path = "UI/ShopMenu",
+            priority = 2,
+            autoLoad = false
+        },
+        SettingsMenu = {
+            path = "UI/SettingsMenu",
+            priority = 3,
+            autoLoad = false
+        }
+    }
+}
+
+-- Module state
+local UISystem = {
+    initialized = false,
+    components = {},      -- Registered components
+    loaded = {},         -- Currently loaded components
+    errors = {},         -- Error history
+    lastCheck = 0,       -- Last health check time
+    state = {}           -- UI state
+}
+
+-- Debug logger
+local function log(...)
+    if CONFIG.debug then
+        print("[UISystem]", ...)
+    end
+end
+
+-- Get ErrorHandler
+local function getErrorHandler()
+    -- Try to get from CoreRegistry first
+    local coreRegistry = _G.CoreRegistry
+    if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
+        local handler = coreRegistry:getSystem("ErrorHandler")
+        if handler then
+            return handler
+        end
+    end
+    
+    -- Try to find in ReplicatedStorage
+    local core = ReplicatedStorage:FindFirstChild("Core")
+    if core and core:FindFirstChild("ErrorHandler") then
+        local success, result = pcall(function()
+            return require(core.ErrorHandler)
+        end)
+        if success and result then
+            return result
+        end
+    end
+    
+    return nil
+end
+
+-- Validate component
+local function validateComponent(component)
+    if not component then return false, "No component provided" end
+    
+    -- Check required fields
+    if not component.path then
+        return false, "Missing path"
+    end
+    if not component.priority then
+        return false, "Missing priority"
+    end
+    
+    -- Check path exists
+    local path = ReplicatedStorage:FindFirstChild(component.path)
+    if not path then
+        return false, "Path not found: " .. component.path
+    end
+    
+    return true
+end
+
+-- Load component
+local function loadComponent(name)
+    if UISystem.loaded[name] then
+        return true
+    end
+    
+    local component = UISystem.components[name]
+    if not component then
+        return false, "Component not registered: " .. name
+    end
+    
+    -- Validate component
+    local isValid, error = validateComponent(component)
+    if not isValid then
+        return false, error
+    end
+    
+    -- Load component
+    local success, result = pcall(function()
+        local path = ReplicatedStorage:FindFirstChild(component.path)
+        if not path then
+            error("Path not found: " .. component.path)
+        end
+        
+        local instance = path:Clone()
+        instance.Parent = Players.LocalPlayer.PlayerGui
+        
+        -- Initialize component
+        if typeof(instance.Initialize) == "function" then
+            instance:Initialize()
+        end
+        
+        return instance
+    end)
+    
+    if not success then
+        local errorHandler = getErrorHandler()
+        if errorHandler then
+            errorHandler.recordError("Failed to load component: " .. name, "component_load", {
+                error = result,
+                component = name
+            })
+        end
+        return false, result
+    end
+    
+--[[
+    UISystem.client.luau
+    
     Enhanced UI system for Gym Tycoon.
     Provides robust UI component management, error recovery, and integration with CoreRegistry.
     

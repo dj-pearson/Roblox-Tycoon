@@ -1,12 +1,12 @@
 --[[
-    UISystemMonitor.client.luau
+    AssetMonitor.server.luau
     
-    Monitor for the UISystem that tracks its health and status.
-    This monitor ensures the UISystem is functioning correctly
+    Monitor for the AssetManager that tracks its health and status.
+    This monitor ensures the AssetManager is functioning correctly
     and provides real-time status updates.
     
     Features:
-    - Health monitoring of UISystem
+    - Health monitoring of AssetManager
     - Error tracking and reporting
     - Integration with CoreRegistry
     - Status updates in ReplicatedStorage
@@ -14,6 +14,7 @@
     Created: May 3, 2025
 ]]
 
+local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -26,7 +27,7 @@ local CONFIG = {
 }
 
 -- Module state
-local UISystemMonitor = {
+local AssetMonitor = {
     status = "unknown",
     lastCheck = 0,
     errors = {},
@@ -36,26 +37,26 @@ local UISystemMonitor = {
 -- Debug logger
 local function log(...)
     if CONFIG.debug then
-        print("[UISystemMonitor]", ...)
+        print("[AssetMonitor]", ...)
     end
 end
 
--- Get UISystem
-local function getUISystem()
+-- Get AssetManager
+local function getAssetManager()
     -- Try to get from CoreRegistry first
     local coreRegistry = _G.CoreRegistry
     if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
-        local system = coreRegistry:getSystem("UISystem")
-        if system then
-            return system
+        local manager = coreRegistry:getSystem("AssetManager")
+        if manager then
+            return manager
         end
     end
     
-    -- Try to find in ReplicatedStorage
-    local core = ReplicatedStorage:FindFirstChild("Core")
-    if core and core:FindFirstChild("UISystem") then
+    -- Try to find in ServerScriptService
+    local core = ServerScriptService:FindFirstChild("Core")
+    if core and core:FindFirstChild("AssetManager") then
         local success, result = pcall(function()
-            return require(core.UISystem)
+            return require(core.AssetManager)
         end)
         if success and result then
             return result
@@ -65,29 +66,34 @@ local function getUISystem()
     return nil
 end
 
--- Check UISystem health
-local function checkUISystemHealth()
-    local system = getUISystem()
-    if not system then
-        return false, "UISystem not found"
+-- Check AssetManager health
+local function checkAssetManagerHealth()
+    local manager = getAssetManager()
+    if not manager then
+        return false, "AssetManager not found"
     end
     
     -- Check if initialized
-    if not system.initialized then
-        return false, "UISystem not initialized"
+    if not manager.initialized then
+        return false, "AssetManager not initialized"
     end
     
     -- Check error count
-    local errorCount = system.getErrorCount()
+    local errorCount = manager.getErrorCount()
     if errorCount > 0 then
-        return false, "UISystem has " .. errorCount .. " errors"
+        return false, "AssetManager has " .. errorCount .. " errors"
     end
     
-    -- Check loaded components
-    for name, instance in pairs(system.loaded) do
-        if not instance.Parent then
-            return false, "Component instance missing: " .. name
-        end
+    -- Test asset loading
+    local testAssetId = 1234567890 -- Example test asset
+    local asset = manager.getAsset(testAssetId)
+    if not asset then
+        return false, "Failed to load test asset"
+    end
+    
+    -- Clean up test asset
+    if typeof(asset) == "Instance" then
+        asset:Destroy()
     end
     
     return true, "Healthy"
@@ -98,21 +104,21 @@ local function recordError(message)
     local timestamp = os.time()
     
     -- Add new error
-    table.insert(UISystemMonitor.errors, {
+    table.insert(AssetMonitor.errors, {
         message = message,
         timestamp = timestamp
     })
     
     -- Remove old errors
-    while #UISystemMonitor.errors > CONFIG.maxErrors do
-        table.remove(UISystemMonitor.errors, 1)
+    while #AssetMonitor.errors > CONFIG.maxErrors do
+        table.remove(AssetMonitor.errors, 1)
     end
     
     -- Remove errors older than retention time
     local cutoff = timestamp - CONFIG.errorRetentionTime
-    for i = #UISystemMonitor.errors, 1, -1 do
-        if UISystemMonitor.errors[i].timestamp < cutoff then
-            table.remove(UISystemMonitor.errors, i)
+    for i = #AssetMonitor.errors, 1, -1 do
+        if AssetMonitor.errors[i].timestamp < cutoff then
+            table.remove(AssetMonitor.errors, i)
         end
     end
     
@@ -121,14 +127,14 @@ end
 
 -- Update status
 local function updateStatus(status, message)
-    UISystemMonitor.status = status
-    UISystemMonitor.lastCheck = os.time()
+    AssetMonitor.status = status
+    AssetMonitor.lastCheck = os.time()
     
     -- Create status folder if it doesn't exist
-    local statusFolder = ReplicatedStorage:FindFirstChild("UISystemStatus")
+    local statusFolder = ReplicatedStorage:FindFirstChild("AssetStatus")
     if not statusFolder then
         statusFolder = Instance.new("Folder")
-        statusFolder.Name = "UISystemStatus"
+        statusFolder.Name = "AssetStatus"
         statusFolder.Parent = ReplicatedStorage
     end
     
@@ -157,7 +163,7 @@ local function updateStatus(status, message)
         lastCheckValue.Name = "LastCheck"
         lastCheckValue.Parent = statusFolder
     end
-    lastCheckValue.Value = UISystemMonitor.lastCheck
+    lastCheckValue.Value = AssetMonitor.lastCheck
     
     log("Status updated: " .. status .. " - " .. message)
 end
@@ -165,7 +171,7 @@ end
 -- Monitor health
 local function monitorHealth()
     while true do
-        local success, message = checkUISystemHealth()
+        local success, message = checkAssetManagerHealth()
         
         if success then
             updateStatus("healthy", message)
@@ -179,50 +185,50 @@ local function monitorHealth()
 end
 
 -- Initialize monitor
-function UISystemMonitor.initialize()
-    if UISystemMonitor.initialized then return true end
+function AssetMonitor.initialize()
+    if AssetMonitor.initialized then return true end
     
-    log("Initializing UISystemMonitor...")
+    log("Initializing AssetMonitor...")
     
-    -- Check for UISystem
-    local system = getUISystem()
-    if not system then
-        log("UISystem not found, monitoring may be limited")
+    -- Check for CoreRegistry
+    local coreRegistry = _G.CoreRegistry
+    if not coreRegistry then
+        log("CoreRegistry not found, monitoring may be limited")
     end
     
     -- Start monitoring
     task.spawn(monitorHealth)
     
-    UISystemMonitor.initialized = true
-    log("UISystemMonitor initialized")
+    AssetMonitor.initialized = true
+    log("AssetMonitor initialized")
     return true
 end
 
 -- Get current status
-function UISystemMonitor.getStatus()
-    return UISystemMonitor.status
+function AssetMonitor.getStatus()
+    return AssetMonitor.status
 end
 
 -- Get last check time
-function UISystemMonitor.getLastCheck()
-    return UISystemMonitor.lastCheck
+function AssetMonitor.getLastCheck()
+    return AssetMonitor.lastCheck
 end
 
 -- Get error count
-function UISystemMonitor.getErrorCount()
-    return #UISystemMonitor.errors
+function AssetMonitor.getErrorCount()
+    return #AssetMonitor.errors
 end
 
 -- Get recent errors
-function UISystemMonitor.getRecentErrors()
-    return UISystemMonitor.errors
+function AssetMonitor.getRecentErrors()
+    return AssetMonitor.errors
 end
 
 -- Force a health check
-function UISystemMonitor.forceCheck()
-    local success, message = checkUISystemHealth()
+function AssetMonitor.forceCheck()
+    local success, message = checkAssetManagerHealth()
     updateStatus(success and "healthy" or "error", message)
     return success
 end
 
-return UISystemMonitor 
+return AssetMonitor 

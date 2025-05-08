@@ -1,10 +1,17 @@
 --[[
     CoreRegistryMonitor.server.luau
     
-    A monitoring system for CoreRegistry that provides real-time feedback
-    about the health and status of the registry and its components.
+    Monitor for the CoreRegistry that tracks its health and status.
+    This monitor ensures the CoreRegistry is functioning correctly
+    and provides real-time status updates.
     
-    Created to address CoreRegistry System Failure identified in RobloxIssues.txt
+    Features:
+    - Health monitoring of CoreRegistry
+    - Error tracking and reporting
+    - Integration with CoreRegistry
+    - Status updates in ReplicatedStorage
+    
+    Created: May 3, 2025
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -13,16 +20,18 @@ local RunService = game:GetService("RunService")
 
 -- Configuration
 local CONFIG = {
-    debug = true,                -- Enable debug prints
-    checkInterval = 10,          -- How often to check registry health
-    maxAttempts = 3,             -- Maximum attempts to check registry
-    initialDelay = 2,            -- Initial delay before first check
-    checkDelay = 5,              -- Delay between checks
-    criticalSystems = {          -- Systems considered critical
-        "CoreRegistry",
-        "DataManager",
-        "TycoonSystem"
-    }
+    debug = true,
+    checkInterval = 30, -- seconds
+    maxErrors = 50,
+    errorRetentionTime = 3600 -- 1 hour
+}
+
+-- Module state
+local CoreRegistryMonitor = {
+    status = "unknown",
+    lastCheck = 0,
+    errors = {},
+    initialized = false
 }
 
 -- Debug logger
@@ -32,163 +41,192 @@ local function log(...)
     end
 end
 
--- Attempt to get CoreRegistry
+-- Get CoreRegistry
 local function getCoreRegistry()
-    -- Try direct access first
-    if _G.CoreRegistry then
-        return _G.CoreRegistry
+    -- Try to get from global first
+    local coreRegistry = _G.CoreRegistry
+    if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
+        return coreRegistry
     end
     
-    -- Try to require CoreRegistry
-    local coreRegistryModule
-    
-    -- Search in multiple locations
-    local searchPaths = {
-        ServerScriptService.Core,
-        ServerScriptService,
-    }
-    
-    for _, path in ipairs(searchPaths) do
-        if path then
-            local module = path:FindFirstChild("CoreRegistry")
-            if module and module:IsA("ModuleScript") then
-                coreRegistryModule = module
-                break
-            end
-        end
-    end
-    
-    if coreRegistryModule then
-        local success, registry = pcall(function()
-            return require(coreRegistryModule)
+    -- Try to find in ServerScriptService
+    local core = ServerScriptService:FindFirstChild("Core")
+    if core and core:FindFirstChild("CoreRegistry") then
+        local success, result = pcall(function()
+            return require(core.CoreRegistry)
         end)
-        
-        if success and registry then
-            return registry
-        end
-    end
-    
-    -- Try SharedRegistry if available
-    local sharedRegistry = ReplicatedStorage:FindFirstChild("SharedRegistry")
-    if sharedRegistry and sharedRegistry:FindFirstChild("GetSystem") then
-        local success, registry = pcall(function()
-            return sharedRegistry.GetSystem:Invoke("CoreRegistry")
-        end)
-        
-        if success and registry then
-            return registry
+        if success and result then
+            return result
         end
     end
     
     return nil
 end
 
--- Check registry health
-local function checkRegistryHealth()
+-- Check CoreRegistry health
+local function checkCoreRegistryHealth()
     local registry = getCoreRegistry()
     if not registry then
-        log("CoreRegistry UNAVAILABLE")
-        return "UNAVAILABLE"
+        return false, "CoreRegistry not found"
     end
     
-    -- Check if registry functions are available
-    if type(registry.getStatus) ~= "function" then
-        log("CoreRegistry missing getStatus function")
-        return "DEGRADED"
+    -- Check if initialized
+    if not registry.initialized then
+        return false, "CoreRegistry not initialized"
     end
     
-    -- Get registry status
-    local status = registry.getStatus()
+    -- Check error count
+    local errorCount = registry.getErrorCount()
+    if errorCount > 0 then
+        return false, "CoreRegistry has " .. errorCount .. " errors"
+    end
     
-    -- Check critical systems
-    local missingCritical = false
-    for _, system in ipairs(CONFIG.criticalSystems) do
-        if not registry.hasSystem or not registry.hasSystem(system) then
-            missingCritical = true
-            log("Critical system missing:", system)
+    -- Check system initialization status
+    local initStatus = registry.getInitStatus()
+    local uninitialized = {}
+    for systemName, status in pairs(initStatus) do
+        if not status then
+            table.insert(uninitialized, systemName)
         end
     end
     
-    if missingCritical then
-        return "DEGRADED"
+    if #uninitialized > 0 then
+        return false, "Systems not initialized: " .. table.concat(uninitialized, ", ")
     end
     
-    return status or "UNKNOWN"
+    return true, "Healthy"
 end
 
--- Create status folder
-local statusFolder = Instance.new("Folder")
-statusFolder.Name = "CoreRegistryStatus"
-statusFolder.Parent = ReplicatedStorage
+-- Record an error
+local function recordError(message)
+    local timestamp = os.time()
+    
+    -- Add new error
+    table.insert(CoreRegistryMonitor.errors, {
+        message = message,
+        timestamp = timestamp
+    })
+    
+    -- Remove old errors
+    while #CoreRegistryMonitor.errors > CONFIG.maxErrors do
+        table.remove(CoreRegistryMonitor.errors, 1)
+    end
+    
+    -- Remove errors older than retention time
+    local cutoff = timestamp - CONFIG.errorRetentionTime
+    for i = #CoreRegistryMonitor.errors, 1, -1 do
+        if CoreRegistryMonitor.errors[i].timestamp < cutoff then
+            table.remove(CoreRegistryMonitor.errors, i)
+        end
+    end
+    
+    log("Error recorded: " .. message)
+end
 
--- Create status value object
-local statusValue = Instance.new("StringValue")
-statusValue.Name = "Status"
-statusValue.Value = "Initializing"
-statusValue.Parent = statusFolder
-
--- Create timestamp
-local timestampValue = Instance.new("NumberValue")
-timestampValue.Name = "LastChecked"
-timestampValue.Value = os.time()
-timestampValue.Parent = statusFolder
-
--- Update status with timestamp
-local function updateStatus(status)
+-- Update status
+local function updateStatus(status, message)
+    CoreRegistryMonitor.status = status
+    CoreRegistryMonitor.lastCheck = os.time()
+    
+    -- Create status folder if it doesn't exist
+    local statusFolder = ReplicatedStorage:FindFirstChild("CoreRegistryStatus")
+    if not statusFolder then
+        statusFolder = Instance.new("Folder")
+        statusFolder.Name = "CoreRegistryStatus"
+        statusFolder.Parent = ReplicatedStorage
+    end
+    
+    -- Update status value
+    local statusValue = statusFolder:FindFirstChild("Status")
+    if not statusValue then
+        statusValue = Instance.new("StringValue")
+        statusValue.Name = "Status"
+        statusValue.Parent = statusFolder
+    end
     statusValue.Value = status
-    timestampValue.Value = os.time()
+    
+    -- Update message value
+    local messageValue = statusFolder:FindFirstChild("Message")
+    if not messageValue then
+        messageValue = Instance.new("StringValue")
+        messageValue.Name = "Message"
+        messageValue.Parent = statusFolder
+    end
+    messageValue.Value = message
+    
+    -- Update last check value
+    local lastCheckValue = statusFolder:FindFirstChild("LastCheck")
+    if not lastCheckValue then
+        lastCheckValue = Instance.new("NumberValue")
+        lastCheckValue.Name = "LastCheck"
+        lastCheckValue.Parent = statusFolder
+    end
+    lastCheckValue.Value = CoreRegistryMonitor.lastCheck
+    
+    log("Status updated: " .. status .. " - " .. message)
 end
 
 -- Monitor health
 local function monitorHealth()
-    local attempts = 0
-    
-    while attempts < CONFIG.maxAttempts do
-        local status = checkRegistryHealth()
-        updateStatus(status)
+    while true do
+        local success, message = checkCoreRegistryHealth()
         
-        if status == "Ready" then
-            log("CoreRegistry is healthy")
-            break
+        if success then
+            updateStatus("healthy", message)
+        else
+            recordError(message)
+            updateStatus("error", message)
         end
         
-        attempts += 1
-        if attempts < CONFIG.maxAttempts then
-            log("Waiting before next check...")
-            task.wait(CONFIG.checkDelay)
-        end
-    end
-    
-    if attempts >= CONFIG.maxAttempts then
-        log("Failed to get healthy CoreRegistry after", CONFIG.maxAttempts, "attempts")
+        task.wait(CONFIG.checkInterval)
     end
 end
 
--- Initialize
-local function initialize()
+-- Initialize monitor
+function CoreRegistryMonitor.initialize()
+    if CoreRegistryMonitor.initialized then return true end
+    
     log("Initializing CoreRegistryMonitor...")
     
-    -- Wait initial delay
-    task.wait(CONFIG.initialDelay)
+    -- Check for CoreRegistry
+    local registry = getCoreRegistry()
+    if not registry then
+        log("CoreRegistry not found, monitoring may be limited")
+    end
     
     -- Start monitoring
-    monitorHealth()
+    task.spawn(monitorHealth)
     
-    -- Set up periodic checks
-    RunService.Heartbeat:Connect(function()
-        if os.time() - timestampValue.Value >= CONFIG.checkInterval then
-            monitorHealth()
-        end
-    end)
-    
+    CoreRegistryMonitor.initialized = true
     log("CoreRegistryMonitor initialized")
+    return true
 end
 
--- Start monitoring
-initialize()
+-- Get current status
+function CoreRegistryMonitor.getStatus()
+    return CoreRegistryMonitor.status
+end
 
-return {
-    getStatus = function() return statusValue.Value end,
-    getLastChecked = function() return timestampValue.Value end,
-    forceCheck = monitorHealth
-}
+-- Get last check time
+function CoreRegistryMonitor.getLastCheck()
+    return CoreRegistryMonitor.lastCheck
+end
+
+-- Get error count
+function CoreRegistryMonitor.getErrorCount()
+    return #CoreRegistryMonitor.errors
+end
+
+-- Get recent errors
+function CoreRegistryMonitor.getRecentErrors()
+    return CoreRegistryMonitor.errors
+end
+
+-- Force a health check
+function CoreRegistryMonitor.forceCheck()
+    local success, message = checkCoreRegistryHealth()
+    updateStatus(success and "healthy" or "error", message)
+    return success
+end
+
+return CoreRegistryMonitor

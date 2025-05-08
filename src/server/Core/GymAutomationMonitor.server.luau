@@ -1,12 +1,12 @@
 --[[
-    UISystemMonitor.client.luau
+    GymAutomationMonitor.server.luau
     
-    Monitor for the UISystem that tracks its health and status.
-    This monitor ensures the UISystem is functioning correctly
+    Monitor for the GymAutomation system that tracks its health and status.
+    This monitor ensures the GymAutomation system is functioning correctly
     and provides real-time status updates.
     
     Features:
-    - Health monitoring of UISystem
+    - Health monitoring of GymAutomation
     - Error tracking and reporting
     - Integration with CoreRegistry
     - Status updates in ReplicatedStorage
@@ -15,7 +15,6 @@
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 -- Configuration
 local CONFIG = {
@@ -26,7 +25,7 @@ local CONFIG = {
 }
 
 -- Module state
-local UISystemMonitor = {
+local GymAutomationMonitor = {
     status = "unknown",
     lastCheck = 0,
     errors = {},
@@ -36,16 +35,16 @@ local UISystemMonitor = {
 -- Debug logger
 local function log(...)
     if CONFIG.debug then
-        print("[UISystemMonitor]", ...)
+        print("[GymAutomationMonitor]", ...)
     end
 end
 
--- Get UISystem
-local function getUISystem()
+-- Get GymAutomation
+local function getGymAutomation()
     -- Try to get from CoreRegistry first
     local coreRegistry = _G.CoreRegistry
     if coreRegistry and typeof(coreRegistry.getSystem) == "function" then
-        local system = coreRegistry:getSystem("UISystem")
+        local system = coreRegistry:getSystem("GymAutomation")
         if system then
             return system
         end
@@ -53,9 +52,9 @@ local function getUISystem()
     
     -- Try to find in ReplicatedStorage
     local core = ReplicatedStorage:FindFirstChild("Core")
-    if core and core:FindFirstChild("UISystem") then
+    if core and core:FindFirstChild("GymAutomation") then
         local success, result = pcall(function()
-            return require(core.UISystem)
+            return require(core.GymAutomation)
         end)
         if success and result then
             return result
@@ -65,29 +64,34 @@ local function getUISystem()
     return nil
 end
 
--- Check UISystem health
-local function checkUISystemHealth()
-    local system = getUISystem()
+-- Check GymAutomation health
+local function checkGymAutomationHealth()
+    local system = getGymAutomation()
     if not system then
-        return false, "UISystem not found"
+        return false, "GymAutomation not found"
     end
     
     -- Check if initialized
     if not system.initialized then
-        return false, "UISystem not initialized"
+        return false, "GymAutomation not initialized"
     end
     
     -- Check error count
     local errorCount = system.getErrorCount()
     if errorCount > 0 then
-        return false, "UISystem has " .. errorCount .. " errors"
+        return false, "GymAutomation has " .. errorCount .. " errors"
     end
     
-    -- Check loaded components
-    for name, instance in pairs(system.loaded) do
-        if not instance.Parent then
-            return false, "Component instance missing: " .. name
-        end
+    -- Check maintenance schedule
+    local maintenanceSchedule = system.getMaintenanceSchedule()
+    if not maintenanceSchedule then
+        return false, "Maintenance schedule not found"
+    end
+    
+    -- Check staff schedule
+    local staffSchedule = system.getStaffSchedule()
+    if not staffSchedule then
+        return false, "Staff schedule not found"
     end
     
     return true, "Healthy"
@@ -98,21 +102,21 @@ local function recordError(message)
     local timestamp = os.time()
     
     -- Add new error
-    table.insert(UISystemMonitor.errors, {
+    table.insert(GymAutomationMonitor.errors, {
         message = message,
         timestamp = timestamp
     })
     
     -- Remove old errors
-    while #UISystemMonitor.errors > CONFIG.maxErrors do
-        table.remove(UISystemMonitor.errors, 1)
+    while #GymAutomationMonitor.errors > CONFIG.maxErrors do
+        table.remove(GymAutomationMonitor.errors, 1)
     end
     
     -- Remove errors older than retention time
     local cutoff = timestamp - CONFIG.errorRetentionTime
-    for i = #UISystemMonitor.errors, 1, -1 do
-        if UISystemMonitor.errors[i].timestamp < cutoff then
-            table.remove(UISystemMonitor.errors, i)
+    for i = #GymAutomationMonitor.errors, 1, -1 do
+        if GymAutomationMonitor.errors[i].timestamp < cutoff then
+            table.remove(GymAutomationMonitor.errors, i)
         end
     end
     
@@ -121,14 +125,14 @@ end
 
 -- Update status
 local function updateStatus(status, message)
-    UISystemMonitor.status = status
-    UISystemMonitor.lastCheck = os.time()
+    GymAutomationMonitor.status = status
+    GymAutomationMonitor.lastCheck = os.time()
     
     -- Create status folder if it doesn't exist
-    local statusFolder = ReplicatedStorage:FindFirstChild("UISystemStatus")
+    local statusFolder = ReplicatedStorage:FindFirstChild("GymAutomationStatus")
     if not statusFolder then
         statusFolder = Instance.new("Folder")
-        statusFolder.Name = "UISystemStatus"
+        statusFolder.Name = "GymAutomationStatus"
         statusFolder.Parent = ReplicatedStorage
     end
     
@@ -157,7 +161,7 @@ local function updateStatus(status, message)
         lastCheckValue.Name = "LastCheck"
         lastCheckValue.Parent = statusFolder
     end
-    lastCheckValue.Value = UISystemMonitor.lastCheck
+    lastCheckValue.Value = GymAutomationMonitor.lastCheck
     
     log("Status updated: " .. status .. " - " .. message)
 end
@@ -165,7 +169,7 @@ end
 -- Monitor health
 local function monitorHealth()
     while true do
-        local success, message = checkUISystemHealth()
+        local success, message = checkGymAutomationHealth()
         
         if success then
             updateStatus("healthy", message)
@@ -179,50 +183,50 @@ local function monitorHealth()
 end
 
 -- Initialize monitor
-function UISystemMonitor.initialize()
-    if UISystemMonitor.initialized then return true end
+function GymAutomationMonitor.initialize()
+    if GymAutomationMonitor.initialized then return true end
     
-    log("Initializing UISystemMonitor...")
+    log("Initializing GymAutomationMonitor...")
     
-    -- Check for UISystem
-    local system = getUISystem()
+    -- Check for GymAutomation
+    local system = getGymAutomation()
     if not system then
-        log("UISystem not found, monitoring may be limited")
+        log("GymAutomation not found, monitoring may be limited")
     end
     
     -- Start monitoring
     task.spawn(monitorHealth)
     
-    UISystemMonitor.initialized = true
-    log("UISystemMonitor initialized")
+    GymAutomationMonitor.initialized = true
+    log("GymAutomationMonitor initialized")
     return true
 end
 
 -- Get current status
-function UISystemMonitor.getStatus()
-    return UISystemMonitor.status
+function GymAutomationMonitor.getStatus()
+    return GymAutomationMonitor.status
 end
 
 -- Get last check time
-function UISystemMonitor.getLastCheck()
-    return UISystemMonitor.lastCheck
+function GymAutomationMonitor.getLastCheck()
+    return GymAutomationMonitor.lastCheck
 end
 
 -- Get error count
-function UISystemMonitor.getErrorCount()
-    return #UISystemMonitor.errors
+function GymAutomationMonitor.getErrorCount()
+    return #GymAutomationMonitor.errors
 end
 
 -- Get recent errors
-function UISystemMonitor.getRecentErrors()
-    return UISystemMonitor.errors
+function GymAutomationMonitor.getRecentErrors()
+    return GymAutomationMonitor.errors
 end
 
 -- Force a health check
-function UISystemMonitor.forceCheck()
-    local success, message = checkUISystemHealth()
+function GymAutomationMonitor.forceCheck()
+    local success, message = checkGymAutomationHealth()
     updateStatus(success and "healthy" or "error", message)
     return success
 end
 
-return UISystemMonitor 
+return GymAutomationMonitor 
