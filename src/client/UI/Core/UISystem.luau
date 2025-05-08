@@ -2,25 +2,56 @@
 --[[
     UISystem.luau
     
-    The main entry point for the UI system. Initializes all UI components,
-    manages their lifecycle, and provides access to the core UI services.
+    The main entry point for the UI system. This module is responsible for:
+    - Initializing and managing the UI framework
+    - Loading and registering UI components
+    - Managing UI lifecycle
+    - Providing a consistent API for UI operations
     
-    Features:
-    - Centralized UI initialization
-    - Service locator for UI components
-    - Integration with other game systems
-    - Logging and error handling
-    - Performance monitoring
-    
-    Author: Updated April 26, 2025
+    Author: Updated May 2025
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 
 local LocalPlayer = Players.LocalPlayer
--- PlayerGui reference kept for future UI management features
--- but accessed through LocalPlayer when needed in specific functions
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Module dependencies
+local UIRegistry = require(script.Parent.UIRegistry)
+local UIManager = require(script.Parent.UIManager)
+
+-- Configuration
+local CONFIG = {
+    debugMode = true,
+    autoInitialize = true,
+    defaultScreen = "MainMenuUI",
+    initializationTimeout = 10, -- seconds
+    loadRetries = 3
+}
+
+-- State
+local UISystem = {
+    initialized = false,
+    components = {},
+    screens = {},
+    activeScreen = nil
+}
+
+-- Logging
+local function log(message, level)
+    level = level or "Info"
+    local prefix = "[UISystem] "
+    
+    if level == "Info" and CONFIG.debugMode then
+        print(prefix .. message)
+    elseif level == "Warning" then
+        warn(prefix .. message)
+    elseif level == "Error" then
+        error(prefix .. message)
+    end
+end
 
 -- Safe require utility
 local function requireSafely(moduleScript)
@@ -41,544 +72,162 @@ local function requireSafely(moduleScript)
     return result
 end
 
--- Find paths to important folders
-local srcFolder = ReplicatedStorage:FindFirstChild("src") 
-if not srcFolder then
-    error("Source folder not found")
-    return
-end
-
-local sharedFolder = srcFolder:FindFirstChild("shared")
-if not sharedFolder then
-    error("Shared folder not found")
-    return
-end
-
-local clientFolder = srcFolder:FindFirstChild("client")
-local clientUIFolder = clientFolder and clientFolder:FindFirstChild("UI")
-local uiCoreFolder = clientUIFolder and clientUIFolder:FindFirstChild("Core")
-
--- Module and state variables
-local UISystem = {}
-local initialized = false
-local startTime = os.clock()
-local componentInitTimes = {}
-local loadErrors = {}
-
--- Required core modules
-local UIRegistry = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIRegistry"))
-local UIManager = requireSafely(uiCoreFolder and uiCoreFolder:FindFirstChild("UIManager"))
-local UIHub = requireSafely(clientUIFolder and clientUIFolder:FindFirstChild("UIHub"))
-local ButtonFactory = requireSafely(sharedFolder and sharedFolder:FindFirstChild("ButtonFactory"))
-
--- Optional UI components that will be auto-discovered and loaded
-local autoLoadComponents = true
--- Load order preferences (reserved for future implementation)
--- Used by UIRegistry:initializeAllComponents when custom load order is needed
-UISystem.componentLoadOrder = {
-    "MainMenu",
-    "Settings",
-    "Stats",
-    "Equipment",
-    "Specialization"
-}
-
--- Verify core dependencies
-if not UIRegistry then
-    error("Required core module UIRegistry not found")
-    return
-end
-
-if not UIManager then
-    error("Required core module UIManager not found")
-    return
-end
-
--- Configuration
-local CONFIG = {
-    debugMode = false,
-    autoShowMainMenu = true,
-    initializationTimeout = 10, -- seconds
-    loadRetries = 3
-}
-
---[[ Logging Functions ]]--
-
--- Log a message with level
-local function logMessage(message, level)
-    level = level or "Info"
-    local prefix = "[UISystem] "
-    
-    if level == "Info" and CONFIG.debugMode then
-        print(prefix .. message)
-    elseif level == "Warning" then
-        warn(prefix .. message)
-    elseif level == "Error" then
-        error(prefix .. message)
-    end
-end
-
--- Debug timing information
-local function logTiming(component, componentStartTime)
-    local endTime = os.clock()
-    local duration = endTime - componentStartTime
-    componentInitTimes[component] = duration
-    
-    if CONFIG.debugMode then
-        logMessage(string.format("Initialized %s in %.2f ms", component, duration * 1000), "Info")
-    end
-end
-
---[[ Initialization Functions ]]--
-
--- Initialize the registry
-local function initializeRegistry()
-    local registryStart = os.clock()
-    
-    -- Register core components
-    UIRegistry:registerComponent("UIManager", UIManager, "1.0.0")
-    UIRegistry:registerComponent("ButtonFactory", ButtonFactory, "1.0.0")
-    if UIHub then
-        UIRegistry:registerComponent("UIHub", UIHub, "1.0.0")
-    end
-    
-    -- Register dependencies
-    if UIHub then
-        UIRegistry:registerDependency("UIHub", "UIManager", "1.0.0")
-    end
-    
-    -- Register self
-    UIRegistry:registerComponent("UISystem", UISystem, "1.0.0")
-    
-    logTiming("UIRegistry", registryStart)
-    return true
-end
-
--- Auto-discover UI components
-local function discoverComponents()
-    if not autoLoadComponents then
-        return {}
-    end
-    
-    local discoveryStart = os.clock()
-    local discovered = UIRegistry:discoverUIModules()
-    
-    logTiming("ComponentDiscovery", discoveryStart)
-    return discovered
-end
-
--- Initialize components in the specified order
-local function initializeComponents()
-    local initStart = os.clock()
-    
-    -- Initialize core components first
-    if UIManager.initialize then
-        UIManager:initialize()
-    end
-    
-    if UIHub and UIHub.initialize then
-        UIHub:initialize()
-    end
-      -- Explicitly load MainMenuUI to ensure it's available
-    -- Use existing clientFolder variable from module scope
-    if clientFolder then
-        local uiFolder = clientFolder:FindFirstChild("UI")
-        if uiFolder then
-            local screensFolder = uiFolder:FindFirstChild("Screens")
-            if screensFolder then
-                local mainMenuModule = screensFolder:FindFirstChild("MainMenuUI")
-                if mainMenuModule and mainMenuModule:IsA("ModuleScript") then
-                    local success, mainMenuUI = pcall(function()
-                        return require(mainMenuModule)
-                    end)
-                    
-                    if success and mainMenuUI then
-                        if mainMenuUI.initialize then
-                            mainMenuUI:initialize()
-                        end
-                        
-                        -- Register with both names to ensure compatibility
-                        UIRegistry:registerComponent("MainMenuUI", mainMenuUI)
-                        UIRegistry:registerComponent("MainMenu", mainMenuUI) -- Also register as MainMenu
-                        
-                        logMessage("Explicitly loaded and registered MainMenuUI", "Info")
-                    else
-                        logMessage("Failed to load MainMenuUI module: " .. tostring(mainMenuUI), "Warning")
-                    end
-                else
-                    logMessage("MainMenuUI module not found in Screens folder", "Warning")
-                end
-            else
-                logMessage("Screens folder not found in UI folder", "Warning")
-            end
-        end
-    end    -- Auto-initialize discovered components
-    local _, failed = UIRegistry:initializeAllComponents()
-    
-    if #failed > 0 then
-        logMessage("Failed to initialize " .. #failed .. " components", "Warning")
-        for _, name in ipairs(failed) do
-            table.insert(loadErrors, name)
-        end
-    end
-    
-    logTiming("ComponentInitialization", initStart)
-    return #failed == 0
-end
-
--- Connect signals
-local function connectSignals()
-    local signalStart = os.clock()
-    
-    -- Connect to UI lifecycle events
-    local clientEvents = sharedFolder and sharedFolder:FindFirstChild("ClientEvents")
-    if clientEvents and requireSafely(clientEvents) then
-        local Events = require(clientEvents)
-        
-        -- Example event connections
-        Events.OnPlayerReady:Connect(function(player)
-            if player == LocalPlayer and CONFIG.autoShowMainMenu then
-                UISystem:showMainMenu()
-            end
-        end)
-        
-        Events.OnPlayerLeaving:Connect(function(player)
-            if player == LocalPlayer then
-                UISystem:shutdown()
-            end
-        end)
-    end
-    
-    logTiming("SignalConnections", signalStart)
-    return true
-end
-
--- Integrate with other systems
-local function integrateWithSystems()
-    local integrationStart = os.clock()
-    
-    -- Connect to game systems as needed
-    local gameSystem = srcFolder:FindFirstChild("GameSystem")
-    if gameSystem and requireSafely(gameSystem) then
-        local GameSystem = require(gameSystem)
-        
-        -- Register with game system if it has a UI registration point
-        if GameSystem.registerUISystem then
-            GameSystem:registerUISystem(UISystem)
-            logMessage("Registered with GameSystem", "Info")
-        end
-    end
-    
-    logTiming("SystemIntegration", integrationStart)
-    return true
-end
-
---[[ Public API Functions ]]--
-
 -- Initialize the UI system
 function UISystem:initialize()
-    if initialized then
-        logMessage("UISystem already initialized", "Warning")
+    if self.initialized then
+        log("UISystem already initialized", "Warning")
         return true
     end
     
-    logMessage("Initializing UI System", "Info")
-    local success = true
+    log("Initializing UI System...")
     
-    -- Step 1: Initialize registry
-    success = success and initializeRegistry()
+    -- Initialize core modules
+    if not UIRegistry:initialize() then
+        log("Failed to initialize UIRegistry", "Error")
+        return false
+    end
     
-    -- Step 2: Discover components
-    local discovered = discoverComponents()
-    logMessage("Discovered " .. #discovered .. " UI modules", "Info")
+    if not UIManager:initialize() then
+        log("Failed to initialize UIManager", "Error")
+        return false
+    end
     
-    -- Step 3: Initialize components
-    success = success and initializeComponents()
+    -- Load and register UI components
+    self:loadUIComponents()
     
-    -- Step 4: Connect signals
-    success = success and connectSignals()
+    -- Show default screen if configured
+    if CONFIG.autoInitialize then
+        task.spawn(function()
+            task.wait(1) -- Wait for other systems to initialize
+            self:showScreen(CONFIG.defaultScreen)
+        end)
+    end
     
-    -- Step 5: Integrate with other systems
-    success = success and integrateWithSystems()
+    self.initialized = true
+    log("UI System initialization complete")
+    return true
+end
+
+-- Load UI components from the Components folder
+function UISystem:loadUIComponents()
+    local componentsFolder = script.Parent.Parent.Components
+    if not componentsFolder then
+        log("Components folder not found", "Warning")
+        return
+    end
     
-    -- Calculate initialization time
-    local totalTime = os.clock() - startTime
-    logMessage(string.format("UI System initialization completed in %.2f ms", totalTime * 1000), "Info")
+    for _, module in ipairs(componentsFolder:GetChildren()) do
+        if module:IsA("ModuleScript") then
+            local component = requireSafely(module)
+            if component then
+                self.components[module.Name] = component
+                UIRegistry:registerComponent(module.Name, component)
+                log("Loaded component: " .. module.Name)
+            end
+        end
+    end
+end
+
+-- Load UI screens from the Screens folder
+function UISystem:loadUIScreens()
+    local screensFolder = script.Parent.Parent.Screens
+    if not screensFolder then
+        log("Screens folder not found", "Warning")
+        return
+    end
     
-    initialized = success
+    for _, module in ipairs(screensFolder:GetChildren()) do
+        if module:IsA("ModuleScript") then
+            local screen = requireSafely(module)
+            if screen then
+                self.screens[module.Name] = screen
+                UIRegistry:registerComponent(module.Name, screen)
+                log("Loaded screen: " .. module.Name)
+            end
+        end
+    end
+end
+
+-- Show a UI screen
+function UISystem:showScreen(screenName)
+    if not self.initialized then
+        log("Cannot show screen, UI System not initialized", "Warning")
+        return false
+    end
+    
+    -- Get the screen component
+    local screen = self.screens[screenName]
+    if not screen then
+        log("Screen not found: " .. screenName, "Warning")
+        return false
+    end
+    
+    -- Hide current screen if any
+    if self.activeScreen then
+        self:hideScreen(self.activeScreen)
+    end
+    
+    -- Show the new screen
+    local success = UIManager:showUI(screenName, screen)
+    if success then
+        self.activeScreen = screenName
+        log("Showing screen: " .. screenName)
+    end
+    
     return success
 end
 
--- Show the main menu
-function UISystem:showMainMenu()
-    if not initialized then
-        logMessage("Cannot show main menu, UI System not initialized", "Warning")
-        return false
-    end
-      local registeredUIHub = UIRegistry:getComponent("UIHub")
-    if registeredUIHub and registeredUIHub.showScreen then
-        return registeredUIHub:showScreen("MainMenuUI")
-    end
-    
-    -- Fallback if UIHub not available
-    local mainMenu = UIRegistry:getComponent("MainMenuUI")
-    if mainMenu and mainMenu.show then
-        return mainMenu:show()
-    end
-    
-    -- Extra fallback for legacy naming
-    local legacyMainMenu = UIRegistry:getComponent("MainMenu")
-    if legacyMainMenu and legacyMainMenu.show then
-        return legacyMainMenu:show()
-    end
-    
-    logMessage("Main menu component not found - checked both MainMenuUI and MainMenu", "Warning")
-    return false
-end
-
--- Show specific UI by name
-function UISystem:showUI(name, ...)
-    if not initialized then
-        logMessage("Cannot show UI, UI System not initialized", "Warning")
+-- Hide a UI screen
+function UISystem:hideScreen(screenName)
+    if not self.initialized then
         return false
     end
     
-    -- Try to standardize the name first (handle both with and without UI suffix)
-    local standardName = name
-    local altName = nil
-    
-    -- Check if name ends with "UI" suffix and create alternative name
-    if string.sub(name, -2) == "UI" then
-        -- Name has UI suffix, create alternative without it
-        altName = string.sub(name, 1, -3)
-    else
-        -- Name doesn't have UI suffix, add it as alternative
-        altName = name .. "UI"
+    local success = UIManager:hideUI(screenName)
+    if success and self.activeScreen == screenName then
+        self.activeScreen = nil
+        log("Hiding screen: " .. screenName)
     end
     
-    logMessage("Attempting to show UI: " .. standardName .. " (alt: " .. altName .. ")", "Info")
-    
-    -- Multi-path approach to find and show the UI
-      -- Path 1: Try through UIManager first (preferred approach)
-    local registeredUIManager = UIRegistry:getComponent("UIManager")
-    if registeredUIManager and registeredUIManager.showUI then
-        -- First, try to get the component from registry with standard name
-        local component = UIRegistry:getComponent(standardName)
-        local args = {...}
-        if component then
-            local success = registeredUIManager:showUI(standardName, component, unpack(args))
-            if success then
-                logMessage("Successfully showed UI via UIManager with component from registry: " .. name, "Info")
-                return true
-            end
-        end
-        
-        -- Try showing by name directly
-        local success = registeredUIManager:showUI(name, nil, unpack(args))
-        if success then
-            logMessage("Successfully showed UI via UIManager direct path: " .. name, "Info")
-            return true
-        end
-    end
-      -- Path 2: Get component directly and call show method
-    local component = UIRegistry:getComponent(name)
-    if component and component.show then
-        local args = {...}
-        local success, result = pcall(function()
-            return component:show(unpack(args))
-        end)
-        
-        if success then
-            logMessage("Successfully showed UI via direct component show method: " .. name, "Info")
-            return true
-        else
-            logMessage("Error showing UI " .. name .. ": " .. tostring(result), "Warning")
-        end
-    end    -- Path 3: Try legacy script globals via getfenv (safer alternative to _G)
-    -- This is maintained for backward compatibility, but should be avoided in new code
-    local env = getfenv(0)
-    if env[name] and env[name].show then
-        local args = {...}
-        local success = pcall(function()
-            env[name]:show(unpack(args))
-        end)
-        
-        if success then
-            logMessage("Successfully showed UI via script environment fallback: " .. name, "Info")
-            return true
-        end
-    end
-    
-    logMessage("Failed to show UI: " .. name .. " (tried all paths)", "Warning")
-    return false
+    return success
 end
 
--- Hide specific UI by name
-function UISystem:hideUI(name)
-    if not initialized then
-        logMessage("Cannot hide UI, UI System not initialized", "Warning")
-        return false
-    end
-      local registeredUIManager = UIRegistry:getComponent("UIManager")
-    if registeredUIManager and registeredUIManager.hideUI then
-        return registeredUIManager:hideUI(name)
-    end
-    
-    logMessage("UIManager not found", "Warning")
-    return false
+-- Get a UI component
+function UISystem:getComponent(componentName)
+    return UIRegistry:getComponent(componentName)
 end
 
--- Get a UI component by name
-function UISystem:getComponent(name)
-    if not initialized then
-        logMessage("Cannot get component, UI System not initialized", "Warning")
-        return nil
-    end
-    
-    return UIRegistry:getComponent(name)
+-- Get the current active screen
+function UISystem:getActiveScreen()
+    return self.activeScreen
 end
 
--- Create a notification
-function UISystem:notify(options)
-    if not initialized then
-        logMessage("Cannot create notification, UI System not initialized", "Warning")
-        return nil
-    end
-    
-    local registeredUIManager = UIRegistry:getComponent("UIManager")
-    if registeredUIManager and registeredUIManager.createNotification then
-        return registeredUIManager:createNotification(options)
-    end
-    
-    logMessage("UIManager not found", "Warning")
-    return nil
-end
-
--- Show a modal dialog
-function UISystem:showModal(options)
-    if not initialized then
-        logMessage("Cannot show modal, UI System not initialized", "Warning")
-        return nil
-    end
-    
-    local registeredUIManager = UIRegistry:getComponent("UIManager")
-    if registeredUIManager and registeredUIManager.createModal then
-        return registeredUIManager:createModal(options)
-    end
-    
-    logMessage("UIManager not found", "Warning")
-    return nil
-end
-
--- Get initialization status
-function UISystem:isInitialized()
-    return initialized
-end
-
--- Get performance metrics
-function UISystem:getPerformanceMetrics()
-    return {
-        totalInitTime = os.clock() - startTime,
-        componentTimes = componentInitTimes,
-        errors = loadErrors
-    }
-end
-
--- Get button factory (convenience method)
-function UISystem:getButtonFactory()
-    return UIRegistry:getComponent("ButtonFactory")
-end
-
--- Reset UI system
-function UISystem:reset()
-    if not initialized then
-        return true
-    end
-    
-    -- Hide all UIs
-    local registeredUIManager = UIRegistry:getComponent("UIManager")
-    if registeredUIManager and registeredUIManager.hideAllUIs then
-        registeredUIManager:hideAllUIs()
-    end
-    
-    -- Close all modals
-    if registeredUIManager and registeredUIManager.closeAllModals then
-        registeredUIManager:closeAllModals()
-    end
-    
-    -- Re-initialize components
-    return initializeComponents()
-end
-
--- Shutdown UI system
+-- Shutdown the UI system
 function UISystem:shutdown()
-    if not initialized then
+    if not self.initialized then
         return true
     end
     
-    logMessage("Shutting down UI System", "Info")
+    log("Shutting down UI System...")
     
-    -- Clean up resources
-    local registeredUIManager = UIRegistry:getComponent("UIManager")
-    if registeredUIManager then
-        -- Hide all UIs
-        if registeredUIManager.hideAllUIs then
-            registeredUIManager:hideAllUIs()
-        end
-          -- Close all modals
-        if registeredUIManager.closeAllModals then
-            registeredUIManager:closeAllModals()
-        end
+    -- Hide all screens
+    for screenName, _ in pairs(self.screens) do
+        self:hideScreen(screenName)
     end
     
-    -- Mark as uninitialized
-    initialized = false
+    -- Shutdown core modules
+    UIManager:shutdown()
+    UIRegistry:shutdown()
+    
+    self.initialized = false
+    log("UI System shutdown complete")
     return true
-end
-
--- Build diagnostic report
-function UISystem:getDiagnosticReport()
-    local report = {
-        initialized = initialized,
-        components = {},
-        errors = loadErrors,
-        performanceMetrics = componentInitTimes
-    }
-    
-    -- Get components status
-    if UIRegistry then
-        local componentNames = UIRegistry:getAllComponentNames()
-        for _, name in ipairs(componentNames) do
-            report.components[name] = {
-                state = UIRegistry:getComponentState(name),
-                version = UIRegistry:getComponentVersion(name)
-            }
-        end
-        
-        -- Get dependency status
-        report.dependencies = {}
-        for _, name in ipairs(componentNames) do
-            report.dependencies[name] = UIRegistry:getDependencies(name)
-        end
-        
-        -- Get version conflicts
-        report.conflicts = UIRegistry:checkVersionConflicts()
-    end
-    
-    return report
 end
 
 -- Auto-initialize on module load
 task.spawn(function()
-    -- Give the system a moment to fully load before initializing
-    task.wait(0.5)
+    task.wait(0.5) -- Give other systems time to load
     UISystem:initialize()
-    
-    -- Show main menu if configured
-    if CONFIG.autoShowMainMenu and initialized then
-        UISystem:showMainMenu()
-    end
 end)
 
--- Return the module
 return UISystem
