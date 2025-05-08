@@ -29,27 +29,77 @@ local CONFIG = {
             "ServerScriptService.server",
             "ServerScriptService.Core",
             "ServerScriptService.Data",
-            "ServerScriptService.Fixes"
+            "ServerScriptService.Fixes",
+            "ServerScriptService.src",
+            "ServerScriptService.src.server",
+            "ServerScriptService.src.server.Core",
+            "ServerScriptService.src.server.Systems",
+            "ServerScriptService.src.server.Fixes"
         },
         client = {
             "PlayerScripts.client",
             "PlayerScripts.Core",
             "PlayerScripts.UI",
-            "PlayerScripts.Fixes"
+            "PlayerScripts.Fixes",
+            "PlayerScripts.client.Core",
+            "PlayerScripts.client.UI",
+            "PlayerScripts.client.Fixes",
+            "PlayerScripts.client.Systems"
         },
         shared = {
             "ReplicatedStorage.shared",
             "ReplicatedStorage.Core",
-            "ReplicatedStorage.UI"
+            "ReplicatedStorage.UI",
+            "ReplicatedStorage.shared.Core",
+            "ReplicatedStorage.shared.UI",
+            "ReplicatedStorage.shared.Systems"
         }
     },
     pathAliases = {
         ["ServerScriptService.server"] = "ServerScriptService.server",
         ["ServerScriptService.Core"] = "ServerScriptService.Core",
+        ["ServerScriptService.src"] = "ServerScriptService.src",
         ["PlayerScripts.client"] = "PlayerScripts.client",
         ["PlayerScripts.Core"] = "PlayerScripts.Core",
         ["ReplicatedStorage.shared"] = "ReplicatedStorage.shared",
         ["ReplicatedStorage.Core"] = "ReplicatedStorage.Core"
+    },
+    pathRules = {
+        -- Rules for path creation and validation
+        moduleScripts = {
+            pattern = "%.lua$|%.luau$",
+            type = "ModuleScript"
+        },
+        scripts = {
+            pattern = "Script$",
+            type = "Script"
+        },
+        localScripts = {
+            pattern = "Client$|ClientScript$",
+            type = "LocalScript"
+        },
+        folders = {
+            pattern = "^[^%.]+$",
+            type = "Folder"
+        }
+    },
+    pathMappings = {
+        -- Maps common path patterns to their actual locations
+        ["Core"] = {
+            server = "ServerScriptService.Core",
+            client = "PlayerScripts.Core",
+            shared = "ReplicatedStorage.Core"
+        },
+        ["Client"] = {
+            server = "ServerScriptService.server",
+            client = "PlayerScripts.client",
+            shared = "ReplicatedStorage.shared"
+        },
+        ["UI"] = {
+            server = "ServerScriptService.UI",
+            client = "PlayerScripts.UI",
+            shared = "ReplicatedStorage.UI"
+        }
     }
 }
 
@@ -59,7 +109,8 @@ local PathManager = {
     errors = {},
     lastCheck = 0,
     pathCache = {},
-    createdPaths = {}
+    createdPaths = {},
+    routeCache = {}
 }
 
 -- Debug logger
@@ -93,13 +144,35 @@ local function getParentFromPath(path)
     return current
 end
 
+-- Determine instance type from path
+local function determineInstanceType(path)
+    for _, rule in pairs(CONFIG.pathRules) do
+        if string.match(path, rule.pattern) then
+            return rule.type
+        end
+    end
+    return "Folder" -- Default to Folder if no rules match
+end
+
+-- Get mapped path
+local function getMappedPath(path, context)
+    for pattern, mappings in pairs(CONFIG.pathMappings) do
+        if string.match(path, "^" .. pattern) then
+            return mappings[context] or path
+        end
+    end
+    return path
+end
+
 -- Create path if it doesn't exist
-local function createPath(path)
+local function createPath(path, context)
     if PathManager.createdPaths[path] then
         return true
     end
     
-    local parts = splitPath(path)
+    -- Get mapped path based on context
+    local mappedPath = getMappedPath(path, context)
+    local parts = splitPath(mappedPath)
     local current = game
     
     for i = 1, #parts do
@@ -108,12 +181,7 @@ local function createPath(path)
         
         if not next then
             -- Determine the type of instance to create
-            local instanceType = "Folder"
-            if i == #parts then
-                if string.match(part, "%.lua$") or string.match(part, "%.luau$") then
-                    instanceType = "ModuleScript"
-                end
-            end
+            local instanceType = determineInstanceType(part)
             
             next = Instance.new(instanceType)
             next.Name = part
@@ -144,33 +212,27 @@ local function validatePath(path)
     return true, current
 end
 
--- Resolve path
-local function resolvePath(path)
+-- Route path to appropriate location
+local function routePath(path, context)
     -- Check cache first
-    if PathManager.pathCache[path] then
-        return PathManager.pathCache[path]
+    local cacheKey = path .. "_" .. (context or "default")
+    if PathManager.routeCache[cacheKey] then
+        return PathManager.routeCache[cacheKey]
     end
     
-    -- Check aliases
-    local aliasedPath = CONFIG.pathAliases[path]
-    if aliasedPath then
-        path = aliasedPath
+    -- Get mapped path
+    local mappedPath = getMappedPath(path, context)
+    
+    -- Validate and create if needed
+    local success, result = validatePath(mappedPath)
+    if not success then
+        createPath(mappedPath, context)
+        success, result = validatePath(mappedPath)
     end
     
-    -- Validate path
-    local success, result = validatePath(path)
     if success then
-        PathManager.pathCache[path] = result
+        PathManager.routeCache[cacheKey] = result
         return result
-    end
-    
-    -- Try to create path
-    if createPath(path) then
-        success, result = validatePath(path)
-        if success then
-            PathManager.pathCache[path] = result
-            return result
-        end
     end
     
     return nil
@@ -199,6 +261,17 @@ local function recordError(message)
         end
     end
     
+    -- Handle specific error patterns
+    if message:match("is not a valid member of") then
+        local parent, child = message:match("is not a valid member of ([^\"]+) \"([^\"]+)\"")
+        if parent and child then
+            -- Try to create the missing path
+            local path = child .. "." .. parent
+            log("Attempting to create missing path: " .. path)
+            createPath(path)
+        end
+    end
+    
     log("Error recorded: " .. message)
 end
 
@@ -215,6 +288,21 @@ local function checkHealth()
                 recordError("Required path not found: " .. path)
                 createPath(path)
             end
+        end
+    end
+    
+    -- Check for common error patterns
+    local commonErrors = {
+        "Core is not a valid member of ServerScriptService",
+        "Client is not a valid member of PlayerScripts",
+        "Server is not a valid member of ServerScriptService",
+        "ClientRegistry is not a valid member of LocalScript"
+    }
+    
+    for _, errorPattern in ipairs(commonErrors) do
+        local success, result = validatePath(errorPattern:match("([^ ]+) is not a valid member of ([^ ]+)"))
+        if not success then
+            recordError(errorPattern)
         end
     end
     
@@ -247,9 +335,9 @@ function PathManager.initialize()
     return true
 end
 
--- Resolve a path
-function PathManager.resolvePath(path)
-    return resolvePath(path)
+-- Resolve path with context
+function PathManager.resolvePath(path, context)
+    return routePath(path, context)
 end
 
 -- Validate a path
@@ -257,9 +345,9 @@ function PathManager.validatePath(path)
     return validatePath(path)
 end
 
--- Create a path
-function PathManager.createPath(path)
-    return createPath(path)
+-- Create path with context
+function PathManager.createPath(path, context)
+    return createPath(path, context)
 end
 
 -- Get error count
@@ -275,6 +363,33 @@ end
 -- Force a health check
 function PathManager.forceCheck()
     return checkHealth()
+end
+
+-- Get path mapping
+function PathManager.getPathMapping(path, context)
+    return getMappedPath(path, context)
+end
+
+-- Clear path cache
+function PathManager.clearCache()
+    PathManager.pathCache = {}
+    PathManager.routeCache = {}
+    log("Path cache cleared")
+end
+
+-- Get all created paths
+function PathManager.getCreatedPaths()
+    return PathManager.createdPaths
+end
+
+-- Get path statistics
+function PathManager.getStats()
+    return {
+        totalPaths = #PathManager.createdPaths,
+        cachedPaths = #PathManager.pathCache,
+        cachedRoutes = #PathManager.routeCache,
+        errorCount = #PathManager.errors
+    }
 end
 
 return PathManager 
