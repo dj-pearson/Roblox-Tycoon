@@ -52,65 +52,42 @@ local loadRateLimiter = {
 --[[ Private Utility Functions ]]--
 
 -- Clean up expired operations from rate limiters
-local function cleanupRateLimiters()
+local function cleanupRateLimiter(limiter, maxAge)
     local now = os.time()
-    local oneMinuteAgo = now - 60
-    
-    -- Only clean up once per minute at most
-    if now - saveRateLimiter.lastCleanup < 60 then
+    if now - limiter.lastCleanup < 60 then -- Only clean up once per minute
         return
     end
     
-    -- Clean up save operations older than 1 minute
-    for key, time in pairs(saveRateLimiter.operations) do
-        if time < oneMinuteAgo then
-            saveRateLimiter.operations[key] = nil
+    for userId, timestamp in pairs(limiter.operations) do
+        if now - timestamp > maxAge then
+            limiter.operations[userId] = nil
         end
     end
     
-    -- Clean up load operations older than 1 minute
-    for key, time in pairs(loadRateLimiter.operations) do
-        if time < oneMinuteAgo then
-            loadRateLimiter.operations[key] = nil
-        end
-    end
-    
-    -- Update last cleanup time
-    saveRateLimiter.lastCleanup = now
-    loadRateLimiter.lastCleanup = now
+    limiter.lastCleanup = now
 end
 
--- Check if an operation would exceed rate limits
-local function checkRateLimit(operationType, key)
-    cleanupRateLimiters()
+-- Check if operation is rate limited
+local function isRateLimited(limiter, userId, maxOperations, timeWindow)
+    cleanupRateLimiter(limiter, timeWindow)
     
-    local limiter
-    local limit
+    local now = os.time()
+    local operations = 0
     
-    if operationType == "save" then
-        limiter = saveRateLimiter
-        limit = DataConstants.RATE_LIMITS.SAVES_PER_MINUTE
-    elseif operationType == "load" then
-        limiter = loadRateLimiter
-        limit = DataConstants.RATE_LIMITS.LOADS_PER_MINUTE
-    else
-        error("Invalid operation type: " .. operationType)
+    -- Count operations in time window
+    for _, timestamp in pairs(limiter.operations) do
+        if now - timestamp <= timeWindow then
+            operations = operations + 1
+        end
     end
     
-    -- Count operations in the last minute
-    local count = 0
-    for _, _ in pairs(limiter.operations) do
-        count += 1
-    end
-    
-    if count >= limit then
-        return false, string.format("Rate limit exceeded for %s operations (%d/%d)", operationType, count, limit)
+    if operations >= maxOperations then
+        return true
     end
     
     -- Record this operation
-    limiter.operations[key or ("_" .. os.time() .. "_" .. math.random(1000, 9999))] = os.time()
-    
-    return true, ""
+    limiter.operations[userId] = now
+    return false
 end
 
 -- Create a session lock key for a player
@@ -798,17 +775,203 @@ end
 
 -- Initialize the module
 function DataPersistence:initialize()
-    -- Start a loop to refresh session locks
-    if RunService:IsServer() then
-        spawn(function()
-            while true do
-                refreshSessionLocks()
-                wait(60) -- Refresh every minute
-            end
-        end)
+    if self.initialized then
+        return true
     end
     
+    print("DataPersistence: Initializing...")
+    
+    -- Create main data store
+    local success, result = pcall(function()
+        return DataStoreService:GetDataStore("PlayerData_v2")
+    end)
+    
+    if not success then
+        warn("DataPersistence: Failed to create main data store - " .. tostring(result))
+        return false
+    end
+    
+    self.dataStore = result
+    print("DataPersistence: Main data store created")
+    
+    -- Create backup data store
+    success, result = pcall(function()
+        return DataStoreService:GetDataStore("PlayerData_Backup_v2")
+    end)
+    
+    if success then
+        self.backupStore = result
+        print("DataPersistence: Backup data store created")
+    else
+        warn("DataPersistence: Failed to create backup data store - " .. tostring(result))
+    end
+    
+    -- Set up auto-save
+    task.spawn(function()
+        while true do
+            task.wait(300) -- Auto-save every 5 minutes
+            self:AutoSave()
+        end
+    end)
+    
+    self.initialized = true
+    print("DataPersistence: Initialization complete")
     return true
+end
+
+-- Get player data
+function DataPersistence:GetPlayerData(userId)
+    if not self.initialized then
+        warn("DataPersistence: Not initialized")
+        return nil
+    end
+    
+    if not userId then
+        warn("DataPersistence: Invalid userId")
+        return nil
+    end
+    
+    -- Check rate limiting
+    if isRateLimited(loadRateLimiter, userId, 10, 60) then -- Max 10 loads per minute
+        warn("DataPersistence: Rate limit exceeded for userId " .. userId)
+        return nil
+    end
+    
+    -- Try to get from cache first
+    if self.cache and self.cache[userId] then
+        return deepCopy(self.cache[userId])
+    end
+    
+    -- Try main data store
+    local success, data = pcall(function()
+        return self.dataStore:GetAsync(userId)
+    end)
+    
+    if success and data then
+        -- Cache the data
+        if not self.cache then self.cache = {} end
+        self.cache[userId] = deepCopy(data)
+        
+        -- Update metrics
+        operationMetrics.loadOperations = operationMetrics.loadOperations + 1
+        return data
+    end
+    
+    -- Try backup store if main store failed
+    if self.backupStore then
+        success, data = pcall(function()
+            return self.backupStore:GetAsync(userId)
+        end)
+        
+        if success and data then
+            -- Cache the data
+            if not self.cache then self.cache = {} end
+            self.cache[userId] = deepCopy(data)
+            
+            -- Update metrics
+            operationMetrics.loadOperations = operationMetrics.loadOperations + 1
+            return data
+        end
+    end
+    
+    -- Update metrics
+    operationMetrics.loadFailures = operationMetrics.loadFailures + 1
+    operationMetrics.lastError = "Failed to load data"
+    operationMetrics.lastErrorTime = os.time()
+    
+    return nil
+end
+
+-- Save player data
+function DataPersistence:SavePlayerData(userId, data, immediate)
+    if not self.initialized then
+        warn("DataPersistence: Not initialized")
+        return false
+    end
+    
+    if not userId or not data then
+        warn("DataPersistence: Invalid parameters")
+        return false
+    end
+    
+    -- Check rate limiting
+    if isRateLimited(saveRateLimiter, userId, 5, 60) then -- Max 5 saves per minute
+        warn("DataPersistence: Rate limit exceeded for userId " .. userId)
+        return false
+    end
+    
+    -- Update cache
+    if not self.cache then self.cache = {} end
+    self.cache[userId] = deepCopy(data)
+    
+    -- Save to main store
+    local success, result = pcall(function()
+        return self.dataStore:SetAsync(userId, data)
+    end)
+    
+    if success then
+        -- Update metrics
+        operationMetrics.saveOperations = operationMetrics.saveOperations + 1
+        return true
+    end
+    
+    -- Try backup store if main store failed
+    if self.backupStore then
+        success, result = pcall(function()
+            return self.backupStore:SetAsync(userId, data)
+        end)
+        
+        if success then
+            -- Update metrics
+            operationMetrics.saveOperations = operationMetrics.saveOperations + 1
+            return true
+        end
+    end
+    
+    -- Update metrics
+    operationMetrics.saveFailures = operationMetrics.saveFailures + 1
+    operationMetrics.lastError = "Failed to save data"
+    operationMetrics.lastErrorTime = os.time()
+    
+    return false
+end
+
+-- Auto-save all cached data
+function DataPersistence:AutoSave()
+    if not self.initialized or not self.cache then
+        return
+    end
+    
+    print("DataPersistence: Starting auto-save...")
+    local saved = 0
+    local failed = 0
+    
+    for userId, data in pairs(self.cache) do
+        if self:SavePlayerData(userId, data, false) then
+            saved = saved + 1
+        else
+            failed = failed + 1
+        end
+    end
+    
+    print("DataPersistence: Auto-save complete - " .. saved .. " saved, " .. failed .. " failed")
+end
+
+-- Get operation metrics
+function DataPersistence:GetMetrics()
+    return deepCopy(operationMetrics)
+end
+
+-- Clear cache for a player
+function DataPersistence:ClearCache(userId)
+    if self.cache then
+        self.cache[userId] = nil
+    end
+end
+
+-- Clear all cache
+function DataPersistence:ClearAllCache()
+    self.cache = {}
 end
 
 return DataPersistence

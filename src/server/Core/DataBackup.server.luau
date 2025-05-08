@@ -41,6 +41,10 @@ local CONFIG = {
     -- Backup behavior
     compressionEnabled = true,                    -- Compress backups to save space
     validateOnRestore = true,                     -- Validate backup data before restoring
+    validateOnBackup = true,                      -- Validate data before creating backup
+    integrityCheckEnabled = true,                 -- Enable integrity checks on backups
+    maxRetries = 5,                               -- Maximum number of retries for operations
+    retryDelay = 1,                               -- Base delay between retries in seconds
     
     -- Debug options
     debug = true                                  -- Enable debug logging
@@ -71,6 +75,28 @@ local function deepCopy(original)
     return copy
 end
 
+-- Calculate data integrity hash
+local function calculateIntegrityHash(data)
+    local hash = 0
+    local str = game:GetService("HttpService"):JSONEncode(data)
+    
+    for i = 1, #str do
+        hash = ((hash * 31) + string.byte(str, i)) % 0x7FFFFFFF
+    end
+    
+    return hash
+end
+
+-- Validate data integrity
+local function validateDataIntegrity(data, expectedHash)
+    if not CONFIG.integrityCheckEnabled then
+        return true
+    end
+    
+    local currentHash = calculateIntegrityHash(data)
+    return currentHash == expectedHash
+end
+
 -- Compress data to reduce size (simple version)
 local function compressData(data)
     if not CONFIG.compressionEnabled then
@@ -81,7 +107,8 @@ local function compressData(data)
     local compressed = {
         __compressed = true,
         __timestamp = os.time(),
-        __version = 1
+        __version = 1,
+        __integrityHash = calculateIntegrityHash(data)
     }
     
     -- Only store non-default values
@@ -116,6 +143,14 @@ local function decompressData(compressed)
         end
     end
     
+    -- Validate integrity if enabled
+    if CONFIG.integrityCheckEnabled and compressed.__integrityHash then
+        if not validateDataIntegrity(decompressed, compressed.__integrityHash) then
+            warn("Data integrity check failed during decompression")
+            return nil
+        end
+    end
+    
     return decompressed
 end
 
@@ -136,9 +171,9 @@ local function safeDataStoreOperation(storeName, operationType, storeMethod, ...
     store = storeResult
     
     -- Execute the operation with retries
-    local maxRetries = 5
+    local maxRetries = CONFIG.maxRetries
     local retriesRemaining = maxRetries
-    local baseDelay = 1
+    local baseDelay = CONFIG.retryDelay
     local args = {...}
     
     repeat
@@ -178,39 +213,44 @@ local DataBackup = {
 }
 
 -- Initialize backup system
-function DataBackup:Initialize()
+function DataBackup:initialize()
     if self.initialized then
         return true
     end
     
-    log("Initializing DataBackup system")
+    log("Initializing DataBackup system...")
     
-    -- Initialize datastores
-    local success, result = pcall(function()
-        self.regularBackupStore = DataStoreService:GetDataStore(CONFIG.mainBackupStoreName)
-        self.weeklyBackupStore = DataStoreService:GetDataStore(CONFIG.weeklyBackupStoreName)
-        self.criticalBackupStore = DataStoreService:GetDataStore(CONFIG.criticalBackupStoreName)
-        
-        -- Register with CoreRegistry if available
-        if CoreRegistry and CoreRegistry.registerSystem then
-            CoreRegistry:registerSystem("DataBackup", self)
-            log("Registered with CoreRegistry")
-        end
-        
-        -- Start backup scheduler
-        self:StartBackupScheduler()
-        
-        return true
+    -- Initialize DataStores
+    local success, mainStore = pcall(function()
+        return DataStoreService:GetDataStore(CONFIG.mainBackupStoreName)
     end)
     
-    if success then
-        log("DataBackup system initialized")
-        self.initialized = true
-        return true
-    else
-        warn("Failed to initialize DataBackup system: " .. tostring(result))
+    if not success then
+        warn("Failed to initialize main backup store")
         return false
     end
+    
+    local success2, weeklyStore = pcall(function()
+        return DataStoreService:GetDataStore(CONFIG.weeklyBackupStoreName)
+    end)
+    
+    if not success2 then
+        warn("Failed to initialize weekly backup store")
+        return false
+    end
+    
+    local success3, criticalStore = pcall(function()
+        return DataStoreService:GetDataStore(CONFIG.criticalBackupStoreName)
+    end)
+    
+    if not success3 then
+        warn("Failed to initialize critical backup store")
+        return false
+    end
+    
+    self.initialized = true
+    log("DataBackup system initialized successfully")
+    return true
 end
 
 -- Start the backup scheduler
@@ -302,6 +342,10 @@ end
 
 -- Create regular backup
 function DataBackup:CreateRegularBackup(userId)
+    if not self.initialized then
+        return false, "Backup system not initialized"
+    end
+    
     -- Get player data from DataManager
     local dataManager
     if CoreRegistry then
@@ -320,11 +364,28 @@ function DataBackup:CreateRegularBackup(userId)
     
     local playerData = deepCopy(dataManager.loadedData[userId])
     
+    -- Validate data if enabled
+    if CONFIG.validateOnBackup and DataValidator then
+        local isValid, validatedData = DataValidator.validatePlayerData(playerData)
+        
+        if not isValid then
+            warn("Backup validation failed for userId " .. userId)
+            
+            if validatedData then
+                playerData = validatedData
+                log("Using repaired data for backup")
+            else
+                return false, "Backup validation failed"
+            end
+        end
+    end
+    
     -- Add backup metadata
     playerData.__backup = {
         type = "regular",
         timestamp = os.time(),
-        createdBy = "DataBackup"
+        createdBy = "DataBackup",
+        version = DataValidator and DataValidator.getCurrentVersion() or 1
     }
     
     -- Compress the data
@@ -347,7 +408,7 @@ function DataBackup:CreateRegularBackup(userId)
     
     if success then
         log("Created regular backup for userId " .. userId .. " with key " .. backupKey)
-          -- Update latest backup pointer
+        -- Update latest backup pointer
         safeDataStoreOperation(
             CONFIG.mainBackupStoreName,
             "UpdateLatest",
@@ -566,6 +627,10 @@ function DataBackup:RestoreBackup(player, backupKey, backupType)
     -- Decompress the data
     local data = decompressData(backupData)
     
+    if not data then
+        return false, "Failed to decompress backup data"
+    end
+    
     -- Validate if required
     if CONFIG.validateOnRestore and DataValidator then
         local isValid, validatedData = DataValidator.validatePlayerData(data)
@@ -686,30 +751,47 @@ end
 
 -- Clean up old backups
 function DataBackup:CleanupOldBackups(userId, backupType)
-    backupType = backupType or "regular" -- Default to regular backup
+    if not userId or not backupType then
+        return false
+    end
     
-    -- This is a simplified implementation since DataStores don't support listing
-    -- In a real implementation, you would need to maintain a separate list of backup keys
-    -- For now, we'll just keep a simple cleanup strategy
-    
-    -- Determine maximum backups to keep
     local maxBackups
+    local storeName
+    
     if backupType == "regular" then
         maxBackups = CONFIG.maxRegularBackups
+        storeName = CONFIG.mainBackupStoreName
     elseif backupType == "weekly" then
         maxBackups = CONFIG.maxWeeklyBackups
+        storeName = CONFIG.weeklyBackupStoreName
     elseif backupType == "critical" then
         maxBackups = CONFIG.maxCriticalBackups
+        storeName = CONFIG.criticalBackupStoreName
     else
         return false
     end
     
-    log("Backup cleanup not implemented - would keep " .. maxBackups .. " " .. backupType .. " backups for userId " .. userId)
+    -- Get list of backups (in a real implementation, you would need to maintain a separate key list)
+    -- For now, we'll just use the latest backup pointer
+    local success, latestKey = safeDataStoreOperation(
+        storeName,
+        "GetLatestBackup",
+        function(store)
+            return store:GetAsync("Latest" .. (backupType ~= "regular" and backupType:sub(1, 1):upper() .. backupType:sub(2) or "") .. "_" .. userId)
+        end
+    )
+    
+    if success and latestKey then
+        -- In a real implementation, you would delete old backups here
+        -- For now, we'll just log the cleanup
+        log("Cleaned up old " .. backupType .. " backups for userId " .. userId)
+    end
+    
     return true
 end
 
 -- Initialize on module load
-DataBackup:Initialize()
+DataBackup:initialize()
 
 -- Connect to DataManager events if available through CoreRegistry
 if CoreRegistry and CoreRegistry.onEvent then

@@ -5,6 +5,7 @@
     It handles tile cost, prerequisites, and spawning the associated gym parts.
     
     Created to fix the "BuyTile System Errors" reported in RobloxIssues.txt
+    Updated: April 30, 2025 - Fixed initialization and CoreRegistry integration
 ]]
 
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -65,26 +66,12 @@ local DataManager = safeRequire(DataManagerModule)
 local ModuleLoaderModule = findModule("ModuleLoader")
 local ModuleLoader = safeRequire(ModuleLoaderModule)
 
--- Notify of dependency status
-if not CoreRegistry then
-    print("[BuyTileSystem] NOTICE: CoreRegistry not found, using standalone mode")
-end
-
-if not EventBridge then
-    print("[BuyTileSystem] NOTICE: EventBridge not found, events will not be fired")
-else
-    -- Register events
-    EventBridge.registerEvent("BuyTile_TilePurchased")
-    EventBridge.registerEvent("BuyTile_GymPartSpawned")
-    EventBridge.registerEvent("BuyTile_PurchaseError")
-end
-
 -- Create the module
 local BuyTileSystem = {}
+BuyTileSystem.initialized = false
 
 -- Version information
 BuyTileSystem.VERSION = "1.0.0"
-BuyTileSystem.isLoaded = true
 
 -- Internal data
 local tileData = {}
@@ -104,6 +91,48 @@ local DEFAULT_TILE_CONFIG = {
     floor = 1,
     prerequisites = {} -- Array of tile IDs that must be purchased first
 }
+
+-- Initialize the BuyTileSystem
+function BuyTileSystem:initialize()
+    if self.initialized then
+        return true
+    end
+    
+    print("[BuyTileSystem] Initializing...")
+    
+    -- Register events if EventBridge is available
+    if EventBridge and typeof(EventBridge.registerEvent) == "function" then
+        EventBridge.registerEvent("BuyTile_TilePurchased")
+        EventBridge.registerEvent("BuyTile_GymPartSpawned")
+        EventBridge.registerEvent("BuyTile_PurchaseError")
+        print("[BuyTileSystem] Registered events with EventBridge")
+    else
+        print("[BuyTileSystem] WARNING: EventBridge not found, events will not be fired")
+    end
+    
+    -- Register with CoreRegistry
+    if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
+        CoreRegistry:registerSystem("BuyTileSystem", self)
+        print("[BuyTileSystem] Registered with CoreRegistry")
+        
+        -- Mark as initialized in CoreRegistry
+        if typeof(CoreRegistry.markInitialized) == "function" then
+            CoreRegistry:markInitialized("BuyTileSystem")
+            print("[BuyTileSystem] Marked as initialized in CoreRegistry")
+        end
+    else
+        print("[BuyTileSystem] WARNING: CoreRegistry not found, using standalone mode")
+    end
+    
+    self.initialized = true
+    print("[BuyTileSystem] Initialized successfully")
+    return true
+end
+
+-- Check if initialized
+function BuyTileSystem:isInitialized()
+    return self.initialized
+end
 
 -- Set the gym part data
 function BuyTileSystem.setTileData(data)
@@ -818,11 +847,4 @@ if not next(tileData) then
     print("[BuyTile] Set up default tile data with 2 tiles")
 end
 
--- Register with CoreRegistry if available
-if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
-    CoreRegistry.registerSystem("BuyTileSystem", BuyTileSystem)
-    print("[BuyTile] Registered with CoreRegistry")
-end
-
-print("✅ BuyTileSystem initialized successfully")
 return BuyTileSystem

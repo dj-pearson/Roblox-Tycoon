@@ -183,11 +183,8 @@ local function createFallbackMainMenuUI()
     function fallbackUI:Show()
         log("Showing fallback MainMenuUI")
         
-        -- Clear any existing fallback UI
-        local existingGui = player.PlayerGui:FindFirstChild("FallbackMainMenuUI")
-        if existingGui then
-            existingGui:Destroy()
-        end
+        -- Clean up any existing fallback UI first
+        self:Cleanup()
         
         -- Create a basic UI
         local screenGui = Instance.new("ScreenGui")
@@ -266,7 +263,7 @@ local function createFallbackMainMenuUI()
             -- Button functionality
             button.MouseButton1Click:Connect(function()
                 if button.Name == "CloseButton" then
-                    fallbackUI:Hide()
+                    self:Cleanup()
                 else
                     log("Clicked on " .. button.Name .. " - This is a fallback button with no functionality")
                 end
@@ -284,20 +281,29 @@ local function createFallbackMainMenuUI()
     end
     
     function fallbackUI:Hide()
-        log("Hiding fallback MainMenuUI")
+        return self:Cleanup()
+    end
+    
+    function fallbackUI:hide()
+        return self:Cleanup()
+    end
+    
+    function fallbackUI:Cleanup()
+        log("Cleaning up fallback MainMenuUI")
         if fallbackUI.gui then
-            fallbackUI.gui.Enabled = false
+            fallbackUI.gui:Destroy()
+            fallbackUI.gui = nil
         end
         return true
     end
     
-    function fallbackUI:hide()
-        return self:Hide()
+    function fallbackUI:cleanup()
+        return self:Cleanup()
     end
     
     function fallbackUI:toggle()
-        if fallbackUI.gui and fallbackUI.gui.Enabled then
-            return self:Hide()
+        if fallbackUI.gui then
+            return self:Cleanup()
         else
             return self:Show()
         end

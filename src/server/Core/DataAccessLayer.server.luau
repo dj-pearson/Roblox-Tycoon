@@ -48,6 +48,23 @@ end
 
 CoreRegistry = findCoreRegistry()
 
+-- Get DataPersistence from CoreRegistry or directly
+local DataPersistence
+if CoreRegistry then
+    DataPersistence = CoreRegistry.getSystem("DataPersistence")
+end
+
+if not DataPersistence then
+    -- Try direct require
+    local success, result = pcall(function()
+        return require(ServerScriptService:FindFirstChild("Core"):FindFirstChild("DataPersistence"))
+    end)
+    
+    if success then
+        DataPersistence = result
+    end
+end
+
 -- Get DataManager from CoreRegistry or directly
 local DataManager
 if CoreRegistry then
@@ -282,14 +299,15 @@ end
 function DataAccessLayer:Initialize()
     log("Initializing DataAccessLayer v" .. self.Version)
     
+    -- Check if we found DataPersistence
+    if not DataPersistence then
+        warn("DataPersistence not found! Data operations will fail!")
+        return false
+    end
+    
     -- Check if we found DataManager
-    if DataManager then
-        log("Using CoreDataManager")
-    elseif EnhancedDataStorageSystem then
-        log("Using EnhancedDataStorageSystem as fallback")
-        DataManager = EnhancedDataStorageSystem
-    else
-        warn("No data system found! Data operations will fail!")
+    if not DataManager then
+        warn("DataManager not found! Some data operations may be limited!")
     end
     
     -- Register with CoreRegistry if available
@@ -316,17 +334,11 @@ end
 -- Get all player data 
 function DataAccessLayer:GetAllPlayerData(player)
     if not player then return nil, "Invalid player" end
-    if not DataManager then return nil, "DataManager not initialized" end
+    if not DataPersistence then return nil, "DataPersistence not initialized" end
     
     local data
     local success, result = pcall(function()
-        if DataManager.getPlayerData then
-            data = DataManager.getPlayerData(player)
-        elseif DataManager.loadedData then
-            -- EnhancedDataStorageSystem style
-            data = DataManager.loadedData[player.UserId]
-        end
-        return data
+        return DataPersistence:GetPlayerData(player.UserId)
     end)
     
     if success and data then
@@ -434,15 +446,12 @@ end
 -- Save player data immediately
 function DataAccessLayer:SavePlayerData(player, immediate)
     if not player then return false, "Invalid player" end
-    if not DataManager then return false, "DataManager not initialized" end
+    if not DataPersistence then return false, "DataPersistence not initialized" end
     
     immediate = (immediate == nil) and true or immediate
     
     local success, result = pcall(function()
-        if DataManager.saveData then
-            return DataManager.saveData(player, immediate)
-        end
-        return false
+        return DataPersistence:SavePlayerData(player.UserId, immediate)
     end)
     
     if success and result then
@@ -485,17 +494,14 @@ function DataAccessLayer:SavePlayerDataWithValidation(player, immediate)
     return self:SavePlayerData(player, immediate)
 end
 
--- Force-load player data (useful for reloading after changes)
+-- Load player data
 function DataAccessLayer:LoadPlayerData(player)
     if not player then return nil, "Invalid player" end
-    if not DataManager then return nil, "DataManager not initialized" end
+    if not DataPersistence then return nil, "DataPersistence not initialized" end
     
     local data
     local success, result = pcall(function()
-        if DataManager.loadData then
-            data = DataManager.loadData(player)
-        end
-        return data
+        return DataPersistence:LoadPlayerData(player.UserId)
     end)
     
     if success and data then

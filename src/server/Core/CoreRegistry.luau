@@ -43,6 +43,7 @@ local CRITICAL_SYSTEMS = {
 
 -- The systems registry - stores system objects with metadata
 local systems = {}
+local systemStatus = {} -- Tracks initialization status of each system
 
 -- Log a message to the output
 local function log(message)
@@ -55,10 +56,15 @@ end
 function CoreRegistry.checkCriticalSystems()
     local criticalCount = 0
     local missingCritical = {}
+    local failedCritical = {}
     
     for _, systemName in ipairs(CRITICAL_SYSTEMS) do
         if systems[systemName] then
-            criticalCount += 1
+            if systemStatus[systemName] == "Initialized" then
+                criticalCount += 1
+            else
+                table.insert(failedCritical, systemName)
+            end
         else
             table.insert(missingCritical, systemName)
         end
@@ -84,11 +90,16 @@ function CoreRegistry.checkCriticalSystems()
         log("Critical system missing: " .. systemName)
     end
     
+    -- Output failed systems
+    for _, systemName in ipairs(failedCritical) do
+        log("Critical system failed to initialize: " .. systemName)
+    end
+    
     return criticalCount, totalCritical
 end
 
 -- Function to register a system
-function CoreRegistry.registerSystem(systemName, systemInstance)
+function CoreRegistry.registerSystem(systemName, systemInstance, dependencies)
     if not systemName or typeof(systemName) ~= "string" then
         warn("[CoreRegistry] Invalid system name provided to registerSystem")
         return false
@@ -101,10 +112,24 @@ function CoreRegistry.registerSystem(systemName, systemInstance)
     
     log("Registering system: " .. systemName)
     
+    -- Check dependencies if provided
+    if dependencies and type(dependencies) == "table" then
+        for _, depName in ipairs(dependencies) do
+            if not systems[depName] then
+                warn("[CoreRegistry] Dependency not found: " .. depName .. " for system: " .. systemName)
+                return false
+            end
+        end
+    end
+    
     systems[systemName] = {
         instance = systemInstance,
-        timestamp = os.time()
+        timestamp = os.time(),
+        dependencies = dependencies or {}
     }
+    
+    -- Set initial status
+    systemStatus[systemName] = "Registered"
     
     -- Update registry status if this was a critical system
     if table.find(CRITICAL_SYSTEMS, systemName) then
@@ -137,10 +162,64 @@ function CoreRegistry.getStatus()
     return status
 end
 
+-- Function to mark a system as initialized
+function CoreRegistry.markInitialized(systemName)
+    if not systemName or typeof(systemName) ~= "string" then
+        warn("[CoreRegistry] Invalid system name provided to markInitialized")
+        return false
+    end
+    
+    if not systems[systemName] then
+        warn("[CoreRegistry] System not found: " .. systemName)
+        return false
+    end
+    
+    log("Marking system as initialized: " .. systemName)
+    systemStatus[systemName] = "Initialized"
+    
+    -- Update registry status if this was a critical system
+    if table.find(CRITICAL_SYSTEMS, systemName) then
+        CoreRegistry.checkCriticalSystems()
+    end
+    
+    return true
+end
+
+-- Function to get system status
+function CoreRegistry.getSystemStatus(systemName)
+    if not systemName or typeof(systemName) ~= "string" then
+        warn("[CoreRegistry] Invalid system name provided to getSystemStatus")
+        return nil
+    end
+    
+    return systemStatus[systemName]
+end
+
+-- Function to get all system statuses
+function CoreRegistry.getAllSystemStatuses()
+    local statuses = {}
+    for name, _ in pairs(systems) do
+        statuses[name] = systemStatus[name]
+    end
+    return statuses
+end
+
 -- Function to run a health check
 function CoreRegistry.runHealthCheck()
     log("Running health check...")
-    return CoreRegistry.checkCriticalSystems()
+    local criticalCount, totalCritical = CoreRegistry.checkCriticalSystems()
+    
+    -- Print detailed status
+    log("Registry Status: " .. status)
+    log("Critical Systems: " .. criticalCount .. "/" .. totalCritical)
+    
+    -- Print system statuses
+    log("System Statuses:")
+    for name, status in pairs(systemStatus) do
+        log("  - " .. name .. ": " .. status)
+    end
+    
+    return criticalCount, totalCritical
 end
 
 -- Initialize the registry
@@ -153,112 +232,10 @@ function CoreRegistry.initialize()
     
     -- Self-register
     CoreRegistry.registerSystem("CoreRegistry", CoreRegistry)
-    
-    -- Try to find and load critical systems from various locations
-    for _, systemName in ipairs(CRITICAL_SYSTEMS) do
-        if systemName == "CoreRegistry" then
-            -- Already registered
-            continue
-        end
-        
-        local found = false
-        
-        -- List of common paths to check for the module
-        local searchPaths = {
-            -- ServerScriptService paths
-            {ServerScriptService, "Core", systemName},
-            {ServerScriptService, "Server", "Core", systemName},
-            {ServerScriptService, "src", "server", "Core", systemName},
-            {ServerScriptService, "Systems", systemName},
-            {ServerScriptService, systemName},
-            
-            -- ReplicatedStorage paths
-            {ReplicatedStorage, "shared", systemName},
-            {ReplicatedStorage, "src", "shared", systemName},
-            {ReplicatedStorage, "Core", systemName},
-            {ReplicatedStorage, systemName},
-            
-            -- ServerStorage paths
-            {ServerStorage, "Systems", systemName},
-            {ServerStorage, "Core", systemName},
-            {ServerStorage, systemName}
-        }
-        
-        -- Try each path
-        for _, pathComponents in ipairs(searchPaths) do
-            local currentPath = pathComponents[1]
-            
-            -- Navigate through the path components
-            local valid = true
-            for i = 2, #pathComponents do
-                if not currentPath:FindFirstChild(pathComponents[i]) then
-                    valid = false
-                    break
-                end
-                currentPath = currentPath:FindFirstChild(pathComponents[i])
-            end
-            
-            -- If path is valid and a ModuleScript, try loading it
-            if valid and currentPath:IsA("ModuleScript") then
-                local success, system = pcall(function()
-                    return require(currentPath)
-                end)
-                
-                if success and system then
-                    CoreRegistry.registerSystem(systemName, system)
-                    found = true
-                    log("Found and registered " .. systemName)
-                    break
-                end
-            end
-        end
-        
-        if not found then
-            log("Critical system missing: " .. systemName)
-        end
-    end
-    
-    -- Create shared registry remotes
-    local remotes = ReplicatedStorage:FindFirstChild("CoreRegistryRemotes")
-    if not remotes then
-        remotes = Instance.new("Folder")
-        remotes.Name = "CoreRegistryRemotes"
-        remotes.Parent = ReplicatedStorage
-        
-        -- Create GetSystem remote
-        local getSystemRemote = Instance.new("RemoteFunction")
-        getSystemRemote.Name = "GetSystem"
-        getSystemRemote.Parent = remotes
-        
-        -- Handle GetSystem calls
-        getSystemRemote.OnServerInvoke = function(_, systemName)
-            -- Security check - only return certain systems to clients
-            local clientAllowedSystems = {
-                "UIComponents",
-                "AssetValidator",
-                "EventBridge"
-                -- Add other client-accessible systems here
-            }
-            
-            if table.find(clientAllowedSystems, systemName) then
-                local system = CoreRegistry.getSystem(systemName)
-                if system and typeof(system.getClientInterface) == "function" then
-                    -- Only return client-safe interface if available
-                    return system:getClientInterface()
-                end
-            end
-            
-            return nil
-        end
-    end
-    
-    -- Set initial status based on loaded systems
-    CoreRegistry.checkCriticalSystems()
+    CoreRegistry.markInitialized("CoreRegistry")
     
     CoreRegistry.initialized = true
-    log("CoreRegistry initialization complete")
-    
-    return true
+    log("CoreRegistry initialized")
 end
 
 -- Check if a system exists in the registry
@@ -307,8 +284,5 @@ function CoreRegistry.getSystemsInfo()
     end
     return info
 end
-
--- Initialize the registry
-CoreRegistry.initialize()
 
 return CoreRegistry

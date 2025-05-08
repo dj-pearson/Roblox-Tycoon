@@ -1,14 +1,28 @@
--- TycoonSystem.luau
--- Unified system for tycoon management
--- Place in ServerScriptService/Core
+--[[
+    TycoonSystem.server.luau
+    
+    Unified system for tycoon management.
+    Handles tycoon creation, ownership, and maintenance.
+    
+    Created: April 30, 2025
+    Updated: April 30, 2025 - Fixed initialization and CoreRegistry integration
+]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Get the CoreRegistry and dependencies
-local CoreRegistry = require(script.Parent.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
+local CoreRegistry
+local EventBridge
+
+local success, result = pcall(function()
+    return require(script.Parent.CoreRegistry)
+end)
+if success then
+    CoreRegistry = result
+    EventBridge = CoreRegistry.getSystem("EventBridge")
+end
 
 -- Configuration
 local CONFIG = {
@@ -40,7 +54,8 @@ local TycoonSystem = {
     tycoonInstances = {},
     tycoonOwners = {},
     playerTycoons = {},
-    nextTycoonPosition = 0
+    nextTycoonPosition = 0,
+    initialized = false
 }
 
 -- Debug function
@@ -52,6 +67,10 @@ end
 
 -- Initialize the module
 function TycoonSystem:initialize()
+    if self.initialized then
+        return true
+    end
+    
     log("Initializing TycoonSystem...")
     
     -- Create tycoon folder if it doesn't exist
@@ -68,7 +87,22 @@ function TycoonSystem:initialize()
     -- Set up tycoon maintenance
     self:startTycoonMaintenance()
     
-    log("TycoonSystem initialized")
+    -- Register with CoreRegistry
+    if CoreRegistry and typeof(CoreRegistry.registerSystem) == "function" then
+        CoreRegistry:registerSystem("TycoonSystem", self)
+        log("Registered with CoreRegistry")
+        
+        -- Mark as initialized in CoreRegistry
+        if typeof(CoreRegistry.markInitialized) == "function" then
+            CoreRegistry:markInitialized("TycoonSystem")
+            log("Marked as initialized in CoreRegistry")
+        end
+    else
+        log("WARNING: CoreRegistry not found, using standalone mode")
+    end
+    
+    self.initialized = true
+    log("TycoonSystem initialized successfully")
     return true
 end
 
@@ -458,45 +492,9 @@ function TycoonSystem:applyCulling(tycoon, owner)
     end
 end
 
--- Public API
-local PublicAPI = {
-    initialize = function()
-        return TycoonSystem:initialize()
-    end,
-    
-    createNewTycoon = function(player)
-        return TycoonSystem:createNewTycoon(player)
-    end,
-    
-    ensurePlayerTycoon = function(player)
-        return TycoonSystem:ensurePlayerTycoon(player)
-    end,
-    
-    fixTycoonReference = function(player)
-        return TycoonSystem:fixTycoonReference(player)
-    end,
-    
-    generateRevenue = function(player)
-        return TycoonSystem:generateRevenue(player)
-    end,
-    
-    getTycoonOwner = function(tycoon)
-        if typeof(tycoon) == "string" then
-            return TycoonSystem.tycoonOwners[tycoon]
-        else
-            return TycoonSystem.tycoonOwners[tycoon.Name]
-        end
-    end,
-    
-    getPlayerTycoon = function(player)
-        if not player then return nil end
-        return TycoonSystem.playerTycoons[player.UserId]
-    end,
-    
-    getConfig = function()
-        return CONFIG
-    end
-}
+-- Check if initialized
+function TycoonSystem:isInitialized()
+    return self.initialized
+end
 
--- Register with CoreRegistry
-return CoreRegistry.registerSystem("TycoonSystem", PublicAPI, {"EventBridge"})
+return TycoonSystem

@@ -475,7 +475,10 @@ local function createFallbackUI(uiName)
             buttonCorner.Parent = closeButton
             
             closeButton.MouseButton1Click:Connect(function()
-                fallbackUI:hide()
+                if fallbackUI.gui then
+                    fallbackUI.gui:Destroy()  -- Destroy the GUI instead of just hiding it
+                    fallbackUI.gui = nil
+                end
             end)
             
             screenGui.Parent = playerGui
@@ -495,7 +498,8 @@ local function createFallbackUI(uiName)
     function fallbackUI:hide()
         log("Fallback UI hide() called for: " .. uiName)
         if fallbackUI.gui then
-            fallbackUI.gui.Enabled = false
+            fallbackUI.gui:Destroy()  -- Destroy the GUI instead of just hiding it
+            fallbackUI.gui = nil
         end
         return true
     end
@@ -510,6 +514,19 @@ local function createFallbackUI(uiName)
         else
             return self:hide()
         end
+    end
+    
+    -- Add a new method to properly clean up the fallback UI
+    function fallbackUI:cleanup()
+        if fallbackUI.gui then
+            fallbackUI.gui:Destroy()
+            fallbackUI.gui = nil
+        end
+        return true
+    end
+    
+    function fallbackUI:Cleanup()
+        return self:cleanup()
     end
     
     function fallbackUI:initialize()

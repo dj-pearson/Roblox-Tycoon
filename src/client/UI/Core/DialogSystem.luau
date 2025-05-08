@@ -2,119 +2,145 @@
 --[[
     DialogSystem.luau
     
-    Dialog system for handling confirmations and notifications.
-    Provides a consistent way to show dialogs with animations.
+    Dialog system implementation.
+    Handles showing dialogs, confirmations, and notifications.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
--- Get the transitions module
-local UITransitions = require(script.Parent.UITransitions)
+-- Get the module loader
+local ModuleLoader = require(script.Parent.ModuleLoader)
+
+-- Load required modules
+local UIComponent = ModuleLoader.loadCore("UIComponent")
+local UITransitions = ModuleLoader.loadCore("UITransitions")
+local UIUtils = ModuleLoader.loadCore("UIUtils")
 
 -- Dialog types
-local DialogType = {
-    INFO = "info",
-    WARNING = "warning",
-    ERROR = "error",
-    CONFIRM = "confirm"
+local DIALOG_TYPES = {
+    INFO = "Info",
+    WARNING = "Warning",
+    ERROR = "Error",
+    CONFIRM = "Confirm"
 }
 
 -- Dialog colors
-local DialogColors = {
-    [DialogType.INFO] = Color3.fromRGB(52, 152, 219),
-    [DialogType.WARNING] = Color3.fromRGB(241, 196, 15),
-    [DialogType.ERROR] = Color3.fromRGB(231, 76, 60),
-    [DialogType.CONFIRM] = Color3.fromRGB(46, 204, 113)
+local DIALOG_COLORS = {
+    [DIALOG_TYPES.INFO] = UIUtils.Colors.Primary,
+    [DIALOG_TYPES.WARNING] = UIUtils.Colors.Warning,
+    [DIALOG_TYPES.ERROR] = UIUtils.Colors.Error,
+    [DIALOG_TYPES.CONFIRM] = UIUtils.Colors.Primary
 }
 
--- Create DialogSystem
-local DialogSystem = {}
+-- Create DialogSystem class
+local DialogSystem = setmetatable({}, {__index = UIComponent})
 DialogSystem.__index = DialogSystem
 
 -- Constructor
 function DialogSystem.new()
-    local self = setmetatable({}, DialogSystem)
-    self.activeDialogs = {}
+    local self = setmetatable(UIComponent.new("DialogSystem"), DialogSystem)
     self.dialogQueue = {}
-    self.isProcessingQueue = false
+    self.activeDialog = nil
     return self
+end
+
+-- Override create method
+function DialogSystem:create()
+    -- Call base create method
+    local success = UIComponent.create(self)
+    if not success then
+        return nil
+    end
+    
+    -- Create background
+    self:createBackground()
+    
+    return self.instance
+end
+
+-- Create background
+function DialogSystem:createBackground()
+    local background = UIUtils.createFrame(self.instance, {
+        Name = "Background",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 0.5
+    })
 end
 
 -- Create dialog UI
 function DialogSystem:createDialogUI()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "DialogSystem"
-    screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-    
-    return screenGui
-end
-
--- Create dialog frame
-function DialogSystem:createDialogFrame()
-    local frame = Instance.new("Frame")
-    frame.Name = "DialogFrame"
-    frame.Size = UDim2.new(0, 400, 0, 200)
-    frame.Position = UDim2.new(0.5, -200, 0.5, -100)
-    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    frame.BackgroundTransparency = 0.1
-    frame.Visible = false
-    
-    -- Add corner radius
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
+    local dialog = UIUtils.createFrame(self.instance, {
+        Name = "Dialog",
+        Size = UDim2.new(0.4, 0, 0, 200),
+        Position = UDim2.new(0.3, 0, 0.4, 0),
+        BackgroundColor3 = UIUtils.Colors.Background,
+        BackgroundTransparency = 0.1,
+        CornerRadius = 8,
+        Layout = UIUtils.Layouts.Vertical
+    })
     
     -- Create title
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundTransparency = 1
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 24
-    title.Parent = frame
+    local title = UIUtils.createLabel(dialog, {
+        Name = "Title",
+        Size = UDim2.new(1, 0, 0, 40),
+        Text = "",
+        TextColor3 = UIUtils.Colors.Text,
+        Font = UIUtils.Fonts.Title,
+        TextSize = UIUtils.TextSizes.Title,
+        TextXAlignment = Enum.TextXAlignment.Center
+    })
+    
+    -- Add separator
+    UIUtils.createSeparator(dialog, {
+        Size = UDim2.new(0.9, 0, 0, 2)
+    })
     
     -- Create message
-    local message = Instance.new("TextLabel")
-    message.Name = "Message"
-    message.Size = UDim2.new(0.9, 0, 0, 80)
-    message.Position = UDim2.new(0.05, 0, 0.3, 0)
-    message.BackgroundTransparency = 1
-    message.TextColor3 = Color3.fromRGB(255, 255, 255)
-    message.Font = Enum.Font.Gotham
-    message.TextSize = 18
-    message.TextWrapped = true
-    message.Parent = frame
+    local message = UIUtils.createLabel(dialog, {
+        Name = "Message",
+        Size = UDim2.new(0.9, 0, 0, 60),
+        Position = UDim2.new(0.05, 0, 0, 0),
+        Text = "",
+        TextColor3 = UIUtils.Colors.Text,
+        Font = UIUtils.Fonts.Body,
+        TextSize = UIUtils.TextSizes.Body,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Center
+    })
     
     -- Create button container
-    local buttonContainer = Instance.new("Frame")
-    buttonContainer.Name = "ButtonContainer"
-    buttonContainer.Size = UDim2.new(0.9, 0, 0, 40)
-    buttonContainer.Position = UDim2.new(0.05, 0, 0.8, 0)
-    buttonContainer.BackgroundTransparency = 1
-    buttonContainer.Parent = frame
+    local buttonContainer = UIUtils.createFrame(dialog, {
+        Name = "ButtonContainer",
+        Size = UDim2.new(0.9, 0, 0, 50),
+        Position = UDim2.new(0.05, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Layout = UIUtils.Layouts.Horizontal
+    })
     
-    return frame
+    return dialog, title, message, buttonContainer
 end
 
 -- Create button
-function DialogSystem:createButton(text, color)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0.45, 0, 1, 0)
-    button.BackgroundColor3 = color
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 18
-    button.Text = text
+function DialogSystem:createButton(parent, text, color, callback)
+    local button = UIUtils.createButton(parent, {
+        Name = text .. "Button",
+        Size = UDim2.new(0.45, 0, 0, 40),
+        Text = text,
+        BackgroundColor3 = color
+    })
     
-    -- Add corner radius
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 4)
-    corner.Parent = button
+    -- Add hover effect
+    UIUtils.setupButtonHover(button, color, color:Lerp(UIUtils.Colors.Hover, 0.3))
+    
+    -- Add click handler
+    button.MouseButton1Click:Connect(function()
+        if callback then
+            callback()
+        end
+        self:hideDialog()
+    end)
     
     return button
 end
@@ -124,104 +150,54 @@ function DialogSystem:showDialog(options)
     -- Add to queue
     table.insert(self.dialogQueue, options)
     
-    -- Process queue if not already processing
-    if not self.isProcessingQueue then
-        self:processQueue()
-    end
+    -- Process queue
+    self:processQueue()
 end
 
--- Process dialog queue
+-- Process queue
 function DialogSystem:processQueue()
-    if #self.dialogQueue == 0 then
-        self.isProcessingQueue = false
-        return
-    end
+    -- Skip if already showing a dialog
+    if self.activeDialog then return end
     
-    self.isProcessingQueue = true
-    
-    -- Get next dialog options
+    -- Get next dialog
     local options = table.remove(self.dialogQueue, 1)
+    if not options then return end
     
-    -- Create dialog UI if needed
-    if not self.screenGui then
-        self.screenGui = self:createDialogUI()
-    end
-    
-    -- Create dialog frame
-    local dialog = self:createDialogFrame()
-    dialog.Parent = self.screenGui
+    -- Create dialog UI
+    local dialog, title, message, buttonContainer = self:createDialogUI()
     
     -- Set dialog properties
-    local title = dialog:FindFirstChild("Title")
-    local message = dialog:FindFirstChild("Message")
-    local buttonContainer = dialog:FindFirstChild("ButtonContainer")
-    
-    title.Text = options.title or "Dialog"
+    title.Text = options.title or ""
     message.Text = options.message or ""
     
     -- Set dialog color
-    local dialogColor = DialogColors[options.type or DialogType.INFO]
+    local dialogColor = DIALOG_COLORS[options.type] or DIALOG_COLORS[DIALOG_TYPES.INFO]
     title.TextColor3 = dialogColor
     
     -- Create buttons
-    if options.type == DialogType.CONFIRM then
-        -- Create confirm and cancel buttons
-        local confirmButton = self:createButton(options.confirmText or "Confirm", DialogColors[DialogType.CONFIRM])
-        confirmButton.Position = UDim2.new(0, 0, 0, 0)
-        confirmButton.Parent = buttonContainer
-        
-        local cancelButton = self:createButton(options.cancelText or "Cancel", Color3.fromRGB(50, 53, 59))
-        cancelButton.Position = UDim2.new(0.55, 0, 0, 0)
-        cancelButton.Parent = buttonContainer
-        
-        -- Connect button events
-        confirmButton.MouseButton1Click:Connect(function()
-            if options.onConfirm then
-                options.onConfirm()
-            end
-            self:hideDialog(dialog)
-        end)
-        
-        cancelButton.MouseButton1Click:Connect(function()
-            if options.onCancel then
-                options.onCancel()
-            end
-            self:hideDialog(dialog)
-        end)
+    if options.type == DIALOG_TYPES.CONFIRM then
+        self:createButton(buttonContainer, options.confirmText or "Confirm", dialogColor, options.onConfirm)
+        self:createButton(buttonContainer, options.cancelText or "Cancel", UIUtils.Colors.Secondary, options.onCancel)
     else
-        -- Create single button
-        local button = self:createButton(options.buttonText or "OK", dialogColor)
-        button.Position = UDim2.new(0.275, 0, 0, 0)
-        button.Parent = buttonContainer
-        
-        -- Connect button event
-        button.MouseButton1Click:Connect(function()
-            if options.onButton then
-                options.onButton()
-            end
-            self:hideDialog(dialog)
-        end)
+        self:createButton(buttonContainer, options.buttonText or "OK", dialogColor, options.onButton)
     end
     
-    -- Show dialog with animation
+    -- Show dialog
     dialog.Visible = true
-    UITransitions.fadeAndSlideIn(dialog, 0.3)
+    UITransitions.fadeAndSlideIn(dialog, UIUtils.Animations.Default.Time)
     
-    -- Add to active dialogs
-    table.insert(self.activeDialogs, dialog)
+    -- Store reference
+    self.activeDialog = dialog
 end
 
 -- Hide dialog
-function DialogSystem:hideDialog(dialog)
-    -- Find dialog in active dialogs
-    local index = table.find(self.activeDialogs, dialog)
-    if index then
-        table.remove(self.activeDialogs, index)
-    end
+function DialogSystem:hideDialog()
+    if not self.activeDialog then return end
     
     -- Hide with animation
-    UITransitions.fadeAndSlideOut(dialog, 0.3, function()
-        dialog:Destroy()
+    UITransitions.fadeAndSlideOut(self.activeDialog, UIUtils.Animations.Default.Time, function()
+        self.activeDialog:Destroy()
+        self.activeDialog = nil
         
         -- Process next dialog
         self:processQueue()
@@ -229,42 +205,42 @@ function DialogSystem:hideDialog(dialog)
 end
 
 -- Show info dialog
-function DialogSystem:showInfo(title, message, buttonText, onButton)
+function DialogSystem:showInfo(title, message, buttonText, callback)
     self:showDialog({
-        type = DialogType.INFO,
+        type = DIALOG_TYPES.INFO,
         title = title,
         message = message,
         buttonText = buttonText,
-        onButton = onButton
+        onButton = callback
     })
 end
 
 -- Show warning dialog
-function DialogSystem:showWarning(title, message, buttonText, onButton)
+function DialogSystem:showWarning(title, message, buttonText, callback)
     self:showDialog({
-        type = DialogType.WARNING,
+        type = DIALOG_TYPES.WARNING,
         title = title,
         message = message,
         buttonText = buttonText,
-        onButton = onButton
+        onButton = callback
     })
 end
 
 -- Show error dialog
-function DialogSystem:showError(title, message, buttonText, onButton)
+function DialogSystem:showError(title, message, buttonText, callback)
     self:showDialog({
-        type = DialogType.ERROR,
+        type = DIALOG_TYPES.ERROR,
         title = title,
         message = message,
         buttonText = buttonText,
-        onButton = onButton
+        onButton = callback
     })
 end
 
 -- Show confirm dialog
 function DialogSystem:showConfirm(title, message, confirmText, cancelText, onConfirm, onCancel)
     self:showDialog({
-        type = DialogType.CONFIRM,
+        type = DIALOG_TYPES.CONFIRM,
         title = title,
         message = message,
         confirmText = confirmText,
@@ -279,17 +255,22 @@ function DialogSystem:cleanup()
     -- Clear queue
     self.dialogQueue = {}
     
-    -- Hide all active dialogs
-    for _, dialog in ipairs(self.activeDialogs) do
-        dialog:Destroy()
+    -- Hide active dialog
+    if self.activeDialog then
+        self.activeDialog:Destroy()
+        self.activeDialog = nil
     end
-    self.activeDialogs = {}
+end
+
+-- Override update method
+function DialogSystem:update()
+    -- Call base update method
+    local success = UIComponent.update(self)
+    if not success then
+        return false
+    end
     
-    -- Destroy screen GUI
-    if self.screenGui then
-        self.screenGui:Destroy()
-        self.screenGui = nil
-    end
+    return true
 end
 
 return DialogSystem 

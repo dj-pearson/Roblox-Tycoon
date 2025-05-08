@@ -78,7 +78,8 @@ function PauseMenu:createMenuPanel()
         Position = UDim2.new(0.3, 0, 0.2, 0),
         BackgroundColor3 = UIUtils.Colors.Background,
         BackgroundTransparency = 0.1,
-        CornerRadius = 8
+        CornerRadius = 8,
+        Layout = UIUtils.Layouts.Vertical
     })
     
     -- Create title
@@ -101,13 +102,15 @@ end
 
 -- Create buttons
 function PauseMenu:createButtons()
-    local buttonContainer = UIUtils.createButtonContainer(self.instance.MenuPanel)
+    local buttonContainer = UIUtils.createButtonContainer(self.instance.MenuPanel, {
+        Size = UDim2.new(0.8, 0, 0, 300),
+        Position = UDim2.new(0.1, 0, 0, 80)
+    })
     
     -- Create resume button
     local resumeButton = UIUtils.createButton(buttonContainer, {
         Name = "ResumeButton",
         Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 0),
         Text = "Resume",
         BackgroundColor3 = UIUtils.Colors.Primary
     })
@@ -116,7 +119,6 @@ function PauseMenu:createButtons()
     local settingsButton = UIUtils.createButton(buttonContainer, {
         Name = "SettingsButton",
         Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 70),
         Text = "Settings",
         BackgroundColor3 = UIUtils.Colors.Secondary
     })
@@ -125,7 +127,6 @@ function PauseMenu:createButtons()
     local helpButton = UIUtils.createButton(buttonContainer, {
         Name = "HelpButton",
         Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 140),
         Text = "Help",
         BackgroundColor3 = UIUtils.Colors.Secondary
     })
@@ -134,16 +135,15 @@ function PauseMenu:createButtons()
     local quitButton = UIUtils.createButton(buttonContainer, {
         Name = "QuitButton",
         Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 210),
         Text = "Quit to Menu",
         BackgroundColor3 = UIUtils.Colors.Error
     })
     
-    -- Add button hover effects
-    UIUtils.setupButtonHover(resumeButton, UIUtils.Colors.Primary)
-    UIUtils.setupButtonHover(settingsButton, UIUtils.Colors.Secondary)
-    UIUtils.setupButtonHover(helpButton, UIUtils.Colors.Secondary)
-    UIUtils.setupButtonHover(quitButton, UIUtils.Colors.Error)
+    -- Add button hover effects with custom hover colors
+    UIUtils.setupButtonHover(resumeButton, UIUtils.Colors.Primary, UIUtils.Colors.Primary:Lerp(UIUtils.Colors.Hover, 0.3))
+    UIUtils.setupButtonHover(settingsButton, UIUtils.Colors.Secondary, UIUtils.Colors.Secondary:Lerp(UIUtils.Colors.Hover, 0.3))
+    UIUtils.setupButtonHover(helpButton, UIUtils.Colors.Secondary, UIUtils.Colors.Secondary:Lerp(UIUtils.Colors.Hover, 0.3))
+    UIUtils.setupButtonHover(quitButton, UIUtils.Colors.Error, UIUtils.Colors.Error:Lerp(UIUtils.Colors.Hover, 0.3))
     
     -- Add button click handlers
     resumeButton.MouseButton1Click:Connect(function()
@@ -187,7 +187,7 @@ function PauseMenu:pause()
     
     -- Show menu with animation
     self.instance.Visible = true
-    UITransitions.fadeAndSlideIn(self.instance, 0.3)
+    UITransitions.fadeAndSlideIn(self.instance, UIUtils.Animations.Default.Time)
     
     -- Show toast
     self.toastSystem:showInfo("Game paused", 2)
@@ -204,7 +204,7 @@ function PauseMenu:resume()
     self.isPaused = false
     
     -- Hide menu with animation
-    UITransitions.fadeAndSlideOut(self.instance, 0.3, function()
+    UITransitions.fadeAndSlideOut(self.instance, UIUtils.Animations.Default.Time, function()
         self.instance.Visible = false
     end)
     
