@@ -214,4 +214,33 @@ if not runningInPluginContext then
     print("Plugin Version:", DataStoreManagerPlugin.Version)
 end
 
-return DataStoreManagerPlugin 
+local function createUI(widget)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    frame.Parent = widget
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 50)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.Text = "DataStore Manager Pro"
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 32
+    label.Parent = frame
+
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 200, 0, 40)
+    button.Position = UDim2.new(0, 20, 0, 70)
+    button.Text = "Click Me!"
+    button.Parent = frame
+
+    button.MouseButton1Click:Connect(function()
+        label.Text = "Button Clicked!"
+    end)
+end
+
+return {
+    createUI = createUI
+} 

@@ -9,7 +9,8 @@ if (!(Get-Command rojo -ErrorAction SilentlyContinue)) {
 }
 
 # Build the plugin
-rojo build plugin.project.json -o DataStoreManagerPro.rbxmx
+Write-Host "Building plugin..."
+rojo build default.project.json --output DataStoreManagerPro.rbxmx
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Plugin built successfully: DataStoreManagerPro.rbxmx"

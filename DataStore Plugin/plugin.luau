@@ -26,30 +26,12 @@ local widgetInfo = DockWidgetPluginGuiInfo.new(
 local widget = plugin:CreateDockWidgetPluginGui("DataStoreManagerWidget", widgetInfo)
 widget.Title = "DataStore Manager Pro"
 
--- Load the main module
-local success, mainModule = pcall(function()
-    return require(script.Parent.ServerScriptService.DataStoreManagerPro.init)
-end)
-
-if not success then
-    warn("Failed to load DataStore Manager Pro: " .. tostring(mainModule))
-    return
-end
-
 -- Set up button click handler
 button.Click:Connect(function()
     widget.Enabled = not widget.Enabled
-    if widget.Enabled and widget:FindFirstChild("DataStoreExplorerFrame") == nil then
-        local success, err = pcall(function()
-            local mainFrame = mainModule.DataExplorer.createMainGui(widget)
-            mainFrame.Parent = widget
-        end)
-        
-        if not success then
-            warn("Failed to create UI: " .. tostring(err))
-            widget.Enabled = false
-        end
-    end
 end)
 
-return mainModule 
+return {
+    Name = "DataStore Manager Pro",
+    Version = "1.0.0"
+} 

@@ -2,28 +2,17 @@
   "name": "DataStoreManagerPro",
   "tree": {
     "$className": "Folder",
-    "Packages": {
-      "$path": "src/shared"
-    },
-    "Plugin": {
-      "$className": "Plugin",
-      "Main": {
-        "$path": "plugin.luau"
+    "init": {
+      "$className": "ModuleScript",
+      "Name": "init",
+      "Source": {
+        "$path": "src/init.server.luau"
       }
     },
-    "ServerStorage": {
-      "$className": "ServerStorage",
-      "DataStoreManagerPro": {
-        "$path": "src/server"
-      }
-    },
-    "StarterPlayer": {
-      "$className": "StarterPlayer",
-      "StarterPlayerScripts": {
-        "$className": "StarterPlayerScripts",
-        "DataStoreManagerPro": {
-          "$path": "src/clientScripts"
-        }
+    "Main": {
+      "$className": "Script",
+      "$properties": {
+        "Source": "-- DataStore Manager Pro Plugin\nlocal toolbar = plugin:CreateToolbar('DataStore Manager Pro')\nlocal button = toolbar:CreateButton(\n    'Open DataStore Manager',\n    'Open the DataStore Manager Pro Interface',\n    ''\n)\n\nlocal widgetInfo = DockWidgetPluginGuiInfo.new(\n    Enum.InitialDockState.Right,\n    true,\n    true,\n    800, 600, 800, 600\n)\n\nlocal widget = plugin:CreateDockWidgetPluginGui('DataStoreManagerWidget', widgetInfo)\nwidget.Title = 'DataStore Manager Pro'\nwidget.Enabled = true\n\nlocal mainModule = require(script.Parent.init)\nmainModule.createUI(widget)\n\n-- Add a label so the widget is visible\nlocal label = Instance.new('TextLabel')\nlabel.Size = UDim2.new(1, 0, 1, 0)\nlabel.Text = 'DataStore Manager Pro UI'\nlabel.Parent = widget\n\nbutton.Click:Connect(function()\n    widget.Enabled = not widget.Enabled\n    print('Widget.Enabled is now', widget.Enabled)\nend)\n\nprint('DataStore Manager Pro plugin loaded!')"
       }
     }
   }

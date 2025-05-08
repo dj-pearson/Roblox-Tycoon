@@ -47,7 +47,50 @@ try {
         exit 1
     }
     
+    # Check for Main script in Plugin
+    $mainScript = $pluginXml.SelectNodes("//Item[@class='Plugin']/Item[@class='ModuleScript' and @Name='Main']")
+    if ($mainScript.Count -eq 0) {
+        Write-Host "Error: No Main ModuleScript found in Plugin"
+        exit 1
+    }
+    
+    # Check for required services
+    $requiredServices = @("ServerStorage", "StarterPlayer")
+    foreach ($service in $requiredServices) {
+        $serviceNode = $pluginXml.SelectNodes("//Item[@class='$service']")
+        if ($serviceNode.Count -eq 0) {
+            Write-Host "Error: Required service not found: $service"
+            exit 1
+        }
+    }
+    
+    # Check for Packages
+    $packagesNode = $pluginXml.SelectNodes("//Item[@Name='Packages']")
+    if ($packagesNode.Count -eq 0) {
+        Write-Host "Error: Packages folder not found"
+        exit 1
+    }
+    
+    # Validate plugin.luau content
+    $pluginContent = Get-Content "plugin.luau" -Raw
+    if ($pluginContent -notmatch "local plugin = script:GetProperty\(""Plugin""\)") {
+        Write-Host "Error: plugin.luau missing Plugin property check"
+        exit 1
+    }
+    if ($pluginContent -notmatch "CreateToolbar") {
+        Write-Host "Error: plugin.luau missing toolbar creation"
+        exit 1
+    }
+    if ($pluginContent -notmatch "CreateDockWidgetPluginGui") {
+        Write-Host "Error: plugin.luau missing widget creation"
+        exit 1
+    }
+    
     Write-Host "Plugin structure validation passed!"
+    Write-Host "Found Plugin class with Main script"
+    Write-Host "Found required services: $($requiredServices -join ', ')"
+    Write-Host "Found Packages folder"
+    Write-Host "plugin.luau contains required components"
 } catch {
     Write-Host "Error: Failed to parse rbxmx file as XML"
     Write-Host $_.Exception.Message
