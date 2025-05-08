@@ -12,6 +12,7 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Test Configuration
 local CONFIG = {
@@ -392,6 +393,228 @@ local function testFolderStructure()
     return true
 end
 
+-- Test setup
+local function setupTestEnvironment()
+    -- Create test equipment templates
+    local gymEquipment = Instance.new("Folder")
+    gymEquipment.Name = "GymEquipment"
+    
+    -- Create test equipment
+    local testEquipment = Instance.new("Model")
+    testEquipment.Name = "TestBench"
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(2, 1, 4)
+    part.CFrame = CFrame.new(0, 0, 0)
+    part.Parent = testEquipment
+    testEquipment.PrimaryPart = part
+    testEquipment:SetAttribute("Price", 100)
+    testEquipment.Parent = gymEquipment
+    
+    -- Create special equipment
+    local specialEquipment = testEquipment:Clone()
+    specialEquipment.Name = "SpecialEquipment"
+    specialEquipment:SetAttribute("IsSpecial", true)
+    specialEquipment:SetAttribute("Price", 200)
+    specialEquipment.Parent = gymEquipment
+    
+    gymEquipment.Parent = ReplicatedStorage
+    
+    return {
+        cleanup = function()
+            gymEquipment:Destroy()
+        end
+    }
+end
+
+-- Test cases
+local function testInitialization()
+    TestUtils.Logger.log("Testing initialization...")
+    
+    local BuyTileSystem = require(ServerScriptService.Core.BuyTileSystem)
+    
+    -- Test initial state
+    local status = BuyTileSystem.getStatus()
+    if status ~= "UNINITIALIZED" then
+        TestUtils.Logger.error("Initial state should be UNINITIALIZED, got " .. status)
+        return false
+    end
+    
+    -- Test initialization
+    local success = BuyTileSystem.initialize()
+    if not success then
+        local errors = BuyTileSystem.getInitializationErrors()
+        TestUtils.Logger.warning("Initialization completed with errors: " .. table.concat(errors, ", "))
+    end
+    
+    -- Check if system is at least in DEGRADED state
+    status = BuyTileSystem.getStatus()
+    if status ~= "INITIALIZED" and status ~= "DEGRADED" then
+        TestUtils.Logger.error("System should be either INITIALIZED or DEGRADED, got " .. status)
+        return false
+    end
+    
+    -- Check template loading
+    local templates = BuyTileSystem.getEquipmentTemplates()
+    if templates["TestBench"] == nil then
+        TestUtils.Logger.error("TestBench template should be loaded")
+        return false
+    end
+    if templates["SpecialEquipment"] == nil then
+        TestUtils.Logger.error("SpecialEquipment template should be loaded")
+        return false
+    end
+    
+    return success
+end
+
+local function testPriceCalculation()
+    TestUtils.Logger.log("Testing price calculation...")
+    
+    local BuyTileSystem = require(ServerScriptService.Core.BuyTileSystem)
+    
+    -- Create mock player and tycoon
+    local player = Instance.new("Player")
+    local tycoon = Instance.new("ObjectValue")
+    tycoon.Name = "Tycoon"
+    
+    local tycoonModel = Instance.new("Model")
+    tycoonModel:SetAttribute("EquipmentCount", 0)
+    tycoon.Value = tycoonModel
+    tycoon.Parent = player
+    
+    -- Test basic price calculation
+    local price = BuyTileSystem.calculateTilePrice(player, "TestBench")
+    if price ~= 100 then
+        TestUtils.Logger.error("Basic price calculation failed")
+        return false
+    end
+    
+    -- Test special equipment price
+    local specialPrice = BuyTileSystem.calculateTilePrice(player, "SpecialEquipment")
+    if specialPrice ~= 400 then
+        TestUtils.Logger.error("Special equipment price calculation failed")
+        return false
+    end
+    
+    -- Test price progression
+    tycoonModel:SetAttribute("EquipmentCount", 1)
+    local progressionPrice = BuyTileSystem.calculateTilePrice(player, "TestBench")
+    if progressionPrice <= 100 then
+        TestUtils.Logger.error("Price should increase with equipment count")
+        return false
+    end
+    
+    player:Destroy()
+    return true
+end
+
+local function testEquipmentPlacement()
+    TestUtils.Logger.log("Testing equipment placement...")
+    
+    local BuyTileSystem = require(ServerScriptService.Core.BuyTileSystem)
+    
+    -- Create mock player and tycoon
+    local player = Instance.new("Player")
+    local tycoon = Instance.new("ObjectValue")
+    tycoon.Name = "Tycoon"
+    
+    local tycoonModel = Instance.new("Model")
+    local floor = Instance.new("Part")
+    floor.Name = "Floor"
+    floor.Size = Vector3.new(10, 1, 10)
+    floor.Position = Vector3.new(0, 0, 0)
+    floor.Parent = tycoonModel
+    
+    tycoonModel:SetAttribute("EquipmentCount", 0)
+    tycoon.Value = tycoonModel
+    tycoon.Parent = player
+    
+    -- Test equipment placement
+    local success = BuyTileSystem.placeEquipment(player, "TestBench")
+    if not success then
+        TestUtils.Logger.error("Equipment placement failed")
+        return false
+    end
+    
+    -- Verify equipment was placed
+    local equipment = tycoonModel:FindFirstChild("Equipment")
+    if equipment == nil then
+        TestUtils.Logger.error("Equipment folder should be created")
+        return false
+    end
+    if #equipment:GetChildren() ~= 1 then
+        TestUtils.Logger.error("One piece of equipment should be placed")
+        return false
+    end
+    
+    -- Test equipment attributes
+    local placedEquipment = equipment:GetChildren()[1]
+    if placedEquipment:GetAttribute("EquipmentId") ~= "TestBench" then
+        TestUtils.Logger.error("Equipment should have correct ID")
+        return false
+    end
+    if placedEquipment:GetAttribute("OwnerUserId") ~= player.UserId then
+        TestUtils.Logger.error("Equipment should have correct owner")
+        return false
+    end
+    
+    player:Destroy()
+    return true
+end
+
+local function testBulkRestoration()
+    TestUtils.Logger.log("Testing bulk equipment restoration...")
+    
+    local BuyTileSystem = require(ServerScriptService.Core.BuyTileSystem)
+    
+    -- Create mock player and tycoon
+    local player = Instance.new("Player")
+    local tycoon = Instance.new("ObjectValue")
+    tycoon.Name = "Tycoon"
+    
+    local tycoonModel = Instance.new("Model")
+    local floor = Instance.new("Part")
+    floor.Name = "Floor"
+    floor.Size = Vector3.new(20, 1, 20)
+    floor.Position = Vector3.new(0, 0, 0)
+    floor.Parent = tycoonModel
+    
+    tycoonModel:SetAttribute("EquipmentCount", 0)
+    tycoon.Value = tycoonModel
+    tycoon.Parent = player
+    
+    -- Test bulk restoration
+    local equipmentList = {
+        "TestBench",
+        "TestBench",
+        "SpecialEquipment",
+        "TestBench"
+    }
+    
+    local success = BuyTileSystem.restoreEquipment(player, equipmentList)
+    if not success then
+        TestUtils.Logger.error("Bulk restoration should start successfully")
+        return false
+    end
+    
+    -- Wait for staggered placement
+    task.wait(1)
+    
+    -- Verify equipment was placed
+    local equipment = tycoonModel:FindFirstChild("Equipment")
+    if equipment == nil then
+        TestUtils.Logger.error("Equipment folder should be created")
+        return false
+    end
+    if #equipment:GetChildren() ~= #equipmentList then
+        TestUtils.Logger.error("Expected " .. #equipmentList .. " pieces of equipment, got " .. #equipment:GetChildren())
+        return false
+    end
+    
+    player:Destroy()
+    return true
+end
+
 -- Run all tests
 local function runAllTests()
     TestUtils.Logger.log("Starting BuyTile System and Tycoon Structure tests...")
@@ -404,6 +627,12 @@ local function runAllTests()
     runTest("TycoonFolderInitializer Functionality", testTycoonFolderInitializer)
     runTest("BuyTilePositionFixer Functionality", testBuyTilePositionFixer)
     runTest("Folder Structure Creation", testFolderStructure)
+    
+    -- BuyTileSystem tests
+    runTest("BuyTileSystem Initialization", testInitialization)
+    runTest("BuyTileSystem Price Calculation", testPriceCalculation)
+    runTest("BuyTileSystem Equipment Placement", testEquipmentPlacement)
+    runTest("BuyTileSystem Bulk Restoration", testBulkRestoration)
     
     -- Print results
     local duration = os.clock() - TestResults.StartTime

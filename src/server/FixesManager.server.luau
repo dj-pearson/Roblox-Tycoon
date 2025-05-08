@@ -22,7 +22,7 @@ local CONFIG = {
         {name = "SafeRequire", required = true},
         {name = "CoreRegistry", required = true},
         {name = "CoreRegistryMonitor", required = false},
-        {name = "TycoonFolderFixer", required = true},
+        {name = "TycoonFolderFixer", required = false},
         {name = "DataPersistenceManager", required = true},
         {name = "BuyTileSystem", required = false},
         {name = "BuyTileFixer", required = false},
@@ -300,12 +300,29 @@ end
 
 -- Fix Tycoon structure for a player
 local function fixTycoonStructure(player)
+    -- Try to use TycoonFolderInitializer first
+    local initializer = ServerScriptService.Core:FindFirstChild("TycoonFolderInitializer")
+    if initializer and initializer:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            local module = require(initializer)
+            if module and module.validateTycoonStructure then
+                return module.validateTycoonStructure(player)
+            end
+        end)
+        
+        if success and result then
+            log("Successfully fixed tycoon structure for", player.Name)
+            return true
+        end
+    end
+    
+    -- Fallback to TycoonFolderFixer if available
     if modules.TycoonFolderFixer and modules.TycoonFolderFixer.fixPlayerTycoon then
         return modules.TycoonFolderFixer.fixPlayerTycoon(player)
     elseif modules.TycoonFolderFixer and modules.TycoonFolderFixer.fixTycoon then
         return modules.TycoonFolderFixer.fixTycoon(player)
     else
-        warn("[FixesManager] TycoonFolderFixer module not found or missing fixPlayerTycoon function")
+        warn("[FixesManager] Neither TycoonFolderInitializer nor TycoonFolderFixer available")
         
         -- Basic Tycoon structure fix
         local tycoon = player:FindFirstChild("Tycoon")

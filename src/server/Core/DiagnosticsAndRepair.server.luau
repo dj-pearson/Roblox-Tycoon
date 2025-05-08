@@ -383,7 +383,35 @@ local repairs = {
     TycoonStructure = function(results)
         log("Attempting to fix Tycoon structure issues")
         
-        -- Find TycoonFolderFixer if available
+        -- Try to use TycoonFolderInitializer first
+        local initializer = ServerScriptService.Core:FindFirstChild("TycoonFolderInitializer")
+        if initializer and initializer:IsA("ModuleScript") then
+            local success, module = pcall(function()
+                return require(initializer)
+            end)
+            
+            if success and module and module.validateTycoonStructure then
+                -- For each player with issues
+                for _, playerResult in ipairs(results.playerResults) do
+                    local player = Players:FindFirstChild(playerResult.name)
+                    if player then
+                        log("Fixing Tycoon structure for", player.Name)
+                        local success, result = pcall(function()
+                            return module.validateTycoonStructure(player)
+                        end)
+                        
+                        if success and result then
+                            log("Successfully fixed Tycoon structure for", player.Name)
+                        else
+                            warn("Failed to fix Tycoon structure for", player.Name, "-", tostring(result))
+                        end
+                    end
+                end
+                return
+            end
+        end
+        
+        -- Fallback to TycoonFolderFixer if available
         local tycoonFixer
         local fixerPath = ServerScriptService.Core and ServerScriptService.Core:FindFirstChild("TycoonFolderFixer")
         

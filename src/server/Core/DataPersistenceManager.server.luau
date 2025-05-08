@@ -129,41 +129,43 @@ end
 function DataPersistenceManager.validateTycoonStructure(player)
     if not player then return false end
     
+    -- Get the TycoonFolderInitializer
+    local initializer = ServerScriptService.Core:FindFirstChild("TycoonFolderInitializer")
+    if initializer and initializer:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            local module = require(initializer)
+            if module and module.validateTycoonStructure then
+                return module.validateTycoonStructure(player)
+            end
+        end)
+        
+        if success and result then
+            log("Successfully validated tycoon structure for", player.Name)
+            return true
+        end
+    end
+    
+    -- Fallback to basic validation if TycoonFolderInitializer is not available
+    log("TycoonFolderInitializer not found, using basic validation for", player.Name)
+    
     -- Make sure Tycoon object exists and is an ObjectValue
     local tycoon = player:FindFirstChild("Tycoon")
     if not tycoon or not tycoon:IsA("ObjectValue") then
-        -- Try to find the TycoonFolderFixer script
-        local fixer = ServerScriptService.Core:FindFirstChild("TycoonFolderFixer")
-        
-        if fixer and fixer:FindFirstChild("FixTycoonStructure") then
-            log("Using TycoonFolderFixer to fix structure for", player.Name)
-            fixer.FixTycoonStructure:Fire(player)
-            
-            -- Wait a moment for the fix to apply
-            task.wait(0.5)
-            
-            -- Get the updated tycoon
-            tycoon = player:FindFirstChild("Tycoon")
-        else
-            -- Manual fallback if fixer isn't available
-            log("Creating basic Tycoon structure for", player.Name)
-            
-            -- Remove invalid tycoon if it exists
-            if tycoon and not tycoon:IsA("ObjectValue") then
-                tycoon:Destroy()
-            end
-            
-            -- Create a new ObjectValue
-            tycoon = Instance.new("ObjectValue")
-            tycoon.Name = "Tycoon"
-            tycoon.Parent = player
-            
-            -- Set default attributes
-            tycoon:SetAttribute("EquipmentCount", 0)
-            tycoon:SetAttribute("GymTier", 1)
-            tycoon:SetAttribute("MemberCount", 0)
-            tycoon:SetAttribute("AccruedDues", 0)
+        -- Remove invalid tycoon if it exists
+        if tycoon and not tycoon:IsA("ObjectValue") then
+            tycoon:Destroy()
         end
+        
+        -- Create a new ObjectValue
+        tycoon = Instance.new("ObjectValue")
+        tycoon.Name = "Tycoon"
+        tycoon.Parent = player
+        
+        -- Set default attributes
+        tycoon:SetAttribute("EquipmentCount", 0)
+        tycoon:SetAttribute("GymTier", 1)
+        tycoon:SetAttribute("MemberCount", 0)
+        tycoon:SetAttribute("AccruedDues", 0)
     end
     
     return tycoon ~= nil

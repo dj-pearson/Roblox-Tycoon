@@ -81,7 +81,23 @@ end
 
 -- Fix the Tycoon folder structure for a player
 local function fixTycoonStructure(player)
-    -- Try to load the TycoonFolderFixer if available
+    -- Try to use TycoonFolderInitializer first
+    local initializer = ServerScriptService.Core:FindFirstChild("TycoonFolderInitializer")
+    if initializer and initializer:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            local module = require(initializer)
+            if module and module.validateTycoonStructure then
+                return module.validateTycoonStructure(player)
+            end
+        end)
+        
+        if success and result then
+            print("🛠️ [CriticalFixesStartup] Successfully fixed tycoon structure for", player.Name)
+            return true
+        end
+    end
+    
+    -- Fallback to TycoonFolderFixer if available
     local tycoonFixer
     local coreFolder = ServerScriptService:FindFirstChild("Core")
     
@@ -103,7 +119,7 @@ local function fixTycoonStructure(player)
     end
     
     -- Otherwise, do basic fixes ourselves
-    print("🛠️ [CriticalFixesStartup] TycoonFolderFixer not found, applying basic fixes for", player.Name)
+    print("🛠️ [CriticalFixesStartup] No tycoon structure fixer available, applying basic fixes for", player.Name)
     
     -- Basic Tycoon structure creation
     local tycoon = player:FindFirstChild("Tycoon")
