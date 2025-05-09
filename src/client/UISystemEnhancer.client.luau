@@ -16,10 +16,6 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Import required modules
-local Systems = require(ReplicatedStorage:WaitForChild("Systems"))
-local getSystem = Systems.getSystem
-
 -- Configuration
 local CONFIG = {
     MAX_RETRIES = 3,
@@ -181,7 +177,7 @@ local function createFallbackUI(uiName)
 end
 
 -- Show UI with fallback
-local function showUI(name: string, ...: any): boolean
+local function showUI(name, ...)
     log("Attempting to show UI: " .. name)
     
     -- First try: Use UISystem
@@ -221,7 +217,7 @@ local function showUI(name: string, ...: any): boolean
 end
 
 -- Hide UI
-local function hideUI(name: string): boolean
+local function hideUI(name)
     log("Attempting to hide UI: " .. name)
     
     -- First try: Use UISystem
@@ -254,20 +250,6 @@ local function hideUI(name: string): boolean
     cleanupFallbackUI(name)
     
     return false
-end
-
--- Preload UI components
-local function preloadComponents()
-    -- Implementation for preloading components
-    log("Preloading UI components")
-    -- Add your component preloading logic here
-end
-
--- Patch UISystem with enhanced functionality
-local function patchUISystem()
-    -- Implementation for patching UISystem
-    log("Patching UISystem with enhanced functionality")
-    -- Add your UISystem patching logic here
 end
 
 -- Initialize UI system

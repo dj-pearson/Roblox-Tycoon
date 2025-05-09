@@ -3,45 +3,10 @@
     UIUtils.luau
     
     Common UI utilities and helper functions.
-    Provides reusable functionality for UI components.
+    Centralizes shared UI functionality to reduce code duplication.
 ]]
 
 local TweenService = game:GetService("TweenService")
-
--- Constants
-local DEFAULT_TWEEN_INFO = TweenInfo.new(
-    0.3, -- Time
-    Enum.EasingStyle.Quad,
-    Enum.EasingDirection.Out
-)
-
--- Animation presets
-local ANIMATIONS = {
-    FADE_IN = {
-        info = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        properties = {BackgroundTransparency = 0}
-    },
-    FADE_OUT = {
-        info = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-        properties = {BackgroundTransparency = 1}
-    },
-    SLIDE_IN_LEFT = {
-        info = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        properties = {Position = UDim2.new(0, 0, 0, 0)}
-    },
-    SLIDE_OUT_LEFT = {
-        info = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-        properties = {Position = UDim2.new(-1, 0, 0, 0)}
-    },
-    SCALE_IN = {
-        info = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-        properties = {Scale = Vector3.new(1, 1, 1)}
-    },
-    SCALE_OUT = {
-        info = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In),
-        properties = {Scale = Vector3.new(0, 0, 0)}
-    }
-}
 
 -- UIUtils
 local UIUtils = {}
@@ -103,213 +68,102 @@ UIUtils.Layouts = {
     }
 }
 
--- Create a UI element with common properties
-function UIUtils.createUIElement(className, properties)
-    local element = Instance.new(className)
+-- Create a frame with common properties
+function UIUtils.createFrame(parent, properties)
+    local frame = Instance.new("Frame")
     
-    -- Apply common properties
-    if properties then
-        for property, value in pairs(properties) do
-            element[property] = value
-        end
-    end
-    
-    return element
-end
-
--- Create a text label with common properties
-function UIUtils.createTextLabel(properties)
-    local label = UIUtils.createUIElement("TextLabel", {
-        BackgroundTransparency = 1,
-        TextColor3 = Color3.new(1, 1, 1),
-        TextSize = 14,
-        Font = Enum.Font.Gotham,
-        TextWrapped = true
-    })
+    -- Set common properties
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
     
     -- Apply custom properties
-    if properties then
-        for property, value in pairs(properties) do
-            label[property] = value
+    for property, value in pairs(properties) do
+        frame[property] = value
+    end
+    
+    -- Add corner radius if specified
+    if properties.CornerRadius then
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, properties.CornerRadius)
+        corner.Parent = frame
+    end
+    
+    -- Add layout if specified
+    if properties.Layout then
+        local layout = Instance.new("UIListLayout")
+        for property, value in pairs(properties.Layout) do
+            layout[property] = value
         end
+        layout.Parent = frame
+    end
+    
+    -- Parent the frame
+    if parent then
+        frame.Parent = parent
+    end
+    
+    return frame
+end
+
+-- Create a label with common properties
+function UIUtils.createLabel(parent, properties)
+    local label = Instance.new("TextLabel")
+    
+    -- Set common properties
+    label.BackgroundTransparency = 1
+    label.TextColor3 = UIUtils.Colors.Text
+    label.Font = UIUtils.Fonts.Body
+    label.TextSize = UIUtils.TextSizes.Body
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextTruncate = Enum.TextTruncate.AtEnd
+    
+    -- Apply custom properties
+    for property, value in pairs(properties) do
+        label[property] = value
+    end
+    
+    -- Parent the label
+    if parent then
+        label.Parent = parent
     end
     
     return label
 end
 
 -- Create a button with common properties
-function UIUtils.createButton(properties)
-    local button = UIUtils.createUIElement("TextButton", {
-        BackgroundColor3 = Color3.fromRGB(45, 45, 45),
-        BorderSizePixel = 0,
-        TextColor3 = Color3.new(1, 1, 1),
-        TextSize = 14,
-        Font = Enum.Font.Gotham,
-        AutoButtonColor = true
-    })
+function UIUtils.createButton(parent, properties)
+    local button = Instance.new("TextButton")
+    
+    -- Set common properties
+    button.BackgroundColor3 = UIUtils.Colors.Secondary
+    button.TextColor3 = UIUtils.Colors.Text
+    button.Font = UIUtils.Fonts.Button
+    button.TextSize = UIUtils.TextSizes.Button
+    button.AutoButtonColor = true
+    button.TextTruncate = Enum.TextTruncate.AtEnd
+    
+    -- Add corner radius
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
     
     -- Apply custom properties
-    if properties then
-        for property, value in pairs(properties) do
-            button[property] = value
-        end
+    for property, value in pairs(properties) do
+        button[property] = value
+    end
+    
+    -- Parent the button
+    if parent then
+        button.Parent = parent
     end
     
     return button
 end
 
--- Create a frame with common properties
-function UIUtils.createFrame(properties)
-    local frame = UIUtils.createUIElement("Frame", {
-        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-        BorderSizePixel = 0
-    })
-    
-    -- Apply custom properties
-    if properties then
-        for property, value in pairs(properties) do
-            frame[property] = value
-        end
-    end
-    
-    return frame
-end
-
--- Apply an animation to a UI element
-function UIUtils.animate(element, animationName, callback)
-    local animation = ANIMATIONS[animationName]
-    if not animation then
-        warn("Animation not found:", animationName)
-        return nil
-    end
-    
-    local tween = TweenService:Create(element, animation.info, animation.properties)
-    
-    if callback then
-        tween.Completed:Connect(callback)
-    end
-    
-    tween:Play()
-    return tween
-end
-
--- Create a custom tween
-function UIUtils.createTween(element, properties, tweenInfo, callback)
-    tweenInfo = tweenInfo or DEFAULT_TWEEN_INFO
-    
-    local tween = TweenService:Create(element, tweenInfo, properties)
-    
-    if callback then
-        tween.Completed:Connect(callback)
-    end
-    
-    tween:Play()
-    return tween
-end
-
--- Create a hover effect for a button
-function UIUtils.createHoverEffect(button)
-    local originalColor = button.BackgroundColor3
-    local hoverColor = Color3.fromRGB(
-        math.min(originalColor.R * 255 + 20, 255),
-        math.min(originalColor.G * 255 + 20, 255),
-        math.min(originalColor.B * 255 + 20, 255)
-    )
-    
-    button.MouseEnter:Connect(function()
-        UIUtils.createTween(button, {BackgroundColor3 = hoverColor})
-    end)
-    
-    button.MouseLeave:Connect(function()
-        UIUtils.createTween(button, {BackgroundColor3 = originalColor})
-    end)
-end
-
--- Create a click effect for a button
-function UIUtils.createClickEffect(button)
-    local originalSize = button.Size
-    local clickSize = UDim2.new(
-        originalSize.X.Scale * 0.95,
-        originalSize.X.Offset * 0.95,
-        originalSize.Y.Scale * 0.95,
-        originalSize.Y.Offset * 0.95
-    )
-    
-    button.MouseButton1Down:Connect(function()
-        UIUtils.createTween(button, {Size = clickSize})
-    end)
-    
-    button.MouseButton1Up:Connect(function()
-        UIUtils.createTween(button, {Size = originalSize})
-    end)
-end
-
--- Create a loading spinner
-function UIUtils.createLoadingSpinner(parent, size)
-    local spinner = UIUtils.createFrame({
-        Name = "LoadingSpinner",
-        Size = size or UDim2.new(0, 40, 0, 40),
-        Position = UDim2.new(0.5, -20, 0.5, -20),
-        BackgroundTransparency = 1,
-        Parent = parent
-    })
-    
-    local circle = UIUtils.createUIElement("ImageLabel", {
-        Name = "Circle",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://123456789", -- Replace with your spinner image
-        Parent = spinner
-    })
-    
-    -- Create rotation animation
-    local rotation = 0
-    game:GetService("RunService").RenderStepped:Connect(function(deltaTime)
-        rotation = (rotation + deltaTime * 360) % 360
-        circle.Rotation = rotation
-    end)
-    
-    return spinner
-end
-
--- Create a tooltip
-function UIUtils.createTooltip(parent, text)
-    local tooltip = UIUtils.createFrame({
-        Name = "Tooltip",
-        Size = UDim2.new(0, 200, 0, 40),
-        Position = UDim2.new(0, 0, 1, 5),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-        BackgroundTransparency = 0.5,
-        Visible = false,
-        Parent = parent
-    })
-    
-    local label = UIUtils.createTextLabel({
-        Name = "Text",
-        Size = UDim2.new(1, -10, 1, -10),
-        Position = UDim2.new(0, 5, 0, 5),
-        Text = text,
-        Parent = tooltip
-    })
-    
-    -- Show/hide on hover
-    parent.MouseEnter:Connect(function()
-        tooltip.Visible = true
-        UIUtils.animate(tooltip, "FADE_IN")
-    end)
-    
-    parent.MouseLeave:Connect(function()
-        UIUtils.animate(tooltip, "FADE_OUT", function()
-            tooltip.Visible = false
-        end)
-    end)
-    
-    return tooltip
-end
-
 -- Create a gradient background
 function UIUtils.createGradient(parent, properties)
-    local frame = UIUtils.createFrame(properties)
+    local frame = UIUtils.createFrame(parent, properties)
     
     local gradient = Instance.new("UIGradient")
     gradient.Color = ColorSequence.new({
@@ -322,16 +176,50 @@ function UIUtils.createGradient(parent, properties)
     return frame, gradient
 end
 
+-- Setup button hover effects
+function UIUtils.setupButtonHover(button, baseColor, hoverColor)
+    baseColor = baseColor or button.BackgroundColor3
+    hoverColor = hoverColor or baseColor:Lerp(UIUtils.Colors.Hover, 0.2)
+    
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = hoverColor
+    end)
+    
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = baseColor
+    end)
+end
+
 -- Create a separator line
 function UIUtils.createSeparator(parent, properties)
-    local separator = UIUtils.createFrame(properties)
+    local separator = UIUtils.createFrame(parent, {
+        Size = UDim2.new(0.8, 0, 0, 2),
+        Position = UDim2.new(0.1, 0, 0, 0),
+        BackgroundColor3 = UIUtils.Colors.Primary,
+        BorderSizePixel = 0
+    })
+    
+    -- Apply custom properties
+    for property, value in pairs(properties) do
+        separator[property] = value
+    end
     
     return separator
 end
 
 -- Create a container for buttons
 function UIUtils.createButtonContainer(parent, properties)
-    local container = UIUtils.createFrame(properties)
+    local container = UIUtils.createFrame(parent, {
+        Size = UDim2.new(0.8, 0, 0, 300),
+        Position = UDim2.new(0.1, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Layout = UIUtils.Layouts.Vertical
+    })
+    
+    -- Apply custom properties
+    for property, value in pairs(properties) do
+        container[property] = value
+    end
     
     return container
 end
@@ -370,7 +258,11 @@ end
 
 -- Create an input field
 function UIUtils.createInputField(parent, properties)
-    local container = UIUtils.createFrame(properties)
+    local container = UIUtils.createFrame(parent, {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundColor3 = UIUtils.Colors.Background,
+        CornerRadius = 8
+    })
     
     local input = Instance.new("TextBox")
     input.BackgroundTransparency = 1
@@ -399,23 +291,26 @@ end
 
 -- Create a toggle button
 function UIUtils.createToggle(parent, properties)
-    local container = UIUtils.createFrame(properties)
+    local container = UIUtils.createFrame(parent, {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1
+    })
     
-    local label = UIUtils.createTextLabel({
+    local label = UIUtils.createLabel(container, {
         Size = UDim2.new(0.7, 0, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         Text = properties.Text or "Toggle",
         TextXAlignment = Enum.TextXAlignment.Left
     })
     
-    local toggle = UIUtils.createFrame({
+    local toggle = UIUtils.createFrame(container, {
         Size = UDim2.new(0, 40, 0, 20),
         Position = UDim2.new(1, -50, 0.5, -10),
         BackgroundColor3 = UIUtils.Colors.Secondary,
         CornerRadius = 10
     })
     
-    local handle = UIUtils.createFrame({
+    local handle = UIUtils.createFrame(toggle, {
         Size = UDim2.new(0, 16, 0, 16),
         Position = UDim2.new(0, 2, 0.5, -8),
         BackgroundColor3 = UIUtils.Colors.Text,
@@ -457,30 +352,33 @@ end
 
 -- Create a slider
 function UIUtils.createSlider(parent, properties)
-    local container = UIUtils.createFrame(properties)
+    local container = UIUtils.createFrame(parent, {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1
+    })
     
-    local label = UIUtils.createTextLabel({
+    local label = UIUtils.createLabel(container, {
         Size = UDim2.new(0.7, 0, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         Text = properties.Text or "Slider",
         TextXAlignment = Enum.TextXAlignment.Left
     })
     
-    local track = UIUtils.createFrame({
+    local track = UIUtils.createFrame(container, {
         Size = UDim2.new(0, 200, 0, 4),
         Position = UDim2.new(1, -210, 0.5, -2),
         BackgroundColor3 = UIUtils.Colors.Secondary,
         CornerRadius = 2
     })
     
-    local fill = UIUtils.createFrame({
+    local fill = UIUtils.createFrame(track, {
         Size = UDim2.new(0, 0, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = UIUtils.Colors.Primary,
         CornerRadius = 2
     })
     
-    local handle = UIUtils.createFrame({
+    local handle = UIUtils.createFrame(track, {
         Size = UDim2.new(0, 16, 0, 16),
         Position = UDim2.new(0, 0, 0.5, -8),
         BackgroundColor3 = UIUtils.Colors.Text,

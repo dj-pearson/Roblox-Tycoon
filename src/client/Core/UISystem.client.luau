@@ -152,8 +152,7 @@ local function loadComponent(name)
         end
         return false, result
     end
-end
-   
+    
 --[[
     UISystem.client.luau
     
