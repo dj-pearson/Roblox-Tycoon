@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "RobloxProject",
   "tree": {
     "$className": "DataModel",
@@ -8,13 +8,16 @@
         "$path": "src/shared"
       },
       "DataStoreManagerPro": {
-        "$path": "DataStorePlugin"
+        "$path": "DataStore Plugin/src/shared"
       }
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "server": {
         "$path": "src/server"
+      },
+      "DataStoreManagerPro": {
+        "$path": "DataStore Plugin/src/server"
       }
     },
     "StarterPlayer": {
@@ -23,6 +26,9 @@
         "$className": "StarterPlayerScripts",
         "client": {
           "$path": "src/client"
+        },
+        "DataStoreManagerPro": {
+          "$path": "DataStore Plugin/src/client"
         }
       }
     }
