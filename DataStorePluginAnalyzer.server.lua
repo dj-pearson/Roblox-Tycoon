@@ -1,0 +1,271 @@
+--[[
+    DataStore Plugin Structure Analyzer
+    
+    This script specifically analyzes the DataStore Plugin structure to provide detailed
+    information about its modules, dependencies, and organization.
+    
+    Run this as a ServerScript in Studio to see the output in the developer console.
+]]
+
+local HttpService = game:GetService("HttpService")
+
+-- Configuration
+local OUTPUT_TO_FILE = true -- Whether to output to a file in ServerStorage
+
+-- Function to scan all ModuleScripts in the plugin
+local function analyzePluginStructure()
+    local output = {
+        "DataStore Plugin Structure Analysis",
+        "===================================="
+    }
+    
+    -- First, find the plugin in ReplicatedStorage or ServerStorage
+    local plugin
+    
+    -- Try common locations
+    local locations = {
+        game:GetService("ReplicatedStorage"),
+        game:GetService("ServerStorage"),
+        game:GetService("ServerScriptService")
+    }
+    
+    for _, location in ipairs(locations) do
+        -- Look for DataStorePlugin or similar named folders
+        local possibleNames = {"DataStorePlugin", "DataStore", "DataStore Plugin", "DataStoreService"}
+        
+        for _, name in ipairs(possibleNames) do
+            local found = location:FindFirstChild(name)
+            if found then
+                plugin = found
+                table.insert(output, "Plugin found at: " .. plugin:GetFullName())
+                break
+            end
+        end
+        
+        if plugin then break end
+    end
+    
+    if not plugin then
+        table.insert(output, "DataStore Plugin not found in common locations. Please ensure it's in ReplicatedStorage, ServerStorage, or ServerScriptService.")
+        return output
+    end
+    
+    -- Analyze plugin structure
+    local moduleScripts = {}
+    local dependencies = {}
+    
+    -- Find all module scripts in the plugin
+    local function findModuleScripts(parent, path)
+        path = path or parent.Name
+        
+        for _, child in ipairs(parent:GetChildren()) do
+            local childPath = path .. "/" .. child.Name
+            
+            if child:IsA("ModuleScript") then
+                table.insert(moduleScripts, {
+                    Path = childPath,
+                    Instance = child
+                })
+            end
+            
+            findModuleScripts(child, childPath)
+        end
+    end
+    
+    findModuleScripts(plugin)
+    
+    -- Add basic structure
+    table.insert(output, "")
+    table.insert(output, "Plugin Structure:")
+    table.insert(output, "----------------")
+    
+    local function outputStructure(parent, depth)
+        depth = depth or 0
+        local indent = string.rep("  ", depth)
+        
+        for _, child in ipairs(parent:GetChildren()) do
+            local className = child.ClassName
+            local name = child.Name
+            
+            -- Format the line based on instance type
+            local line = indent .. name
+            
+            -- Add class type for specific instance types
+            if className == "Script" or className == "LocalScript" or className == "ModuleScript" then
+                line = line .. " [" .. className .. "]"
+            end
+            
+            table.insert(output, line)
+            
+            -- Recurse for children
+            outputStructure(child, depth + 1)
+        end
+    end
+    
+    outputStructure(plugin)
+    
+    -- Analyze module dependencies
+    table.insert(output, "")
+    table.insert(output, "Module Dependencies:")
+    table.insert(output, "------------------")
+    
+    for _, module in ipairs(moduleScripts) do
+        table.insert(output, module.Path)
+        
+        -- Try to parse dependencies from the module
+        local source = module.Instance.Source
+        local moduleDependencies = {}
+        
+        -- Look for require statements
+        for line in string.gmatch(source, "[^\r\n]+") do
+            -- Match require patterns
+            local requirePath = string.match(line, "require%(([^%)]+)%)")
+            if requirePath then
+                table.insert(moduleDependencies, requirePath)
+            end
+        end
+        
+        -- Add to output
+        if #moduleDependencies > 0 then
+            table.insert(output, "  Dependencies:")
+            for _, dep in ipairs(moduleDependencies) do
+                table.insert(output, "    - " .. dep)
+            end
+        else
+            table.insert(output, "  No dependencies found.")
+        end
+        
+        dependencies[module.Path] = moduleDependencies
+    end
+    
+    -- Detect circular dependencies
+    table.insert(output, "")
+    table.insert(output, "Circular Dependencies Analysis:")
+    table.insert(output, "-----------------------------")
+    
+    local circularPaths = {}
+    
+    local function findCircularDependencies(modulePath, visited, path)
+        visited = visited or {}
+        path = path or {}
+        
+        -- Check if we've already visited this module in the current path
+        for _, visitedModule in ipairs(path) do
+            if visitedModule == modulePath then
+                -- Found a circular dependency
+                local circularPath = {}
+                local foundStart = false
+                
+                for _, pathModule in ipairs(path) do
+                    if pathModule == modulePath then
+                        foundStart = true
+                    end
+                    
+                    if foundStart then
+                        table.insert(circularPath, pathModule)
+                    end
+                end
+                
+                table.insert(circularPath, modulePath)
+                
+                -- Convert to string representation
+                local pathStr = table.concat(circularPath, " -> ")
+                
+                -- Check if this path is already found
+                local found = false
+                for _, existingPath in ipairs(circularPaths) do
+                    if existingPath == pathStr then
+                        found = true
+                        break
+                    end
+                end
+                
+                if not found then
+                    table.insert(circularPaths, pathStr)
+                end
+                
+                return
+            end
+        end
+        
+        -- Mark as visited in the current path
+        table.insert(path, modulePath)
+        visited[modulePath] = true
+        
+        -- Check dependencies
+        local moduleDeps = dependencies[modulePath]
+        if moduleDeps then
+            for _, dep in ipairs(moduleDeps) do
+                -- Try to resolve the dependency path to an actual module
+                local resolvedDep = nil
+                
+                for _, module in ipairs(moduleScripts) do
+                    -- Very simplified path resolution
+                    if string.find(dep, module.Instance.Name, 1, true) then
+                        resolvedDep = module.Path
+                        break
+                    end
+                end
+                
+                if resolvedDep and dependencies[resolvedDep] then
+                    findCircularDependencies(resolvedDep, visited, table.clone(path))
+                end
+            end
+        end
+    end
+    
+    -- Check each module for circular dependencies
+    for _, module in ipairs(moduleScripts) do
+        findCircularDependencies(module.Path)
+    end
+    
+    -- Output circular dependencies
+    if #circularPaths > 0 then
+        table.insert(output, "Found " .. #circularPaths .. " potential circular dependencies:")
+        for _, path in ipairs(circularPaths) do
+            table.insert(output, "  " .. path)
+        end
+    else
+        table.insert(output, "No circular dependencies detected.")
+    end
+    
+    -- Add module summary
+    table.insert(output, "")
+    table.insert(output, "Summary:")
+    table.insert(output, "--------")
+    table.insert(output, "Total modules: " .. #moduleScripts)
+    table.insert(output, "Potential circular dependency chains: " .. #circularPaths)
+    
+    return output
+end
+
+-- Function to output the report
+local function outputReport(reportLines)
+    -- Print to output
+    for _, line in ipairs(reportLines) do
+        print(line)
+    end
+    
+    -- Save to file if enabled
+    if OUTPUT_TO_FILE then
+        local serverStorage = game:GetService("ServerStorage")
+        
+        -- Create a StringValue to store the report
+        local reportValue = Instance.new("StringValue")
+        reportValue.Name = "DataStorePluginReport_" .. os.date("%Y%m%d_%H%M%S")
+        
+        -- Join all lines
+        reportValue.Value = table.concat(reportLines, "\n")
+        
+        -- Store in ServerStorage
+        reportValue.Parent = serverStorage
+        
+        print("\nReport saved to ServerStorage/" .. reportValue.Name)
+    end
+end
+
+-- Run the analysis
+local reportLines = analyzePluginStructure()
+outputReport(reportLines)
+
+print("DataStore Plugin structure analysis complete! Check the output above.")

@@ -2,232 +2,162 @@
 --[[
     UISystem.luau
     
-    The main entry point for the UI system. This module is responsible for:
-    - Initializing and managing the UI framework
-    - Loading and registering UI components
-    - Managing UI lifecycle
-    - Providing a consistent API for UI operations
-    
-    Author: Updated May 2025
+    Core system for managing UI components and their lifecycle.
+    Integrates with UIManager for display and transitions.
 ]]
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- Module dependencies
-local UIRegistry = require(script.Parent.UIRegistry)
+-- Import dependencies
 local UIManager = require(script.Parent.UIManager)
+local Constants = require(script.Parent.Parent.Constants)
 
--- Configuration
-local CONFIG = {
-    debugMode = true,
-    autoInitialize = true,
-    defaultScreen = "MainMenuUI",
-    initializationTimeout = 10, -- seconds
-    loadRetries = 3
-}
+-- Component registry
+local components = {}
+local visibleComponents = {}
 
--- State
-local UISystem = {
-    initialized = false,
-    components = {},
-    screens = {},
-    activeScreen = nil
-}
+-- UISystem class
+local UISystem = {}
+UISystem.__index = UISystem
 
--- Logging
-local function log(message, level)
-    level = level or "Info"
-    local prefix = "[UISystem] "
-    
-    if level == "Info" and CONFIG.debugMode then
-        print(prefix .. message)
-    elseif level == "Warning" then
-        warn(prefix .. message)
-    elseif level == "Error" then
-        error(prefix .. message)
-    end
+-- Create new UISystem instance
+function UISystem.new()
+    local self = setmetatable({}, UISystem)
+    self:initialize()
+    return self
 end
 
--- Safe require utility
-local function requireSafely(moduleScript)
-    if not moduleScript or not moduleScript:IsA("ModuleScript") then
-        warn("Invalid module script provided to requireSafely")
-        return nil
-    end
-    
-    local success, result = pcall(function()
-        return require(moduleScript)
-    end)
-    
-    if not success then
-        warn("Failed to load module: " .. moduleScript.Name .. " - " .. tostring(result))
-        return nil
-    end
-    
-    return result
-end
-
--- Initialize the UI system
+-- Initialize the system
 function UISystem:initialize()
-    if self.initialized then
-        log("UISystem already initialized", "Warning")
-        return true
+    -- Initialize UIManager if not already initialized
+    if not UIManager.initialized then
+        UIManager:initialize()
     end
     
-    log("Initializing UI System...")
-    
-    -- Initialize core modules
-    if not UIRegistry:initialize() then
-        log("Failed to initialize UIRegistry", "Error")
+    -- Clear any existing state
+    components = {}
+    visibleComponents = {}
+end
+
+-- Register a UI component
+function UISystem:registerComponent(component)
+    if not component or not component.name then
+        warn("Invalid component registration: missing component or name")
         return false
     end
     
-    if not UIManager:initialize() then
-        log("Failed to initialize UIManager", "Error")
-        return false
-    end
-    
-    -- Load and register UI components
-    self:loadUIComponents()
-    
-    -- Show default screen if configured
-    if CONFIG.autoInitialize then
-        task.spawn(function()
-            task.wait(1) -- Wait for other systems to initialize
-            self:showScreen(CONFIG.defaultScreen)
-        end)
-    end
-    
-    self.initialized = true
-    log("UI System initialization complete")
+    components[component.name] = component
     return true
 end
 
--- Load UI components from the Components folder
-function UISystem:loadUIComponents()
-    local componentsFolder = script.Parent.Parent.Components
-    if not componentsFolder then
-        log("Components folder not found", "Warning")
-        return
-    end
-    
-    for _, module in ipairs(componentsFolder:GetChildren()) do
-        if module:IsA("ModuleScript") then
-            local component = requireSafely(module)
-            if component then
-                self.components[module.Name] = component
-                UIRegistry:registerComponent(module.Name, component)
-                log("Loaded component: " .. module.Name)
-            end
-        end
-    end
+-- Get a registered component
+function UISystem:getComponent(name)
+    return components[name]
 end
 
--- Load UI screens from the Screens folder
-function UISystem:loadUIScreens()
-    local screensFolder = script.Parent.Parent.Screens
-    if not screensFolder then
-        log("Screens folder not found", "Warning")
-        return
-    end
-    
-    for _, module in ipairs(screensFolder:GetChildren()) do
-        if module:IsA("ModuleScript") then
-            local screen = requireSafely(module)
-            if screen then
-                self.screens[module.Name] = screen
-                UIRegistry:registerComponent(module.Name, screen)
-                log("Loaded screen: " .. module.Name)
-            end
-        end
-    end
-end
-
--- Show a UI screen
-function UISystem:showScreen(screenName)
-    if not self.initialized then
-        log("Cannot show screen, UI System not initialized", "Warning")
+-- Show a UI component
+function UISystem:showComponent(name, animation)
+    local component = components[name]
+    if not component then
+        warn("Component not found:", name)
         return false
     end
     
-    -- Get the screen component
-    local screen = self.screens[screenName]
-    if not screen then
-        log("Screen not found: " .. screenName, "Warning")
-        return false
+    -- Check if already visible
+    if visibleComponents[name] then
+        return true
     end
     
-    -- Hide current screen if any
-    if self.activeScreen then
-        self:hideScreen(self.activeScreen)
-    end
-    
-    -- Show the new screen
-    local success = UIManager:showUI(screenName, screen)
+    -- Show component using UIManager
+    local success = UIManager:showUI(name, component, animation)
     if success then
-        self.activeScreen = screenName
-        log("Showing screen: " .. screenName)
+        visibleComponents[name] = true
+        component:onShow()
     end
     
     return success
 end
 
--- Hide a UI screen
-function UISystem:hideScreen(screenName)
-    if not self.initialized then
+-- Hide a UI component
+function UISystem:hideComponent(name, animation)
+    local component = components[name]
+    if not component then
+        warn("Component not found:", name)
         return false
     end
     
-    local success = UIManager:hideUI(screenName)
-    if success and self.activeScreen == screenName then
-        self.activeScreen = nil
-        log("Hiding screen: " .. screenName)
+    -- Check if already hidden
+    if not visibleComponents[name] then
+        return true
+    end
+    
+    -- Hide component using UIManager
+    local success = UIManager:hideUI(name)
+    if success then
+        visibleComponents[name] = nil
+        component:onHide()
     end
     
     return success
 end
 
--- Get a UI component
-function UISystem:getComponent(componentName)
-    return UIRegistry:getComponent(componentName)
+-- Check if a component is visible
+function UISystem:isComponentVisible(name)
+    return visibleComponents[name] == true
 end
 
--- Get the current active screen
-function UISystem:getActiveScreen()
-    return self.activeScreen
-end
-
--- Shutdown the UI system
-function UISystem:shutdown()
-    if not self.initialized then
-        return true
+-- Update a component's data
+function UISystem:updateComponent(name, data)
+    local component = components[name]
+    if not component then
+        warn("Component not found:", name)
+        return false
     end
     
-    log("Shutting down UI System...")
-    
-    -- Hide all screens
-    for screenName, _ in pairs(self.screens) do
-        self:hideScreen(screenName)
+    if component.update then
+        component:update(data)
     end
     
-    -- Shutdown core modules
-    UIManager:shutdown()
-    UIRegistry:shutdown()
-    
-    self.initialized = false
-    log("UI System shutdown complete")
     return true
 end
 
--- Auto-initialize on module load
-task.spawn(function()
-    task.wait(0.5) -- Give other systems time to load
-    UISystem:initialize()
-end)
+-- Show a modal dialog
+function UISystem:showModal(options)
+    return UIManager:showModal(options)
+end
+
+-- Hide a modal dialog
+function UISystem:hideModal(modal)
+    return UIManager:hideModal(modal)
+end
+
+-- Hide all components
+function UISystem:hideAllComponents()
+    for name, _ in pairs(visibleComponents) do
+        self:hideComponent(name)
+    end
+    return true
+end
+
+-- Close all modals
+function UISystem:closeAllModals()
+    return UIManager:closeAllModals()
+end
+
+-- Shutdown the system
+function UISystem:shutdown()
+    -- Hide all components
+    self:hideAllComponents()
+    
+    -- Close all modals
+    self:closeAllModals()
+    
+    -- Clear component registry
+    components = {}
+    visibleComponents = {}
+    
+    return true
+end
 
 return UISystem
