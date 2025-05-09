@@ -110,7 +110,13 @@ UIConstants.ComponentNames = {
     Achievements = "Achievements",
     CommunityGoals = "CommunityGoals",
     Settings = "Settings",
-    Tutorial = "Tutorial"
+    Tutorial = "Tutorial",
+    GuestPass = "GuestPass",
+    GymMenu = "GymMenu",
+    MemberSatisfaction = "MemberSatisfaction",
+    PlayerStats = "PlayerStats",
+    StaffManagement = "StaffManagement",
+    ProgressBar = "ProgressBar"
 }
 
 -- UI Event Names
@@ -119,7 +125,13 @@ UIConstants.EventNames = {
     HideUI = "HideUI",
     UpdateUI = "UpdateUI",
     UIInteraction = "UIInteraction",
-    UIError = "UIError"
+    UIError = "UIError",
+    PurchaseGuestPass = "PurchaseGuestPass",
+    GymMenuSectionSelected = "GymMenuSectionSelected",
+    MemberSatisfactionUpdate = "MemberSatisfactionUpdate",
+    PlayerStatsUpdate = "PlayerStatsUpdate",
+    StaffManagementUpdate = "StaffManagementUpdate",
+    ProgressBarUpdate = "ProgressBarUpdate"
 }
 
 -- UI Animation Names
@@ -129,7 +141,9 @@ UIConstants.AnimationNames = {
     SlideInLeft = "SLIDE_IN_LEFT",
     SlideOutLeft = "SLIDE_OUT_LEFT",
     ScaleIn = "SCALE_IN",
-    ScaleOut = "SCALE_OUT"
+    ScaleOut = "SCALE_OUT",
+    BounceIn = "BOUNCE_IN",
+    BounceOut = "BOUNCE_OUT"
 }
 
 return UIConstants 
