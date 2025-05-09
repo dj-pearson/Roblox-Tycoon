@@ -6,9 +6,8 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Get the CoreRegistry and dependencies
+-- Get the CoreRegistry
 local CoreRegistry = require(script.Parent.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
 
 -- Configuration
 local CONFIG = {
@@ -31,7 +30,11 @@ local CONFIG = {
     -- Performance
     checkInterval = 10,            -- How often to check tycoon states (seconds)
     enablePartCulling = true,      -- Whether to enable part culling for distant tycoons
-    cullingDistance = 500          -- Distance at which to stop rendering tycoon parts
+    cullingDistance = 500,         -- Distance at which to stop rendering tycoon parts
+    
+    -- Error handling
+    maxRetries = 3,                -- Maximum number of retries for operations
+    retryDelay = 1                 -- Delay between retries (seconds)
 }
 
 -- Create the TycoonSystem
@@ -40,35 +43,113 @@ local TycoonSystem = {
     tycoonInstances = {},
     tycoonOwners = {},
     playerTycoons = {},
-    nextTycoonPosition = 0
+    nextTycoonPosition = 0,
+    status = "uninitialized",      -- Current system status
+    dependencies = {},             -- Required system dependencies
+    revenueTask = nil,             -- Revenue generation task
+    maintenanceTask = nil          -- Maintenance task
 }
 
--- Debug function
-local function log(...)
+-- Debug function with log levels
+local function log(level, ...)
     if CONFIG.debugEnabled then
-        print("[TycoonSystem]", ...)
+        local args = {...}
+        local message = table.concat(args, " ")
+        print("[TycoonSystem][" .. level .. "]", message)
     end
+end
+
+-- Get a system dependency with retries
+function TycoonSystem:getDependency(systemName)
+    if not self.dependencies[systemName] then
+        local retries = 0
+        while retries < CONFIG.maxRetries do
+            local success, system = pcall(function()
+                return CoreRegistry.getSystem(systemName)
+            end)
+            
+            if success and system then
+                self.dependencies[systemName] = system
+                log("INFO", "Successfully loaded dependency: " .. systemName)
+                return system
+            end
+            
+            retries += 1
+            if retries < CONFIG.maxRetries then
+                log("WARNING", "Failed to load " .. systemName .. ", retrying... (" .. retries .. "/" .. CONFIG.maxRetries .. ")")
+                task.wait(CONFIG.retryDelay)
+            end
+        end
+        
+        log("ERROR", "Failed to load dependency after " .. CONFIG.maxRetries .. " retries: " .. systemName)
+        return nil
+    end
+    
+    return self.dependencies[systemName]
 end
 
 -- Initialize the module
 function TycoonSystem:initialize()
-    log("Initializing TycoonSystem...")
+    log("INFO", "Initializing TycoonSystem...")
+    
+    -- Set status to initializing
+    self.status = "initializing"
+    
+    -- Load dependencies
+    local EventBridge = self:getDependency("EventBridge")
+    if not EventBridge then
+        log("ERROR", "Failed to initialize: EventBridge dependency not available")
+        self.status = "failed"
+        return false
+    end
     
     -- Create tycoon folder if it doesn't exist
-    self:ensureTycoonFolder()
+    local success, err = pcall(function()
+        self:ensureTycoonFolder()
+    end)
+    
+    if not success then
+        log("ERROR", "Failed to create tycoon folder: " .. tostring(err))
+        self.status = "failed"
+        return false
+    end
     
     -- Build owner lookup table
-    self:buildOwnershipTable()
+    success, err = pcall(function()
+        self:buildOwnershipTable()
+    end)
+    
+    if not success then
+        log("ERROR", "Failed to build ownership table: " .. tostring(err))
+        self.status = "failed"
+        return false
+    end
     
     -- Start passive revenue generation
     if CONFIG.enableAutomaticRevenue then
-        self:startRevenueGeneration()
+        success, err = pcall(function()
+            self:startRevenueGeneration()
+        end)
+        
+        if not success then
+            log("ERROR", "Failed to start revenue generation: " .. tostring(err))
+            self.status = "degraded"
+        end
     end
     
     -- Set up tycoon maintenance
-    self:startTycoonMaintenance()
+    success, err = pcall(function()
+        self:startTycoonMaintenance()
+    end)
     
-    log("TycoonSystem initialized")
+    if not success then
+        log("ERROR", "Failed to start tycoon maintenance: " .. tostring(err))
+        self.status = "degraded"
+    end
+    
+    -- Set status to initialized
+    self.status = "initialized"
+    log("INFO", "TycoonSystem initialized successfully")
     return true
 end
 
@@ -80,7 +161,7 @@ function TycoonSystem:ensureTycoonFolder()
         tycoonsFolder = Instance.new("Folder")
         tycoonsFolder.Name = CONFIG.tycoonFolder
         tycoonsFolder.Parent = Workspace
-        log("Created tycoons folder in workspace")
+        log("INFO", "Created tycoons folder in workspace")
     end
     
     return tycoonsFolder
@@ -127,9 +208,9 @@ function TycoonSystem:buildOwnershipTable()
                         tycoonValue.Parent = ownerPlayer
                     end
                     
-                    log("Registered existing tycoon: " .. tycoon.Name)
+                    log("INFO", "Registered existing tycoon: " .. tycoon.Name)
                 else
-                    log("Found tycoon without owner: " .. tycoon.Name)
+                    log("INFO", "Found tycoon without owner: " .. tycoon.Name)
                 end
             end
         end
@@ -138,7 +219,7 @@ function TycoonSystem:buildOwnershipTable()
     -- Calculate next position
     self.nextTycoonPosition = #tycoonsFolder:GetChildren()
     
-    log("Built ownership table with " .. #self.tycoonInstances .. " tycoons")
+    log("INFO", "Built ownership table with " .. #self.tycoonInstances .. " tycoons")
 end
 
 -- Find the position for a new tycoon
@@ -160,18 +241,18 @@ end
 function TycoonSystem:createNewTycoon(player)
     if not player then return nil end
     
-    log("Creating new tycoon for " .. player.Name)
+    log("INFO", "Creating new tycoon for " .. player.Name)
     
     -- Check if player already has a tycoon
     if self.playerTycoons[player.UserId] then
-        log(player.Name .. " already has a tycoon")
+        log("INFO", player.Name .. " already has a tycoon")
         return self.playerTycoons[player.UserId]
     end
     
     -- Get the template
     local template = ReplicatedStorage:FindFirstChild(CONFIG.tycoonTemplate)
     if not template then
-        log("Tycoon template not found")
+        log("ERROR", "Tycoon template not found")
         return nil
     end
     
@@ -240,10 +321,16 @@ function TycoonSystem:createNewTycoon(player)
     
     -- Fire event
     if EventBridge then
-        EventBridge:fireEvent("TycoonCreated", player, newTycoon)
+        local success, err = pcall(function()
+            EventBridge:fireEvent("TycoonCreated", player, newTycoon)
+        end)
+        
+        if not success then
+            log("ERROR", "Failed to fire TycoonCreated event for " .. player.Name .. ": " .. tostring(err))
+        end
     end
     
-    log("Created new tycoon for " .. player.Name)
+    log("INFO", "Created new tycoon for " .. player.Name)
     return newTycoon
 end
 
@@ -269,7 +356,7 @@ function TycoonSystem:ensurePlayerTycoon(player)
         end
         tycoonValue.Value = existingTycoon
         
-        log("Found existing tycoon for " .. player.Name)
+        log("INFO", "Found existing tycoon for " .. player.Name)
         return existingTycoon
     end
     
@@ -298,12 +385,12 @@ function TycoonSystem:fixTycoonReference(player)
         tycoon = Instance.new("ObjectValue")
         tycoon.Name = "Tycoon"
         tycoon.Parent = player
-        log("Created Tycoon value for " .. player.Name)
+        log("INFO", "Created Tycoon value for " .. player.Name)
     end
     
     -- Check if tycoon is incorrectly set to character
     if tycoon.Value == player.Character then
-        log("Fixing incorrect tycoon reference for " .. player.Name)
+        log("INFO", "Fixing incorrect tycoon reference for " .. player.Name)
         
         -- Try to find correct tycoon
         local correctTycoon = self.playerTycoons[player.UserId]
@@ -318,10 +405,10 @@ function TycoonSystem:fixTycoonReference(player)
         
         if correctTycoon then
             tycoon.Value = correctTycoon
-            log("Fixed tycoon reference for " .. player.Name)
+            log("INFO", "Fixed tycoon reference for " .. player.Name)
             return true
         else
-            log("Could not find tycoon for " .. player.Name)
+            log("INFO", "Could not find tycoon for " .. player.Name)
             return false
         end
     end
@@ -333,16 +420,34 @@ end
 function TycoonSystem:startRevenueGeneration()
     if not CONFIG.enableAutomaticRevenue then return end
     
-    log("Starting revenue generation loop...")
+    -- Stop existing task if any
+    if self.revenueTask then
+        task.cancel(self.revenueTask)
+    end
     
-    task.spawn(function()
+    log("INFO", "Starting revenue generation loop...")
+    
+    self.revenueTask = task.spawn(function()
         while true do
-            task.wait(CONFIG.revenueInterval)
+            local success, err = pcall(function()
+                task.wait(CONFIG.revenueInterval)
+                
+                for _, player in pairs(Players:GetPlayers()) do
+                    task.spawn(function()
+                        local success, revenue = pcall(function()
+                            return self:generateRevenue(player)
+                        end)
+                        
+                        if not success then
+                            log("ERROR", "Failed to generate revenue for " .. player.Name .. ": " .. tostring(revenue))
+                        end
+                    end)
+                end
+            end)
             
-            for _, player in pairs(Players:GetPlayers()) do
-                task.spawn(function()
-                    self:generateRevenue(player)
-                end)
+            if not success then
+                log("ERROR", "Revenue generation loop error: " .. tostring(err))
+                task.wait(CONFIG.retryDelay)
             end
         end
     end)
@@ -376,12 +481,30 @@ function TycoonSystem:generateRevenue(player)
     local currentDues = tycoon:GetAttribute("AccruedDues") or 0
     tycoon:SetAttribute("AccruedDues", currentDues + totalRevenue)
     
-    log(player.Name .. " generated " .. totalRevenue .. " revenue")
+    log("INFO", player.Name .. " generated " .. totalRevenue .. " revenue")
     
     -- Update front desk if available
-    local GymTycoonConnector = CoreRegistry.getSystem("GymTycoonConnector")
+    local GymTycoonConnector = self:getDependency("GymTycoonConnector")
     if GymTycoonConnector and GymTycoonConnector.updateFrontDesk then
-        GymTycoonConnector.updateFrontDesk(player)
+        local success, err = pcall(function()
+            GymTycoonConnector.updateFrontDesk(player)
+        end)
+        
+        if not success then
+            log("ERROR", "Failed to update front desk for " .. player.Name .. ": " .. tostring(err))
+        end
+    end
+    
+    -- Fire event
+    local EventBridge = self:getDependency("EventBridge")
+    if EventBridge then
+        local success, err = pcall(function()
+            EventBridge:fireEvent("TycoonRevenueGenerated", player, totalRevenue)
+        end)
+        
+        if not success then
+            log("ERROR", "Failed to fire revenue event for " .. player.Name .. ": " .. tostring(err))
+        end
     end
     
     return totalRevenue
@@ -389,22 +512,40 @@ end
 
 -- Start the tycoon maintenance loop
 function TycoonSystem:startTycoonMaintenance()
-    log("Starting tycoon maintenance loop...")
+    -- Stop existing task if any
+    if self.maintenanceTask then
+        task.cancel(self.maintenanceTask)
+    end
     
-    task.spawn(function()
+    log("INFO", "Starting tycoon maintenance loop...")
+    
+    self.maintenanceTask = task.spawn(function()
         while true do
-            task.wait(CONFIG.checkInterval)
+            local success, err = pcall(function()
+                task.wait(CONFIG.checkInterval)
+                
+                -- Check all tycoons
+                for _, tycoon in pairs(self.tycoonInstances) do
+                    task.spawn(function()
+                        local success, err = pcall(function()
+                            self:performTycoonMaintenance(tycoon)
+                        end)
+                        
+                        if not success then
+                            log("ERROR", "Failed to perform maintenance on tycoon " .. tycoon.Name .. ": " .. tostring(err))
+                        end
+                    end)
+                end
+                
+                -- Rebuild ownership table occasionally to catch any issues
+                task.wait(CONFIG.checkInterval * 10) -- Less frequent rebuilds
+                self:buildOwnershipTable()
+            end)
             
-            -- Check all tycoons
-            for _, tycoon in pairs(self.tycoonInstances) do
-                task.spawn(function()
-                    self:performTycoonMaintenance(tycoon)
-                end)
+            if not success then
+                log("ERROR", "Maintenance loop error: " .. tostring(err))
+                task.wait(CONFIG.retryDelay)
             end
-            
-            -- Rebuild ownership table occasionally to catch any issues
-            task.wait(CONFIG.checkInterval * 10) -- Less frequent rebuilds
-            self:buildOwnershipTable()
         end
     end)
 end
@@ -495,8 +636,11 @@ local PublicAPI = {
     
     getConfig = function()
         return CONFIG
+    end,
+    
+    getStatus = function()
+        return TycoonSystem.status
     end
 }
 
--- Register with CoreRegistry
-return CoreRegistry.registerSystem("TycoonSystem", PublicAPI, {"EventBridge"})
+return PublicAPI

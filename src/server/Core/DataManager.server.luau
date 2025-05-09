@@ -6,9 +6,8 @@ local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local RunService = game:GetService("RunService")
 
--- Get the CoreRegistry and EventBridge
+-- Get the CoreRegistry
 local CoreRegistry = require(script.Parent.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
 
 -- Configuration
 local CONFIG = {
@@ -46,12 +45,20 @@ local DataManager = {
     saveLocks = {},
     sessionLocks = {},
     dataStores = {},
-    orderedStores = {}
+    orderedStores = {},
+    eventBridge = nil  -- Will be set during initialization
 }
 
--- Debug function
-local function log(...)
-    print("[DataManager]", ...)
+-- Debug function with enhanced logging
+local function log(level, ...)
+    local prefix = "[DataManager]"
+    if level == "ERROR" then
+        warn(prefix, "ERROR:", ...)
+    elseif level == "WARNING" then
+        warn(prefix, "WARNING:", ...)
+    else
+        print(prefix, ...)
+    end
 end
 
 -- Check if a value should be considered corrupted data
@@ -96,28 +103,59 @@ function DataManager:initDataStores()
         end)
         
         if not success then
-            log("Failed to initialize DataStores: " .. tostring(result))
+            log("ERROR", "Failed to initialize DataStores: " .. tostring(result))
             self.dataStores = {}
             self.orderedStores = {}
             return false
         end
         
-        log("DataStores initialized successfully")
+        log("INFO", "DataStores initialized successfully")
         return true
     else
-        log("DataStore disabled in configuration")
+        log("WARNING", "DataStore disabled in configuration")
         return true
     end
 end
 
 -- Initialize the module
 function DataManager:initialize()
-    log("Initializing DataManager...")
+    log("INFO", "Initializing DataManager...")
     
     -- Initialize data stores
     local storesReady = self:initDataStores()
     if not storesReady then
-        log("Warning: DataStores not ready")
+        log("WARNING", "DataStores not ready")
+    end
+    
+    -- Try to get EventBridge, but don't fail if it's not available yet
+    local success, eventBridge = pcall(function()
+        return CoreRegistry.getSystem("EventBridge")
+    end)
+    
+    if success and eventBridge then
+        self.eventBridge = eventBridge
+        log("INFO", "EventBridge connected successfully")
+    else
+        log("WARNING", "EventBridge not available yet, will retry later")
+        -- Set up a retry mechanism for EventBridge
+        task.spawn(function()
+            local attempts = 0
+            while attempts < 5 do
+                task.wait(2) -- Wait 2 seconds between attempts
+                success, eventBridge = pcall(function()
+                    return CoreRegistry.getSystem("EventBridge")
+                end)
+                if success and eventBridge then
+                    self.eventBridge = eventBridge
+                    log("INFO", "EventBridge connected successfully after retry")
+                    break
+                end
+                attempts = attempts + 1
+            end
+            if not self.eventBridge then
+                log("ERROR", "Failed to connect to EventBridge after multiple attempts")
+            end
+        end)
     end
     
     -- Set up auto-save interval
@@ -148,7 +186,7 @@ function DataManager:initialize()
         self:onServerShutdown()
     end)
     
-    log("DataManager initialized")
+    log("INFO", "DataManager initialized")
     return true
 end
 

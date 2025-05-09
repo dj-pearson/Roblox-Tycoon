@@ -4,12 +4,16 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
--- Get the CoreRegistry and dependencies
-local CoreRegistry = require(game:GetService("ServerScriptService").Core.CoreRegistry)
-local EventBridge = CoreRegistry.getSystem("EventBridge")
-local DataManager = CoreRegistry.getSystem("DataManager") 
-local TycoonSystem = CoreRegistry.getSystem("TycoonSystem")
+-- System status
+local SystemStatus = {
+    UNINITIALIZED = "UNINITIALIZED",
+    INITIALIZING = "INITIALIZING",
+    INITIALIZED = "INITIALIZED",
+    DEGRADED = "DEGRADED",
+    FAILED = "FAILED"
+}
 
 -- Configuration
 local CONFIG = {
@@ -34,7 +38,18 @@ local CONFIG = {
     
     -- Performance
     staggeredPlacement = true,    -- Whether to stagger equipment placement for performance
-    placementDelay = 0.1          -- Delay between equipment placements in seconds
+    placementDelay = 0.1,         -- Delay between equipment placements in seconds
+    
+    -- Dependencies
+    maxRetries = 5,              -- Maximum number of retries for getting dependencies
+    retryDelay = 1,              -- Delay between retries in seconds
+    
+    -- Required Dependencies
+    requiredDependencies = {
+        "EventBridge",
+        "DataManager",
+        "TycoonSystem"
+    }
 }
 
 -- Create the BuyTileSystem
@@ -42,28 +57,129 @@ local BuyTileSystem = {
     -- Cache
     equipmentTemplates = {},
     equipmentPrices = {},
-    specialEquipment = {}
+    specialEquipment = {},
+    
+    -- Status
+    status = SystemStatus.UNINITIALIZED,
+    dependencies = {},
+    initializationErrors = {}
 }
 
--- Debug function
-local function log(...)
-    if CONFIG.debugEnabled then
-        print("[BuyTileSystem]", ...)
+-- Debug function with log levels
+local function log(level, ...)
+    if CONFIG.debugEnabled or level == "ERROR" then
+        local message = string.format("[BuyTileSystem][%s]", level)
+        for _, v in ipairs({...}) do
+            message = message .. " " .. tostring(v)
+        end
+        print(message)
     end
+end
+
+-- Get CoreRegistry safely
+local function getCoreRegistry()
+    local success, result = pcall(function()
+        return require(ServerScriptService.Core.CoreRegistry)
+    end)
+    
+    if not success then
+        log("ERROR", "Failed to get CoreRegistry:", result)
+        return nil
+    end
+    
+    return result
+end
+
+-- Get dependency with retries
+function BuyTileSystem:getDependency(dependencyName)
+    local CoreRegistry = getCoreRegistry()
+    if not CoreRegistry then
+        log("ERROR", "Cannot get dependency", dependencyName, "- CoreRegistry not available")
+        return nil
+    end
+    
+    for i = 1, CONFIG.maxRetries do
+        local success, result = pcall(function()
+            return CoreRegistry.getSystem(dependencyName)
+        end)
+        
+        if success and result then
+            self.dependencies[dependencyName] = result
+            log("INFO", "Successfully got dependency:", dependencyName)
+            return result
+        end
+        
+        if i < CONFIG.maxRetries then
+            log("WARNING", "Retry", i, "getting dependency:", dependencyName)
+            task.wait(CONFIG.retryDelay)
+        end
+    end
+    
+    log("ERROR", "Failed to get dependency after", CONFIG.maxRetries, "retries:", dependencyName)
+    table.insert(self.initializationErrors, "Failed to get dependency: " .. dependencyName)
+    return nil
+end
+
+-- Check dependencies
+function BuyTileSystem:checkDependencies()
+    local allDependenciesLoaded = true
+    
+    for _, dependencyName in ipairs(CONFIG.requiredDependencies) do
+        if not self.dependencies[dependencyName] then
+            local dependency = self:getDependency(dependencyName)
+            if not dependency then
+                allDependenciesLoaded = false
+            end
+        end
+    end
+    
+    return allDependenciesLoaded
 end
 
 -- Initialize the module
 function BuyTileSystem:initialize()
-    log("Initializing BuyTileSystem...")
+    if self.status == SystemStatus.INITIALIZING or self.status == SystemStatus.INITIALIZED then
+        return true
+    end
+    
+    self.status = SystemStatus.INITIALIZING
+    log("INFO", "Initializing BuyTileSystem...")
+    
+    -- Clear any previous initialization errors
+    self.initializationErrors = {}
+    
+    -- Check dependencies
+    local dependenciesLoaded = self:checkDependencies()
+    if not dependenciesLoaded then
+        self.status = SystemStatus.DEGRADED
+        log("WARNING", "Some dependencies failed to load. System will operate in degraded mode.")
+    end
     
     -- Load equipment templates
-    self:loadEquipmentTemplates()
+    local templatesLoaded = self:loadEquipmentTemplates()
+    if not templatesLoaded then
+        table.insert(self.initializationErrors, "Failed to load equipment templates")
+    end
     
-    -- Register remote events
-    self:setupRemoteEvents()
+    -- Setup remote events
+    local eventsSetup = self:setupRemoteEvents()
+    if not eventsSetup then
+        table.insert(self.initializationErrors, "Failed to setup remote events")
+    end
     
-    log("BuyTileSystem initialized")
-    return true
+    -- Set final status
+    if #self.initializationErrors == 0 then
+        self.status = SystemStatus.INITIALIZED
+        log("INFO", "BuyTileSystem initialized successfully")
+        return true
+    else
+        self.status = SystemStatus.DEGRADED
+        log("WARNING", "BuyTileSystem initialized in degraded state")
+        for _, error in ipairs(self.initializationErrors) do
+            log("ERROR", error)
+        end
+        return false
+    end
 end
 
 -- Load equipment templates from ReplicatedStorage
@@ -71,7 +187,7 @@ function BuyTileSystem:loadEquipmentTemplates()
     local templateFolder = ReplicatedStorage:FindFirstChild(CONFIG.equipmentFolder)
     
     if not templateFolder then
-        log("Equipment template folder not found")
+        log("ERROR", "Equipment template folder not found")
         return false
     end
     
@@ -103,21 +219,37 @@ function BuyTileSystem:loadEquipmentTemplates()
         end
     end
     
-    log("Loaded " .. loadedCount .. " equipment templates")
-    return true
+    log("INFO", "Loaded " .. loadedCount .. " equipment templates")
+    return loadedCount > 0
 end
 
 -- Setup remote events
 function BuyTileSystem:setupRemoteEvents()
-    -- Get or create remote event for buy tile requests
-    local buyTileEvent = EventBridge:getOrCreateRemoteEvent("BuyTile")
+    local EventBridge = self.dependencies.EventBridge
+    if not EventBridge then
+        log("ERROR", "Cannot setup remote events - EventBridge not available")
+        return false
+    end
     
-    -- Connect handler
-    EventBridge:connectRemoteEvent("BuyTile", function(player, tileId)
-        self:handleBuyTileRequest(player, tileId)
+    -- Get or create remote event for buy tile requests
+    local success, result = pcall(function()
+        local buyTileEvent = EventBridge:getOrCreateRemoteEvent("BuyTile")
+        
+        -- Connect handler
+        EventBridge:connectRemoteEvent("BuyTile", function(player, tileId)
+            self:handleBuyTileRequest(player, tileId)
+        end)
+        
+        return true
     end)
     
-    log("Remote events set up")
+    if not success then
+        log("ERROR", "Failed to setup remote events:", result)
+        return false
+    end
+    
+    log("INFO", "Remote events set up successfully")
+    return true
 end
 
 -- Calculate price for a tile
@@ -186,29 +318,29 @@ end
 -- Handle a buy tile request
 function BuyTileSystem:handleBuyTileRequest(player, tileId)
     if not player or not tileId then
-        log("Invalid buy tile request")
+        log("ERROR", "Invalid buy tile request")
         return false
     end
     
-    log(player.Name .. " requested to buy tile: " .. tileId)
+    log("INFO", player.Name .. " requested to buy tile: " .. tileId)
     
     -- Check if tile template exists
     if not self.equipmentTemplates[tileId] then
-        log("Tile template not found: " .. tileId)
+        log("ERROR", "Tile template not found: " .. tileId)
         return false
     end
     
     -- Get player's tycoon
     local tycoon = player:FindFirstChild("Tycoon")
     if not tycoon or not tycoon.Value then
-        log("Player has no tycoon")
+        log("ERROR", "Player has no tycoon")
         return false
     end
     
     -- Check if player has reached the equipment limit
     local equipmentCount = tycoon.Value:GetAttribute("EquipmentCount") or 0
     if equipmentCount >= CONFIG.maxEquipmentPerTycoon then
-        log("Player has reached the equipment limit")
+        log("WARNING", "Player has reached the equipment limit")
         return false
     end
     
@@ -217,13 +349,13 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
     
     -- Check if player can afford it
     if not self:canPlayerAfford(player, price) then
-        log("Player cannot afford this tile")
+        log("INFO", "Player cannot afford this tile")
         return false
     end
     
     -- Deduct cash
     if not self:deductPlayerCash(player, price) then
-        log("Failed to deduct cash")
+        log("ERROR", "Failed to deduct cash")
         return false
     end
     
@@ -232,17 +364,23 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
     
     if success then
         -- Record purchase
+        local DataManager = self.dependencies.DataManager
         if DataManager and DataManager.recordEquipmentPurchase then
-            DataManager.recordEquipmentPurchase(player, tileId)
+            pcall(function()
+                DataManager.recordEquipmentPurchase(player, tileId)
+            end)
         end
         
         -- Fire event
+        local EventBridge = self.dependencies.EventBridge
         if EventBridge then
-            EventBridge:fireEvent("TilePurchased", player, tileId, price)
-            EventBridge:fireClientEvent("TilePurchasedClient", player, tileId, price)
+            pcall(function()
+                EventBridge:fireEvent("TilePurchased", player, tileId, price)
+                EventBridge:fireClientEvent("TilePurchasedClient", player, tileId, price)
+            end)
         end
         
-        log(player.Name .. " successfully purchased tile: " .. tileId)
+        log("INFO", player.Name .. " successfully purchased tile: " .. tileId)
         return true
     else
         -- Refund cash if placement failed
@@ -251,11 +389,11 @@ function BuyTileSystem:handleBuyTileRequest(player, tileId)
             local cashValue = leaderstats:FindFirstChild(CONFIG.cashAttributeName)
             if cashValue then
                 cashValue.Value = cashValue.Value + price
-                log("Refunded " .. price .. " to " .. player.Name)
+                log("INFO", "Refunded " .. price .. " to " .. player.Name)
             end
         end
         
-        log("Failed to place equipment for " .. player.Name)
+        log("ERROR", "Failed to place equipment for " .. player.Name)
         return false
     end
 end
@@ -441,22 +579,33 @@ end
 
 -- Restore purchased equipment from data
 function BuyTileSystem:restoreEquipment(player, equipmentList)
-    if not player or not equipmentList then return false end
+    if not player or not equipmentList then 
+        log("ERROR", "Invalid parameters for restoreEquipment")
+        return false 
+    end
     
-    log("Restoring " .. #equipmentList .. " pieces of equipment for " .. player.Name)
+    log("INFO", "Restoring " .. #equipmentList .. " pieces of equipment for " .. player.Name)
     
     -- Get player's tycoon
     local tycoon = player:FindFirstChild("Tycoon")
     if not tycoon or not tycoon.Value then
-        log("Player has no tycoon")
+        log("ERROR", "Player has no tycoon")
         return false
     end
     
     -- Process equipment list with staggered placement
     task.spawn(function()
+        local successCount = 0
+        local failureCount = 0
+        
         for i, tileId in ipairs(equipmentList) do
             -- Place equipment
-            self:placeEquipment(player, tileId)
+            local success = self:placeEquipment(player, tileId)
+            if success then
+                successCount = successCount + 1
+            else
+                failureCount = failureCount + 1
+            end
             
             -- Stagger placements if enabled
             if CONFIG.staggeredPlacement and i < #equipmentList then
@@ -464,16 +613,25 @@ function BuyTileSystem:restoreEquipment(player, equipmentList)
             end
         end
         
-        log("Finished restoring equipment for " .. player.Name)
+        log("INFO", string.format("Finished restoring equipment for %s (Success: %d, Failed: %d)", 
+            player.Name, successCount, failureCount))
     end)
     
     return true
 end
 
 -- Public API
-local PublicAPI = {
+return {
     initialize = function()
         return BuyTileSystem:initialize()
+    end,
+    
+    getStatus = function()
+        return BuyTileSystem.status
+    end,
+    
+    getInitializationErrors = function()
+        return BuyTileSystem.initializationErrors
     end,
     
     calculateTilePrice = function(player, tileId)
@@ -498,12 +656,5 @@ local PublicAPI = {
     
     getEquipmentPrices = function()
         return BuyTileSystem.equipmentPrices
-    end,
-    
-    getConfig = function()
-        return CONFIG
     end
 }
-
--- Register with CoreRegistry
-return CoreRegistry.registerSystem("BuyTileSystem", PublicAPI, {"EventBridge", "DataManager", "TycoonSystem"})
