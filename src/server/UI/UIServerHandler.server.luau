@@ -23,14 +23,58 @@ local AnalyticsSystem = ServerRegistry.getSystem("AnalyticsSystem")
 
 -- Handle UI events
 local function handleUIEvents()
+    -- Handle initial data request
+    ServerEventBridge:connectEvent("RequestInitialData", function(player)
+        -- Get all initial data
+        local achievements = AchievementSystem:getPlayerAchievements(player)
+        local goals = CommunityGoalSystem:getActiveGoals()
+        local settings = SettingsManager:getPlayerSettings(player)
+        local tutorialData = TutorialManager:getPlayerTutorialData(player)
+        local playerData = PlayerDataService:getPlayerData(player)
+        local playerProgress = {
+            achievements = AchievementSystem:getPlayerProgress(player),
+            communityGoals = CommunityGoalSystem:getPlayerProgress(player),
+            tutorial = TutorialManager:getPlayerProgress(player)
+        }
+        
+        -- Send all data to client
+        ServerEventBridge:dispatchEvent(player, "AchievementsUpdated", {
+            achievements = achievements,
+            playerData = playerData,
+            playerProgress = playerProgress.achievements
+        })
+        
+        ServerEventBridge:dispatchEvent(player, "CommunityGoalsUpdated", {
+            goals = goals,
+            playerProgress = playerProgress.communityGoals
+        })
+        
+        ServerEventBridge:dispatchEvent(player, "SettingsUpdated", {
+            settings = settings,
+            availableSettings = SettingsManager:getAvailableSettings()
+        })
+        
+        ServerEventBridge:dispatchEvent(player, "TutorialUpdated", {
+            tutorial = tutorialData,
+            playerProgress = playerProgress.tutorial
+        })
+        
+        -- Track analytics
+        AnalyticsSystem:trackEvent(player, "UI_Initialization", {
+            timestamp = os.time()
+        })
+    end)
+    
     -- Handle achievement events
     ServerEventBridge:connectEvent("ShowAchievementsUI", function(player)
         local achievements = AchievementSystem:getPlayerAchievements(player)
         local playerData = PlayerDataService:getPlayerData(player)
+        local playerProgress = AchievementSystem:getPlayerProgress(player)
         
         ServerEventBridge:dispatchEvent(player, "AchievementsUpdated", {
             achievements = achievements,
-            playerData = playerData
+            playerData = playerData,
+            playerProgress = playerProgress
         })
         
         -- Track analytics
@@ -239,16 +283,22 @@ Players.PlayerAdded:Connect(function(player)
     local settings = SettingsManager:getPlayerSettings(player)
     local tutorialData = TutorialManager:getPlayerTutorialData(player)
     local playerData = PlayerDataService:getPlayerData(player)
+    local playerProgress = {
+        achievements = AchievementSystem:getPlayerProgress(player),
+        communityGoals = CommunityGoalSystem:getPlayerProgress(player),
+        tutorial = TutorialManager:getPlayerProgress(player)
+    }
     
     -- Dispatch initial data
     ServerEventBridge:dispatchEvent(player, "AchievementsUpdated", {
         achievements = achievements,
-        playerData = playerData
+        playerData = playerData,
+        playerProgress = playerProgress.achievements
     })
     
     ServerEventBridge:dispatchEvent(player, "CommunityGoalsUpdated", {
         goals = goals,
-        playerProgress = CommunityGoalSystem:getPlayerProgress(player)
+        playerProgress = playerProgress.communityGoals
     })
     
     ServerEventBridge:dispatchEvent(player, "SettingsUpdated", {
@@ -258,7 +308,7 @@ Players.PlayerAdded:Connect(function(player)
     
     ServerEventBridge:dispatchEvent(player, "TutorialUpdated", {
         tutorial = tutorialData,
-        playerProgress = TutorialManager:getPlayerProgress(player)
+        playerProgress = playerProgress.tutorial
     })
     
     -- Track player join
