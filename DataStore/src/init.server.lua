@@ -30,11 +30,15 @@ local function waitForPlugin()
         error("Plugin context not available after 5 seconds - ensure this is running as a plugin")
     end
     
-    if typeof(plugin) ~= "Plugin" then
-        error("Invalid plugin context - expected Plugin object, got " .. typeof(plugin))
+    -- Check if plugin has the required methods (more reliable than typeof check)
+    local requiredMethods = {"CreateToolbar", "CreateDockWidgetPluginGui"}
+    for _, method in ipairs(requiredMethods) do
+        if not plugin[method] or type(plugin[method]) ~= "function" then
+            error("Invalid plugin context - missing required method: " .. method)
+        end
     end
     
-    debugLog("MAIN", "Plugin context validated successfully")
+    debugLog("MAIN", "Plugin context validated successfully (type: " .. typeof(plugin) .. ")")
     return plugin
 end
 
