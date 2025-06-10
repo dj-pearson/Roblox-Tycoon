@@ -827,7 +827,7 @@ function UIManager:createDataStoreColumns(parent)
     -- Data content scroll frame
     local dataScroll = Instance.new("ScrollingFrame")
     dataScroll.Name = "DataScroll"
-    dataScroll.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, -40)
+    dataScroll.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, -80) -- Made room for operation buttons
     dataScroll.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 35)
     dataScroll.BackgroundTransparency = 1
     dataScroll.BorderSizePixel = 0
@@ -835,6 +835,40 @@ function UIManager:createDataStoreColumns(parent)
     dataScroll.ScrollBarImageColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
     dataScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     dataScroll.Parent = dataSection
+    
+    -- Operations bar
+    local operationsBar = Instance.new("Frame")
+    operationsBar.Name = "OperationsBar"
+    operationsBar.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 40)
+    operationsBar.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 1, -45)
+    operationsBar.BackgroundTransparency = 1
+    operationsBar.Parent = dataSection
+    
+    -- Edit button
+    local editButton = self:createOperationButton(operationsBar, "📝", "Edit Key", 0, function()
+        self:editSelectedKey()
+    end)
+    
+    -- Create button  
+    local createButton = self:createOperationButton(operationsBar, "➕", "Create Key", 1, function()
+        self:createNewKey()
+    end)
+    
+    -- Delete button
+    local deleteButton = self:createOperationButton(operationsBar, "🗑️", "Delete Key", 2, function()
+        self:deleteSelectedKey()
+    end)
+    
+    -- Export button
+    local exportButton = self:createOperationButton(operationsBar, "📤", "Export Data", 3, function()
+        self:exportSelectedData()
+    end)
+    
+    self.explorerElements.operationsBar = operationsBar
+    self.explorerElements.editButton = editButton
+    self.explorerElements.createButton = createButton
+    self.explorerElements.deleteButton = deleteButton
+    self.explorerElements.exportButton = exportButton
     
     -- Data content display
     local previewContent = Instance.new("TextLabel")
@@ -1087,7 +1121,11 @@ function UIManager:loadDataStores()
     -- Register callback for when keys are loaded
     explorer:registerCallback("onKeysLoaded", function(keys)
         debugLog("Keys loaded callback triggered with " .. #keys .. " keys")
-        self:updateKeyList(keys)
+        if self.explorerElements and self.explorerElements.keysScroll then
+            self:populateKeysList(keys)
+        else
+            debugLog("Keys scroll element not available for callback", "WARN")
+        end
     end)
     
     local datastores = explorer:getDataStores()
@@ -1103,6 +1141,10 @@ end
 -- Select a DataStore and load its keys
 function UIManager:selectDataStore(datastoreName)
     debugLog("Selecting DataStore: " .. datastoreName)
+    
+    -- Store selected DataStore name for operation buttons
+    self.selectedDataStoreName = datastoreName
+    debugLog("Stored selected DataStore: " .. datastoreName)
     
     if not self.services or not self.services["features.explorer.DataExplorer"] then
         return
@@ -1401,7 +1443,7 @@ end
 function UIManager:setStatus(text, color)
     if self.statusLabel then
         self.statusLabel.Text = text
-        self.statusLabel.TextColor3 = color or Constants.UI.THEME.COLORS.TEXT
+        self.statusLabel.TextColor3 = color or Constants.UI.THEME.COLORS.TEXT_PRIMARY
     end
 end
 
@@ -1747,6 +1789,13 @@ function UIManager:selectModernDataStore(datastoreName, selectedCard)
         self.explorerElements.previewTitle.Text = "📋 Data Preview - " .. datastoreName
     end
     
+    -- Store selected DataStore name for operation buttons
+    self.selectedDataStoreName = datastoreName
+    debugLog("Stored selected DataStore for operations: " .. datastoreName)
+    
+    -- Update operation button states
+    self:updateOperationButtonStates()
+    
     -- Load DataStore data
     if not self.services or not self.services["features.explorer.DataExplorer"] then
         return
@@ -1900,9 +1949,13 @@ function UIManager:loadKeyData(keyName)
     if not self.explorerElements or not self.explorerElements.previewContent or not self.explorerElements.dataScroll then
         return
     end
-    
+
     local previewContent = self.explorerElements.previewContent
     local dataScroll = self.explorerElements.dataScroll
+    
+    -- Store selected key and DataStore for operation buttons
+    self.selectedKeyName = keyName
+    debugLog("Selected key for operations: " .. keyName)
     
     -- Show loading state
     previewContent.Text = "🔄 Loading data for key: " .. keyName .. "..."
@@ -1929,6 +1982,13 @@ function UIManager:loadKeyData(keyName)
                 local dataInfo = explorer:getSelectedData()
                 
                 if dataInfo and dataInfo.exists then
+                    -- Store the selected data for operation buttons
+                    self.selectedDataStoreData = dataInfo
+                    debugLog("Stored data for selected key: " .. keyName)
+                    
+                    -- Update operation button states
+                    self:updateOperationButtonStates()
+                    
                     -- Create formatted data display
                     self:displayFormattedData(keyName, dataInfo)
                 else
@@ -2031,6 +2091,1062 @@ function UIManager:formatJSONData(data)
     else
         return tostring(data)
     end
+end
+
+-- Create operation button
+function UIManager:createOperationButton(parent, icon, text, index, callback)
+    local buttonWidth = 90
+    local buttonSpacing = 8
+    
+    local button = Instance.new("TextButton")
+    button.Name = text:gsub("%s+", "") .. "Button"
+    button.Size = UDim2.new(0, buttonWidth, 0, 32)
+    button.Position = UDim2.new(0, index * (buttonWidth + buttonSpacing), 0, 4)
+    button.BackgroundColor3 = Constants.UI.THEME.COLORS.BUTTON_SECONDARY
+    button.BorderSizePixel = 1
+    button.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    button.Text = ""
+    button.Parent = parent
+    
+    -- Button corner
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    corner.Parent = button
+    
+    -- Icon
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Name = "Icon"
+    iconLabel.Size = UDim2.new(0, 20, 1, 0)
+    iconLabel.Position = UDim2.new(0, 8, 0, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = icon
+    iconLabel.Font = Constants.UI.THEME.FONTS.UI
+    iconLabel.TextSize = 14
+    iconLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    iconLabel.TextXAlignment = Enum.TextXAlignment.Center
+    iconLabel.TextYAlignment = Enum.TextYAlignment.Center
+    iconLabel.Parent = button
+    
+    -- Text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Name = "Text"
+    textLabel.Size = UDim2.new(1, -30, 1, 0)
+    textLabel.Position = UDim2.new(0, 28, 0, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = text
+    textLabel.Font = Constants.UI.THEME.FONTS.UI
+    textLabel.TextSize = 11
+    textLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center
+    textLabel.Parent = button
+    
+    -- Hover effects
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = Constants.UI.THEME.COLORS.BUTTON_HOVER
+    end)
+    
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = Constants.UI.THEME.COLORS.BUTTON_SECONDARY
+    end)
+    
+    -- Click handler
+    button.MouseButton1Click:Connect(callback)
+    
+    return button
+end
+
+-- Edit selected key data
+function UIManager:editSelectedKey()
+    if not self.selectedKeyName or not self.selectedDataStoreData then
+        self:showNotification("⚠️ Please select a key to edit", "WARNING")
+        return
+    end
+    
+    debugLog("Opening editor for key: " .. self.selectedKeyName)
+    self:openDataEditor("edit", self.selectedKeyName, self.selectedDataStoreData)
+end
+
+-- Create new key
+function UIManager:createNewKey()
+    if not self.selectedDataStoreName then
+        self:showNotification("⚠️ Please select a DataStore first", "WARNING")
+        return
+    end
+    
+    debugLog("Creating new key for DataStore: " .. self.selectedDataStoreName)
+    self:openDataEditor("create", nil, nil)
+end
+
+-- Delete selected key with confirmation
+function UIManager:deleteSelectedKey()
+    if not self.selectedKeyName then
+        self:showNotification("⚠️ Please select a key to delete", "WARNING")
+        return
+    end
+    
+    debugLog("Requesting deletion of key: " .. self.selectedKeyName)
+    
+    -- Show confirmation dialog
+    self:showConfirmationDialog(
+        "🗑️ Delete Key",
+        "Are you sure you want to delete the key '" .. self.selectedKeyName .. "'?\\n\\nThis action cannot be undone.",
+        function()
+            self:performKeyDeletion()
+        end
+    )
+end
+
+-- Export selected data
+function UIManager:exportSelectedData()
+    if not self.selectedKeyName or not self.selectedDataStoreData then
+        self:showNotification("⚠️ Please select a key to export", "WARNING")
+        return
+    end
+    
+    debugLog("Exporting data for key: " .. self.selectedKeyName)
+    
+    local HttpService = game:GetService("HttpService")
+    local success, jsonData = pcall(function()
+        return HttpService:JSONEncode(self.selectedDataStoreData.data)
+    end)
+    
+    if success then
+        -- Copy to clipboard (if possible) or show in dialog
+        self:showDataExportDialog(self.selectedKeyName, jsonData)
+    else
+        self:showNotification("❌ Failed to export data: Invalid JSON", "ERROR")
+    end
+end
+
+-- Open data editor modal
+function UIManager:openDataEditor(mode, keyName, dataInfo)
+    -- Clear any existing editor
+    self:closeDataEditor()
+    
+    -- Create editor overlay
+    local editorOverlay = Instance.new("Frame")
+    editorOverlay.Name = "DataEditorOverlay"
+    editorOverlay.Size = UDim2.new(1, 0, 1, 0)
+    editorOverlay.Position = UDim2.new(0, 0, 0, 0)
+    editorOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    editorOverlay.BackgroundTransparency = 0.5
+    editorOverlay.BorderSizePixel = 0
+    editorOverlay.Parent = self.mainContentArea
+    
+    -- Editor modal
+    local editorModal = Instance.new("Frame")
+    editorModal.Name = "DataEditorModal"
+    editorModal.Size = UDim2.new(0.8, 0, 0.8, 0)
+    editorModal.Position = UDim2.new(0.1, 0, 0.1, 0)
+    editorModal.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    editorModal.BorderSizePixel = 1
+    editorModal.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    editorModal.Parent = editorOverlay
+    
+    local modalCorner = Instance.new("UICorner")
+    modalCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    modalCorner.Parent = editorModal
+    
+    -- Store reference
+    self.dataEditor = {
+        overlay = editorOverlay,
+        modal = editorModal,
+        mode = mode,
+        keyName = keyName,
+        dataInfo = dataInfo
+    }
+    
+    -- Create editor interface
+    self:createDataEditorInterface(editorModal, mode, keyName, dataInfo)
+end
+
+-- Close data editor
+function UIManager:closeDataEditor()
+    if self.dataEditor and self.dataEditor.overlay then
+        self.dataEditor.overlay:Destroy()
+        self.dataEditor = nil
+        debugLog("Data editor closed")
+    end
+end
+
+-- Show notification
+function UIManager:showNotification(message, type)
+    type = type or "INFO"
+    debugLog("Notification: " .. message)
+    
+    -- For now, just use the status bar
+    local color = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    if type == "WARNING" then
+        color = Constants.UI.THEME.COLORS.WARNING
+    elseif type == "ERROR" then
+        color = Constants.UI.THEME.COLORS.ERROR
+    elseif type == "SUCCESS" then
+        color = Constants.UI.THEME.COLORS.SUCCESS
+    end
+    
+    self:setStatus(message, color)
+    
+    -- Clear after 3 seconds
+    task.spawn(function()
+        wait(3)
+        self:setStatus("🟢 Ready")
+    end)
+end
+
+-- Create data editor interface
+function UIManager:createDataEditorInterface(modal, mode, keyName, dataInfo)
+    -- Add error handling for data editor creation
+    local success, result = pcall(function()
+        return self:createDataEditorSafe(modal, mode, keyName, dataInfo)
+    end)
+    
+    if not success then
+        debugLog("Error creating data editor interface: " .. tostring(result), "ERROR")
+        -- Create simple error display
+        local errorLabel = Instance.new("TextLabel")
+        errorLabel.Size = UDim2.new(1, -40, 0, 100)
+        errorLabel.Position = UDim2.new(0, 20, 0.5, -50)
+        errorLabel.BackgroundTransparency = 1
+        errorLabel.Text = "❌ Error creating editor interface:\n" .. tostring(result)
+        errorLabel.Font = Constants.UI.THEME.FONTS.UI
+        errorLabel.TextSize = 14
+        errorLabel.TextColor3 = Constants.UI.THEME.COLORS.ERROR
+        errorLabel.TextWrapped = true
+        errorLabel.TextXAlignment = Enum.TextXAlignment.Center
+        errorLabel.TextYAlignment = Enum.TextYAlignment.Center
+        errorLabel.Parent = modal
+        return
+    end
+end
+
+-- Safe data editor creation with error handling
+function UIManager:createDataEditorSafe(modal, mode, keyName, dataInfo)
+    -- Header
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 50)
+    header.Position = UDim2.new(0, 0, 0, 0)
+    header.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_PRIMARY
+    header.BorderSizePixel = 0
+    header.Parent = modal
+    
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    headerCorner.Parent = header
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -100, 1, 0)
+    title.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = mode == "create" and "➕ Create New Key" or ("📝 Edit Key: " .. keyName)
+    title.Font = Constants.UI.THEME.FONTS.HEADING
+    title.TextSize = Constants.UI.THEME.SIZES.TEXT_LARGE
+    title.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.TextYAlignment = Enum.TextYAlignment.Center
+    title.Parent = header
+    
+    -- Close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 40, 0, 40)
+    closeButton.Position = UDim2.new(1, -50, 0, 5)
+    closeButton.BackgroundColor3 = Constants.UI.THEME.COLORS.BUTTON_SECONDARY
+    closeButton.BorderSizePixel = 1
+    closeButton.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    closeButton.Text = "✕"
+    closeButton.Font = Constants.UI.THEME.FONTS.UI
+    closeButton.TextSize = 16
+    closeButton.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    closeButton.Parent = header
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    closeCorner.Parent = closeButton
+    
+    closeButton.MouseButton1Click:Connect(function()
+        self:closeDataEditor()
+    end)
+    
+    -- Main content area
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, 0, 1, -110) -- Leave room for header and footer
+    content.Position = UDim2.new(0, 0, 0, 50)
+    content.BackgroundTransparency = 1
+    content.Parent = modal
+    
+    -- Left panel - Key info and metadata
+    local leftPanel = Instance.new("Frame")
+    leftPanel.Name = "LeftPanel"
+    leftPanel.Size = UDim2.new(0.3, -5, 1, 0)
+    leftPanel.Position = UDim2.new(0, 0, 0, 0)
+    leftPanel.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+    leftPanel.BorderSizePixel = 1
+    leftPanel.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    leftPanel.Parent = content
+    
+    local leftCorner = Instance.new("UICorner")
+    leftCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    leftCorner.Parent = leftPanel
+    
+    -- Right panel - Data editor
+    local rightPanel = Instance.new("Frame")
+    rightPanel.Name = "RightPanel"
+    rightPanel.Size = UDim2.new(0.7, -5, 1, 0)
+    rightPanel.Position = UDim2.new(0.3, 5, 0, 0)
+    rightPanel.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+    rightPanel.BorderSizePixel = 1
+    rightPanel.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    rightPanel.Parent = content
+    
+    local rightCorner = Instance.new("UICorner")
+    rightCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    rightCorner.Parent = rightPanel
+    
+    -- Create left panel content
+    local leftSuccess, leftError = pcall(function()
+        self:createEditorLeftPanel(leftPanel, mode, keyName, dataInfo)
+    end)
+    if not leftSuccess then
+        debugLog("Error creating left panel: " .. tostring(leftError), "ERROR")
+    end
+    
+    -- Create right panel content  
+    local rightSuccess, rightError = pcall(function()
+        self:createEditorRightPanel(rightPanel, mode, keyName, dataInfo)
+    end)
+    if not rightSuccess then
+        debugLog("Error creating right panel: " .. tostring(rightError), "ERROR")
+    end
+    
+    -- Footer with action buttons
+    local footer = Instance.new("Frame")
+    footer.Name = "Footer"
+    footer.Size = UDim2.new(1, 0, 0, 60)
+    footer.Position = UDim2.new(0, 0, 1, -60)
+    footer.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_PRIMARY
+    footer.BorderSizePixel = 0
+    footer.Parent = modal
+    
+    local footerCorner = Instance.new("UICorner")
+    footerCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    footerCorner.Parent = footer
+    
+    -- Footer buttons
+    local footerSuccess, footerError = pcall(function()
+        self:createEditorFooter(footer, mode)
+    end)
+    if not footerSuccess then
+        debugLog("Error creating footer: " .. tostring(footerError), "ERROR")
+    end
+    
+    -- Successfully created editor interface
+    return true
+end
+
+-- Create editor left panel (metadata and key info)
+function UIManager:createEditorLeftPanel(panel, mode, keyName, dataInfo)
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.PaddingBottom = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.PaddingLeft = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.PaddingRight = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.Parent = panel
+    
+    local yOffset = 0
+    
+    -- Key name section
+    local keyNameLabel = Instance.new("TextLabel")
+    keyNameLabel.Name = "KeyNameLabel"
+    keyNameLabel.Size = UDim2.new(1, 0, 0, 20)
+    keyNameLabel.Position = UDim2.new(0, 0, 0, yOffset)
+    keyNameLabel.BackgroundTransparency = 1
+    keyNameLabel.Text = "Key Name:"
+    keyNameLabel.Font = Constants.UI.THEME.FONTS.UI
+    keyNameLabel.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    keyNameLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    keyNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    keyNameLabel.TextYAlignment = Enum.TextYAlignment.Center
+    keyNameLabel.Parent = panel
+    
+    yOffset = yOffset + 25
+    
+    -- Key name input
+    local keyNameInput = Instance.new("TextBox")
+    keyNameInput.Name = "KeyNameInput"
+    keyNameInput.Size = UDim2.new(1, 0, 0, 35)
+    keyNameInput.Position = UDim2.new(0, 0, 0, yOffset)
+    keyNameInput.BackgroundColor3 = Constants.UI.THEME.COLORS.INPUT_BACKGROUND
+    keyNameInput.BorderSizePixel = 1
+    keyNameInput.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    keyNameInput.Text = keyName or ""
+    keyNameInput.PlaceholderText = "Enter key name..."
+    keyNameInput.Font = Constants.UI.THEME.FONTS.CODE
+    keyNameInput.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    keyNameInput.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    keyNameInput.PlaceholderColor3 = Constants.UI.THEME.COLORS.TEXT_DISABLED
+    keyNameInput.TextXAlignment = Enum.TextXAlignment.Left
+    keyNameInput.ClearTextOnFocus = false
+    keyNameInput.Parent = panel
+    
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    inputCorner.Parent = keyNameInput
+    
+    yOffset = yOffset + 50
+    
+    -- Data type section
+    local dataTypeLabel = Instance.new("TextLabel")
+    dataTypeLabel.Name = "DataTypeLabel"
+    dataTypeLabel.Size = UDim2.new(1, 0, 0, 20)
+    dataTypeLabel.Position = UDim2.new(0, 0, 0, yOffset)
+    dataTypeLabel.BackgroundTransparency = 1
+    dataTypeLabel.Text = "Data Type:"
+    dataTypeLabel.Font = Constants.UI.THEME.FONTS.UI
+    dataTypeLabel.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    dataTypeLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    dataTypeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    dataTypeLabel.TextYAlignment = Enum.TextYAlignment.Center
+    dataTypeLabel.Parent = panel
+    
+    yOffset = yOffset + 25
+    
+    -- Data type dropdown
+    local dataTypeFrame = Instance.new("Frame")
+    dataTypeFrame.Name = "DataTypeFrame"
+    dataTypeFrame.Size = UDim2.new(1, 0, 0, 35)
+    dataTypeFrame.Position = UDim2.new(0, 0, 0, yOffset)
+    dataTypeFrame.BackgroundColor3 = Constants.UI.THEME.COLORS.INPUT_BACKGROUND
+    dataTypeFrame.BorderSizePixel = 1
+    dataTypeFrame.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    dataTypeFrame.Parent = panel
+    
+    local dataTypeCorner = Instance.new("UICorner")
+    dataTypeCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    dataTypeCorner.Parent = dataTypeFrame
+    
+    local dataTypeText = Instance.new("TextLabel")
+    dataTypeText.Name = "DataTypeText"
+    dataTypeText.Size = UDim2.new(1, -30, 1, 0)
+    dataTypeText.Position = UDim2.new(0, 10, 0, 0)
+    dataTypeText.BackgroundTransparency = 1
+    dataTypeText.Text = "Auto Detect"
+    dataTypeText.Font = Constants.UI.THEME.FONTS.UI
+    dataTypeText.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    dataTypeText.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    dataTypeText.TextXAlignment = Enum.TextXAlignment.Left
+    dataTypeText.TextYAlignment = Enum.TextYAlignment.Center
+    dataTypeText.Parent = dataTypeFrame
+    
+    yOffset = yOffset + 50
+    
+    -- Metadata section (if editing existing)
+    if mode == "edit" and dataInfo then
+        local metadataLabel = Instance.new("TextLabel")
+        metadataLabel.Name = "MetadataLabel"
+        metadataLabel.Size = UDim2.new(1, 0, 0, 20)
+        metadataLabel.Position = UDim2.new(0, 0, 0, yOffset)
+        metadataLabel.BackgroundTransparency = 1
+        metadataLabel.Text = "Metadata:"
+        metadataLabel.Font = Constants.UI.THEME.FONTS.UI
+        metadataLabel.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+        metadataLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+        metadataLabel.TextXAlignment = Enum.TextXAlignment.Left
+        metadataLabel.TextYAlignment = Enum.TextYAlignment.Center
+        metadataLabel.Parent = panel
+        
+        yOffset = yOffset + 30
+        
+        -- Metadata display
+        local metadataInfo = {
+            "Type: " .. tostring(dataInfo.type),
+            "Size: " .. (dataInfo.size or "Unknown"),
+            "Exists: " .. tostring(dataInfo.exists)
+        }
+        
+        for i, info in ipairs(metadataInfo) do
+            local infoLabel = Instance.new("TextLabel")
+            infoLabel.Name = "MetadataInfo" .. i
+            infoLabel.Size = UDim2.new(1, 0, 0, 18)
+            infoLabel.Position = UDim2.new(0, 0, 0, yOffset)
+            infoLabel.BackgroundTransparency = 1
+            infoLabel.Text = info
+            infoLabel.Font = Constants.UI.THEME.FONTS.CODE
+            infoLabel.TextSize = Constants.UI.THEME.SIZES.TEXT_SMALL
+            infoLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+            infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+            infoLabel.TextYAlignment = Enum.TextYAlignment.Center
+            infoLabel.Parent = panel
+            
+            yOffset = yOffset + 20
+        end
+    end
+    
+    -- Store references
+    self.dataEditor.keyNameInput = keyNameInput
+    self.dataEditor.dataTypeText = dataTypeText
+end
+
+-- Create editor right panel (data editor)
+function UIManager:createEditorRightPanel(panel, mode, keyName, dataInfo)
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.PaddingBottom = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.PaddingLeft = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.PaddingRight = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.Parent = panel
+    
+    -- Data editor label
+    local editorLabel = Instance.new("TextLabel")
+    editorLabel.Name = "EditorLabel"
+    editorLabel.Size = UDim2.new(1, 0, 0, 20)
+    editorLabel.Position = UDim2.new(0, 0, 0, 0)
+    editorLabel.BackgroundTransparency = 1
+    editorLabel.Text = "Data Content (JSON):"
+    editorLabel.Font = Constants.UI.THEME.FONTS.UI
+    editorLabel.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    editorLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    editorLabel.TextXAlignment = Enum.TextXAlignment.Left
+    editorLabel.TextYAlignment = Enum.TextYAlignment.Center
+    editorLabel.Parent = panel
+    
+    -- Data editor text box
+    local dataEditor = Instance.new("TextBox")
+    dataEditor.Name = "DataEditor"
+    dataEditor.Size = UDim2.new(1, 0, 1, -30)
+    dataEditor.Position = UDim2.new(0, 0, 0, 25)
+    dataEditor.BackgroundColor3 = Constants.UI.THEME.COLORS.CODE_BACKGROUND
+    dataEditor.BorderSizePixel = 1
+    dataEditor.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    dataEditor.Text = ""
+    dataEditor.PlaceholderText = mode == "create" and "Enter JSON data..." or "Loading..."
+    dataEditor.Font = Constants.UI.THEME.FONTS.CODE
+    dataEditor.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    dataEditor.TextColor3 = Constants.UI.THEME.COLORS.CODE_NORMAL
+    dataEditor.PlaceholderColor3 = Constants.UI.THEME.COLORS.TEXT_DISABLED
+    dataEditor.TextXAlignment = Enum.TextXAlignment.Left
+    dataEditor.TextYAlignment = Enum.TextYAlignment.Top
+    dataEditor.MultiLine = true
+    dataEditor.ClearTextOnFocus = false
+    dataEditor.TextWrapped = true
+    dataEditor.Parent = panel
+    
+    local editorCorner = Instance.new("UICorner")
+    editorCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    editorCorner.Parent = dataEditor
+    
+    -- Set initial data
+    if mode == "edit" and dataInfo and dataInfo.data then
+        local HttpService = game:GetService("HttpService")
+        local success, jsonText = pcall(function()
+            return HttpService:JSONEncode(dataInfo.data)
+        end)
+        
+        if success then
+            -- Pretty format the JSON
+            dataEditor.Text = self:formatJSON(jsonText)
+        else
+            dataEditor.Text = tostring(dataInfo.data)
+        end
+    end
+    
+    -- Store reference
+    self.dataEditor.dataEditor = dataEditor
+end
+
+-- Create editor footer with action buttons
+function UIManager:createEditorFooter(footer, mode)
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, Constants.UI.THEME.SPACING.MEDIUM)
+    padding.PaddingBottom = UDim.new(0, Constants.UI.THEME.SPACING.MEDIUM)
+    padding.PaddingLeft = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.PaddingRight = UDim.new(0, Constants.UI.THEME.SPACING.LARGE)
+    padding.Parent = footer
+    
+    -- Validation status
+    local validationStatus = Instance.new("TextLabel")
+    validationStatus.Name = "ValidationStatus"
+    validationStatus.Size = UDim2.new(0.5, 0, 1, 0)
+    validationStatus.Position = UDim2.new(0, 0, 0, 0)
+    validationStatus.BackgroundTransparency = 1
+    validationStatus.Text = "✅ Valid JSON"
+    validationStatus.Font = Constants.UI.THEME.FONTS.UI
+    validationStatus.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    validationStatus.TextColor3 = Constants.UI.THEME.COLORS.SUCCESS
+    validationStatus.TextXAlignment = Enum.TextXAlignment.Left
+    validationStatus.TextYAlignment = Enum.TextYAlignment.Center
+    validationStatus.Parent = footer
+    
+    -- Cancel button
+    local cancelButton = Instance.new("TextButton")
+    cancelButton.Name = "CancelButton"
+    cancelButton.Size = UDim2.new(0, 100, 0, 40)
+    cancelButton.Position = UDim2.new(1, -220, 0, 10)
+    cancelButton.BackgroundColor3 = Constants.UI.THEME.COLORS.BUTTON_SECONDARY
+    cancelButton.BorderSizePixel = 1
+    cancelButton.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    cancelButton.Text = "Cancel"
+    cancelButton.Font = Constants.UI.THEME.FONTS.UI
+    cancelButton.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    cancelButton.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    cancelButton.Parent = footer
+    
+    local cancelCorner = Instance.new("UICorner")
+    cancelCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    cancelCorner.Parent = cancelButton
+    
+    -- Save button
+    local saveButton = Instance.new("TextButton")
+    saveButton.Name = "SaveButton"
+    saveButton.Size = UDim2.new(0, 100, 0, 40)
+    saveButton.Position = UDim2.new(1, -110, 0, 10)
+    saveButton.BackgroundColor3 = Constants.UI.THEME.COLORS.PRIMARY
+    saveButton.BorderSizePixel = 0
+    saveButton.Text = mode == "create" and "Create" or "Save"
+    saveButton.Font = Constants.UI.THEME.FONTS.UI
+    saveButton.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    saveButton.Parent = footer
+    
+    local saveCorner = Instance.new("UICorner")
+    saveCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    saveCorner.Parent = saveButton
+    
+    -- Button events
+    cancelButton.MouseButton1Click:Connect(function()
+        self:closeDataEditor()
+    end)
+    
+    saveButton.MouseButton1Click:Connect(function()
+        self:saveEditorData()
+    end)
+    
+    -- Store references
+    self.dataEditor.validationStatus = validationStatus
+    self.dataEditor.saveButton = saveButton
+    
+    -- Set up real-time validation
+    if self.dataEditor.dataEditor then
+        self.dataEditor.dataEditor:GetPropertyChangedSignal("Text"):Connect(function()
+            self:validateEditorData()
+        end)
+    end
+end
+
+-- Format JSON with indentation
+function UIManager:formatJSON(jsonString)
+    local formatted = jsonString
+    formatted = formatted:gsub("{", "{\n  ")
+    formatted = formatted:gsub("}", "\n}")
+    formatted = formatted:gsub(",", ",\n  ")
+    formatted = formatted:gsub("%[", "[\n    ")
+    formatted = formatted:gsub("%]", "\n  ]")
+    return formatted
+end
+
+-- Validate editor data
+function UIManager:validateEditorData()
+    if not self.dataEditor or not self.dataEditor.dataEditor or not self.dataEditor.validationStatus then
+        return
+    end
+    
+    local text = self.dataEditor.dataEditor.Text
+    local status = self.dataEditor.validationStatus
+    
+    if text == "" then
+        status.Text = "⚠️ Empty data"
+        status.TextColor3 = Constants.UI.THEME.COLORS.WARNING
+        return false
+    end
+    
+    local HttpService = game:GetService("HttpService")
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(text)
+    end)
+    
+    if success then
+        status.Text = "✅ Valid JSON"
+        status.TextColor3 = Constants.UI.THEME.COLORS.SUCCESS
+        return true
+    else
+        status.Text = "❌ Invalid JSON"
+        status.TextColor3 = Constants.UI.THEME.COLORS.ERROR
+        return false
+    end
+end
+
+-- Save editor data
+function UIManager:saveEditorData()
+    if not self.dataEditor then
+        return
+    end
+    
+    local keyName = self.dataEditor.keyNameInput.Text
+    local dataText = self.dataEditor.dataEditor.Text
+    
+    -- Validate inputs
+    if keyName == "" then
+        self:showNotification("⚠️ Please enter a key name", "WARNING")
+        return
+    end
+    
+    if dataText == "" then
+        self:showNotification("⚠️ Please enter data content", "WARNING")
+        return
+    end
+    
+    -- Validate JSON
+    if not self:validateEditorData() then
+        self:showNotification("❌ Please fix JSON validation errors", "ERROR")
+        return
+    end
+    
+    -- Parse JSON data
+    local HttpService = game:GetService("HttpService")
+    local success, parsedData = pcall(function()
+        return HttpService:JSONDecode(dataText)
+    end)
+    
+    if not success then
+        self:showNotification("❌ Failed to parse JSON data", "ERROR")
+        return
+    end
+    
+    -- Call the data explorer to save the data
+    if self.dataExplorer then
+        self.dataExplorer:saveKeyData(self.selectedDataStoreName, keyName, parsedData, function(success, message)
+            if success then
+                self:showNotification("✅ " .. message, "SUCCESS")
+                self:closeDataEditor()
+                -- Refresh the current view
+                self:refreshCurrentDataStore()
+            else
+                self:showNotification("❌ " .. message, "ERROR")
+            end
+        end)
+    else
+        -- Try using services reference
+        if self.services and self.services["features.explorer.DataExplorer"] then
+            local explorer = self.services["features.explorer.DataExplorer"]
+            explorer:saveKeyData(self.selectedDataStoreName, keyName, parsedData, function(success, message)
+                if success then
+                    self:showNotification("✅ " .. message, "SUCCESS")
+                    self:closeDataEditor()
+                    -- Refresh the current view
+                    self:refreshCurrentDataStore()
+                else
+                    self:showNotification("❌ " .. message, "ERROR")
+                end
+            end)
+        else
+            self:showNotification("❌ DataExplorer service not available", "ERROR")
+        end
+    end
+end
+
+-- Refresh current DataStore view
+function UIManager:refreshCurrentDataStore()
+    if self.selectedDataStoreName then
+        debugLog("Refreshing DataStore view: " .. self.selectedDataStoreName)
+        
+        local explorer = nil
+        if self.dataExplorer then
+            explorer = self.dataExplorer
+        elseif self.services and self.services["features.explorer.DataExplorer"] then
+            explorer = self.services["features.explorer.DataExplorer"]
+        end
+        
+        if explorer then
+            explorer:selectDataStore(self.selectedDataStoreName, function(success, data)
+                if success then
+                    self:populateKeysList(data)
+                else
+                    self:showNotification("❌ Failed to refresh DataStore", "ERROR")
+                end
+            end)
+        else
+            self:showNotification("❌ Explorer service not available", "ERROR")
+        end
+    end
+end
+
+-- Perform key deletion after confirmation
+function UIManager:performKeyDeletion()
+    if not self.selectedKeyName or not self.selectedDataStoreName then
+        return
+    end
+    
+    debugLog("Performing deletion of key: " .. self.selectedKeyName)
+    
+    local explorer = nil
+    if self.dataExplorer then
+        explorer = self.dataExplorer
+    elseif self.services and self.services["features.explorer.DataExplorer"] then
+        explorer = self.services["features.explorer.DataExplorer"]
+    end
+    
+    if explorer then
+        explorer:deleteKeyData(self.selectedDataStoreName, self.selectedKeyName, function(success, message)
+            if success then
+                self:showNotification("✅ " .. message, "SUCCESS")
+                -- Clear selection and refresh
+                self.selectedKeyName = nil
+                self.selectedDataStoreData = nil
+                self:refreshCurrentDataStore()
+                -- Clear the data preview
+                self:clearDataPreview()
+            else
+                self:showNotification("❌ " .. message, "ERROR")
+            end
+        end)
+    else
+        self:showNotification("❌ Explorer service not available", "ERROR")
+    end
+end
+
+-- Clear data preview
+function UIManager:clearDataPreview()
+    if self.explorerElements and self.explorerElements.dataScroll then
+        for _, child in pairs(self.explorerElements.dataScroll:GetChildren()) do
+            if child:IsA("GuiObject") then
+                child:Destroy()
+            end
+        end
+    end
+end
+
+-- Show confirmation dialog
+function UIManager:showConfirmationDialog(title, message, onConfirm)
+    -- Create confirmation overlay
+    local confirmOverlay = Instance.new("Frame")
+    confirmOverlay.Name = "ConfirmationOverlay"
+    confirmOverlay.Size = UDim2.new(1, 0, 1, 0)
+    confirmOverlay.Position = UDim2.new(0, 0, 0, 0)
+    confirmOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    confirmOverlay.BackgroundTransparency = 0.5
+    confirmOverlay.BorderSizePixel = 0
+    confirmOverlay.Parent = self.mainContentArea
+    
+    -- Confirmation dialog
+    local confirmDialog = Instance.new("Frame")
+    confirmDialog.Name = "ConfirmationDialog"
+    confirmDialog.Size = UDim2.new(0, 400, 0, 200)
+    confirmDialog.Position = UDim2.new(0.5, -200, 0.5, -100)
+    confirmDialog.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    confirmDialog.BorderSizePixel = 1
+    confirmDialog.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    confirmDialog.Parent = confirmOverlay
+    
+    local dialogCorner = Instance.new("UICorner")
+    dialogCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    dialogCorner.Parent = confirmDialog
+    
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -40, 0, 40)
+    titleLabel.Position = UDim2.new(0, 20, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.Font = Constants.UI.THEME.FONTS.HEADING
+    titleLabel.TextSize = Constants.UI.THEME.SIZES.TEXT_LARGE
+    titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.Parent = confirmDialog
+    
+    -- Message
+    local messageLabel = Instance.new("TextLabel")
+    messageLabel.Name = "Message"
+    messageLabel.Size = UDim2.new(1, -40, 0, 80)
+    messageLabel.Position = UDim2.new(0, 20, 0, 50)
+    messageLabel.BackgroundTransparency = 1
+    messageLabel.Text = message
+    messageLabel.Font = Constants.UI.THEME.FONTS.UI
+    messageLabel.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    messageLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    messageLabel.TextXAlignment = Enum.TextXAlignment.Left
+    messageLabel.TextYAlignment = Enum.TextYAlignment.Top
+    messageLabel.TextWrapped = true
+    messageLabel.Parent = confirmDialog
+    
+    -- Cancel button
+    local cancelButton = Instance.new("TextButton")
+    cancelButton.Name = "CancelButton"
+    cancelButton.Size = UDim2.new(0, 100, 0, 35)
+    cancelButton.Position = UDim2.new(1, -220, 1, -50)
+    cancelButton.BackgroundColor3 = Constants.UI.THEME.COLORS.BUTTON_SECONDARY
+    cancelButton.BorderSizePixel = 1
+    cancelButton.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    cancelButton.Text = "Cancel"
+    cancelButton.Font = Constants.UI.THEME.FONTS.UI
+    cancelButton.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    cancelButton.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    cancelButton.Parent = confirmDialog
+    
+    local cancelCorner = Instance.new("UICorner")
+    cancelCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    cancelCorner.Parent = cancelButton
+    
+    -- Confirm button
+    local confirmButton = Instance.new("TextButton")
+    confirmButton.Name = "ConfirmButton"
+    confirmButton.Size = UDim2.new(0, 100, 0, 35)
+    confirmButton.Position = UDim2.new(1, -110, 1, -50)
+    confirmButton.BackgroundColor3 = Constants.UI.THEME.COLORS.ERROR
+    confirmButton.BorderSizePixel = 0
+    confirmButton.Text = "Delete"
+    confirmButton.Font = Constants.UI.THEME.FONTS.UI
+    confirmButton.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    confirmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    confirmButton.Parent = confirmDialog
+    
+    local confirmCorner = Instance.new("UICorner")
+    confirmCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    confirmCorner.Parent = confirmButton
+    
+    -- Button events
+    cancelButton.MouseButton1Click:Connect(function()
+        confirmOverlay:Destroy()
+    end)
+    
+    confirmButton.MouseButton1Click:Connect(function()
+        confirmOverlay:Destroy()
+        onConfirm()
+    end)
+end
+
+-- Show data export dialog
+function UIManager:showDataExportDialog(keyName, jsonData)
+    -- Create export overlay
+    local exportOverlay = Instance.new("Frame")
+    exportOverlay.Name = "ExportOverlay"
+    exportOverlay.Size = UDim2.new(1, 0, 1, 0)
+    exportOverlay.Position = UDim2.new(0, 0, 0, 0)
+    exportOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    exportOverlay.BackgroundTransparency = 0.5
+    exportOverlay.BorderSizePixel = 0
+    exportOverlay.Parent = self.mainContentArea
+    
+    -- Export dialog
+    local exportDialog = Instance.new("Frame")
+    exportDialog.Name = "ExportDialog"
+    exportDialog.Size = UDim2.new(0.8, 0, 0.8, 0)
+    exportDialog.Position = UDim2.new(0.1, 0, 0.1, 0)
+    exportDialog.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    exportDialog.BorderSizePixel = 1
+    exportDialog.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    exportDialog.Parent = exportOverlay
+    
+    local dialogCorner = Instance.new("UICorner")
+    dialogCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    dialogCorner.Parent = exportDialog
+    
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -100, 0, 40)
+    titleLabel.Position = UDim2.new(0, 20, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "📤 Export Data: " .. keyName
+    titleLabel.Font = Constants.UI.THEME.FONTS.HEADING
+    titleLabel.TextSize = Constants.UI.THEME.SIZES.TEXT_LARGE
+    titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.Parent = exportDialog
+    
+    -- Close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 40, 0, 40)
+    closeButton.Position = UDim2.new(1, -50, 0, 5)
+    closeButton.BackgroundColor3 = Constants.UI.THEME.COLORS.BUTTON_SECONDARY
+    closeButton.BorderSizePixel = 1
+    closeButton.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    closeButton.Text = "✕"
+    closeButton.Font = Constants.UI.THEME.FONTS.UI
+    closeButton.TextSize = 16
+    closeButton.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    closeButton.Parent = exportDialog
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    closeCorner.Parent = closeButton
+    
+    -- Data text box
+    local dataTextBox = Instance.new("TextBox")
+    dataTextBox.Name = "DataTextBox"
+    dataTextBox.Size = UDim2.new(1, -40, 1, -100)
+    dataTextBox.Position = UDim2.new(0, 20, 0, 60)
+    dataTextBox.BackgroundColor3 = Constants.UI.THEME.COLORS.CODE_BACKGROUND
+    dataTextBox.BorderSizePixel = 1
+    dataTextBox.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    dataTextBox.Text = jsonData
+    dataTextBox.Font = Constants.UI.THEME.FONTS.CODE
+    dataTextBox.TextSize = Constants.UI.THEME.SIZES.TEXT_MEDIUM
+    dataTextBox.TextColor3 = Constants.UI.THEME.COLORS.CODE_NORMAL
+    dataTextBox.TextXAlignment = Enum.TextXAlignment.Left
+    dataTextBox.TextYAlignment = Enum.TextYAlignment.Top
+    dataTextBox.MultiLine = true
+    dataTextBox.ClearTextOnFocus = false
+    dataTextBox.TextWrapped = true
+    dataTextBox.Parent = exportDialog
+    
+    local textCorner = Instance.new("UICorner")
+    textCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    textCorner.Parent = dataTextBox
+    
+    -- Select all text
+    dataTextBox:CaptureFocus()
+    dataTextBox.SelectionStart = 1
+    dataTextBox.CursorPosition = #jsonData + 1
+    
+    -- Close button event
+    closeButton.MouseButton1Click:Connect(function()
+        exportOverlay:Destroy()
+    end)
+end
+
+-- Update operation button states based on current selection
+function UIManager:updateOperationButtonStates()
+    if not self.explorerElements then
+        return
+    end
+    
+    local hasDataStore = self.selectedDataStoreName ~= nil
+    local hasKey = self.selectedKeyName ~= nil and self.selectedDataStoreData ~= nil
+    
+    -- Update button states
+    if self.explorerElements.editButton then
+        self.explorerElements.editButton.BackgroundColor3 = hasKey and 
+            Constants.UI.THEME.COLORS.BUTTON_SECONDARY or 
+            Constants.UI.THEME.COLORS.BUTTON_DISABLED
+    end
+    
+    if self.explorerElements.createButton then
+        self.explorerElements.createButton.BackgroundColor3 = hasDataStore and 
+            Constants.UI.THEME.COLORS.BUTTON_SECONDARY or 
+            Constants.UI.THEME.COLORS.BUTTON_DISABLED
+    end
+    
+    if self.explorerElements.deleteButton then
+        self.explorerElements.deleteButton.BackgroundColor3 = hasKey and 
+            Constants.UI.THEME.COLORS.ERROR or 
+            Constants.UI.THEME.COLORS.BUTTON_DISABLED
+    end
+    
+    if self.explorerElements.exportButton then
+        self.explorerElements.exportButton.BackgroundColor3 = hasKey and 
+            Constants.UI.THEME.COLORS.BUTTON_SECONDARY or 
+            Constants.UI.THEME.COLORS.BUTTON_DISABLED
+    end
+    
+    debugLog("Updated operation button states - DataStore: " .. tostring(hasDataStore) .. ", Key: " .. tostring(hasKey))
 end
 
 return UIManager 

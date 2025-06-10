@@ -55,6 +55,7 @@ Constants.UI = {
             TEXT_PRIMARY = Color3.fromRGB(255, 255, 255),      -- Primary text
             TEXT_SECONDARY = Color3.fromRGB(185, 187, 190),    -- Secondary text
             TEXT_MUTED = Color3.fromRGB(142, 146, 151),        -- Muted text
+            TEXT_DISABLED = Color3.fromRGB(96, 101, 108),      -- Disabled text
             TEXT_INVERSE = Color3.fromRGB(0, 0, 0),            -- Text on light backgrounds
             
             -- Interactive elements
@@ -62,11 +63,16 @@ Constants.UI = {
             BUTTON_SECONDARY = Color3.fromRGB(79, 84, 92),     -- Secondary buttons
             BUTTON_DANGER = Color3.fromRGB(237, 66, 69),       -- Danger buttons
             BUTTON_HOVER = Color3.fromRGB(71, 82, 196),        -- Button hover
+            BUTTON_DISABLED = Color3.fromRGB(54, 57, 62),      -- Disabled buttons
             
             -- Borders and dividers
             BORDER_PRIMARY = Color3.fromRGB(79, 84, 92),       -- Main borders
             BORDER_SECONDARY = Color3.fromRGB(67, 70, 75),     -- Subtle borders
             DIVIDER = Color3.fromRGB(47, 49, 54),              -- Section dividers
+            
+            -- Input fields
+            INPUT_BACKGROUND = Color3.fromRGB(40, 43, 48),     -- Input background
+            CODE_BACKGROUND = Color3.fromRGB(32, 34, 37),      -- Code editor background
             
             -- Data visualization
             JSON_STRING = Color3.fromRGB(152, 195, 121),       -- JSON string values
@@ -74,6 +80,7 @@ Constants.UI = {
             JSON_BOOLEAN = Color3.fromRGB(86, 182, 194),       -- JSON booleans
             JSON_NULL = Color3.fromRGB(224, 108, 117),         -- JSON null
             JSON_KEY = Color3.fromRGB(198, 120, 221),          -- JSON keys
+            CODE_NORMAL = Color3.fromRGB(171, 178, 191),       -- Normal code text
             
             -- Status indicators
             STATUS_ONLINE = Color3.fromRGB(87, 242, 135),      -- Online/connected
@@ -98,6 +105,13 @@ Constants.UI = {
             HUGE = 48     -- 48px
         },
         SIZES = {
+            -- Text sizes
+            TEXT_TINY = 10,
+            TEXT_SMALL = 11,
+            TEXT_MEDIUM = 13,
+            TEXT_LARGE = 16,
+            TEXT_XLARGE = 20,
+            
             -- Icons
             ICON_TINY = 12,
             ICON_SMALL = 16,

@@ -156,6 +156,11 @@ function DataExplorer:getState()
     }
 end
 
+-- Get selected data (for UI compatibility)
+function DataExplorer:getSelectedData()
+    return self.explorerData.currentData
+end
+
 -- Register UI callback
 function DataExplorer:registerCallback(eventName, callback)
     self.uiCallbacks[eventName] = callback
@@ -299,6 +304,102 @@ function DataExplorer:exportData(format)
     
     debugLog("Exported " .. #self.explorerData.keys .. " keys")
     return exportData
+end
+
+-- Save key data to DataStore
+function DataExplorer:saveKeyData(dataStoreName, keyName, data, callback)
+    debugLog("Saving data for key: " .. keyName .. " in DataStore: " .. dataStoreName)
+    
+    if not dataStoreName or not keyName or not data then
+        callback(false, "Invalid parameters for saving data")
+        return
+    end
+    
+    -- Get DataStore service
+    local dataStoreService = game:GetService("DataStoreService")
+    
+    task.spawn(function()
+        local success, result = pcall(function()
+            local dataStore = dataStoreService:GetDataStore(dataStoreName)
+            dataStore:SetAsync(keyName, data)
+            return "Data saved successfully"
+        end)
+        
+        if success then
+            debugLog("Successfully saved data for key: " .. keyName)
+            -- Update cached data if this key is currently selected
+            if self.currentData and self.currentData[keyName] then
+                self.currentData[keyName] = {
+                    data = data,
+                    type = type(data),
+                    size = self:calculateDataSize(data),
+                    exists = true
+                }
+            end
+            callback(true, result)
+        else
+            debugWarn("Failed to save data for key: " .. keyName .. " - " .. tostring(result))
+            callback(false, "Failed to save data: " .. tostring(result))
+        end
+    end)
+end
+
+-- Delete key from DataStore
+function DataExplorer:deleteKeyData(dataStoreName, keyName, callback)
+    debugLog("Deleting key: " .. keyName .. " from DataStore: " .. dataStoreName)
+    
+    if not dataStoreName or not keyName then
+        callback(false, "Invalid parameters for deleting data")
+        return
+    end
+    
+    -- Get DataStore service
+    local dataStoreService = game:GetService("DataStoreService")
+    
+    task.spawn(function()
+        local success, result = pcall(function()
+            local dataStore = dataStoreService:GetDataStore(dataStoreName)
+            dataStore:RemoveAsync(keyName)
+            return "Key deleted successfully"
+        end)
+        
+        if success then
+            debugLog("Successfully deleted key: " .. keyName)
+            -- Remove from cached data
+            if self.currentData and self.currentData[keyName] then
+                self.currentData[keyName] = nil
+            end
+            callback(true, result)
+        else
+            debugWarn("Failed to delete key: " .. keyName .. " - " .. tostring(result))
+            callback(false, "Failed to delete key: " .. tostring(result))
+        end
+    end)
+end
+
+-- Calculate data size for display
+function DataExplorer:calculateDataSize(data)
+    if not data then
+        return "0 bytes"
+    end
+    
+    local HttpService = game:GetService("HttpService")
+    local success, jsonString = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    
+    if success then
+        local size = #jsonString
+        if size < 1024 then
+            return size .. " bytes"
+        elseif size < 1024 * 1024 then
+            return math.floor(size / 1024 * 100) / 100 .. " KB"
+        else
+            return math.floor(size / (1024 * 1024) * 100) / 100 .. " MB"
+        end
+    else
+        return "Unknown"
+    end
 end
 
 function DataExplorer.cleanup()
