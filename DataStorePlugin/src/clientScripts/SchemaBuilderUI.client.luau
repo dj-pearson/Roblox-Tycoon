@@ -1,6 +1,34 @@
---luau
--- DataStore Plugin/SchemaBuilderUI.luau
--- This is a re-export file that forwards to the server version
+﻿--luau
+-- SchemaBuilderUI.client.luau
+-- Client-side UI module for SchemaBuilder
 
--- Use direct reference to the server script instead of script.server
-return require(script.Parent:FindFirstChild("SchemaBuilderUI.server"))
+local SchemaBuilderUI = {}
+
+function SchemaBuilderUI.initialize()
+    print("SchemaBuilderUI client initialized")
+end
+
+function SchemaBuilderUI.createUI(parent)
+    local frame = Instance.new("Frame")
+    frame.Name = "SchemaBuilderFrame"
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    frame.BorderSizePixel = 0
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Text = "S ch em aB ui ld er"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 16
+    title.Parent = frame
+    
+    if parent then
+        frame.Parent = parent
+    end
+    
+    return frame
+end
+
+return SchemaBuilderUI

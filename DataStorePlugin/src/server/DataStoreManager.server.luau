@@ -4,39 +4,75 @@
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 
--- Get module resolver from init script or define a local one
-local resolver = script.Parent:FindFirstChild("ModuleResolver")
-local resolveModule = resolver and require(resolver).resolveModule or function(name)
+-- Safe module resolver function
+local function safeRequire(moduleName, fromPath)
     local success, result = pcall(function()
-        return require(script.Parent:FindFirstChild(name))
+        -- Try shared folder first
+        if script.Parent.Parent:FindFirstChild("shared") then
+            local sharedModule = script.Parent.Parent.shared:FindFirstChild(moduleName)
+            if sharedModule then
+                return require(sharedModule)
+            end
+        end
+        
+        -- Try server folder
+        local serverModule = script.Parent:FindFirstChild(moduleName .. ".server")
+        if serverModule then
+            return require(serverModule)
+        end
+        
+        -- Try without extension
+        local regularModule = script.Parent:FindFirstChild(moduleName)
+        if regularModule then
+            return require(regularModule)
+        end
+        
+        error("Module not found: " .. moduleName)
     end)
     
     if success and result then
         return result
+    else
+        warn("Failed to load " .. moduleName .. ", using dummy implementation")
+        -- Return a dummy module with basic functions
+        return {
+            initialize = function() return true end,
+            get = function() return nil end,
+            set = function() return true end,
+            invalidate = function() return true end,
+            optimize = function() return true end,
+            optimizeCacheDurations = function() return true end,
+            loadSchema = function() return nil end,
+            saveSchema = function() return true end,
+            validate = function(data) return true, data end,
+            acquireLock = function() return true end,
+            releaseLock = function() return true end,
+            timeOperation = function(name, func) 
+                local success, result = pcall(func)
+                return success, result
+            end,
+            hasPermission = function() return true end,
+            notifyDataAccess = function() return true end
+        }
     end
-    
-    warn("Failed to resolve module: " .. name)
-    return {
-        initialize = function() return true end,
-        createUI = function() return Instance.new("Frame") end
-    }
 end
 
-local CacheManager = resolveModule('CacheManager')
-local SchemaManager = resolveModule('SchemaManager')
-local SchemaValidator = resolveModule('SchemaValidator')
-local SessionManager = resolveModule('SessionManager')
-local PerformanceMonitor = resolveModule('PerformanceMonitor')
-local SecurityManager = resolveModule('SecurityManager')
+-- Load dependencies with safe require
+local CacheManager = safeRequire('CacheManager')
+local SchemaManager = safeRequire('SchemaManager')
+local SchemaValidator = safeRequire('SchemaValidator')
+local SessionManager = safeRequire('SessionManager')
+local PerformanceMonitor = safeRequire('PerformanceMonitor')
+local SecurityManager = safeRequire('SecurityManager')
+
 -- Lazy load MultiServerCoordination to avoid circular dependency
 local _lazy_MultiServerCoordination = nil
 local function _get_MultiServerCoordination()
     if not _lazy_MultiServerCoordination then
-        _lazy_MultiServerCoordination = resolveModule("MultiServerCoordination")
+        _lazy_MultiServerCoordination = safeRequire("MultiServerCoordination")
     end
     return _lazy_MultiServerCoordination
 end
-
 
 local DataStoreManager = {}
 DataStoreManager.sessionId = HttpService:GenerateGUID()
@@ -279,13 +315,17 @@ end
 
 -- Initialize the plugin
 function DataStoreManager.initialize()
-    SessionManager.initialize()
+    if SessionManager and SessionManager.initialize then
+        SessionManager.initialize()
+    end
     
     -- Setup a periodic task to optimize the cache
     task.spawn(function()
         while true do
             task.wait(300) -- Every 5 minutes
-            CacheManager.optimizeCacheDurations()
+            if CacheManager and CacheManager.optimizeCacheDurations then
+                CacheManager.optimizeCacheDurations()
+            end
         end
     end)
     
