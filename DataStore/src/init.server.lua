@@ -92,22 +92,28 @@ for _, servicePath in ipairs(serviceLoadOrder) do
     
     if success and serviceModule then
         -- Try to initialize if the service has an init function
-        local initSuccess, initError = pcall(function()
+        local initSuccess, serviceInstance = pcall(function()
             if serviceModule.initialize then
                 return serviceModule.initialize()
             end
-            return true
+            return serviceModule
         end)
         
         if initSuccess then
-            Services[servicePath] = serviceModule
+            Services[servicePath] = serviceInstance
             debugLog("INIT", "✓ " .. servicePath .. " loaded successfully")
         else
-            debugLog("INIT", "✗ " .. servicePath .. " initialization failed: " .. tostring(initError), "ERROR")
+            debugLog("INIT", "✗ " .. servicePath .. " initialization failed: " .. tostring(serviceInstance), "ERROR")
         end
     else
         debugLog("INIT", "✗ " .. servicePath .. " module load failed: " .. tostring(serviceModule), "ERROR")
     end
+end
+
+-- Set up service references after all services are loaded
+if Services["features.explorer.DataExplorer"] and Services["core.data.DataStoreManager"] then
+    Services["features.explorer.DataExplorer"]:setDataStoreManager(Services["core.data.DataStoreManager"])
+    debugLog("INIT", "✓ DataExplorer connected to DataStoreManager")
 end
 
 -- Create plugin UI
