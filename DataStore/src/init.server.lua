@@ -155,7 +155,11 @@ local success, uiError = pcall(function()
         debugLog("MAIN", "INFO", "Direct UI Manager load successful, creating instance...")
         
         local success, result = pcall(function()
-            debugLog("MAIN", "INFO", "Creating UI Manager instance with " .. Utils.Table.getTableSize(Services) .. " services")
+            local serviceCount = 0
+            for _ in pairs(Services) do
+                serviceCount = serviceCount + 1
+            end
+            debugLog("MAIN", "INFO", "Creating UI Manager instance with " .. serviceCount .. " services")
             return UIManagerModule.new(pluginObject, widget, Services)
         end)
         
