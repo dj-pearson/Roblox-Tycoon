@@ -116,7 +116,7 @@ local success, uiError = pcall(function()
     local button = toolbar:CreateButton(
         "DataStore Manager",
         "Open DataStore Manager Pro",
-        "rbxasset://textures/Icon.png" -- Will be replaced with actual icon
+        "" -- No icon for now
     )
 
     local widgetInfo = DockWidgetPluginGuiInfo.new(
@@ -135,7 +135,13 @@ local success, uiError = pcall(function()
 
     -- Initialize main interface if UI manager loaded
     if Services["ui.core.UIManager"] then
+        debugLog("MAIN", "Creating UI Manager instance...")
         local interface = Services["ui.core.UIManager"].new(widget, Services, PLUGIN_INFO)
+        
+        if not interface then
+            debugLog("MAIN", "Failed to create UI Manager instance", "ERROR")
+            return
+        end
         
         button.Click:Connect(function()
             widget.Enabled = not widget.Enabled

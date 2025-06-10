@@ -15,6 +15,11 @@ end
 
 -- Create new UI Manager instance
 function UIManager.new(widget, services, pluginInfo)
+    if not widget then
+        debugLog("Widget is required for UI Manager", "ERROR")
+        return nil
+    end
+    
     local self = setmetatable({}, UIManager)
     
     self.widget = widget
@@ -26,13 +31,25 @@ function UIManager.new(widget, services, pluginInfo)
     debugLog("Creating new UI Manager instance")
     
     -- Initialize the interface
-    self:initialize()
+    local success, error = pcall(function()
+        return self:initialize()
+    end)
+    
+    if not success then
+        debugLog("UI Manager initialization failed: " .. tostring(error), "ERROR")
+        return nil
+    end
     
     return self
 end
 
 -- Initialize the UI
 function UIManager:initialize()
+    if not self then
+        debugLog("UIManager self is nil!", "ERROR")
+        return false
+    end
+    
     if self.initialized then
         debugLog("UI Manager already initialized")
         return true
