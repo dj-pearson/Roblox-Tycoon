@@ -42,10 +42,30 @@ local serviceLoadOrder = {
     "ui.core.UIManager"
 }
 
+-- Helper function to split path
+local function splitPath(path, delimiter)
+    delimiter = delimiter or "."
+    local result = {}
+    for match in path:gmatch("([^" .. delimiter .. "]+)") do
+        table.insert(result, match)
+    end
+    return result
+end
+
 -- Initialize services in order
 for _, servicePath in ipairs(serviceLoadOrder) do
     local success, serviceModule = pcall(function()
-        return require(script:FindFirstChild(servicePath:gsub("%.", "/"), true))
+        local pathParts = splitPath(servicePath, ".")
+        local currentScript = script
+        
+        for _, part in ipairs(pathParts) do
+            currentScript = currentScript:FindFirstChild(part)
+            if not currentScript then
+                error("Module not found: " .. servicePath)
+            end
+        end
+        
+        return require(currentScript)
     end)
     
     if success and serviceModule then
