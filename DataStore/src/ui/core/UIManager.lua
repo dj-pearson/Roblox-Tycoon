@@ -480,8 +480,9 @@ function UIManager:loadDataStores()
     -- Set up service references - try both stored services and fallback
     local dataStoreManager = self.services["core.data.DataStoreManager"]
     
-    if not dataStoreManager then
-        debugLog("DataStore Manager not found in services, creating fallback...", "WARN")
+    -- Check if DataStore Manager has the required methods  
+    if not dataStoreManager or not dataStoreManager.getDataStoreNames then
+        debugLog("DataStore Manager not found or missing methods, creating fallback...", "WARN")
         -- Create a simple fallback DataStore manager for demo purposes
         dataStoreManager = {
             getDataStoreNames = function()

@@ -521,204 +521,144 @@ function DataStoreManager.cleanup()
     debugLog("DataStore Manager cleanup complete")
 end
 
--- Get list of DataStore names (simulated - Roblox doesn't provide this directly)
+-- Get list of DataStore names (limited to common ones since Roblox doesn't provide enumeration)
 function DataStoreManager:getDataStoreNames()
-    debugLog("Getting DataStore names list")
+    debugLog("Getting DataStore names")
     
-    -- Since Roblox doesn't provide a way to list all DataStores,
-    -- we'll return commonly used DataStore names and allow manual entry
-    local commonNames = {
+    -- Since Roblox doesn't provide a way to enumerate all DataStores,
+    -- we'll return a list of common DataStore names that developers typically use
+    local commonDataStores = {
         "PlayerData",
-        "PlayerStats",
-        "GameSettings", 
+        "PlayerStats", 
+        "GameSettings",
         "Leaderboard",
         "PlayerInventory",
         "GameData",
         "UserPreferences",
-        "ServerData"
+        "ServerData",
+        "PlayerSaves",
+        "Achievements"
     }
     
-    -- Add any manually tracked DataStores
-    local allNames = {}
-    for _, name in ipairs(commonNames) do
-        table.insert(allNames, name)
+    -- Filter to only include DataStores that actually have data
+    local activeDataStores = {}
+    
+    for _, storeName in ipairs(commonDataStores) do
+        -- Try to list keys to see if the DataStore has any data
+        local hasData = false
+        local success, result = pcall(function()
+            local store = DataStoreManager.getDataStore(storeName)
+            if store then
+                local keys = store:ListKeysAsync()
+                local firstPage = keys:GetCurrentPage()
+                hasData = #firstPage > 0
+            end
+            return hasData
+        end)
+        
+        if success and result then
+            table.insert(activeDataStores, storeName)
+            debugLog("Found active DataStore: " .. storeName)
+        end
     end
     
-    debugLog("Found " .. #allNames .. " potential DataStore names")
-    return allNames
+    -- If no active DataStores found, return the common ones for exploration
+    if #activeDataStores == 0 then
+        debugLog("No active DataStores found, returning common names for exploration")
+        return commonDataStores
+    end
+    
+    debugLog("Found " .. #activeDataStores .. " active DataStores")
+    return activeDataStores
 end
 
--- Get DataStore instance
-function DataStoreManager:getDataStore(name, scope)
-    if not name or name == "" then
-        error("DataStore name cannot be empty")
-    end
-    
-    scope = scope or "global"
-    local cacheKey = name .. ":" .. scope
-    
-    if self.datastoreCache[cacheKey] then
-        debugLog("Using cached DataStore: " .. cacheKey)
-        return self.datastoreCache[cacheKey]
-    end
-    
-    debugLog("Creating new DataStore connection: " .. cacheKey)
-    
-    local success, datastore = pcall(function()
-        return DataStoreService:GetDataStore(name, scope)
-    end)
-    
-    if success then
-        self.datastoreCache[cacheKey] = datastore
-        debugLog("DataStore connected successfully: " .. cacheKey)
-        return datastore
-    else
-        debugLog("Failed to connect to DataStore: " .. tostring(datastore), "ERROR")
-        error("Failed to connect to DataStore: " .. tostring(datastore))
-    end
-end
-
--- Get list of keys from a DataStore (using OrderedDataStore for listing)
+-- Get keys for a specific DataStore
 function DataStoreManager:getDataStoreKeys(datastoreName, scope, maxKeys)
     debugLog("Getting keys for DataStore: " .. datastoreName)
     
-    scope = scope or "global"
     maxKeys = maxKeys or 50
+    scope = scope or ""
     
-    local cacheKey = datastoreName .. ":" .. scope .. ":keys"
-    
-    -- Check cache first
-    if self.keyListCache[cacheKey] and tick() - self.keyListCache[cacheKey].timestamp < 60 then
-        debugLog("Using cached key list for: " .. datastoreName)
-        return self.keyListCache[cacheKey].keys
+    local store = DataStoreManager.getDataStore(datastoreName, scope)
+    if not store then
+        debugLog("Failed to get DataStore: " .. datastoreName, "ERROR")
+        return {}
     end
     
-    -- Try to get keys using ListKeysAsync (if available in your context)
+    local keys = {}
     local success, result = pcall(function()
-        local datastore = self:getDataStore(datastoreName, scope)
+        local keyPages = store:ListKeysAsync()
+        local currentPage = keyPages:GetCurrentPage()
         
-        -- Note: ListKeysAsync may not be available in all contexts
-        -- This is a simplified approach for demonstration
-        local keys = {}
-        
-        -- Since we can't actually list keys, we'll return some example keys
-        -- In a real implementation, you'd need to track keys separately
-        local commonKeys = {
-            "Player_123456789",
-            "Player_987654321", 
-            "Player_555666777",
-            "Settings_Global",
-            "LastSaved_" .. os.date("%Y%m%d")
-        }
-        
-        for _, key in ipairs(commonKeys) do
-            -- Test if key exists by trying to read it
-            local hasData = pcall(function()
-                return datastore:GetAsync(key)
-            end)
+        for _, keyInfo in ipairs(currentPage) do
+            table.insert(keys, {
+                key = keyInfo.KeyName,
+                lastModified = os.date("%Y-%m-%d %H:%M:%S", keyInfo.UpdatedTime),
+                hasData = true
+            })
             
-            if hasData then
-                table.insert(keys, {
-                    key = key,
-                    lastModified = os.date("%Y-%m-%d %H:%M:%S"),
-                    hasData = true
-                })
+            if #keys >= maxKeys then
+                break
             end
         end
         
         return keys
     end)
     
-    if success and result then
-        -- Cache the results
-        self.keyListCache[cacheKey] = {
-            keys = result,
-            timestamp = tick()
-        }
-        
-        debugLog("Found " .. #result .. " keys in DataStore: " .. datastoreName)
-        self:trackOperation(true)
-        return result
+    if success then
+        debugLog("Retrieved " .. #keys .. " keys for " .. datastoreName)
+        return keys
     else
-        debugLog("Failed to get keys from DataStore: " .. tostring(result), "ERROR")
-        self:trackOperation(false)
+        debugLog("Failed to list keys for " .. datastoreName .. ": " .. tostring(result), "ERROR")
         return {}
     end
 end
 
--- Read data from DataStore
-function DataStoreManager:getData(datastoreName, key, scope)
-    if not datastoreName or not key then
-        error("DataStore name and key are required")
-    end
-    
-    debugLog("Reading data: " .. datastoreName .. " -> " .. key)
-    
-    scope = scope or "global"
-    local cacheKey = datastoreName .. ":" .. scope .. ":" .. key
-    
-    -- Check cache first
-    if self.dataCache[cacheKey] and tick() - self.dataCache[cacheKey].timestamp < 30 then
-        debugLog("Using cached data for: " .. cacheKey)
-        return self.dataCache[cacheKey].data
-    end
-    
-    local success, data = pcall(function()
-        local datastore = self:getDataStore(datastoreName, scope)
-        return datastore:GetAsync(key)
-    end)
-    
-    if success then
-        -- Cache the data
-        self.dataCache[cacheKey] = {
-            data = data,
-            timestamp = tick()
-        }
-        
-        debugLog("Successfully read data for key: " .. key)
-        self:trackOperation(true)
-        return data
-    else
-        debugLog("Failed to read data: " .. tostring(data), "ERROR")
-        self:trackOperation(false)
-        error("Failed to read data: " .. tostring(data))
-    end
-end
-
--- Get data size and type information
+-- Get data info for a specific key
 function DataStoreManager:getDataInfo(datastoreName, key, scope)
     debugLog("Getting data info for: " .. datastoreName .. " -> " .. key)
     
-    local data = self:getData(datastoreName, key, scope)
+    local data, error = DataStoreManager.readData(datastoreName, key, {scope = scope})
     
-    if data == nil then
+    if error then
+        debugLog("Failed to read data: " .. error, "ERROR")
         return {
             exists = false,
-            type = "nil",
-            size = 0,
-            preview = "No data"
+            error = error
         }
     end
     
-    local dataType = typeof(data)
+    local dataType = type(data)
     local dataSize = 0
-    local preview = ""
+    local preview = "No data"
     
-    if dataType == "string" then
-        dataSize = #data
-        preview = string.sub(data, 1, 100) .. (dataSize > 100 and "..." or "")
-    elseif dataType == "table" then
-        local jsonString = HttpService:JSONEncode(data)
-        dataSize = #jsonString
-        preview = string.sub(jsonString, 1, 100) .. (dataSize > 100 and "..." or "")
-    else
-        local stringData = tostring(data)
-        dataSize = #stringData
-        preview = stringData
+    if data then
+        if dataType == "string" then
+            dataSize = #data
+            preview = string.sub(data, 1, 100) .. (string.len(data) > 100 and "..." or "")
+        elseif dataType == "table" then
+            local jsonSuccess, jsonData = pcall(function()
+                return HttpService:JSONEncode(data)
+            end)
+            
+            if jsonSuccess then
+                dataSize = #jsonData
+                preview = "Table with " .. Utils.Table.getTableSize(data) .. " fields"
+            else
+                preview = "Complex table data"
+                dataSize = 100 -- Estimate
+            end
+        elseif dataType == "number" then
+            preview = tostring(data)
+            dataSize = #preview
+        else
+            preview = tostring(data)
+            dataSize = #preview
+        end
     end
     
     return {
-        exists = true,
+        exists = data ~= nil,
         type = dataType,
         size = dataSize,
         preview = preview,
