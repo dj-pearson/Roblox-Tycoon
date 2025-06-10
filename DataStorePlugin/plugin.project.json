@@ -1,28 +1,10 @@
 {
   "name": "DataStoreManagerPro",
   "tree": {
-    "$className": "Plugin",
-    "Main": {
-      "$className": "ModuleScript",
-      "Source": {
-        "$path": "src/init.lua"
-      }
+    "$className": "Script",
+    "$properties": {
+      "Name": "DataStoreManagerPro"
     },
-    "server": {
-      "$className": "Folder",
-      "$path": "src/server"
-    },
-    "shared": {
-      "$className": "Folder",
-      "$path": "src/shared"
-    },
-    "client": {
-      "$className": "Folder",
-      "$path": "src/client"
-    },
-    "clientScripts": {
-      "$className": "Folder",
-      "$path": "src/clientScripts"
-    }
+    "$path": "src/init.server.lua"
   }
-}
+} 

@@ -1,0 +1,9 @@
+{
+    "name": "MinimalProject",
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "$className": "ReplicatedStorage"
+        }
+    }
+}

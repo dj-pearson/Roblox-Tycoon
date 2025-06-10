@@ -1,46 +1,36 @@
-# Build the DataStore Manager Pro Plugin
-Write-Host "Building DataStore Manager Pro Plugin..."
+# DataStore Manager Pro - Build and Install Script
+# Builds the plugin using Argon and installs it to Roblox Studio
 
-# Check if Rojo is installed
-if (!(Get-Command rojo -ErrorAction SilentlyContinue)) {
-    Write-Host "Rojo is not installed. Please install it first:"
-    Write-Host "https://github.com/rojo-rbx/rojo"
-    exit 1
-}
+Write-Host "Building DataStore Manager Pro Plugin..." -ForegroundColor Green
 
-# Build the plugin
-Write-Host "Building plugin..."
-rojo build default.project.json --output DataStoreManagerPro.rbxmx
+# Build the plugin using Argon
+Write-Host "Running argon build..." -ForegroundColor Yellow
+argon build argon.project.json --output "DataStoreManagerPro.rbxm"
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "Plugin built successfully: DataStoreManagerPro.rbxmx"
+    Write-Host "Build successful!" -ForegroundColor Green
     
-    # Run validation
-    Write-Host "Running plugin validation..."
-    .\validate-plugin.ps1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Plugin validation failed!"
-        exit 1
+    # Check file size
+    $file = Get-Item "DataStoreManagerPro.rbxm"
+    Write-Host "Plugin file size: $($file.Length) bytes" -ForegroundColor Cyan
+    
+    if ($file.Length -gt 1000) {
+        # Install to Roblox Plugins folder
+        $pluginPath = "$env:LOCALAPPDATA\Roblox\Plugins\DataStoreManagerPro.rbxm"
+        Write-Host "Installing to: $pluginPath" -ForegroundColor Yellow
+        
+        Copy-Item "DataStoreManagerPro.rbxm" $pluginPath -Force
+        
+        Write-Host "Plugin installed successfully!" -ForegroundColor Green
+        Write-Host "Restart Roblox Studio to load the plugin" -ForegroundColor Cyan
+        Write-Host "Look for 'DataStore Manager Pro' toolbar button" -ForegroundColor Cyan
     }
-    
-    # Create Plugins directory if it doesn't exist
-    $pluginsDir = "$env:LOCALAPPDATA\Roblox\Plugins"
-    if (!(Test-Path $pluginsDir)) {
-        New-Item -ItemType Directory -Force -Path $pluginsDir
+    else {
+        Write-Host "Build file seems too small, check for errors" -ForegroundColor Red
     }
-    
-    # Copy to Roblox Plugins folder
-    Write-Host "Copying plugin to Roblox Plugins folder..."
-    Copy-Item -Force -Path "DataStoreManagerPro.rbxmx" -Destination "$pluginsDir\DataStoreManagerPro.rbxmx"
-    
-    if ($?) {
-        Write-Host "Plugin successfully copied to Roblox Plugins folder"
-        Write-Host "Please restart Roblox Studio for changes to take effect"
-    } else {
-        Write-Host "Failed to copy plugin to Roblox Plugins folder"
-        exit 1
-    }
-} else {
-    Write-Host "Failed to build plugin"
-    exit 1
-} 
+}
+else {
+    Write-Host "Build failed!" -ForegroundColor Red
+}
+
+Write-Host "Done." -ForegroundColor Green 

@@ -1,0 +1,41 @@
+{
+  "name": "DataStoreManagerPro",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "DataStoreManagerPro": {
+        "$className": "Folder",
+        "Main": {
+          "$className": "ModuleScript",
+          "$path": "src/init.lua"
+        },
+        "server": {
+          "$className": "Folder",
+          "$path": "src/server"
+        },
+        "shared": {
+          "$className": "Folder",
+          "$path": "src/shared"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "DataStoreManagerPro": {
+          "$className": "Folder",
+          "client": {
+            "$className": "Folder",
+            "$path": "src/client"
+          },
+          "clientScripts": {
+            "$className": "Folder",
+            "$path": "src/clientScripts"
+          }
+        }
+      }
+    }
+  }
+} 
