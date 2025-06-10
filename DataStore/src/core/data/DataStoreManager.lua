@@ -620,7 +620,12 @@ function DataStoreManager:getDataInfo(datastoreName, key, scope)
             
             if jsonSuccess then
                 dataSize = #jsonData
-                preview = "Table with " .. Utils.Table.getTableSize(data) .. " fields"
+                -- Count table fields manually since Utils might not be available
+                local fieldCount = 0
+                for _ in pairs(data) do
+                    fieldCount = fieldCount + 1
+                end
+                preview = "Table with " .. fieldCount .. " fields"
             else
                 preview = "Complex table data"
                 dataSize = 100 -- Estimate
