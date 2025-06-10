@@ -116,7 +116,7 @@ local success, uiError = pcall(function()
     local button = toolbar:CreateButton(
         "DataStore Manager",
         "Open DataStore Manager Pro",
-        "" -- No icon for now
+        "rbxassetid://131528729537417"
     )
 
     local widgetInfo = DockWidgetPluginGuiInfo.new(

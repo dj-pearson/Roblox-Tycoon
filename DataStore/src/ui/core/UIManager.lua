@@ -32,7 +32,7 @@ function UIManager.new(widget, services, pluginInfo)
     
     -- Initialize the interface
     local success, error = pcall(function()
-        return self:initialize()
+        self:initialize()
     end)
     
     if not success then
