@@ -107,7 +107,7 @@ function UIManager:createMainFrame()
     self.mainFrame.Name = "DataStoreManagerPro"
     self.mainFrame.Size = UDim2.new(1, 0, 1, 0)
     self.mainFrame.Position = UDim2.new(0, 0, 0, 0)
-    self.mainFrame.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND
+    self.mainFrame.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_PRIMARY
     self.mainFrame.BorderSizePixel = 0
     self.mainFrame.Parent = self.widget
     
@@ -116,9 +116,9 @@ function UIManager:createMainFrame()
     self.titleBar.Name = "TitleBar"
     self.titleBar.Size = UDim2.new(1, 0, 0, Constants.UI.THEME.SIZES.TOOLBAR_HEIGHT)
     self.titleBar.Position = UDim2.new(0, 0, 0, 0)
-    self.titleBar.BackgroundColor3 = Constants.UI.THEME.COLORS.SURFACE
+    self.titleBar.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
     self.titleBar.BorderSizePixel = 1
-    self.titleBar.BorderColor3 = Constants.UI.THEME.COLORS.BORDER
+    self.titleBar.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
     self.titleBar.Parent = self.mainFrame
     
     -- Title text
@@ -130,7 +130,7 @@ function UIManager:createMainFrame()
     self.titleLabel.Text = self.pluginInfo.name or "DataStore Manager Pro"
     self.titleLabel.Font = Constants.UI.THEME.FONTS.HEADING
     self.titleLabel.TextSize = 16
-    self.titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT
+    self.titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
     self.titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     self.titleLabel.Parent = self.titleBar
     
@@ -139,7 +139,7 @@ function UIManager:createMainFrame()
     self.contentArea.Name = "ContentArea"
     self.contentArea.Size = UDim2.new(1, 0, 1, -(Constants.UI.THEME.SIZES.TOOLBAR_HEIGHT + Constants.UI.THEME.SIZES.STATUSBAR_HEIGHT))
     self.contentArea.Position = UDim2.new(0, 0, 0, Constants.UI.THEME.SIZES.TOOLBAR_HEIGHT)
-    self.contentArea.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND
+    self.contentArea.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_PRIMARY
     self.contentArea.BorderSizePixel = 0
     self.contentArea.Parent = self.mainFrame
     
@@ -148,9 +148,9 @@ function UIManager:createMainFrame()
     self.statusBar.Name = "StatusBar"
     self.statusBar.Size = UDim2.new(1, 0, 0, Constants.UI.THEME.SIZES.STATUSBAR_HEIGHT)
     self.statusBar.Position = UDim2.new(0, 0, 1, -Constants.UI.THEME.SIZES.STATUSBAR_HEIGHT)
-    self.statusBar.BackgroundColor3 = Constants.UI.THEME.COLORS.SURFACE
+    self.statusBar.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
     self.statusBar.BorderSizePixel = 1
-    self.statusBar.BorderColor3 = Constants.UI.THEME.COLORS.BORDER
+    self.statusBar.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
     self.statusBar.Parent = self.mainFrame
     
     -- Status text
@@ -162,33 +162,265 @@ function UIManager:createMainFrame()
     self.statusLabel.Text = "🟢 Ready"
     self.statusLabel.Font = Constants.UI.THEME.FONTS.BODY
     self.statusLabel.TextSize = 12
-    self.statusLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT
+    self.statusLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
     self.statusLabel.TextXAlignment = Enum.TextXAlignment.Left
     self.statusLabel.Parent = self.statusBar
     
     debugLog("Main frame created successfully")
 end
 
--- Setup the basic layout
+-- Setup modern professional layout with sidebar
 function UIManager:setupLayout()
-    debugLog("Setting up basic layout")
+    debugLog("Setting up modern professional layout")
     
-    -- Create main content container
-    local contentContainer = Instance.new("Frame")
-    contentContainer.Name = "ContentContainer"
-    contentContainer.Size = UDim2.new(1, 0, 1, 0)
-    contentContainer.Position = UDim2.new(0, 0, 0, 0)
-    contentContainer.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND
-    contentContainer.BorderSizePixel = 0
-    contentContainer.Parent = self.contentArea
+    -- Create main container
+    local mainContainer = Instance.new("Frame")
+    mainContainer.Name = "MainContainer"
+    mainContainer.Size = UDim2.new(1, 0, 1, 0)
+    mainContainer.Position = UDim2.new(0, 0, 0, 0)
+    mainContainer.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_PRIMARY
+    mainContainer.BorderSizePixel = 0
+    mainContainer.Parent = self.contentArea
     
-    -- Create tab system
-    self:createTabSystem(contentContainer)
+    -- Create sidebar navigation
+    debugLog("Creating sidebar navigation...")
+    local success1, error1 = pcall(function()
+        self:createSidebarNavigation(mainContainer)
+    end)
+    if not success1 then
+        debugLog("Failed to create sidebar: " .. tostring(error1), "ERROR")
+        return
+    end
+    debugLog("Sidebar navigation created successfully")
     
-    debugLog("Professional layout setup complete")
+    -- Create main content area
+    debugLog("Creating main content area...")
+    local success2, error2 = pcall(function()
+        self:createMainContentArea(mainContainer)
+    end)
+    if not success2 then
+        debugLog("Failed to create main content area: " .. tostring(error2), "ERROR")
+        return
+    end
+    debugLog("Main content area created successfully")
+    
+    -- Show default view
+    local success, error = pcall(function()
+        self:showDataExplorerView()
+    end)
+    
+    if not success then
+        debugLog("Failed to show Data Explorer view: " .. tostring(error), "ERROR")
+        -- Fallback: create simple content
+        local fallbackLabel = Instance.new("TextLabel")
+        fallbackLabel.Size = UDim2.new(1, 0, 1, 0)
+        fallbackLabel.Position = UDim2.new(0, 0, 0, 0)
+        fallbackLabel.BackgroundTransparency = 1
+        fallbackLabel.Text = "⚠️ Modern UI Loading Error\n\nFallback interface active.\nCheck console for details."
+        fallbackLabel.Font = Constants.UI.THEME.FONTS.BODY
+        fallbackLabel.TextSize = 16
+        fallbackLabel.TextColor3 = Constants.UI.THEME.COLORS.WARNING
+        fallbackLabel.TextWrapped = true
+        fallbackLabel.TextXAlignment = Enum.TextXAlignment.Center
+        fallbackLabel.TextYAlignment = Enum.TextYAlignment.Center
+        fallbackLabel.Parent = self.mainContentArea or self.contentArea
+    end
+    
+    debugLog("Modern professional layout setup complete")
 end
 
--- Create tab system for different features
+-- Create modern sidebar navigation
+function UIManager:createSidebarNavigation(parent)
+    local sidebar = Instance.new("Frame")
+    sidebar.Name = "Sidebar"
+    sidebar.Size = UDim2.new(0, Constants.UI.THEME.SIZES.SIDEBAR_WIDTH, 1, 0)
+    sidebar.Position = UDim2.new(0, 0, 0, 0)
+    sidebar.BackgroundColor3 = Constants.UI.THEME.COLORS.SIDEBAR_BACKGROUND
+    sidebar.BorderSizePixel = 0
+    sidebar.Parent = parent
+    
+    self.sidebar = sidebar
+    
+    -- Sidebar header
+    local sidebarHeader = Instance.new("Frame")
+    sidebarHeader.Name = "Header"
+    sidebarHeader.Size = UDim2.new(1, 0, 0, Constants.UI.THEME.SIZES.TOOLBAR_HEIGHT)
+    sidebarHeader.Position = UDim2.new(0, 0, 0, 0)
+    sidebarHeader.BackgroundColor3 = Constants.UI.THEME.COLORS.SIDEBAR_BACKGROUND
+    sidebarHeader.BorderSizePixel = 0
+    sidebarHeader.Parent = sidebar
+    
+    -- Plugin title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, 0)
+    titleLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "DataStore Manager Pro"
+    titleLabel.Font = Constants.UI.THEME.FONTS.HEADING
+    titleLabel.TextSize = 14
+    titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.Parent = sidebarHeader
+    
+    -- Navigation items container
+    local navContainer = Instance.new("Frame")
+    navContainer.Name = "Navigation"
+    navContainer.Size = UDim2.new(1, 0, 1, -Constants.UI.THEME.SIZES.TOOLBAR_HEIGHT)
+    navContainer.Position = UDim2.new(0, 0, 0, Constants.UI.THEME.SIZES.TOOLBAR_HEIGHT)
+    navContainer.BackgroundTransparency = 1
+    navContainer.Parent = sidebar
+    
+    self.navContainer = navContainer
+    self.currentNavItem = nil
+    
+    -- Create navigation items
+    local yOffset = Constants.UI.THEME.SPACING.LARGE
+    
+    yOffset = self:createNavItem(navContainer, "🗂️", "Data Explorer", yOffset, true, function()
+        self:showDataExplorerView()
+    end)
+    
+    yOffset = self:createNavItem(navContainer, "🏗️", "Schema Builder", yOffset, false, function()
+        self:showSchemaBuilderView()
+    end)
+    
+    yOffset = self:createNavItem(navContainer, "📊", "Analytics", yOffset, false, function()
+        self:showAnalyticsView()
+    end)
+    
+    yOffset = self:createNavItem(navContainer, "👥", "Sessions", yOffset, false, function()
+        self:showSessionsView()
+    end)
+    
+    yOffset = self:createNavItem(navContainer, "🔒", "Security", yOffset, false, function()
+        self:showSecurityView()
+    end)
+    
+    -- Settings at bottom
+    local settingsOffset = 1
+    self:createNavItem(navContainer, "⚙️", "Settings", settingsOffset - Constants.UI.THEME.SIZES.BUTTON_HEIGHT - Constants.UI.THEME.SPACING.LARGE, false, function()
+        self:showSettingsView()
+    end, true)
+end
+
+-- Create navigation item
+function UIManager:createNavItem(parent, icon, text, yOffset, isActive, callback, isBottom)
+    local navItem = Instance.new("TextButton")
+    navItem.Name = text:gsub("%s+", "") .. "NavItem"
+    navItem.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM * 2, 0, Constants.UI.THEME.SIZES.BUTTON_HEIGHT)
+    
+    if isBottom then
+        navItem.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, yOffset, 0)
+    else
+        navItem.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, yOffset)
+    end
+    
+    navItem.BackgroundColor3 = isActive and Constants.UI.THEME.COLORS.SIDEBAR_ITEM_ACTIVE or Color3.fromRGB(0, 0, 0)
+    navItem.BackgroundTransparency = isActive and 0 or 1
+    navItem.BorderSizePixel = 0
+    navItem.Text = ""
+    navItem.Parent = parent
+    
+    -- Add corner radius
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    corner.Parent = navItem
+    
+    -- Icon
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Name = "Icon"
+    iconLabel.Size = UDim2.new(0, Constants.UI.THEME.SIZES.ICON_MEDIUM, 1, 0)
+    iconLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = icon
+    iconLabel.Font = Constants.UI.THEME.FONTS.UI
+    iconLabel.TextSize = Constants.UI.THEME.SIZES.ICON_MEDIUM
+    iconLabel.TextColor3 = isActive and Constants.UI.THEME.COLORS.TEXT_PRIMARY or Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    iconLabel.TextXAlignment = Enum.TextXAlignment.Center
+    iconLabel.TextYAlignment = Enum.TextYAlignment.Center
+    iconLabel.Parent = navItem
+    
+    -- Text label
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Name = "Text"
+    textLabel.Size = UDim2.new(1, -Constants.UI.THEME.SIZES.ICON_MEDIUM - Constants.UI.THEME.SPACING.MEDIUM * 2, 1, 0)
+    textLabel.Position = UDim2.new(0, Constants.UI.THEME.SIZES.ICON_MEDIUM + Constants.UI.THEME.SPACING.MEDIUM * 2, 0, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = text
+    textLabel.Font = Constants.UI.THEME.FONTS.UI
+    textLabel.TextSize = 13
+    textLabel.TextColor3 = isActive and Constants.UI.THEME.COLORS.TEXT_PRIMARY or Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center
+    textLabel.Parent = navItem
+    
+    -- Hover effects
+    navItem.MouseEnter:Connect(function()
+        if navItem ~= self.currentNavItem then
+            navItem.BackgroundTransparency = 0.8
+            navItem.BackgroundColor3 = Constants.UI.THEME.COLORS.SIDEBAR_ITEM_HOVER
+        end
+    end)
+    
+    navItem.MouseLeave:Connect(function()
+        if navItem ~= self.currentNavItem then
+            navItem.BackgroundTransparency = 1
+        end
+    end)
+    
+    -- Click handler
+    navItem.MouseButton1Click:Connect(function()
+        self:setActiveNavItem(navItem, iconLabel, textLabel)
+        callback()
+    end)
+    
+    -- Set as current if active
+    if isActive then
+        self.currentNavItem = navItem
+    end
+    
+    return yOffset + Constants.UI.THEME.SIZES.BUTTON_HEIGHT + Constants.UI.THEME.SPACING.SMALL
+end
+
+-- Set active navigation item
+function UIManager:setActiveNavItem(navItem, iconLabel, textLabel)
+    -- Reset all nav items
+    for _, child in ipairs(self.navContainer:GetChildren()) do
+        if child:IsA("TextButton") then
+            child.BackgroundTransparency = 1
+            local icon = child:FindFirstChild("Icon")
+            local text = child:FindFirstChild("Text")
+            if icon then icon.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY end
+            if text then text.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY end
+        end
+    end
+    
+    -- Set active state
+    navItem.BackgroundTransparency = 0
+    navItem.BackgroundColor3 = Constants.UI.THEME.COLORS.SIDEBAR_ITEM_ACTIVE
+    iconLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    textLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    
+    self.currentNavItem = navItem
+    debugLog("Switched to: " .. textLabel.Text)
+end
+
+-- Create main content area
+function UIManager:createMainContentArea(parent)
+    local contentArea = Instance.new("Frame")
+    contentArea.Name = "ContentArea"
+    contentArea.Size = UDim2.new(1, -Constants.UI.THEME.SIZES.SIDEBAR_WIDTH, 1, 0)
+    contentArea.Position = UDim2.new(0, Constants.UI.THEME.SIZES.SIDEBAR_WIDTH, 0, 0)
+    contentArea.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_PRIMARY
+    contentArea.BorderSizePixel = 0
+    contentArea.Parent = parent
+    
+    self.mainContentArea = contentArea
+end
+
+-- Legacy tab system (keeping for compatibility)
 function UIManager:createTabSystem(parent)
     -- Tab bar
     local tabBar = Instance.new("Frame")
@@ -343,7 +575,287 @@ function UIManager:showOverviewTab()
     servicesList.Parent = servicesSection
 end
 
--- Show Explorer tab
+-- Show Data Explorer view (modern layout)
+function UIManager:showDataExplorerView()
+    if not self.mainContentArea then
+        debugLog("Main content area not available", "ERROR")
+        return
+    end
+    
+    -- Clear existing content
+    for _, child in ipairs(self.mainContentArea:GetChildren()) do
+        child:Destroy()
+    end
+    
+    -- Create modern Data Explorer interface
+    self:createModernDataExplorer()
+    
+    -- Load DataStores
+    self:loadDataStores()
+end
+
+-- Create modern Data Explorer interface
+function UIManager:createModernDataExplorer()
+    -- Header section
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 60)
+    header.Position = UDim2.new(0, 0, 0, 0)
+    header.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    header.BorderSizePixel = 0
+    header.Parent = self.mainContentArea
+    
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(0.5, 0, 1, 0)
+    titleLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "Data Explorer"
+    titleLabel.Font = Constants.UI.THEME.FONTS.HEADING
+    titleLabel.TextSize = 24
+    titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.Parent = header
+    
+    -- Search box
+    local searchContainer = Instance.new("Frame")
+    searchContainer.Name = "SearchContainer"
+    searchContainer.Size = UDim2.new(0.4, 0, 0, Constants.UI.THEME.SIZES.INPUT_HEIGHT)
+    searchContainer.Position = UDim2.new(0.6, 0, 0.5, -Constants.UI.THEME.SIZES.INPUT_HEIGHT/2)
+    searchContainer.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+    searchContainer.BorderSizePixel = 1
+    searchContainer.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+    searchContainer.Parent = header
+    
+    local searchCorner = Instance.new("UICorner")
+    searchCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    searchCorner.Parent = searchContainer
+    
+    local searchBox = Instance.new("TextBox")
+    searchBox.Name = "SearchBox"
+    searchBox.Size = UDim2.new(1, -40, 1, 0)
+    searchBox.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 0)
+    searchBox.BackgroundTransparency = 1
+    searchBox.Text = ""
+    searchBox.PlaceholderText = "🔍 Search data stores..."
+    searchBox.Font = Constants.UI.THEME.FONTS.BODY
+    searchBox.TextSize = 14
+    searchBox.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    searchBox.PlaceholderColor3 = Constants.UI.THEME.COLORS.TEXT_MUTED
+    searchBox.TextXAlignment = Enum.TextXAlignment.Left
+    searchBox.Parent = searchContainer
+    
+    -- Content area
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "Content"
+    contentFrame.Size = UDim2.new(1, 0, 1, -60)
+    contentFrame.Position = UDim2.new(0, 0, 0, 60)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = self.mainContentArea
+    
+    -- Two-column layout
+    self:createDataStoreColumns(contentFrame)
+end
+
+-- Create DataStore columns (modern card-based layout)
+function UIManager:createDataStoreColumns(parent)
+    -- Left column - DataStore list
+    local leftColumn = Instance.new("Frame")
+    leftColumn.Name = "DataStoresColumn"
+    leftColumn.Size = UDim2.new(0.35, -Constants.UI.THEME.SPACING.MEDIUM, 1, -Constants.UI.THEME.SPACING.XLARGE)
+    leftColumn.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, Constants.UI.THEME.SPACING.LARGE)
+    leftColumn.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    leftColumn.BorderSizePixel = 0
+    leftColumn.Parent = parent
+    
+    local leftCorner = Instance.new("UICorner")
+    leftCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    leftCorner.Parent = leftColumn
+    
+    -- Left column header
+    local leftHeader = Instance.new("Frame")
+    leftHeader.Name = "Header"
+    leftHeader.Size = UDim2.new(1, 0, 0, 50)
+    leftHeader.Position = UDim2.new(0, 0, 0, 0)
+    leftHeader.BackgroundTransparency = 1
+    leftHeader.Parent = leftColumn
+    
+    local datastoreTitle = Instance.new("TextLabel")
+    datastoreTitle.Name = "Title"
+    datastoreTitle.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, 0)
+    datastoreTitle.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, 0)
+    datastoreTitle.BackgroundTransparency = 1
+    datastoreTitle.Text = "📁 Data Stores"
+    datastoreTitle.Font = Constants.UI.THEME.FONTS.SUBHEADING
+    datastoreTitle.TextSize = 16
+    datastoreTitle.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    datastoreTitle.TextXAlignment = Enum.TextXAlignment.Left
+    datastoreTitle.TextYAlignment = Enum.TextYAlignment.Center
+    datastoreTitle.Parent = leftHeader
+    
+    -- DataStore list (scrollable)
+    local datastoreScroll = Instance.new("ScrollingFrame")
+    datastoreScroll.Name = "DataStoreList"
+    datastoreScroll.Size = UDim2.new(1, 0, 1, -50)
+    datastoreScroll.Position = UDim2.new(0, 0, 0, 50)
+    datastoreScroll.BackgroundTransparency = 1
+    datastoreScroll.BorderSizePixel = 0
+    datastoreScroll.ScrollBarThickness = 4
+    datastoreScroll.ScrollBarImageColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    datastoreScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    datastoreScroll.Parent = leftColumn
+    
+    self.explorerElements = self.explorerElements or {}
+    self.explorerElements.datastoreList = datastoreScroll
+    
+    -- Right column - Data preview
+    local rightColumn = Instance.new("Frame")
+    rightColumn.Name = "DataPreviewColumn"
+    rightColumn.Size = UDim2.new(0.65, -Constants.UI.THEME.SPACING.MEDIUM, 1, -Constants.UI.THEME.SPACING.XLARGE)
+    rightColumn.Position = UDim2.new(0.35, Constants.UI.THEME.SPACING.MEDIUM, 0, Constants.UI.THEME.SPACING.LARGE)
+    rightColumn.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    rightColumn.BorderSizePixel = 0
+    rightColumn.Parent = parent
+    
+    local rightCorner = Instance.new("UICorner")
+    rightCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    rightCorner.Parent = rightColumn
+    
+    -- Right column header
+    local rightHeader = Instance.new("Frame")
+    rightHeader.Name = "Header"
+    rightHeader.Size = UDim2.new(1, 0, 0, 50)
+    rightHeader.Position = UDim2.new(0, 0, 0, 0)
+    rightHeader.BackgroundTransparency = 1
+    rightHeader.Parent = rightColumn
+    
+    local previewTitle = Instance.new("TextLabel")
+    previewTitle.Name = "Title"
+    previewTitle.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, 0)
+    previewTitle.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, 0)
+    previewTitle.BackgroundTransparency = 1
+    previewTitle.Text = "📋 Data Preview - Select a DataStore"
+    previewTitle.Font = Constants.UI.THEME.FONTS.SUBHEADING
+    previewTitle.TextSize = 16
+    previewTitle.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    previewTitle.TextXAlignment = Enum.TextXAlignment.Left
+    previewTitle.TextYAlignment = Enum.TextYAlignment.Center
+    previewTitle.Parent = rightHeader
+    
+    self.explorerElements.previewTitle = previewTitle
+    
+    -- Data preview area
+    local previewArea = Instance.new("Frame")
+    previewArea.Name = "PreviewArea"
+    previewArea.Size = UDim2.new(1, 0, 1, -50)
+    previewArea.Position = UDim2.new(0, 0, 0, 50)
+    previewArea.BackgroundTransparency = 1
+    previewArea.Parent = rightColumn
+    
+    -- Keys list section
+    local keysSection = Instance.new("Frame")
+    keysSection.Name = "KeysSection"
+    keysSection.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE, 0.4, 0)
+    keysSection.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, Constants.UI.THEME.SPACING.LARGE)
+    keysSection.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+    keysSection.BorderSizePixel = 1
+    keysSection.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+    keysSection.Parent = previewArea
+    
+    local keysCorner = Instance.new("UICorner")
+    keysCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    keysCorner.Parent = keysSection
+    
+    -- Keys header
+    local keysHeader = Instance.new("TextLabel")
+    keysHeader.Name = "KeysHeader"
+    keysHeader.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 30)
+    keysHeader.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, Constants.UI.THEME.SPACING.MEDIUM)
+    keysHeader.BackgroundTransparency = 1
+    keysHeader.Text = "🔑 Keys"
+    keysHeader.Font = Constants.UI.THEME.FONTS.SUBHEADING
+    keysHeader.TextSize = 14
+    keysHeader.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    keysHeader.TextXAlignment = Enum.TextXAlignment.Left
+    keysHeader.TextYAlignment = Enum.TextYAlignment.Center
+    keysHeader.Parent = keysSection
+    
+    -- Keys scroll frame
+    local keysScroll = Instance.new("ScrollingFrame")
+    keysScroll.Name = "KeysScroll"
+    keysScroll.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, -40)
+    keysScroll.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 35)
+    keysScroll.BackgroundTransparency = 1
+    keysScroll.BorderSizePixel = 0
+    keysScroll.ScrollBarThickness = 4
+    keysScroll.ScrollBarImageColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    keysScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    keysScroll.Parent = keysSection
+    
+    self.explorerElements.keysScroll = keysScroll
+    
+    -- Data content section
+    local dataSection = Instance.new("Frame")
+    dataSection.Name = "DataSection"
+    dataSection.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE, 0.6, -Constants.UI.THEME.SPACING.LARGE)
+    dataSection.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0.4, Constants.UI.THEME.SPACING.MEDIUM)
+    dataSection.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+    dataSection.BorderSizePixel = 1
+    dataSection.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+    dataSection.Parent = previewArea
+    
+    local dataCorner = Instance.new("UICorner")
+    dataCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    dataCorner.Parent = dataSection
+    
+    -- Data header
+    local dataHeader = Instance.new("TextLabel")
+    dataHeader.Name = "DataHeader"
+    dataHeader.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 30)
+    dataHeader.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, Constants.UI.THEME.SPACING.MEDIUM)
+    dataHeader.BackgroundTransparency = 1
+    dataHeader.Text = "📄 Data Preview"
+    dataHeader.Font = Constants.UI.THEME.FONTS.SUBHEADING
+    dataHeader.TextSize = 14
+    dataHeader.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    dataHeader.TextXAlignment = Enum.TextXAlignment.Left
+    dataHeader.TextYAlignment = Enum.TextYAlignment.Center
+    dataHeader.Parent = dataSection
+    
+    -- Data content scroll frame
+    local dataScroll = Instance.new("ScrollingFrame")
+    dataScroll.Name = "DataScroll"
+    dataScroll.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, -40)
+    dataScroll.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 35)
+    dataScroll.BackgroundTransparency = 1
+    dataScroll.BorderSizePixel = 0
+    dataScroll.ScrollBarThickness = 4
+    dataScroll.ScrollBarImageColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    dataScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    dataScroll.Parent = dataSection
+    
+    -- Data content display
+    local previewContent = Instance.new("TextLabel")
+    previewContent.Name = "PreviewContent"
+    previewContent.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, 50)
+    previewContent.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 0)
+    previewContent.BackgroundTransparency = 1
+    previewContent.Text = "Select a DataStore and key to view data contents."
+    previewContent.Font = Constants.UI.THEME.FONTS.CODE
+    previewContent.TextSize = 12
+    previewContent.TextColor3 = Constants.UI.THEME.COLORS.TEXT_MUTED
+    previewContent.TextWrapped = true
+    previewContent.TextXAlignment = Enum.TextXAlignment.Left
+    previewContent.TextYAlignment = Enum.TextYAlignment.Top
+    previewContent.Parent = dataScroll
+    
+    self.explorerElements.previewContent = previewContent
+    self.explorerElements.dataScroll = dataScroll
+end
+
+-- Show Explorer tab (legacy)
 function UIManager:showExplorerTab()
     self:clearTabContent()
     
@@ -580,48 +1092,11 @@ function UIManager:loadDataStores()
     
     local datastores = explorer:getDataStores()
     
-    if not self.explorerElements or not self.explorerElements.datastoreList then
-        debugLog("Explorer elements not initialized", "ERROR")
-        return
+    -- Update modern interface if available
+    if self.explorerElements and self.explorerElements.datastoreList then
+        self:updateDataStoreList(datastores)
     end
     
-    local datastoreList = self.explorerElements.datastoreList
-    
-    -- Clear existing items
-    for _, child in ipairs(datastoreList:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
-    
-    -- Add DataStore buttons
-    for i, datastoreName in ipairs(datastores) do
-        local button = Instance.new("TextButton")
-        button.Name = datastoreName
-        button.Size = UDim2.new(1, -10, 0, 30)
-        button.Position = UDim2.new(0, 5, 0, (i-1) * 32)
-        button.BackgroundColor3 = Constants.UI.THEME.COLORS.ACCENT
-        button.BorderSizePixel = 1
-        button.BorderColor3 = Constants.UI.THEME.COLORS.BORDER
-        button.Text = datastoreName
-        button.Font = Constants.UI.THEME.FONTS.BODY
-        button.TextSize = 12
-        button.TextColor3 = Constants.UI.THEME.COLORS.TEXT
-        button.TextXAlignment = Enum.TextXAlignment.Left
-        button.Parent = datastoreList
-        
-        -- Add padding
-        local padding = Instance.new("UIPadding")
-        padding.PaddingLeft = UDim.new(0, 10)
-        padding.Parent = button
-        
-        button.MouseButton1Click:Connect(function()
-            self:selectDataStore(datastoreName)
-        end)
-    end
-    
-    -- Update scroll canvas
-    datastoreList.CanvasSize = UDim2.new(0, 0, 0, #datastores * 32)
     debugLog("Loaded " .. #datastores .. " DataStores into explorer")
 end
 
@@ -1025,6 +1500,537 @@ function UIManager:destroy()
     
     self.initialized = false
     debugLog("UI Manager destroyed")
+end
+
+-- Placeholder views for other navigation items
+function UIManager:showSchemaBuilderView()
+    if not self.mainContentArea then return end
+    
+    -- Clear existing content
+    for _, child in ipairs(self.mainContentArea:GetChildren()) do
+        child:Destroy()
+    end
+    
+    self:createPlaceholderView("🏗️ Schema Builder", "Build and validate data schemas for your DataStores.")
+end
+
+function UIManager:showAnalyticsView()
+    if not self.mainContentArea then return end
+    
+    -- Clear existing content
+    for _, child in ipairs(self.mainContentArea:GetChildren()) do
+        child:Destroy()
+    end
+    
+    self:createPlaceholderView("📊 Analytics", "View performance metrics and usage analytics for your DataStores.")
+end
+
+function UIManager:showSessionsView()
+    if not self.mainContentArea then return end
+    
+    -- Clear existing content
+    for _, child in ipairs(self.mainContentArea:GetChildren()) do
+        child:Destroy()
+    end
+    
+    self:createPlaceholderView("👥 Sessions", "Monitor active sessions and user data access patterns.")
+end
+
+function UIManager:showSecurityView()
+    if not self.mainContentArea then return end
+    
+    -- Clear existing content
+    for _, child in ipairs(self.mainContentArea:GetChildren()) do
+        child:Destroy()
+    end
+    
+    self:createPlaceholderView("🔒 Security", "Manage access controls and security settings for DataStore operations.")
+end
+
+function UIManager:showSettingsView()
+    if not self.mainContentArea then return end
+    
+    -- Clear existing content
+    for _, child in ipairs(self.mainContentArea:GetChildren()) do
+        child:Destroy()
+    end
+    
+    self:createPlaceholderView("⚙️ Settings", "Configure plugin preferences, themes, and advanced options.")
+end
+
+-- Create placeholder view for future features
+function UIManager:createPlaceholderView(title, description)
+    -- Header
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 60)
+    header.Position = UDim2.new(0, 0, 0, 0)
+    header.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    header.BorderSizePixel = 0
+    header.Parent = self.mainContentArea
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE, 1, 0)
+    titleLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.Font = Constants.UI.THEME.FONTS.HEADING
+    titleLabel.TextSize = 24
+    titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.Parent = header
+    
+    -- Content
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, 0, 1, -60)
+    content.Position = UDim2.new(0, 0, 0, 60)
+    content.BackgroundTransparency = 1
+    content.Parent = self.mainContentArea
+    
+    local card = Instance.new("Frame")
+    card.Name = "Card"
+    card.Size = UDim2.new(0.6, 0, 0.4, 0)
+    card.Position = UDim2.new(0.2, 0, 0.3, 0)
+    card.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    card.BorderSizePixel = 0
+    card.Parent = content
+    
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    cardCorner.Parent = card
+    
+    local descLabel = Instance.new("TextLabel")
+    descLabel.Name = "Description"
+    descLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE, 1, -Constants.UI.THEME.SPACING.XLARGE)
+    descLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, Constants.UI.THEME.SPACING.XLARGE)
+    descLabel.BackgroundTransparency = 1
+    descLabel.Text = description .. "\\n\\n🚧 This feature is coming soon in a future update."
+    descLabel.Font = Constants.UI.THEME.FONTS.BODY
+    descLabel.TextSize = 16
+    descLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    descLabel.TextWrapped = true
+    descLabel.TextXAlignment = Enum.TextXAlignment.Center
+    descLabel.TextYAlignment = Enum.TextYAlignment.Center
+    descLabel.Parent = card
+end
+
+-- Update DataStore list with modern cards
+function UIManager:updateDataStoreList(datastores)
+    if not self.explorerElements or not self.explorerElements.datastoreList then
+        debugLog("Explorer elements not initialized", "ERROR")
+        return
+    end
+    
+    local datastoreList = self.explorerElements.datastoreList
+    
+    -- Clear existing items
+    for _, child in ipairs(datastoreList:GetChildren()) do
+        if child:IsA("Frame") and child.Name:find("DataStoreCard") then
+            child:Destroy()
+        end
+    end
+    
+    -- Add modern DataStore cards
+    for i, datastoreName in ipairs(datastores) do
+        local card = Instance.new("Frame")
+        card.Name = "DataStoreCard_" .. datastoreName
+        card.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, Constants.UI.THEME.SIZES.CARD_MIN_HEIGHT)
+        card.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, (i-1) * (Constants.UI.THEME.SIZES.CARD_MIN_HEIGHT + Constants.UI.THEME.SPACING.SMALL) + Constants.UI.THEME.SPACING.MEDIUM)
+        card.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+        card.BorderSizePixel = 1
+        card.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+        card.Parent = datastoreList
+        
+        -- Card corner radius
+        local cardCorner = Instance.new("UICorner")
+        cardCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+        cardCorner.Parent = card
+        
+        -- DataStore icon
+        local icon = Instance.new("TextLabel")
+        icon.Name = "Icon"
+        icon.Size = UDim2.new(0, Constants.UI.THEME.SIZES.ICON_LARGE, 0, Constants.UI.THEME.SIZES.ICON_LARGE)
+        icon.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, Constants.UI.THEME.SPACING.LARGE)
+        icon.BackgroundTransparency = 1
+        icon.Text = "📊"
+        icon.Font = Constants.UI.THEME.FONTS.UI
+        icon.TextSize = Constants.UI.THEME.SIZES.ICON_LARGE
+        icon.TextColor3 = Constants.UI.THEME.COLORS.PRIMARY
+        icon.TextXAlignment = Enum.TextXAlignment.Center
+        icon.TextYAlignment = Enum.TextYAlignment.Center
+        icon.Parent = card
+        
+        -- DataStore name
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "NameLabel"
+        nameLabel.Size = UDim2.new(1, -Constants.UI.THEME.SIZES.ICON_LARGE - Constants.UI.THEME.SPACING.LARGE * 3, 0, 20)
+        nameLabel.Position = UDim2.new(0, Constants.UI.THEME.SIZES.ICON_LARGE + Constants.UI.THEME.SPACING.LARGE * 2, 0, Constants.UI.THEME.SPACING.LARGE)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = datastoreName
+        nameLabel.Font = Constants.UI.THEME.FONTS.SUBHEADING
+        nameLabel.TextSize = 16
+        nameLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.TextYAlignment = Enum.TextYAlignment.Center
+        nameLabel.Parent = card
+        
+        -- DataStore description
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Name = "Description"
+        descLabel.Size = UDim2.new(1, -Constants.UI.THEME.SIZES.ICON_LARGE - Constants.UI.THEME.SPACING.LARGE * 3, 0, 16)
+        descLabel.Position = UDim2.new(0, Constants.UI.THEME.SIZES.ICON_LARGE + Constants.UI.THEME.SPACING.LARGE * 2, 0, Constants.UI.THEME.SPACING.LARGE + 22)
+        descLabel.BackgroundTransparency = 1
+        descLabel.Text = "Click to explore data..."
+        descLabel.Font = Constants.UI.THEME.FONTS.BODY
+        descLabel.TextSize = 12
+        descLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_MUTED
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.TextYAlignment = Enum.TextYAlignment.Center
+        descLabel.Parent = card
+        
+        -- Click button (invisible overlay)
+        local clickButton = Instance.new("TextButton")
+        clickButton.Name = "ClickButton"
+        clickButton.Size = UDim2.new(1, 0, 1, 0)
+        clickButton.Position = UDim2.new(0, 0, 0, 0)
+        clickButton.BackgroundTransparency = 1
+        clickButton.Text = ""
+        clickButton.Parent = card
+        
+        -- Hover effects
+        clickButton.MouseEnter:Connect(function()
+            card.BackgroundColor3 = Constants.UI.THEME.COLORS.SIDEBAR_ITEM_HOVER
+            card.BorderColor3 = Constants.UI.THEME.COLORS.PRIMARY
+        end)
+        
+        clickButton.MouseLeave:Connect(function()
+            card.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+            card.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+        end)
+        
+        -- Click handler
+        clickButton.MouseButton1Click:Connect(function()
+            self:selectModernDataStore(datastoreName, card)
+        end)
+    end
+    
+    -- Update scroll canvas
+    local totalHeight = #datastores * (Constants.UI.THEME.SIZES.CARD_MIN_HEIGHT + Constants.UI.THEME.SPACING.SMALL) + Constants.UI.THEME.SPACING.LARGE
+    datastoreList.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+end
+
+-- Select DataStore with modern interface
+function UIManager:selectModernDataStore(datastoreName, selectedCard)
+    debugLog("Selecting DataStore: " .. datastoreName)
+    
+    -- Reset all cards
+    if self.explorerElements and self.explorerElements.datastoreList then
+        for _, child in ipairs(self.explorerElements.datastoreList:GetChildren()) do
+            if child:IsA("Frame") and child.Name:find("DataStoreCard") then
+                child.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+                child.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+            end
+        end
+    end
+    
+    -- Highlight selected card
+    if selectedCard then
+        selectedCard.BackgroundColor3 = Constants.UI.THEME.COLORS.SIDEBAR_ITEM_ACTIVE
+        selectedCard.BorderColor3 = Constants.UI.THEME.COLORS.PRIMARY
+    end
+    
+    -- Update preview title
+    if self.explorerElements and self.explorerElements.previewTitle then
+        self.explorerElements.previewTitle.Text = "📋 Data Preview - " .. datastoreName
+    end
+    
+    -- Load DataStore data
+    if not self.services or not self.services["features.explorer.DataExplorer"] then
+        return
+    end
+    
+    local explorer = self.services["features.explorer.DataExplorer"]
+    explorer:selectDataStore(datastoreName)
+    
+    -- Load and display data in preview area
+    self:loadDataStorePreview(datastoreName)
+end
+
+-- Load DataStore preview
+function UIManager:loadDataStorePreview(datastoreName)
+    if not self.explorerElements then
+        return
+    end
+    
+    -- Clear data preview
+    if self.explorerElements.previewContent then
+        self.explorerElements.previewContent.Text = "🔄 Loading keys for " .. datastoreName .. "..."
+        self.explorerElements.previewContent.TextColor3 = Constants.UI.THEME.COLORS.STATUS_LOADING
+    end
+    
+    -- Clear keys list
+    if self.explorerElements.keysScroll then
+        for _, child in ipairs(self.explorerElements.keysScroll:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+    end
+    
+    -- Load keys
+    task.spawn(function()
+        wait(0.3) -- Brief loading delay
+        
+        if not self.services or not self.services["features.explorer.DataExplorer"] then
+            if self.explorerElements.previewContent then
+                self.explorerElements.previewContent.Text = "❌ Explorer service not available"
+                self.explorerElements.previewContent.TextColor3 = Constants.UI.THEME.COLORS.ERROR
+            end
+            return
+        end
+        
+        local explorer = self.services["features.explorer.DataExplorer"]
+        local state = explorer:getState()
+        
+        if #state.keys > 0 then
+            -- Populate keys list
+            self:populateKeysList(state.keys)
+            
+            -- Update data preview
+            if self.explorerElements.previewContent then
+                self.explorerElements.previewContent.Text = "📋 Found " .. #state.keys .. " keys in " .. datastoreName .. "\\n\\nClick on a key to view its data contents."
+                self.explorerElements.previewContent.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+            end
+        else
+            if self.explorerElements.previewContent then
+                self.explorerElements.previewContent.Text = "📭 No data found in " .. datastoreName .. "\\n\\nThis DataStore appears to be empty or has no accessible keys."
+                self.explorerElements.previewContent.TextColor3 = Constants.UI.THEME.COLORS.TEXT_MUTED
+            end
+        end
+    end)
+end
+
+-- Populate keys list with clickable buttons
+function UIManager:populateKeysList(keys)
+    if not self.explorerElements or not self.explorerElements.keysScroll then
+        return
+    end
+    
+    local keysScroll = self.explorerElements.keysScroll
+    
+    -- Clear existing keys
+    for _, child in ipairs(keysScroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    -- Add key buttons
+    for i, keyInfo in ipairs(keys) do
+        local keyButton = Instance.new("TextButton")
+        keyButton.Name = "KeyButton_" .. i
+        keyButton.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.SMALL, 0, 28)
+        keyButton.Position = UDim2.new(0, 0, 0, (i-1) * 32)
+        keyButton.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+        keyButton.BorderSizePixel = 1
+        keyButton.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+        keyButton.Text = ""
+        keyButton.Parent = keysScroll
+        
+        -- Key button corner
+        local keyCorner = Instance.new("UICorner")
+        keyCorner.CornerRadius = UDim.new(0, 4)
+        keyCorner.Parent = keyButton
+        
+        -- Key icon
+        local keyIcon = Instance.new("TextLabel")
+        keyIcon.Name = "Icon"
+        keyIcon.Size = UDim2.new(0, 20, 1, 0)
+        keyIcon.Position = UDim2.new(0, 8, 0, 0)
+        keyIcon.BackgroundTransparency = 1
+        keyIcon.Text = "🔑"
+        keyIcon.Font = Constants.UI.THEME.FONTS.UI
+        keyIcon.TextSize = 12
+        keyIcon.TextColor3 = Constants.UI.THEME.COLORS.PRIMARY
+        keyIcon.TextXAlignment = Enum.TextXAlignment.Center
+        keyIcon.TextYAlignment = Enum.TextYAlignment.Center
+        keyIcon.Parent = keyButton
+        
+        -- Key name
+        local keyName = Instance.new("TextLabel")
+        keyName.Name = "KeyName"
+        keyName.Size = UDim2.new(1, -40, 1, 0)
+        keyName.Position = UDim2.new(0, 32, 0, 0)
+        keyName.BackgroundTransparency = 1
+        keyName.Text = keyInfo.key
+        keyName.Font = Constants.UI.THEME.FONTS.CODE
+        keyName.TextSize = 11
+        keyName.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+        keyName.TextXAlignment = Enum.TextXAlignment.Left
+        keyName.TextYAlignment = Enum.TextYAlignment.Center
+        keyName.TextTruncate = Enum.TextTruncate.AtEnd
+        keyName.Parent = keyButton
+        
+        -- Hover effects
+        keyButton.MouseEnter:Connect(function()
+            keyButton.BackgroundColor3 = Constants.UI.THEME.COLORS.SIDEBAR_ITEM_HOVER
+            keyButton.BorderColor3 = Constants.UI.THEME.COLORS.PRIMARY
+        end)
+        
+        keyButton.MouseLeave:Connect(function()
+            keyButton.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+            keyButton.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+        end)
+        
+        -- Click handler
+        keyButton.MouseButton1Click:Connect(function()
+            self:loadKeyData(keyInfo.key)
+        end)
+    end
+    
+    -- Update canvas size
+    keysScroll.CanvasSize = UDim2.new(0, 0, 0, #keys * 32)
+end
+
+-- Load and display data for a specific key
+function UIManager:loadKeyData(keyName)
+    if not self.explorerElements or not self.explorerElements.previewContent or not self.explorerElements.dataScroll then
+        return
+    end
+    
+    local previewContent = self.explorerElements.previewContent
+    local dataScroll = self.explorerElements.dataScroll
+    
+    -- Show loading state
+    previewContent.Text = "🔄 Loading data for key: " .. keyName .. "..."
+    previewContent.TextColor3 = Constants.UI.THEME.COLORS.STATUS_LOADING
+    previewContent.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, 50)
+    
+    task.spawn(function()
+        wait(0.2)
+        
+        if not self.services or not self.services["features.explorer.DataExplorer"] then
+            previewContent.Text = "❌ Explorer service not available"
+            previewContent.TextColor3 = Constants.UI.THEME.COLORS.ERROR
+            return
+        end
+        
+        local explorer = self.services["features.explorer.DataExplorer"]
+        local state = explorer:getState()
+        
+        -- Find the key data
+        for _, keyInfo in ipairs(state.keys) do
+            if keyInfo.key == keyName then
+                -- Load the actual data
+                explorer:selectKey(keyName)
+                local dataInfo = explorer:getSelectedData()
+                
+                if dataInfo and dataInfo.exists then
+                    -- Create formatted data display
+                    self:displayFormattedData(keyName, dataInfo)
+                else
+                    previewContent.Text = "❌ Failed to load data for key: " .. keyName
+                    previewContent.TextColor3 = Constants.UI.THEME.COLORS.ERROR
+                end
+                break
+            end
+        end
+    end)
+end
+
+-- Display formatted data with proper JSON syntax highlighting
+function UIManager:displayFormattedData(keyName, dataInfo)
+    if not self.explorerElements or not self.explorerElements.previewContent or not self.explorerElements.dataScroll then
+        return
+    end
+    
+    local previewContent = self.explorerElements.previewContent
+    local dataScroll = self.explorerElements.dataScroll
+    
+    -- Clear existing content
+    for _, child in ipairs(dataScroll:GetChildren()) do
+        if child.Name ~= "PreviewContent" then
+            child:Destroy()
+        end
+    end
+    
+    -- Header info
+    local headerText = "📊 Data for: " .. keyName .. "\\n"
+    headerText = headerText .. "📏 Type: " .. (dataInfo.type or "unknown") .. "\\n"
+    headerText = headerText .. "📦 Size: " .. (dataInfo.size or 0) .. " bytes\\n"
+    headerText = headerText .. "✅ Exists: " .. tostring(dataInfo.exists) .. "\\n\\n"
+    
+    previewContent.Text = headerText
+    previewContent.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    previewContent.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, 80)
+    
+    -- JSON data display
+    if dataInfo.data then
+        local jsonDisplay = Instance.new("TextLabel")
+        jsonDisplay.Name = "JSONDisplay"
+        jsonDisplay.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, 400) -- Will be adjusted based on content
+        jsonDisplay.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 90)
+        jsonDisplay.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_PRIMARY
+        jsonDisplay.BorderSizePixel = 1
+        jsonDisplay.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+        jsonDisplay.Parent = dataScroll
+        
+        local jsonCorner = Instance.new("UICorner")
+        jsonCorner.CornerRadius = UDim.new(0, 4)
+        jsonCorner.Parent = jsonDisplay
+        
+        -- Format JSON with proper indentation
+        local jsonText = self:formatJSONData(dataInfo.data)
+        
+        local jsonLabel = Instance.new("TextLabel")
+        jsonLabel.Name = "JSONText"
+        jsonLabel.Size = UDim2.new(1, -16, 1, -16)
+        jsonLabel.Position = UDim2.new(0, 8, 0, 8)
+        jsonLabel.BackgroundTransparency = 1
+        jsonLabel.Text = jsonText
+        jsonLabel.Font = Constants.UI.THEME.FONTS.CODE
+        jsonLabel.TextSize = 11
+        jsonLabel.TextColor3 = Constants.UI.THEME.COLORS.JSON_STRING
+        jsonLabel.TextWrapped = true
+        jsonLabel.TextXAlignment = Enum.TextXAlignment.Left
+        jsonLabel.TextYAlignment = Enum.TextYAlignment.Top
+        jsonLabel.Parent = jsonDisplay
+        
+        -- Adjust height based on content
+        local lines = select(2, jsonText:gsub('\\n', '\\n')) + 1
+        jsonDisplay.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, math.max(100, lines * 15 + 20))
+        
+        -- Update scroll canvas
+        dataScroll.CanvasSize = UDim2.new(0, 0, 0, 90 + jsonDisplay.Size.Y.Offset + 20)
+    else
+        previewContent.Text = previewContent.Text .. "❌ No data content available"
+        previewContent.TextColor3 = Constants.UI.THEME.COLORS.TEXT_MUTED
+    end
+end
+
+-- Format JSON data with proper indentation
+function UIManager:formatJSONData(data)
+    local HttpService = game:GetService("HttpService")
+    
+    local success, jsonString = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    
+    if success then
+        -- Add basic indentation for readability
+        local formatted = jsonString
+        formatted = formatted:gsub('","', '",\\n  "')
+        formatted = formatted:gsub('":{"', '": {\\n    "')
+        formatted = formatted:gsub('"},"', '"}\\n  ,"')
+        formatted = formatted:gsub('^{', '{\\n  ')
+        formatted = formatted:gsub('}$', '\\n}')
+        return formatted
+    else
+        return tostring(data)
+    end
 end
 
 return UIManager 
