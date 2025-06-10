@@ -112,12 +112,16 @@ end
 
 -- Create plugin UI
 local success, uiError = pcall(function()
-    local toolbar = pluginObject:CreateToolbar(PLUGIN_INFO.name)
+    debugLog("MAIN", "Creating plugin toolbar and button...")
+    local toolbar = pluginObject:CreateToolbar("DataStore Manager Pro")
+    debugLog("MAIN", "Toolbar created: " .. tostring(toolbar))
+    
     local button = toolbar:CreateButton(
         "DataStore Manager",
         "Open DataStore Manager Pro",
-        "rbxassetid://131528729537417"
+        ""
     )
+    debugLog("MAIN", "Button created: " .. tostring(button))
 
     local widgetInfo = DockWidgetPluginGuiInfo.new(
         Enum.InitialDockState.Float,
@@ -144,11 +148,15 @@ local success, uiError = pcall(function()
         end
         
         button.Click:Connect(function()
+            debugLog("MAIN", "Plugin button clicked! Toggling widget...")
             widget.Enabled = not widget.Enabled
+            debugLog("MAIN", "Widget enabled: " .. tostring(widget.Enabled))
             if widget.Enabled and interface.refresh then
                 interface:refresh()
             end
         end)
+        
+        debugLog("MAIN", "Button click handler connected successfully")
         
         -- Store references for cleanup
         Services._ui = {
