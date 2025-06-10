@@ -18,10 +18,28 @@ end
 
 debugLog("MAIN", "Starting " .. PLUGIN_INFO.name .. " v" .. PLUGIN_INFO.version)
 
--- Validate plugin context
-if not plugin or typeof(plugin) ~= "Plugin" then
-    error("DataStore Manager Pro must run in plugin context")
+-- Wait for plugin context to be available
+local function waitForPlugin()
+    local attempts = 0
+    while not plugin and attempts < 50 do -- Wait up to 5 seconds
+        wait(0.1)
+        attempts = attempts + 1
+    end
+    
+    if not plugin then
+        error("Plugin context not available after 5 seconds - ensure this is running as a plugin")
+    end
+    
+    if typeof(plugin) ~= "Plugin" then
+        error("Invalid plugin context - expected Plugin object, got " .. typeof(plugin))
+    end
+    
+    debugLog("MAIN", "Plugin context validated successfully")
+    return plugin
 end
+
+-- Validate plugin context
+local pluginObject = waitForPlugin()
 
 -- Service loader with detailed error reporting
 local Services = {}
@@ -90,7 +108,7 @@ end
 
 -- Create plugin UI
 local success, uiError = pcall(function()
-    local toolbar = plugin:CreateToolbar(PLUGIN_INFO.name)
+    local toolbar = pluginObject:CreateToolbar(PLUGIN_INFO.name)
     local button = toolbar:CreateButton(
         "DataStore Manager",
         "Open DataStore Manager Pro",
@@ -107,7 +125,7 @@ local success, uiError = pcall(function()
         400     -- Min height
     )
 
-    local widget = plugin:CreateDockWidgetPluginGui(PLUGIN_INFO.id, widgetInfo)
+    local widget = pluginObject:CreateDockWidgetPluginGui(PLUGIN_INFO.id, widgetInfo)
     widget.Title = PLUGIN_INFO.name
     widget.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -139,7 +157,7 @@ if not success then
 end
 
 -- Plugin cleanup handler
-plugin.Unloading:Connect(function()
+pluginObject.Unloading:Connect(function()
     debugLog("MAIN", "Plugin unloading - cleaning up services")
     
     for servicePath, service in pairs(Services) do

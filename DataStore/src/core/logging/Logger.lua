@@ -226,29 +226,27 @@ function Logger.searchLogs(query, options)
     
     for _, log in ipairs(logs) do
         -- Apply filters
+        local shouldInclude = true
+        
         if levelFilter and log.level < levelFilter then
-            goto continue
+            shouldInclude = false
+        elseif componentFilter and log.component ~= componentFilter then
+            shouldInclude = false
+        elseif timeRange and (log.timestamp < timeRange.start or log.timestamp > timeRange.endTime) then
+            shouldInclude = false
         end
         
-        if componentFilter and log.component ~= componentFilter then
-            goto continue
+        if shouldInclude then
+            -- Search in message
+            local searchText = log.message
+            if not caseSensitive then
+                searchText = searchText:lower()
+            end
+            
+            if searchText:find(query, 1, true) then -- Plain text search
+                table.insert(results, log)
+            end
         end
-        
-        if timeRange and (log.timestamp < timeRange.start or log.timestamp > timeRange.endTime) then
-            goto continue
-        end
-        
-        -- Search in message
-        local searchText = log.message
-        if not caseSensitive then
-            searchText = searchText:lower()
-        end
-        
-        if searchText:find(query, 1, true) then -- Plain text search
-            table.insert(results, log)
-        end
-        
-        ::continue::
     end
     
     return results
