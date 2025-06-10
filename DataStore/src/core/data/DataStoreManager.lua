@@ -2,6 +2,7 @@
 -- Robust DataStore operations with enterprise features
 
 local DataStoreManager = {}
+DataStoreManager.__index = DataStoreManager
 
 -- Import services
 local DataStoreService = game:GetService("DataStoreService")
