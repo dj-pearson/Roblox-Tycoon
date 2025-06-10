@@ -143,33 +143,57 @@ local success, uiError = pcall(function()
     widget.Title = PLUGIN_INFO.name
     widget.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    -- Initialize main interface if UI manager loaded
-    if Services["ui.core.UIManager"] then
-        debugLog("MAIN", "UI Manager service found")
-        debugLog("MAIN", "UI Manager type: " .. type(Services["ui.core.UIManager"]))
+    -- Try to get UI Manager from services first
+    local uiManager = Services["ui.core.UIManager"]
+    
+    if not uiManager then
+        debugLog("MAIN", "ERROR", "UI Manager not found in services")
+        debugLog("MAIN", "INFO", "Attempting direct UI Manager load...")
         
-        if Services["ui.core.UIManager"].new then
-            debugLog("MAIN", "UI Manager has .new method")
+        -- Fallback: Load UIManager directly
+        local UIManagerModule = require(script.ui.core.UIManager)
+        debugLog("MAIN", "INFO", "Direct UI Manager load successful, creating instance...")
+        
+        local success, result = pcall(function()
+            debugLog("MAIN", "INFO", "Creating UI Manager instance with " .. Utils.Table.getTableSize(Services) .. " services")
+            return UIManagerModule.new(pluginObject, widget, Services)
+        end)
+        
+        if success then
+            uiManager = result
+            debugLog("MAIN", "INFO", "Fallback UI Manager instance created successfully")
+            
+            button.Click:Connect(function()
+                debugLog("MAIN", "Plugin button clicked! Toggling widget...")
+                widget.Enabled = not widget.Enabled
+                debugLog("MAIN", "Widget enabled: " .. tostring(widget.Enabled))
+                if widget.Enabled and uiManager.refresh then
+                    uiManager:refresh()
+                end
+            end)
+            
+            debugLog("MAIN", "Button click handler connected successfully")
+            
+            -- Store references for cleanup
+            Services._ui = {
+                toolbar = toolbar,
+                button = button,
+                widget = widget,
+                interface = uiManager
+            }
         else
-            debugLog("MAIN", "UI Manager missing .new method!", "ERROR")
-        end
-        
-        debugLog("MAIN", "Creating UI Manager instance...")
-        local interface = Services["ui.core.UIManager"].new(widget, Services, PLUGIN_INFO)
-        
-        if not interface then
-            debugLog("MAIN", "Failed to create UI Manager instance", "ERROR")
+            debugLog("MAIN", "ERROR", "Failed to create fallback UI Manager: " .. tostring(result))
             return
         end
-        
-        debugLog("MAIN", "UI Manager instance created successfully")
+    else
+        debugLog("MAIN", "UI Manager found in services")
         
         button.Click:Connect(function()
             debugLog("MAIN", "Plugin button clicked! Toggling widget...")
             widget.Enabled = not widget.Enabled
             debugLog("MAIN", "Widget enabled: " .. tostring(widget.Enabled))
-            if widget.Enabled and interface.refresh then
-                interface:refresh()
+            if widget.Enabled and uiManager.refresh then
+                uiManager:refresh()
             end
         end)
         
@@ -180,48 +204,8 @@ local success, uiError = pcall(function()
             toolbar = toolbar,
             button = button,
             widget = widget,
-            interface = interface
+            interface = uiManager
         }
-    else
-        debugLog("MAIN", "UI Manager not found in services", "ERROR")
-        debugLog("MAIN", "Attempting direct UI Manager load...")
-        
-        -- Fallback: try to require UI Manager directly
-        local success, UIManagerModule = pcall(function()
-            return require(script.ui.core.UIManager)
-        end)
-        
-        if success and UIManagerModule and UIManagerModule.new then
-            debugLog("MAIN", "Direct UI Manager load successful, creating instance...")
-            local interface = UIManagerModule.new(widget, Services, PLUGIN_INFO)
-            
-            if interface then
-                debugLog("MAIN", "Fallback UI Manager instance created successfully")
-                
-                button.Click:Connect(function()
-                    debugLog("MAIN", "Plugin button clicked! Toggling widget...")
-                    widget.Enabled = not widget.Enabled
-                    debugLog("MAIN", "Widget enabled: " .. tostring(widget.Enabled))
-                    if widget.Enabled and interface.refresh then
-                        interface:refresh()
-                    end
-                end)
-                
-                debugLog("MAIN", "Button click handler connected successfully")
-                
-                -- Store references for cleanup
-                Services._ui = {
-                    toolbar = toolbar,
-                    button = button,
-                    widget = widget,
-                    interface = interface
-                }
-            else
-                debugLog("MAIN", "Fallback UI Manager creation also failed", "ERROR")
-            end
-        else
-            debugLog("MAIN", "Could not load UI Manager directly: " .. tostring(UIManagerModule), "ERROR")
-        end
     end
 end)
 
