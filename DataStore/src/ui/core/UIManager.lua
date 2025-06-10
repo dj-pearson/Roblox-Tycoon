@@ -142,36 +142,53 @@ end
 -- Setup the basic layout
 function UIManager:setupLayout()
     debugLog("Setting up basic layout")
+    debugLog("Content area: " .. tostring(self.contentArea))
+    debugLog("Content area size: " .. tostring(self.contentArea.Size))
+    debugLog("Content area position: " .. tostring(self.contentArea.Position))
     
-    -- Create placeholder content
+    -- Create a bright background for debugging
+    local debugBackground = Instance.new("Frame")
+    debugBackground.Name = "DebugBackground"
+    debugBackground.Size = UDim2.new(1, 0, 1, 0)
+    debugBackground.Position = UDim2.new(0, 0, 0, 0)
+    debugBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Dark gray
+    debugBackground.BorderSizePixel = 2
+    debugBackground.BorderColor3 = Color3.fromRGB(0, 255, 0) -- Green border for visibility
+    debugBackground.Parent = self.contentArea
+    
+    -- Create placeholder content with bright colors
     local welcomeLabel = Instance.new("TextLabel")
     welcomeLabel.Name = "WelcomeLabel"
     welcomeLabel.Size = UDim2.new(0.8, 0, 0.3, 0)
     welcomeLabel.Position = UDim2.new(0.1, 0, 0.35, 0)
-    welcomeLabel.BackgroundTransparency = 1
+    welcomeLabel.BackgroundColor3 = Color3.fromRGB(0, 100, 200) -- Blue background
+    welcomeLabel.BackgroundTransparency = 0
     welcomeLabel.Text = "Welcome to DataStore Manager Pro\n\nThis is the foundation interface.\nMore features will be added in subsequent phases."
-    welcomeLabel.Font = Constants.UI.THEME.FONTS.BODY
+    welcomeLabel.Font = Enum.Font.SourceSans
     welcomeLabel.TextSize = 18
-    welcomeLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    welcomeLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text
     welcomeLabel.TextWrapped = true
     welcomeLabel.TextXAlignment = Enum.TextXAlignment.Center
     welcomeLabel.TextYAlignment = Enum.TextYAlignment.Center
-    welcomeLabel.Parent = self.contentArea
+    welcomeLabel.Parent = debugBackground
     
     -- Add version info
     local versionLabel = Instance.new("TextLabel")
     versionLabel.Name = "VersionLabel"
     versionLabel.Size = UDim2.new(0.8, 0, 0.1, 0)
     versionLabel.Position = UDim2.new(0.1, 0, 0.7, 0)
-    versionLabel.BackgroundTransparency = 1
+    versionLabel.BackgroundColor3 = Color3.fromRGB(200, 100, 0) -- Orange background
+    versionLabel.BackgroundTransparency = 0
     versionLabel.Text = "Version: " .. (self.pluginInfo.version or "1.0.0")
-    versionLabel.Font = Constants.UI.THEME.FONTS.BODY
+    versionLabel.Font = Enum.Font.SourceSans
     versionLabel.TextSize = 14
-    versionLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    versionLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text
     versionLabel.TextXAlignment = Enum.TextXAlignment.Center
     versionLabel.TextYAlignment = Enum.TextYAlignment.Center
-    versionLabel.Parent = self.contentArea
+    versionLabel.Parent = debugBackground
     
+    debugLog("Welcome label created: " .. tostring(welcomeLabel))
+    debugLog("Version label created: " .. tostring(versionLabel))
     debugLog("Basic layout setup complete")
 end
 
