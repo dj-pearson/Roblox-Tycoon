@@ -563,7 +563,7 @@ function DataStoreManager:getDataStoreKeys(datastoreName, scope, maxKeys)
         for _, keyInfo in ipairs(currentPage) do
             table.insert(keys, {
                 key = keyInfo.KeyName,
-                lastModified = os.date("%Y-%m-%d %H:%M:%S", keyInfo.UpdatedTime),
+                lastModified = "Unknown", -- DataStoreKey doesn't have UpdatedTime
                 hasData = true
             })
             
