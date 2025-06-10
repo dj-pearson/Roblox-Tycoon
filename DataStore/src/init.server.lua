@@ -145,6 +145,15 @@ local success, uiError = pcall(function()
 
     -- Initialize main interface if UI manager loaded
     if Services["ui.core.UIManager"] then
+        debugLog("MAIN", "UI Manager service found")
+        debugLog("MAIN", "UI Manager type: " .. type(Services["ui.core.UIManager"]))
+        
+        if Services["ui.core.UIManager"].new then
+            debugLog("MAIN", "UI Manager has .new method")
+        else
+            debugLog("MAIN", "UI Manager missing .new method!", "ERROR")
+        end
+        
         debugLog("MAIN", "Creating UI Manager instance...")
         local interface = Services["ui.core.UIManager"].new(widget, Services, PLUGIN_INFO)
         
@@ -152,6 +161,8 @@ local success, uiError = pcall(function()
             debugLog("MAIN", "Failed to create UI Manager instance", "ERROR")
             return
         end
+        
+        debugLog("MAIN", "UI Manager instance created successfully")
         
         button.Click:Connect(function()
             debugLog("MAIN", "Plugin button clicked! Toggling widget...")
@@ -172,7 +183,45 @@ local success, uiError = pcall(function()
             interface = interface
         }
     else
-        debugLog("MAIN", "UI Manager not loaded - plugin will not function", "ERROR")
+        debugLog("MAIN", "UI Manager not found in services", "ERROR")
+        debugLog("MAIN", "Attempting direct UI Manager load...")
+        
+        -- Fallback: try to require UI Manager directly
+        local success, UIManagerModule = pcall(function()
+            return require(script.ui.core.UIManager)
+        end)
+        
+        if success and UIManagerModule and UIManagerModule.new then
+            debugLog("MAIN", "Direct UI Manager load successful, creating instance...")
+            local interface = UIManagerModule.new(widget, Services, PLUGIN_INFO)
+            
+            if interface then
+                debugLog("MAIN", "Fallback UI Manager instance created successfully")
+                
+                button.Click:Connect(function()
+                    debugLog("MAIN", "Plugin button clicked! Toggling widget...")
+                    widget.Enabled = not widget.Enabled
+                    debugLog("MAIN", "Widget enabled: " .. tostring(widget.Enabled))
+                    if widget.Enabled and interface.refresh then
+                        interface:refresh()
+                    end
+                end)
+                
+                debugLog("MAIN", "Button click handler connected successfully")
+                
+                -- Store references for cleanup
+                Services._ui = {
+                    toolbar = toolbar,
+                    button = button,
+                    widget = widget,
+                    interface = interface
+                }
+            else
+                debugLog("MAIN", "Fallback UI Manager creation also failed", "ERROR")
+            end
+        else
+            debugLog("MAIN", "Could not load UI Manager directly: " .. tostring(UIManagerModule), "ERROR")
+        end
     end
 end)
 
@@ -185,13 +234,16 @@ pluginObject.Unloading:Connect(function()
     debugLog("MAIN", "Plugin unloading - cleaning up services")
     
     for servicePath, service in pairs(Services) do
-        if service and service.cleanup then
-            local cleanupSuccess, cleanupError = pcall(service.cleanup)
+        -- Check if service has cleanup method and is actually a service instance
+        if service and type(service) == "table" and service.cleanup and type(service.cleanup) == "function" then
+            local cleanupSuccess, cleanupError = pcall(service.cleanup, service)
             if cleanupSuccess then
                 debugLog("CLEANUP", "✓ " .. servicePath .. " cleaned up")
             else
                 debugLog("CLEANUP", "✗ " .. servicePath .. " cleanup failed: " .. tostring(cleanupError), "ERROR")
             end
+        elseif service and type(service) == "table" then
+            debugLog("CLEANUP", "◦ " .. servicePath .. " (no cleanup method)")
         end
     end
     

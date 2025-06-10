@@ -20,6 +20,8 @@ function UIManager.new(widget, services, pluginInfo)
         return nil
     end
     
+    debugLog("Creating new UI Manager instance with " .. (services and "services" or "no services"))
+    
     local self = setmetatable({}, UIManager)
     
     self.widget = widget
@@ -28,18 +30,20 @@ function UIManager.new(widget, services, pluginInfo)
     self.components = {}
     self.initialized = false
     
-    debugLog("Creating new UI Manager instance")
+    debugLog("UIManager object created, starting initialization...")
     
     -- Initialize the interface
     local success, error = pcall(function()
-        self:initialize()
+        return self:initialize()
     end)
     
     if not success then
         debugLog("UI Manager initialization failed: " .. tostring(error), "ERROR")
+        debugLog("Error type: " .. type(error), "ERROR")
         return nil
     end
     
+    debugLog("UI Manager instance creation completed successfully")
     return self
 end
 
@@ -55,13 +59,32 @@ function UIManager:initialize()
         return true
     end
     
-    debugLog("Initializing UI Manager")
+    debugLog("Initializing UI Manager...")
+    debugLog("Widget: " .. tostring(self.widget))
+    debugLog("Services count: " .. (self.services and #self.services or 0))
     
     -- Create main frame
-    self:createMainFrame()
+    debugLog("Creating main frame...")
+    local success1, error1 = pcall(function()
+        self:createMainFrame()
+    end)
+    
+    if not success1 then
+        debugLog("Failed to create main frame: " .. tostring(error1), "ERROR")
+        return false
+    end
+    
+    debugLog("Main frame created, setting up layout...")
     
     -- Setup basic layout
-    self:setupLayout()
+    local success2, error2 = pcall(function()
+        self:setupLayout()
+    end)
+    
+    if not success2 then
+        debugLog("Failed to setup layout: " .. tostring(error2), "ERROR")
+        return false
+    end
     
     self.initialized = true
     debugLog("UI Manager initialized successfully")
