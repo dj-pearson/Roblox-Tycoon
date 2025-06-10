@@ -61,6 +61,9 @@ local serviceLoadOrder = {
     "features.validation.SchemaValidator",
     "features.analytics.PerformanceAnalyzer",
     "features.operations.BulkOperations",
+    "features.analytics.AnalyticsService",
+    "features.search.SearchService", 
+    "features.validation.SchemaService",
     "ui.core.UIManager"
 }
 

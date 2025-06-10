@@ -282,12 +282,16 @@ function UIManager:createSidebarNavigation(parent)
         self:showDataExplorerView()
     end)
     
-    yOffset = self:createNavItem(navContainer, "🏗️", "Schema Builder", yOffset, false, function()
-        self:showSchemaBuilderView()
+    yOffset = self:createNavItem(navContainer, "🔍", "Advanced Search", yOffset, false, function()
+        self:showAdvancedSearchView()
     end)
     
     yOffset = self:createNavItem(navContainer, "📊", "Analytics", yOffset, false, function()
         self:showAnalyticsView()
+    end)
+    
+    yOffset = self:createNavItem(navContainer, "🏗️", "Schema Builder", yOffset, false, function()
+        self:showSchemaBuilderView()
     end)
     
     yOffset = self:createNavItem(navContainer, "👥", "Sessions", yOffset, false, function()
@@ -1553,7 +1557,18 @@ function UIManager:showSchemaBuilderView()
         child:Destroy()
     end
     
-    self:createPlaceholderView("🏗️ Schema Builder", "Build and validate data schemas for your DataStores.")
+    self:createSchemaBuilderInterface()
+end
+
+function UIManager:showAdvancedSearchView()
+    if not self.mainContentArea then return end
+    
+    -- Clear existing content
+    for _, child in ipairs(self.mainContentArea:GetChildren()) do
+        child:Destroy()
+    end
+    
+    self:createAdvancedSearchInterface()
 end
 
 function UIManager:showAnalyticsView()
@@ -1564,7 +1579,7 @@ function UIManager:showAnalyticsView()
         child:Destroy()
     end
     
-    self:createPlaceholderView("📊 Analytics", "View performance metrics and usage analytics for your DataStores.")
+    self:createAnalyticsDashboard()
 end
 
 function UIManager:showSessionsView()
@@ -3147,6 +3162,512 @@ function UIManager:updateOperationButtonStates()
     end
     
     debugLog("Updated operation button states - DataStore: " .. tostring(hasDataStore) .. ", Key: " .. tostring(hasKey))
+end
+
+-- Advanced Search Interface
+function UIManager:createAdvancedSearchInterface()
+    -- Header
+    local header = self:createViewHeader("🔍 Advanced Search", "Search across all DataStore keys and values with powerful filters")
+    
+    -- Search controls panel
+    local searchPanel = Instance.new("Frame")
+    searchPanel.Name = "SearchPanel"
+    searchPanel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE * 2, 0, 120)
+    searchPanel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 80)
+    searchPanel.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    searchPanel.BorderSizePixel = 0
+    searchPanel.Parent = self.mainContentArea
+    
+    local searchCorner = Instance.new("UICorner")
+    searchCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    searchCorner.Parent = searchPanel
+    
+    -- Search input
+    local searchInput = Instance.new("TextBox")
+    searchInput.Name = "SearchInput"
+    searchInput.Size = UDim2.new(0.6, -Constants.UI.THEME.SPACING.MEDIUM, 0, 40)
+    searchInput.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, Constants.UI.THEME.SPACING.LARGE)
+    searchInput.BackgroundColor3 = Constants.UI.THEME.COLORS.INPUT_BACKGROUND
+    searchInput.BorderSizePixel = 1
+    searchInput.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_PRIMARY
+    searchInput.Text = ""
+    searchInput.PlaceholderText = "Enter search query..."
+    searchInput.Font = Constants.UI.THEME.FONTS.BODY
+    searchInput.TextSize = 14
+    searchInput.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    searchInput.Parent = searchPanel
+    
+    -- Search button
+    local searchButton = Instance.new("TextButton")
+    searchButton.Name = "SearchButton"
+    searchButton.Size = UDim2.new(0, 100, 0, 40)
+    searchButton.Position = UDim2.new(1, -120, 0, Constants.UI.THEME.SPACING.LARGE)
+    searchButton.BackgroundColor3 = Constants.UI.THEME.COLORS.PRIMARY
+    searchButton.BorderSizePixel = 0
+    searchButton.Text = "🔍 Search"
+    searchButton.Font = Constants.UI.THEME.FONTS.BODY
+    searchButton.TextSize = 14
+    searchButton.TextColor3 = Constants.UI.THEME.COLORS.TEXT_ON_PRIMARY
+    searchButton.Parent = searchPanel
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    buttonCorner.Parent = searchButton
+    
+    -- Search options
+    local optionsLabel = Instance.new("TextLabel")
+    optionsLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 20)
+    optionsLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, 70)
+    optionsLabel.BackgroundTransparency = 1
+    optionsLabel.Text = "🎯 Search in: Keys and Values | 📊 Filter: All Types | 🔧 Options: Case sensitive, Regex support"
+    optionsLabel.Font = Constants.UI.THEME.FONTS.BODY
+    optionsLabel.TextSize = 12
+    optionsLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    optionsLabel.TextXAlignment = Enum.TextXAlignment.Left
+    optionsLabel.Parent = searchPanel
+    
+    -- Results panel
+    local resultsPanel = Instance.new("Frame")
+    resultsPanel.Name = "ResultsPanel"
+    resultsPanel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE * 2, 1, -220)
+    resultsPanel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 220)
+    resultsPanel.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    resultsPanel.BorderSizePixel = 0
+    resultsPanel.Parent = self.mainContentArea
+    
+    local resultsCorner = Instance.new("UICorner")
+    resultsCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    resultsCorner.Parent = resultsPanel
+    
+    -- Results header
+    local resultsHeader = Instance.new("TextLabel")
+    resultsHeader.Name = "ResultsHeader"
+    resultsHeader.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 30)
+    resultsHeader.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, Constants.UI.THEME.SPACING.MEDIUM)
+    resultsHeader.BackgroundTransparency = 1
+    resultsHeader.Text = "📊 Search Results"
+    resultsHeader.Font = Constants.UI.THEME.FONTS.SUBHEADING
+    resultsHeader.TextSize = 16
+    resultsHeader.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    resultsHeader.TextXAlignment = Enum.TextXAlignment.Left
+    resultsHeader.Parent = resultsPanel
+    
+    -- Results list
+    local resultsList = Instance.new("ScrollingFrame")
+    resultsList.Name = "ResultsList"
+    resultsList.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, -50)
+    resultsList.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 40)
+    resultsList.BackgroundTransparency = 1
+    resultsList.BorderSizePixel = 0
+    resultsList.ScrollBarThickness = 4
+    resultsList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    resultsList.Parent = resultsPanel
+    
+    debugLog("Advanced Search interface created")
+    
+    -- Store references
+    self.searchElements = {
+        searchInput = searchInput,
+        searchButton = searchButton,
+        resultsList = resultsList,
+        resultsHeader = resultsHeader
+    }
+    
+    -- Connect functionality
+    searchButton.MouseButton1Click:Connect(function()
+        self:performAdvancedSearch()
+    end)
+    
+    searchInput.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            self:performAdvancedSearch()
+        end
+    end)
+end
+
+-- Analytics Dashboard
+function UIManager:createAnalyticsDashboard()
+    -- Header
+    local header = self:createViewHeader("📊 Analytics & Insights", "Performance metrics and usage analytics for your DataStores")
+    
+    -- Stats cards row
+    local statsRow = Instance.new("Frame")
+    statsRow.Name = "StatsRow"
+    statsRow.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE * 2, 0, 120)
+    statsRow.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 80)
+    statsRow.BackgroundTransparency = 1
+    statsRow.Parent = self.mainContentArea
+    
+    -- Create stats cards
+    self:createStatsCard(statsRow, "Operations", "156", "Total operations this session", 0)
+    self:createStatsCard(statsRow, "Avg Latency", "45ms", "Average response time", 1)
+    self:createStatsCard(statsRow, "DataStores", "8", "Accessed this session", 2)
+    self:createStatsCard(statsRow, "Error Rate", "2.1%", "Failed operations", 3)
+    
+    -- Charts section
+    local chartsSection = Instance.new("Frame")
+    chartsSection.Name = "ChartsSection"
+    chartsSection.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE * 2, 1, -240)
+    chartsSection.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 220)
+    chartsSection.BackgroundTransparency = 1
+    chartsSection.Parent = self.mainContentArea
+    
+    -- Create chart panels
+    self:createChartPanel(chartsSection, "Performance Over Time", 0, 0.48)
+    self:createChartPanel(chartsSection, "Usage Patterns", 0.52, 0.48)
+    self:createChartPanel(chartsSection, "Data Size Distribution", 0, 0.48, 1, -210)
+    self:createChartPanel(chartsSection, "Error Trends", 0.52, 0.48, 1, -210)
+    
+    debugLog("Analytics dashboard created")
+end
+
+-- Schema Builder Interface
+function UIManager:createSchemaBuilderInterface()
+    -- Header
+    local header = self:createViewHeader("🏗️ Schema Builder", "Define and validate data schemas for your DataStores")
+    
+    -- Main layout
+    local mainLayout = Instance.new("Frame")
+    mainLayout.Name = "MainLayout"
+    mainLayout.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE * 2, 1, -100)
+    mainLayout.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 80)
+    mainLayout.BackgroundTransparency = 1
+    mainLayout.Parent = self.mainContentArea
+    
+    -- Schema list panel (left)
+    local schemaListPanel = Instance.new("Frame")
+    schemaListPanel.Name = "SchemaListPanel"
+    schemaListPanel.Size = UDim2.new(0.3, -Constants.UI.THEME.SPACING.MEDIUM, 1, 0)
+    schemaListPanel.Position = UDim2.new(0, 0, 0, 0)
+    schemaListPanel.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    schemaListPanel.BorderSizePixel = 0
+    schemaListPanel.Parent = mainLayout
+    
+    local listCorner = Instance.new("UICorner")
+    listCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    listCorner.Parent = schemaListPanel
+    
+    -- Schema list header
+    local listTitle = Instance.new("TextLabel")
+    listTitle.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 40)
+    listTitle.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, Constants.UI.THEME.SPACING.MEDIUM)
+    listTitle.BackgroundTransparency = 1
+    listTitle.Text = "📋 Schema Library"
+    listTitle.Font = Constants.UI.THEME.FONTS.SUBHEADING
+    listTitle.TextSize = 16
+    listTitle.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    listTitle.TextXAlignment = Enum.TextXAlignment.Left
+    listTitle.TextYAlignment = Enum.TextYAlignment.Center
+    listTitle.Parent = schemaListPanel
+    
+    -- New schema button
+    local newSchemaButton = Instance.new("TextButton")
+    newSchemaButton.Name = "NewSchemaButton"
+    newSchemaButton.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 36)
+    newSchemaButton.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 55)
+    newSchemaButton.BackgroundColor3 = Constants.UI.THEME.COLORS.PRIMARY
+    newSchemaButton.BorderSizePixel = 0
+    newSchemaButton.Text = "➕ New Schema"
+    newSchemaButton.Font = Constants.UI.THEME.FONTS.BODY
+    newSchemaButton.TextSize = 13
+    newSchemaButton.TextColor3 = Constants.UI.THEME.COLORS.TEXT_ON_PRIMARY
+    newSchemaButton.Parent = schemaListPanel
+    
+    local newButtonCorner = Instance.new("UICorner")
+    newButtonCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    newButtonCorner.Parent = newSchemaButton
+    
+    -- Schema editor panel (right)
+    local schemaEditorPanel = Instance.new("Frame")
+    schemaEditorPanel.Name = "SchemaEditorPanel"
+    schemaEditorPanel.Size = UDim2.new(0.7, -Constants.UI.THEME.SPACING.MEDIUM, 1, 0)
+    schemaEditorPanel.Position = UDim2.new(0.3, Constants.UI.THEME.SPACING.MEDIUM, 0, 0)
+    schemaEditorPanel.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    schemaEditorPanel.BorderSizePixel = 0
+    schemaEditorPanel.Parent = mainLayout
+    
+    local editorCorner = Instance.new("UICorner")
+    editorCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    editorCorner.Parent = schemaEditorPanel
+    
+    -- Editor header
+    local editorTitle = Instance.new("TextLabel")
+    editorTitle.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 40)
+    editorTitle.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, Constants.UI.THEME.SPACING.MEDIUM)
+    editorTitle.BackgroundTransparency = 1
+    editorTitle.Text = "🔧 Schema Editor - Select or create a schema"
+    editorTitle.Font = Constants.UI.THEME.FONTS.SUBHEADING
+    editorTitle.TextSize = 16
+    editorTitle.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    editorTitle.TextXAlignment = Enum.TextXAlignment.Left
+    editorTitle.TextYAlignment = Enum.TextYAlignment.Center
+    editorTitle.Parent = schemaEditorPanel
+    
+    -- Schema templates
+    local templatesLabel = Instance.new("TextLabel")
+    templatesLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 30)
+    templatesLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 100)
+    templatesLabel.BackgroundTransparency = 1
+    templatesLabel.Text = "📁 Quick Start Templates:"
+    templatesLabel.Font = Constants.UI.THEME.FONTS.BODY
+    templatesLabel.TextSize = 14
+    templatesLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    templatesLabel.TextXAlignment = Enum.TextXAlignment.Left
+    templatesLabel.Parent = schemaListPanel
+    
+    -- Template buttons
+    local templates = {
+        {name = "Player Data", icon = "👤", desc = "Standard player profile"},
+        {name = "Game State", icon = "🎮", desc = "Game configuration"},
+        {name = "Inventory", icon = "🎒", desc = "Player inventory items"}
+    }
+    
+    for i, template in ipairs(templates) do
+        local templateButton = Instance.new("TextButton")
+        templateButton.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 30)
+        templateButton.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 125 + (i - 1) * 35)
+        templateButton.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+        templateButton.BorderSizePixel = 1
+        templateButton.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+        templateButton.Text = template.icon .. " " .. template.name
+        templateButton.Font = Constants.UI.THEME.FONTS.BODY
+        templateButton.TextSize = 12
+        templateButton.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+        templateButton.TextXAlignment = Enum.TextXAlignment.Left
+        templateButton.Parent = schemaListPanel
+        
+        local templateCorner = Instance.new("UICorner")
+        templateCorner.CornerRadius = UDim.new(0, 4)
+        templateCorner.Parent = templateButton
+    end
+    
+    debugLog("Schema Builder interface created")
+end
+
+-- Helper function to create view headers
+function UIManager:createViewHeader(title, description)
+    local header = Instance.new("Frame")
+    header.Name = "ViewHeader"
+    header.Size = UDim2.new(1, 0, 0, 60)
+    header.Position = UDim2.new(0, 0, 0, 0)
+    header.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    header.BorderSizePixel = 0
+    header.Parent = self.mainContentArea
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE, 0, 30)
+    titleLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.Font = Constants.UI.THEME.FONTS.HEADING
+    titleLabel.TextSize = 24
+    titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+    titleLabel.Parent = header
+    
+    local descLabel = Instance.new("TextLabel")
+    descLabel.Name = "Description"
+    descLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.XLARGE, 0, 20)
+    descLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.XLARGE, 0, 35)
+    descLabel.BackgroundTransparency = 1
+    descLabel.Text = description
+    descLabel.Font = Constants.UI.THEME.FONTS.BODY
+    descLabel.TextSize = 14
+    descLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    descLabel.TextXAlignment = Enum.TextXAlignment.Left
+    descLabel.TextYAlignment = Enum.TextYAlignment.Center
+    descLabel.Parent = header
+    
+    return header
+end
+
+-- Helper function to create stats cards
+function UIManager:createStatsCard(parent, title, value, subtitle, index)
+    local cardWidth = 0.25
+    local cardX = index * cardWidth
+    
+    local card = Instance.new("Frame")
+    card.Name = title .. "Card"
+    card.Size = UDim2.new(cardWidth, -Constants.UI.THEME.SPACING.SMALL, 1, 0)
+    card.Position = UDim2.new(cardX, index > 0 and Constants.UI.THEME.SPACING.SMALL or 0, 0, 0)
+    card.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    card.BorderSizePixel = 1
+    card.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+    card.Parent = parent
+    
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    cardCorner.Parent = card
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, 20)
+    titleLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, Constants.UI.THEME.SPACING.MEDIUM)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.Font = Constants.UI.THEME.FONTS.BODY
+    titleLabel.TextSize = 12
+    titleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_SECONDARY
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = card
+    
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, 30)
+    valueLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 30)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = value
+    valueLabel.Font = Constants.UI.THEME.FONTS.HEADING
+    valueLabel.TextSize = 20
+    valueLabel.TextColor3 = Constants.UI.THEME.COLORS.PRIMARY
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+    valueLabel.Parent = card
+    
+    local subtitleLabel = Instance.new("TextLabel")
+    subtitleLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, 16)
+    subtitleLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 1, -25)
+    subtitleLabel.BackgroundTransparency = 1
+    subtitleLabel.Text = subtitle
+    subtitleLabel.Font = Constants.UI.THEME.FONTS.BODY
+    subtitleLabel.TextSize = 11
+    subtitleLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_TERTIARY
+    subtitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    subtitleLabel.Parent = card
+    
+    return card
+end
+
+-- Helper function to create chart panels
+function UIManager:createChartPanel(parent, title, x, width, y, height)
+    x = x or 0
+    width = width or 1
+    y = y or 0
+    height = height or 1
+    
+    local panel = Instance.new("Frame")
+    panel.Name = title:gsub("%s+", "") .. "Panel"
+    panel.Size = UDim2.new(width, -Constants.UI.THEME.SPACING.MEDIUM, height, -Constants.UI.THEME.SPACING.MEDIUM)
+    panel.Position = UDim2.new(x, x > 0 and Constants.UI.THEME.SPACING.MEDIUM or 0, y, y > 0 and Constants.UI.THEME.SPACING.MEDIUM or 0)
+    panel.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_SECONDARY
+    panel.BorderSizePixel = 1
+    panel.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+    panel.Parent = parent
+    
+    local panelCorner = Instance.new("UICorner")
+    panelCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+    panelCorner.Parent = panel
+    
+    local panelTitle = Instance.new("TextLabel")
+    panelTitle.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 0, 30)
+    panelTitle.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, Constants.UI.THEME.SPACING.MEDIUM)
+    panelTitle.BackgroundTransparency = 1
+    panelTitle.Text = title
+    panelTitle.Font = Constants.UI.THEME.FONTS.SUBHEADING
+    panelTitle.TextSize = 14
+    panelTitle.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+    panelTitle.TextXAlignment = Enum.TextXAlignment.Left
+    panelTitle.Parent = panel
+    
+    -- Chart placeholder
+    local chartArea = Instance.new("Frame")
+    chartArea.Name = "ChartArea"
+    chartArea.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, -50)
+    chartArea.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, 40)
+    chartArea.BackgroundTransparency = 1
+    chartArea.Parent = panel
+    
+    local placeholderText = Instance.new("TextLabel")
+    placeholderText.Size = UDim2.new(1, 0, 1, 0)
+    placeholderText.BackgroundTransparency = 1
+    placeholderText.Text = "📈 " .. title .. "\nVisualization ready for data"
+    placeholderText.Font = Constants.UI.THEME.FONTS.BODY
+    placeholderText.TextSize = 14
+    placeholderText.TextColor3 = Constants.UI.THEME.COLORS.TEXT_TERTIARY
+    placeholderText.TextXAlignment = Enum.TextXAlignment.Center
+    placeholderText.TextYAlignment = Enum.TextYAlignment.Center
+    placeholderText.Parent = chartArea
+    
+    return panel
+end
+
+-- Advanced Search Functions
+function UIManager:performAdvancedSearch()
+    if not self.searchElements then return end
+    
+    local query = self.searchElements.searchInput.Text
+    if query == "" then
+        self:showNotification("⚠️ Please enter a search query")
+        return
+    end
+    
+    debugLog("Performing advanced search: " .. query, "INFO")
+    
+    -- Update results header
+    self.searchElements.resultsHeader.Text = "🔍 Searching..."
+    
+    -- Mock search results for demonstration
+    spawn(function()
+        wait(0.5) -- Simulate search time
+        
+        local mockResults = {
+            {type = "key", dataStore = "PlayerData", key = "Player_7768610061", relevance = 95},
+            {type = "value", dataStore = "GameSettings", key = "ServerConfig", relevance = 78},
+            {type = "key", dataStore = "WorldData", key = "WorldPlacedItems_" .. query, relevance = 85}
+        }
+        
+        self:displaySearchResults(mockResults, query)
+    end)
+end
+
+function UIManager:displaySearchResults(results, query)
+    if not self.searchElements then return end
+    
+    -- Clear existing results
+    for _, child in ipairs(self.searchElements.resultsList:GetChildren()) do
+        child:Destroy()
+    end
+    
+    -- Update header
+    self.searchElements.resultsHeader.Text = string.format("📊 Found %d results for '%s'", #results, query)
+    
+    -- Create result items
+    for i, result in ipairs(results) do
+        local resultItem = Instance.new("Frame")
+        resultItem.Name = "Result" .. i
+        resultItem.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.MEDIUM, 0, 60)
+        resultItem.Position = UDim2.new(0, Constants.UI.THEME.SPACING.MEDIUM, 0, (i - 1) * 65)
+        resultItem.BackgroundColor3 = Constants.UI.THEME.COLORS.BACKGROUND_TERTIARY
+        resultItem.BorderSizePixel = 1
+        resultItem.BorderColor3 = Constants.UI.THEME.COLORS.BORDER_SECONDARY
+        resultItem.Parent = self.searchElements.resultsList
+        
+        local itemCorner = Instance.new("UICorner")
+        itemCorner.CornerRadius = UDim.new(0, Constants.UI.THEME.SIZES.BORDER_RADIUS)
+        itemCorner.Parent = resultItem
+        
+        -- Result content
+        local resultLabel = Instance.new("TextLabel")
+        resultLabel.Size = UDim2.new(1, -Constants.UI.THEME.SPACING.LARGE, 1, 0)
+        resultLabel.Position = UDim2.new(0, Constants.UI.THEME.SPACING.LARGE, 0, 0)
+        resultLabel.BackgroundTransparency = 1
+        resultLabel.Text = string.format("%s %s\n%s • Relevance: %d%%", 
+            result.type == "key" and "🔑" or "📄",
+            result.key,
+            result.dataStore,
+            result.relevance
+        )
+        resultLabel.Font = Constants.UI.THEME.FONTS.BODY
+        resultLabel.TextSize = 13
+        resultLabel.TextColor3 = Constants.UI.THEME.COLORS.TEXT_PRIMARY
+        resultLabel.TextXAlignment = Enum.TextXAlignment.Left
+        resultLabel.TextYAlignment = Enum.TextYAlignment.Center
+        resultLabel.Parent = resultItem
+    end
+    
+    -- Update canvas size
+    self.searchElements.resultsList.CanvasSize = UDim2.new(0, 0, 0, #results * 65)
+    
+    debugLog(string.format("Displayed %d search results", #results), "INFO")
 end
 
 return UIManager 
