@@ -540,36 +540,10 @@ function DataStoreManager:getDataStoreNames()
         "Achievements"
     }
     
-    -- Filter to only include DataStores that actually have data
-    local activeDataStores = {}
-    
-    for _, storeName in ipairs(commonDataStores) do
-        -- Try to list keys to see if the DataStore has any data
-        local hasData = false
-        local success, result = pcall(function()
-            local store = DataStoreManager.getDataStore(storeName)
-            if store then
-                local keys = store:ListKeysAsync()
-                local firstPage = keys:GetCurrentPage()
-                hasData = #firstPage > 0
-            end
-            return hasData
-        end)
-        
-        if success and result then
-            table.insert(activeDataStores, storeName)
-            debugLog("Found active DataStore: " .. storeName)
-        end
-    end
-    
-    -- If no active DataStores found, return the common ones for exploration
-    if #activeDataStores == 0 then
-        debugLog("No active DataStores found, returning common names for exploration")
-        return commonDataStores
-    end
-    
-    debugLog("Found " .. #activeDataStores .. " active DataStores")
-    return activeDataStores
+    -- For now, just return the common DataStore names for exploration
+    -- In a production environment, you could implement tracking of which DataStores are actually used
+    debugLog("Returning " .. #commonDataStores .. " common DataStore names for exploration")
+    return commonDataStores
 end
 
 -- Get keys for a specific DataStore
@@ -579,17 +553,12 @@ function DataStoreManager:getDataStoreKeys(datastoreName, scope, maxKeys)
     maxKeys = maxKeys or 50
     scope = scope or ""
     
-    local store = DataStoreManager.getDataStore(datastoreName, scope)
-    if not store then
-        debugLog("Failed to get DataStore: " .. datastoreName, "ERROR")
-        return {}
-    end
-    
-    local keys = {}
     local success, result = pcall(function()
+        local store = DataStoreService:GetDataStore(datastoreName, scope)
         local keyPages = store:ListKeysAsync()
         local currentPage = keyPages:GetCurrentPage()
         
+        local keys = {}
         for _, keyInfo in ipairs(currentPage) do
             table.insert(keys, {
                 key = keyInfo.KeyName,
@@ -606,8 +575,8 @@ function DataStoreManager:getDataStoreKeys(datastoreName, scope, maxKeys)
     end)
     
     if success then
-        debugLog("Retrieved " .. #keys .. " keys for " .. datastoreName)
-        return keys
+        debugLog("Retrieved " .. #result .. " keys for " .. datastoreName)
+        return result
     else
         debugLog("Failed to list keys for " .. datastoreName .. ": " .. tostring(result), "ERROR")
         return {}
@@ -618,9 +587,16 @@ end
 function DataStoreManager:getDataInfo(datastoreName, key, scope)
     debugLog("Getting data info for: " .. datastoreName .. " -> " .. key)
     
-    local data, error = DataStoreManager.readData(datastoreName, key, {scope = scope})
+    local data, error
+    local success, result = pcall(function()
+        local store = DataStoreService:GetDataStore(datastoreName, scope or "")
+        return store:GetAsync(key)
+    end)
     
-    if error then
+    if success then
+        data = result
+    else
+        error = tostring(result)
         debugLog("Failed to read data: " .. error, "ERROR")
         return {
             exists = false,

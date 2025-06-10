@@ -480,6 +480,16 @@ function UIManager:loadDataStores()
     -- Set up service references - try both stored services and fallback
     local dataStoreManager = self.services["core.data.DataStoreManager"]
     
+    -- Debug: Check what methods the DataStore Manager has
+    if dataStoreManager then
+        debugLog("DataStore Manager found. Type: " .. type(dataStoreManager))
+        debugLog("Has getDataStoreNames: " .. tostring(dataStoreManager.getDataStoreNames ~= nil))
+        debugLog("Has getDataStoreKeys: " .. tostring(dataStoreManager.getDataStoreKeys ~= nil))
+        debugLog("Has getDataInfo: " .. tostring(dataStoreManager.getDataInfo ~= nil))
+    else
+        debugLog("No DataStore Manager found in services")
+    end
+    
     -- Check if DataStore Manager has the required methods  
     if not dataStoreManager or not dataStoreManager.getDataStoreNames then
         debugLog("DataStore Manager not found or missing methods, creating fallback...", "WARN")
