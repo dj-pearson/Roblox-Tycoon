@@ -160,10 +160,10 @@ local success, uiError = pcall(function()
                 serviceCount = serviceCount + 1
             end
             debugLog("MAIN", "INFO", "Creating UI Manager instance with " .. serviceCount .. " services")
-            return UIManagerModule.new(pluginObject, widget, Services)
+            return UIManagerModule.new(widget, Services, PLUGIN_INFO)
         end)
         
-        if success then
+        if success and result and result.refresh then
             uiManager = result
             debugLog("MAIN", "INFO", "Fallback UI Manager instance created successfully")
             
@@ -186,7 +186,20 @@ local success, uiError = pcall(function()
                 interface = uiManager
             }
         else
-            debugLog("MAIN", "ERROR", "Failed to create fallback UI Manager: " .. tostring(result))
+            if success then
+                debugLog("MAIN", "ERROR", "UI Manager created but missing refresh method: " .. tostring(result))
+            else
+                debugLog("MAIN", "ERROR", "Failed to create fallback UI Manager: " .. tostring(result))
+            end
+            
+            -- Create a minimal click handler without refresh
+            button.Click:Connect(function()
+                debugLog("MAIN", "Plugin button clicked! Toggling widget...")
+                widget.Enabled = not widget.Enabled
+                debugLog("MAIN", "Widget enabled: " .. tostring(widget.Enabled))
+            end)
+            
+            debugLog("MAIN", "Basic click handler connected (no UI Manager)")
             return
         end
     else

@@ -61,7 +61,14 @@ function UIManager:initialize()
     
     debugLog("Initializing UI Manager...")
     debugLog("Widget: " .. tostring(self.widget))
-    debugLog("Services count: " .. (self.services and #self.services or 0))
+    
+    local serviceCount = 0
+    if self.services then
+        for _ in pairs(self.services) do
+            serviceCount = serviceCount + 1
+        end
+    end
+    debugLog("Services count: " .. serviceCount)
     
     -- Create main frame
     debugLog("Creating main frame...")
