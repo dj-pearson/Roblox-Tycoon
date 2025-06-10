@@ -572,6 +572,12 @@ function UIManager:loadDataStores()
     
     explorer:setUIManager(self)
     
+    -- Register callback for when keys are loaded
+    explorer:registerCallback("onKeysLoaded", function(keys)
+        debugLog("Keys loaded callback triggered with " .. #keys .. " keys")
+        self:updateKeyList(keys)
+    end)
+    
     local datastores = explorer:getDataStores()
     
     if not self.explorerElements or not self.explorerElements.datastoreList then
@@ -630,11 +636,7 @@ function UIManager:selectDataStore(datastoreName)
     local explorer = self.services["features.explorer.DataExplorer"]
     explorer:selectDataStore(datastoreName)
     
-    -- Load keys
-    task.spawn(function()
-        wait(0.1) -- Allow for async loading
-        self:loadKeys()
-    end)
+    -- Keys will be loaded automatically via callback - no need to manually call loadKeys
 end
 
 -- Load keys for selected DataStore
@@ -688,6 +690,55 @@ function UIManager:loadKeys()
     -- Update scroll canvas
     keyList.CanvasSize = UDim2.new(0, 0, 0, #state.keys * 32)
     debugLog("Loaded " .. #state.keys .. " keys into explorer")
+end
+
+-- Update key list with callback data
+function UIManager:updateKeyList(keys)
+    debugLog("Updating key list with " .. #keys .. " keys")
+    
+    if not self.explorerElements or not self.explorerElements.keyList then
+        debugLog("Key list element not found", "ERROR")
+        return
+    end
+    
+    local keyList = self.explorerElements.keyList
+    
+    -- Clear existing items
+    for _, child in ipairs(keyList:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    -- Add key buttons
+    for i, keyInfo in ipairs(keys) do
+        local button = Instance.new("TextButton")
+        button.Name = keyInfo.key
+        button.Size = UDim2.new(1, -10, 0, 30)
+        button.Position = UDim2.new(0, 5, 0, (i-1) * 32)
+        button.BackgroundColor3 = Constants.UI.THEME.COLORS.ACCENT
+        button.BorderSizePixel = 1
+        button.BorderColor3 = Constants.UI.THEME.COLORS.BORDER
+        button.Text = keyInfo.key .. " (" .. keyInfo.lastModified .. ")"
+        button.Font = Constants.UI.THEME.FONTS.CODE
+        button.TextSize = 11
+        button.TextColor3 = Constants.UI.THEME.COLORS.TEXT
+        button.TextXAlignment = Enum.TextXAlignment.Left
+        button.Parent = keyList
+        
+        -- Add padding
+        local padding = Instance.new("UIPadding")
+        padding.PaddingLeft = UDim.new(0, 10)
+        padding.Parent = button
+        
+        button.MouseButton1Click:Connect(function()
+            self:selectKey(keyInfo.key)
+        end)
+    end
+    
+    -- Update scroll canvas
+    keyList.CanvasSize = UDim2.new(0, 0, 0, #keys * 32)
+    debugLog("Updated key list display with " .. #keys .. " keys")
 end
 
 -- Select a key and display its data
